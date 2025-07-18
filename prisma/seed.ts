@@ -1,0 +1,1 @@
+// Placeholder for Prisma seed script. Use this to generate mock data. 
