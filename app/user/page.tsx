@@ -1,5 +1,7 @@
 'use client';
 
-export default function UserPage() {
-  return <div>User (Customer) Main Screen - Coming Soon</div>;
+import { Button } from "@/components/ui/button";
+
+export default function Example() {
+  return <Button>Click me</Button>;
 } 
