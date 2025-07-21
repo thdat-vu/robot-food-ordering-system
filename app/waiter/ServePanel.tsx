@@ -8,14 +8,14 @@ const Toast = ({ message }: { message: string }) => (
 );
 
 const MapPanel = () => (
-  <div className="w-full h-[340px] md:h-[460px] flex items-center justify-center bg-gradient-to-br from-emerald-100 to-white rounded-[2rem] shadow-2xl border-4 border-transparent bg-clip-padding relative overflow-hidden group transition-all duration-300">
-    <div className="absolute inset-0 rounded-[2rem] pointer-events-none border-4 border-emerald-200 group-hover:border-emerald-400 transition-all duration-300"></div>
+  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100 to-white rounded-2xl shadow-2xl border-4 border-transparent bg-clip-padding relative overflow-hidden group transition-all duration-300">
+    <div className="absolute inset-0 rounded-2xl pointer-events-none border-4 border-emerald-200 group-hover:border-emerald-400 transition-all duration-300"></div>
     <iframe
       src="https://map-doan-nhattruowngs-projects.vercel.app/map/5"
       allowFullScreen
       loading="lazy"
       referrerPolicy="strict-origin-when-cross-origin"
-      className="rounded-[2rem] h-full w-full shadow-lg"
+      className="rounded-2xl h-full w-full shadow-lg"
       title="Map Embed"
       style={{ border: "none" }}
     />
@@ -51,37 +51,37 @@ const typeStyle: Record<
     label: "Nước ép",
     bg: "bg-yellow-50",
     border: "border-yellow-300",
-    icon: <CupSoda className="w-6 h-6 text-yellow-500 mr-4" />,
+    icon: <CupSoda className="w-5 h-5 text-yellow-500 mr-3" />,
   },
   coffee: {
     label: "Cà phê",
     bg: "bg-amber-50",
     border: "border-amber-300",
-    icon: <Coffee className="w-6 h-6 text-amber-700 mr-4" />,
+    icon: <Coffee className="w-5 h-5 text-amber-700 mr-3" />,
   },
   tea: {
     label: "Trà",
     bg: "bg-green-50",
     border: "border-green-300",
-    icon: <GlassWater className="w-6 h-6 text-green-600 mr-4" />,
+    icon: <GlassWater className="w-5 h-5 text-green-600 mr-3" />,
   },
   milk: {
     label: "Sữa",
     bg: "bg-gray-50",
     border: "border-gray-300",
-    icon: <Milk className="w-6 h-6 text-gray-400 mr-4" />,
+    icon: <Milk className="w-5 h-5 text-gray-400 mr-3" />,
   },
   water: {
     label: "Nước suối",
     bg: "bg-blue-50",
     border: "border-blue-300",
-    icon: <GlassWater className="w-6 h-6 text-blue-400 mr-4" />,
+    icon: <GlassWater className="w-5 h-5 text-blue-400 mr-3" />,
   },
   soda: {
     label: "Soda",
     bg: "bg-cyan-50",
     border: "border-cyan-300",
-    icon: <CupSoda className="w-6 h-6 text-cyan-500 mr-4" />,
+    icon: <CupSoda className="w-5 h-5 text-cyan-500 mr-3" />,
   },
 };
 
@@ -116,79 +116,82 @@ const ServePanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-gradient-to-br from-emerald-50 to-white">
+    <div className="flex h-screen w-full bg-gradient-to-br from-emerald-50 to-white">
       {toast && <Toast message={toast} />}
 
       {/* Sidebar */}
-      <div className="w-full md:max-w-[300px] flex-shrink-0 flex flex-col justify-start items-start overflow-y-auto max-h-[80vh] pr-2 scrollbar-thin scrollbar-thumb-emerald-400">
-        {Object.entries(grouped).map(([type, items]) => {
-          const style = typeStyle[type] || {
-            label: type,
-            bg: "bg-white",
-            border: "border-gray-200",
-            icon: null,
-          };
-          return (
-            <div key={type} className="mb-6 w-full">
-              <div className="flex items-center mb-2">
-                {style.icon}
-                <span className="font-bold text-lg text-emerald-700">
-                  {style.label}
-                </span>
+      <div className="w-80 flex-shrink-0 h-full overflow-y-auto p-4 border-r border-emerald-200">
+        <div className="space-y-4">
+          {Object.entries(grouped).map(([type, items]) => {
+            const style = typeStyle[type] || {
+              label: type,
+              bg: "bg-white",
+              border: "border-gray-200",
+              icon: null,
+            };
+            return (
+              <div key={type} className="w-full">
+                <div className="flex items-center mb-3">
+                  {style.icon}
+                  <span className="font-bold text-lg text-emerald-700">
+                    {style.label}
+                  </span>
+                </div>
+                <ul className="space-y-2 w-full">
+                  {items
+                    .filter((dish) => !dish.served)
+                    .map((dish) => (
+                      <li key={dish.id}>
+                        <label
+                          className={`flex items-center px-4 py-3 rounded-xl border-2 ${style.bg} ${style.border} cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md hover:bg-emerald-50 focus-within:ring-2 focus-within:ring-emerald-400 group w-full`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={dish.selected}
+                            onChange={() => toggleDish(dish.id)}
+                            className="accent-emerald-500 w-5 h-5 mr-3 transition-all duration-200 focus:ring-2 focus:ring-emerald-400 rounded"
+                          />
+                          <span className="font-medium select-none text-base group-hover:text-emerald-700 transition-colors duration-150">
+                            {dish.name}
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                </ul>
               </div>
-              <ul className="space-y-3 w-full">
-                {items
-                  .filter((dish) => !dish.served)
-                  .map((dish) => (
-                    <li key={dish.id}>
-                      <label
-                        className={`flex items-center px-6 py-5 rounded-2xl border-2 ${style.bg} ${style.border} cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:bg-emerald-50 focus-within:ring-2 focus-within:ring-emerald-400 group w-full`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={dish.selected}
-                          onChange={() => toggleDish(dish.id)}
-                          className="accent-emerald-500 w-6 h-6 mr-4 transition-all duration-200 focus:ring-2 focus:ring-emerald-400 rounded-lg"
-                        />
-                        <span className="font-semibold select-none text-lg group-hover:text-emerald-700 transition-colors duration-150">
-                          {dish.name}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Main Content */}
-      {/* Main Content */}
-      <div className="flex-1 min-w-0 max-w-4xl w-full px-2 md:px-4 flex flex-col items-center justify-start">
-        <h2 className="text-xl md:text-2xl font-bold mb-4 text-emerald-700 text-center w-full">
-          Chọn món để <br className="block md:hidden" /> phục vụ
-        </h2>
+      <div className="flex-1 h-full flex flex-col">
+        <div className="p-6 flex-1 flex flex-col">
+          <h2 className="text-2xl font-bold mb-6 text-emerald-700 text-center">
+            Chọn món để phục vụ
+          </h2>
 
-        <div className="w-full min-h-[320px]">
-          {hasSelected ? (
-            <MapPanel />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400 text-lg italic">
-              Vui lòng chọn ít nhất 1 món...
+          <div className="flex-1 w-full">
+            {hasSelected ? (
+              <MapPanel />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xl italic bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+                Vui lòng chọn ít nhất 1 món...
+              </div>
+            )}
+          </div>
+
+          {hasSelected && (
+            <div className="w-full flex justify-center mt-6">
+              <button
+                className="py-4 px-8 rounded-full font-semibold text-white text-xl bg-emerald-500 hover:bg-emerald-600 transition duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-95"
+                onClick={handleServe}
+              >
+                🚀 Phục vụ
+              </button>
             </div>
           )}
         </div>
-
-        {hasSelected && (
-          <div className="w-full flex justify-center">
-            <button
-              className="mt-6 mb-4 py-3 px-6 rounded-full font-semibold text-white text-lg bg-emerald-500 hover:bg-emerald-600 transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-95"
-              onClick={handleServe}
-            >
-              🚀 Phục vụ
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
