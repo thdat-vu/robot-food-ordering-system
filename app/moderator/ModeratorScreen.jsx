@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 import TableDetailDialog from './ModeratorFeedbackFromTable';
 
@@ -88,14 +89,12 @@ const ModeratorScreen = () => {
             </div>
           ))}
         </div>
-
-        {/* Dialog hiển thị chi tiết table */}
         <TableDetailDialog
           open={openDialog}
           onClose={() => setOpenDialog(false)}
           tableData={selectedTable}
           onStatusChange={handleStatusChange}
-        />
+        /> 
       </div>
     </div>
   );
