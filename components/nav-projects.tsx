@@ -1,0 +1,1 @@
+// Placeholder for NavProjects component. Implement project navigation here. 
