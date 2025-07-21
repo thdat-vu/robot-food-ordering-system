@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import FeedbackDetailDialog from './FeedbackDetailDialog'; // ✅ Adjust path as needed
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const ModeratorFeedbackFromTable = ({ open, onClose, tableData }) => {
   if (!open || !tableData) return null;
@@ -20,20 +22,24 @@ const ModeratorFeedbackFromTable = ({ open, onClose, tableData }) => {
   };
 
   const handleConfirm = (index) => {
+    console.log("Confirm clicked", index); // ✅ kiểm tra click
     const assigned = assignments[index];
     if (!assigned) {
-      alert('Vui lòng chọn nhân viên để xử lý!');
+      toast.error('Vui lòng chọn nhân viên để xử lý!');
       return;
     }
-
+  
     setConfirmedRows((prev) => ({ ...prev, [index]: true }));
-
-    alert(
-      `Feedback ${index + 1} đã giao cho ${
-        staffList.find((s) => s.id === assigned).name
-      }`
-    );
+  
+    const staff = staffList.find((s) => s.id === assigned);
+    if (staff) {
+      console.log("Staff found", staff.name); // ✅ kiểm tra logic
+      toast.success(`Feedback ${index + 1} đã giao cho ${staff.name}`);
+    } else {
+      toast.error(`Không tìm thấy nhân viên phù hợp!`);
+    }
   };
+  
 
   return (
     <>
@@ -127,8 +133,10 @@ const ModeratorFeedbackFromTable = ({ open, onClose, tableData }) => {
         request={selectedRequest}
         tableId={tableData.id}
       />
+       <ToastContainer position="top-right" autoClose={3000} />
     </>
   );
 };
+
 
 export default ModeratorFeedbackFromTable;
