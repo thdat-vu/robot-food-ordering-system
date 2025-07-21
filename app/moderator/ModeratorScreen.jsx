@@ -2,14 +2,6 @@ import React, { useState } from 'react';
 import TableDetailDialog from './ModeratorFeedbackFromTable';
 
 const ModeratorScreen = () => {
-  const cells = Array.from({ length: 12 }, (_, index) => ({
-    id: (index + 1).toString().padStart(2, '0'),
-    isBell: index === 4,
-  }));
-
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedTable, setSelectedTable] = useState(null);
-
   const mockData = {
     '05': {
       id: '05',
@@ -19,7 +11,25 @@ const ModeratorScreen = () => {
         { time: '9:00 25/07/2025', content: 'Đồ ăn nguội', note: 'Có', pay: 'Đã Thanh Toán' },
       ],
     },
+    '06': {
+      id: '06',
+      requests: [
+        { time: '10:00 25/07/2025', content: 'Xin thêm nước', note: 'Không', pay: 'Chưa Thanh Toán' },
+        { time: '11:00 25/07/2025', content: 'Xin thêm khăn giấy', note: 'Có', pay: 'Đã Thanh Toán' },
+      ],
+    },
   };
+
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedTable, setSelectedTable] = useState(null);
+
+  // ✅ Bắt đầu với các bàn trong mockData có chuông
+  const [tablesWithBell, setTablesWithBell] = useState(() =>
+    Object.keys(mockData).reduce((acc, tableId) => {
+      acc[tableId] = true;
+      return acc;
+    }, {})
+  );
 
   const handleBellClick = (id) => {
     const data = mockData[id];
@@ -28,6 +38,23 @@ const ModeratorScreen = () => {
       setOpenDialog(true);
     }
   };
+
+  // ✅ Callback từ TableDetailDialog để cập nhật chuông
+  const handleStatusChange = (tableId, allConfirmed) => {
+    setTablesWithBell((prev) => ({
+      ...prev,
+      [tableId]: !allConfirmed,
+    }));
+  };
+
+  // ✅ Tạo grid 12 bàn
+  const cells = Array.from({ length: 12 }, (_, index) => {
+    const id = (index + 1).toString().padStart(2, '0');
+    return {
+      id,
+      isBell: tablesWithBell[id],
+    };
+  });
 
   return (
     <div className="w-screen h-screen bg-gray-100 p-4 md:p-8 overflow-hidden">
@@ -62,11 +89,12 @@ const ModeratorScreen = () => {
           ))}
         </div>
 
-        {/* Dialog */}
+        {/* Dialog hiển thị chi tiết table */}
         <TableDetailDialog
           open={openDialog}
           onClose={() => setOpenDialog(false)}
           tableData={selectedTable}
+          onStatusChange={handleStatusChange}
         />
       </div>
     </div>

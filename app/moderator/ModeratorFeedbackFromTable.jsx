@@ -1,9 +1,27 @@
-import React, { useState } from 'react';
-import FeedbackDetailDialog from './FeedbackDetailDialog'; // ✅ Adjust path as needed
+import React, { useEffect, useState } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const ModeratorFeedbackFromTable = ({ open, onClose, tableData }) => {
+const FeedbackDetailDialog = ({ open, onClose, request, tableId }) => {
+  if (!open || !request) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-30 flex items-center justify-center">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg shadow-lg">
+        <h2 className="text-xl font-bold mb-4">Chi tiết feedback bàn {tableId}</h2>
+        <p><strong>Thời gian:</strong> {request.time}</p>
+        <p><strong>Nội dung:</strong> {request.content}</p>
+        <p><strong>Ghi chú:</strong> {request.note}</p>
+        <p><strong>Thanh toán:</strong> {request.pay}</p>
+        <div className="mt-4 text-right">
+          <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded">Đóng</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ModeratorFeedbackFromTable = ({ open, onClose, tableData, onStatusChange }) => {
   if (!open || !tableData) return null;
 
   const staffList = [
@@ -22,24 +40,28 @@ const ModeratorFeedbackFromTable = ({ open, onClose, tableData }) => {
   };
 
   const handleConfirm = (index) => {
-    console.log("Confirm clicked", index); // ✅ kiểm tra click
     const assigned = assignments[index];
     if (!assigned) {
       toast.error('Vui lòng chọn nhân viên để xử lý!');
       return;
     }
-  
+
     setConfirmedRows((prev) => ({ ...prev, [index]: true }));
-  
+
     const staff = staffList.find((s) => s.id === assigned);
-    if (staff) {
-      console.log("Staff found", staff.name); // ✅ kiểm tra logic
-      toast.success(`Feedback ${index + 1} đã giao cho ${staff.name}`);
-    } else {
-      toast.error(`Không tìm thấy nhân viên phù hợp!`);
-    }
+    toast.success(`Feedback ${index + 1} đã giao cho ${staff?.name ?? 'Không rõ'}`);
   };
-  
+
+  // 🔔 Kiểm tra xác nhận xong hết hay chưa và gọi callback cho màn hình chính
+  useEffect(() => {
+    const allConfirmed =
+      tableData.requests.length > 0 &&
+      tableData.requests.every((_, index) => confirmedRows[index]);
+
+    if (typeof onStatusChange === 'function') {
+      onStatusChange(tableData.id, allConfirmed);
+    }
+  }, [confirmedRows]);
 
   return (
     <>
@@ -126,17 +148,17 @@ const ModeratorFeedbackFromTable = ({ open, onClose, tableData }) => {
         </div>
       </div>
 
-      {/* Feedback detail popup */}
+      {/* Chi tiết từng feedback (popup nhỏ) */}
       <FeedbackDetailDialog
         open={!!selectedRequest}
         onClose={() => setSelectedRequest(null)}
         request={selectedRequest}
         tableId={tableData.id}
       />
-       <ToastContainer position="top-right" autoClose={3000} />
+
+      <ToastContainer position="top-right" autoClose={3000} />
     </>
   );
 };
-
 
 export default ModeratorFeedbackFromTable;
