@@ -9,7 +9,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/passion-fruit-juice.jpg",
-    orderTime: "10:30"
+    orderTime: "10:30",
+    estimatedTime: "5 phút"
   },
   {
     id: 2,
@@ -19,7 +20,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/passion-fruit-juice.jpg",
-    orderTime: "10:32"
+    orderTime: "10:32",
+    estimatedTime: "5 phút"
   },
   {
     id: 3,
@@ -29,7 +31,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/passion-fruit-juice.jpg",
-    orderTime: "10:35"
+    orderTime: "10:35",
+    estimatedTime: "5 phút"
   },
   {
     id: 4,
@@ -39,7 +42,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/passion-fruit-juice.jpg",
-    orderTime: "10:37"
+    orderTime: "10:37",
+    estimatedTime: "5 phút"
   },
   {
     id: 5,
@@ -49,7 +53,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/peach-tea.jpg",
-    orderTime: "10:28"
+    orderTime: "10:28",
+    estimatedTime: "7 phút"
   },
   {
     id: 6,
@@ -59,7 +64,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/peach-tea.jpg",
-    orderTime: "10:33"
+    orderTime: "10:33",
+    estimatedTime: "7 phút"
   },
   {
     id: 7,
@@ -69,7 +75,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/iced-cacao.jpg",
-    orderTime: "10:25"
+    orderTime: "10:25",
+    estimatedTime: "8 phút"
   },
   // Món chính
   {
@@ -80,7 +87,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/pho-bo.jpg",
-    orderTime: "10:40"
+    orderTime: "10:40",
+    estimatedTime: "20 phút"
   },
   {
     id: 9,
@@ -90,7 +98,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/pho-bo.jpg",
-    orderTime: "10:45"
+    orderTime: "10:45",
+    estimatedTime: "20 phút"
   },
   {
     id: 10,
@@ -100,7 +109,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/bun-bo-hue.jpg",
-    orderTime: "10:50"
+    orderTime: "10:50",
+    estimatedTime: "25 phút"
   },
   {
     id: 11,
@@ -110,7 +120,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/bun-bo-hue.jpg",
-    orderTime: "10:55"
+    orderTime: "10:55",
+    estimatedTime: "25 phút"
   },
   // Tráng miệng
   {
@@ -121,7 +132,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/goi-cuon.jpg",
-    orderTime: "11:00"
+    orderTime: "11:00",
+    estimatedTime: "12 phút"
   },
   {
     id: 13,
@@ -131,7 +143,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/goi-cuon.jpg",
-    orderTime: "11:05"
+    orderTime: "11:05",
+    estimatedTime: "12 phút"
   },
   {
     id: 14,
@@ -141,7 +154,8 @@ export const MOCK_ORDERS: Order[] = [
     quantity: 1,
     status: "đang chờ",
     image: "/avatars/cha-ca.jpg",
-    orderTime: "11:10"
+    orderTime: "11:10",
+    estimatedTime: "15 phút"
   }
 ];
 

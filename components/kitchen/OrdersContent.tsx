@@ -33,6 +33,26 @@ export function OrdersContent({
     />
   );
 
+  const renderClockIcon = () => (
+    <svg 
+      className="w-4 h-4 text-white opacity-90" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+      />
+    </svg>
+  );
+
   const renderServeButton = (order: Order) => (
     <button
       onClick={() => onServeClick(order)}
@@ -50,6 +70,12 @@ export function OrdersContent({
       {number}
     </div>
   );
+
+  // Get the most common estimated time for a group
+  const getGroupEstimatedTime = (orderGroup: Order[]): string => {
+    // Since items in the same group should have the same estimated time
+    return orderGroup[0]?.estimatedTime || "";
+  };
 
   if (Object.keys(groupedOrders).length === 0) {
     return (
@@ -83,6 +109,11 @@ export function OrdersContent({
                       <p className="text-sm opacity-75">
                         Bàn: {orderGroup.map(order => order.tableNumber).join(', ')}
                       </p>
+                      {/* Estimated Time for Group */}
+                      <div className="flex items-center gap-1 mt-1">
+                        {renderClockIcon()}
+                        <span className="text-xs opacity-80">{getGroupEstimatedTime(orderGroup)}</span>
+                      </div>
                     </div>
                   </div>
                   {renderNumberBadge(groupIndex + 1)}
@@ -103,6 +134,11 @@ export function OrdersContent({
                           <p className="text-sm opacity-90">x{order.quantity}</p>
                           <p className="text-sm opacity-75">Bàn: {order.tableNumber}</p>
                           <p className="text-xs opacity-60">{order.orderTime}</p>
+                          {/* Estimated Time for Individual Order */}
+                          <div className="flex items-center gap-1 mt-1">
+                            {renderClockIcon()}
+                            <span className="text-xs opacity-80">{order.estimatedTime}</span>
+                          </div>
                         </div>
                       </div>
                       

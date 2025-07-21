@@ -9,6 +9,7 @@ export interface Order {
   status: OrderStatus;
   image: string;
   orderTime: string;
+  estimatedTime: string; // Time needed to prepare the dish (e.g., "15 phút", "20 phút")
 }
 
 export interface Category {
