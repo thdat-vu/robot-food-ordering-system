@@ -1,17 +1,17 @@
 "use client";
 
-import {use} from 'react';
 import Button from "@/components/common/Button";
 import {useRouter, useParams} from "next/navigation";
 
 
-export default function Home({params}: { params: { id: string } }) {
+export default function Home() {
 
-    const id = params.id;
+    const params = useParams();
+    const {id} = params;
     const router = useRouter();
 
     const handlChangPage = () => {
-        router.push(`/productions/${id}`);
+        router.push(`/productions/${params.id}`);
     }
 
     return (
