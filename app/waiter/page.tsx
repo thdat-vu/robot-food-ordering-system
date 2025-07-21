@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
 import ServePanel from "./ServePanel";
+
 export default function WaiterPage() {
   return (
-    <div>
+    <div className="h-screen overflow-hidden">
       <ServePanel />
     </div>
   );
