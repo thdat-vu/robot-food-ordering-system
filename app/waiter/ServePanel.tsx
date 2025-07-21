@@ -1,12 +1,6 @@
 import React, { useState } from "react";
 import { Coffee, CupSoda, GlassWater, Milk } from "lucide-react";
 
-const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="text-xl md:text-2xl font-bold mb-6 text-emerald-700 text-center md:text-left">
-    {children}
-  </h2>
-);
-
 const Toast = ({ message }: { message: string }) => (
   <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-lg font-semibold text-lg z-50 animate-fade-in">
     {message}
@@ -14,7 +8,7 @@ const Toast = ({ message }: { message: string }) => (
 );
 
 const MapPanel = () => (
-  <div className="w-full h-[340px] md:h-[520px] flex items-center justify-center bg-gradient-to-br from-emerald-100 to-white rounded-[2rem] shadow-2xl border-4 border-transparent bg-clip-padding relative overflow-hidden group transition-all duration-300">
+  <div className="w-full h-[340px] md:h-[460px] flex items-center justify-center bg-gradient-to-br from-emerald-100 to-white rounded-[2rem] shadow-2xl border-4 border-transparent bg-clip-padding relative overflow-hidden group transition-all duration-300">
     <div className="absolute inset-0 rounded-[2rem] pointer-events-none border-4 border-emerald-200 group-hover:border-emerald-400 transition-all duration-300"></div>
     <iframe
       src="https://map-doan-nhattruowngs-projects.vercel.app/map/5"
@@ -122,11 +116,11 @@ const ServePanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row justify-between items-start p-2 md:p-8 gap-8 w-full mx-auto min-h-screen bg-gradient-to-br from-emerald-50 to-white">
+    <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-gradient-to-br from-emerald-50 to-white">
       {toast && <Toast message={toast} />}
 
-      {/* Sidebar scrollable */}
-      <div className="w-full md:w-[32%] lg:w-[28%] xl:w-[24%] flex flex-col justify-start items-start md:pl-2 max-h-[calc(100vh-4rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-400">
+      {/* Sidebar */}
+      <div className="w-full md:max-w-[300px] flex-shrink-0 flex flex-col justify-start items-start overflow-y-auto max-h-[80vh] pr-2 scrollbar-thin scrollbar-thumb-emerald-400">
         {Object.entries(grouped).map(([type, items]) => {
           const style = typeStyle[type] || {
             label: type,
@@ -168,17 +162,30 @@ const ServePanel: React.FC = () => {
         })}
       </div>
 
-      {/* Map + nút phục vụ */}
-      <div className="flex-1 w-full flex flex-col justify-center items-center md:items-stretch">
-        <SectionTitle>Chọn món để phục vụ</SectionTitle>
-        {hasSelected && <MapPanel />}
+      {/* Main Content */}
+      {/* Main Content */}
+      <div className="flex-1 min-w-0 max-w-4xl w-full px-2 md:px-4 flex flex-col items-center justify-start">
+        <h2 className="text-xl md:text-2xl font-bold mb-4 text-emerald-700 text-center w-full">
+          Chọn món để <br className="block md:hidden" /> phục vụ
+        </h2>
+
+        <div className="w-full min-h-[320px]">
+          {hasSelected ? (
+            <MapPanel />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-lg italic">
+              Vui lòng chọn ít nhất 1 món...
+            </div>
+          )}
+        </div>
+
         {hasSelected && (
           <div className="w-full flex justify-center">
             <button
-              className="mt-10 mb-4 py-5 px-10 rounded-[2rem] font-bold text-white text-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-600 hover:to-emerald-500 transition-all duration-200 shadow-2xl focus:outline-none focus:ring-4 focus:ring-emerald-300 tracking-wide drop-shadow-lg active:scale-95"
+              className="mt-6 mb-4 py-3 px-6 rounded-full font-semibold text-white text-lg bg-emerald-500 hover:bg-emerald-600 transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-95"
               onClick={handleServe}
             >
-              Phục vụ
+              🚀 Phục vụ
             </button>
           </div>
         )}
