@@ -1,5 +1,11 @@
 'use client';
+import { useCustomRouter } from '@/lib/custom-router';
 
 export default function ChiefPage() {
-  return <div>Chief Main Screen - Coming Soon</div>;
+  const router = useCustomRouter();
+
+  return <div>
+    <h1>Chief Main Screen - Coming Soon</h1>
+    <button onClick={() => router.push('/')}>Go to Home</button>
+  </div>;
 } 
