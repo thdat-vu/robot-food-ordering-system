@@ -7,32 +7,23 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   </h2>
 );
 
-// Toast component
 const Toast = ({ message }: { message: string }) => (
   <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-lg font-semibold text-lg z-50 animate-fade-in">
     {message}
   </div>
 );
 
-// Map hiển thị khi chọn món
 const MapPanel = () => (
-  <div className="w-full h-[340px] md:h-[520px] flex items-center justify-center bg-gradient-to-br from-emerald-100 to-white rounded-[2rem] shadow-2xl border-4 border-transparent bg-clip-padding relative overflow-hidden mt-6 md:mt-0 group transition-all duration-300">
+  <div className="w-full h-[340px] md:h-[520px] flex items-center justify-center bg-gradient-to-br from-emerald-100 to-white rounded-[2rem] shadow-2xl border-4 border-transparent bg-clip-padding relative overflow-hidden group transition-all duration-300">
     <div className="absolute inset-0 rounded-[2rem] pointer-events-none border-4 border-emerald-200 group-hover:border-emerald-400 transition-all duration-300"></div>
     <iframe
       src="https://map-doan-nhattruowngs-projects.vercel.app/map/5"
-      width="100vh"
-      height="100vh"
       allowFullScreen
       loading="lazy"
       referrerPolicy="strict-origin-when-cross-origin"
-      className="rounded-[2rem] min-h-[340px] md:min-h-[520px] shadow-lg"
+      className="rounded-[2rem] h-full w-full shadow-lg"
       title="Map Embed"
-      style={{
-        overflow: "hidden",
-        border: "none",
-        width: "100%",
-        height: "100%",
-      }}
+      style={{ border: "none" }}
     />
   </div>
 );
@@ -104,7 +95,6 @@ const ServePanel: React.FC = () => {
   const [dishes, setDishes] = useState(initialDishes);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Group dishes by type
   const grouped = dishes.reduce<Record<string, Dish[]>>((acc, dish) => {
     if (!acc[dish.type]) acc[dish.type] = [];
     acc[dish.type].push(dish);
@@ -132,10 +122,11 @@ const ServePanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row justify-between items-start p-2 md:p-8 gap-8 w-full max-w-7xl mx-auto min-h-screen bg-gradient-to-br from-emerald-50 to-white">
+    <div className="flex flex-col md:flex-row justify-between items-start p-2 md:p-8 gap-8 w-full mx-auto min-h-screen bg-gradient-to-br from-emerald-50 to-white">
       {toast && <Toast message={toast} />}
-      {/* List bên trái */}
-      <div className="w-full md:w-[32%] lg:w-[28%] xl:w-[24%] flex flex-col justify-start items-start md:pl-2">
+
+      {/* Sidebar scrollable */}
+      <div className="w-full md:w-[32%] lg:w-[28%] xl:w-[24%] flex flex-col justify-start items-start md:pl-2 max-h-[calc(100vh-4rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-400">
         {Object.entries(grouped).map(([type, items]) => {
           const style = typeStyle[type] || {
             label: type,
@@ -176,26 +167,24 @@ const ServePanel: React.FC = () => {
           );
         })}
       </div>
-      {/* Map bên phải gọn đẹp */}
-      <div className="w-full md:w-[68%] lg:w-[72%] xl:w-[76%] flex flex-col justify-center items-center md:items-stretch">
+
+      {/* Map + nút phục vụ */}
+      <div className="flex-1 w-full flex flex-col justify-center items-center md:items-stretch">
         <SectionTitle>Chọn món để phục vụ</SectionTitle>
         {hasSelected && <MapPanel />}
         {hasSelected && (
-          <button
-            className="w-full max-w-lg py-5 px-10 rounded-[2rem] font-bold text-white text-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-600 hover:to-emerald-500 transition-all duration-200 shadow-2xl focus:outline-none focus:ring-4 focus:ring-emerald-300 mt-10 mb-4 tracking-wide drop-shadow-lg active:scale-95"
-            onClick={handleServe}
-          >
-            Phục vụ
-          </button>
+          <div className="w-full flex justify-center">
+            <button
+              className="mt-10 mb-4 py-5 px-10 rounded-[2rem] font-bold text-white text-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-600 hover:to-emerald-500 transition-all duration-200 shadow-2xl focus:outline-none focus:ring-4 focus:ring-emerald-300 tracking-wide drop-shadow-lg active:scale-95"
+              onClick={handleServe}
+            >
+              Phục vụ
+            </button>
+          </div>
         )}
       </div>
     </div>
   );
 };
-
-// Hiệu ứng fade-in cho toast
-// Thêm vào globals.css nếu chưa có:
-// @keyframes fade-in { from { opacity: 0; transform: translateY(-10px);} to { opacity: 1; transform: translateY(0);} }
-// .animate-fade-in { animation: fade-in 0.4s ease; }
 
 export default ServePanel;
