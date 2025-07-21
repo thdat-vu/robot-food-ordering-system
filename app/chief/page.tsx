@@ -25,6 +25,13 @@ interface SidebarItem {
   isRemoving: boolean;
 }
 
+interface Toast {
+  id: number;
+  type: 'success' | 'error' | 'warning';
+  message: string;
+  isVisible: boolean;
+}
+
 // Mock data structure
 const mockOrders: Order[] = [
   {
@@ -115,6 +122,7 @@ export default function ChiefPage() {
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isSidebarAnimating, setIsSidebarAnimating] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Group orders by item name and filter by status and category
   const getFilteredOrders = (): Order[] => {
@@ -148,6 +156,7 @@ export default function ChiefPage() {
       )
     );
     setExpandedGroup(null);
+    addToast(`Đã bắt đầu thực hiện món: ${itemName}`, 'success');
   };
 
   const handleServeClick = (order: Order) => {
@@ -167,6 +176,7 @@ export default function ChiefPage() {
     }
     setShowModal(false);
     setSelectedOrder(null);
+    addToast(`Đã bắt đầu phục vụ món: ${selectedOrder?.itemName}`, 'success');
   };
 
   const cancelServe = () => {
@@ -253,6 +263,33 @@ export default function ChiefPage() {
     }
   }, [groupedOrders, isSidebarAnimating]);
 
+  const addToast = (message: string, type: 'success' | 'error' | 'warning') => {
+    const newToast = {
+      id: Date.now(),
+      type,
+      message,
+      isVisible: true,
+    };
+    
+    setToasts(prevToasts => [...prevToasts, newToast]);
+    
+    // Auto-dismiss after 3 seconds
+    setTimeout(() => {
+      removeToast(newToast.id);
+    }, 3000);
+  };
+
+  const removeToast = (id: number) => {
+    setToasts(prevToasts => prevToasts.map(toast =>
+      toast.id === id ? { ...toast, isVisible: false } : toast
+    ));
+    
+    // Actually remove from array after animation
+    setTimeout(() => {
+      setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
+    }, 300);
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Confirmation Modal */}
@@ -308,6 +345,61 @@ export default function ChiefPage() {
           </div>
         </div>
       )}
+
+      {/* Toast Container */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            className={`flex items-center w-full max-w-xs p-4 text-gray-500 bg-white rounded-lg shadow-lg transition-all duration-300 transform ${
+              toast.isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+            }`}
+            role="alert"
+          >
+            {/* Icon */}
+            <div className={`inline-flex items-center justify-center shrink-0 w-8 h-8 rounded-lg ${
+              toast.type === 'success' 
+                ? 'text-green-500 bg-green-100' 
+                : toast.type === 'error'
+                ? 'text-red-500 bg-red-100'
+                : 'text-orange-500 bg-orange-100'
+            }`}>
+              {toast.type === 'success' && (
+                <svg className="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                </svg>
+              )}
+              {toast.type === 'error' && (
+                <svg className="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z"/>
+                </svg>
+              )}
+              {toast.type === 'warning' && (
+                <svg className="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM10 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-4a1 1 0 0 1-2 0V6a1 1 0 0 1 2 0v5Z"/>
+                </svg>
+              )}
+              <span className="sr-only">{toast.type} icon</span>
+            </div>
+            
+            {/* Message */}
+            <div className="ms-3 text-sm font-normal">{toast.message}</div>
+            
+            {/* Close Button */}
+            <button 
+              type="button" 
+              onClick={() => removeToast(toast.id)}
+              className="ms-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex items-center justify-center h-8 w-8"
+              aria-label="Close"
+            >
+              <span className="sr-only">Close</span>
+              <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
 
       {/* Left Sidebar - Categories */}
       <div className="w-80 bg-gray-200 p-6 flex flex-col gap-6">
