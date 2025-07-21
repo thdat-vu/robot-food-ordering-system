@@ -1,3 +1,5 @@
+import '@google/model-viewer';
+
 declare global {
   namespace JSX {
     interface IntrinsicElements {
@@ -10,10 +12,10 @@ declare global {
         exposure?: string;
         'interaction-prompt'?: string;
         style?: React.CSSProperties;
+        width?: string;
+        height?: string;
         [key: string]: any;
       };
     }
   }
-}
-
-export {};
+} 
