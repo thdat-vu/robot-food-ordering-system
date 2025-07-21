@@ -107,6 +107,8 @@ export default function ChiefPage() {
   const [activeTab, setActiveTab] = useState<"đang chờ" | "đang thực hiện" | "bắt đầu phục vụ">("đang chờ");
   const [selectedCategory, setSelectedCategory] = useState<string>("Tất cả");
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Group orders by item name and filter by status and category
   const getFilteredOrders = (): Order[] => {
@@ -142,21 +144,88 @@ export default function ChiefPage() {
     setExpandedGroup(null);
   };
 
-  const handleServe = (itemName: string) => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.itemName === itemName && order.status === "đang thực hiện"
-          ? { ...order, status: "bắt đầu phục vụ" }
-          : order
-      )
-    );
-    setExpandedGroup(null);
+  const handleServeClick = (order: Order) => {
+    setSelectedOrder(order);
+    setShowModal(true);
+  };
+
+  const confirmServe = () => {
+    if (selectedOrder) {
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === selectedOrder.id
+            ? { ...order, status: "bắt đầu phục vụ" }
+            : order
+        )
+      );
+    }
+    setShowModal(false);
+    setSelectedOrder(null);
+  };
+
+  const cancelServe = () => {
+    setShowModal(false);
+    setSelectedOrder(null);
   };
 
   const groupedOrders = getGroupedOrders();
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Confirmation Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-gray-900 bg-opacity-50"
+            onClick={cancelServe}
+          ></div>
+          
+          {/* Modal */}
+          <div className="relative w-full max-w-md mx-auto bg-white rounded-lg shadow-lg">
+            <div className="p-6">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Xác nhận phục vụ
+                </h3>
+                <button
+                  onClick={cancelServe}
+                  className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Modal Body */}
+              <div className="mb-6">
+                <p className="text-gray-700">
+                  Bạn có chắc chắn muốn chuyển <strong>{selectedOrder?.itemName}</strong> (Bàn {selectedOrder?.tableNumber}) sang trạng thái 'Bắt đầu phục vụ'?
+                </p>
+              </div>
+              
+              {/* Modal Footer */}
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={cancelServe}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:ring-4 focus:ring-gray-200 transition-colors duration-200"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmServe}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-colors duration-200"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Left Sidebar - Categories */}
       <div className="w-80 bg-gray-200 p-6 flex flex-col gap-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Danh mục món ăn</h2>
@@ -298,32 +367,38 @@ export default function ChiefPage() {
                               <p className="text-xs opacity-60">{order.orderTime}</p>
                             </div>
                           </div>
-                          <div className="bg-yellow-400 text-black font-bold rounded-lg px-4 py-2 text-lg">
-                            {index + 1}
-                          </div>
+                          
+                          {/* Show button for "đang thực hiện" status, number badge for others */}
+                          {activeTab === "đang thực hiện" ? (
+                            <button
+                              onClick={() => handleServeClick(order)}
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                              </svg>
+                              Bắt đầu phục vụ
+                            </button>
+                          ) : (
+                            <div className="bg-yellow-400 text-black font-bold rounded-lg px-4 py-2 text-lg">
+                              {index + 1}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
                     
-                    {/* Action Button */}
-                    <div className="flex justify-center mt-4">
-                      {activeTab === "đang chờ" && (
+                    {/* Action Button - Only for "đang chờ" status */}
+                    {activeTab === "đang chờ" && (
+                      <div className="flex justify-center mt-4">
                         <button
                           onClick={() => handlePrepare(itemName)}
                           className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-3 px-8 rounded-2xl transition-colors duration-200"
                         >
                           Thực hiện
                         </button>
-                      )}
-                      {activeTab === "đang thực hiện" && (
-                        <button
-                          onClick={() => handleServe(itemName)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-2xl transition-colors duration-200"
-                        >
-                          Bắt đầu phục vụ
-                        </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
