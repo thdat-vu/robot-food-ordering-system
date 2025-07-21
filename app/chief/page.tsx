@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useCustomRouter } from '@/lib/custom-router';
 
 // Types
@@ -20,7 +20,7 @@ import { NavigationTabs } from '@/components/kitchen/NavigationTabs';
 import { KitchenSidebar } from '@/components/kitchen/KitchenSidebar';
 import { OrdersContent } from '@/components/kitchen/OrdersContent';
 
-export default function ChiefPage() {
+function ChiefPageContent() {
   const router = useCustomRouter();
   
   // Modal state
@@ -116,5 +116,24 @@ export default function ChiefPage() {
         />
       </div>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function ChiefPageLoading() {
+  return (
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <div className="flex items-center justify-center w-full">
+        <div className="text-gray-500">Đang tải...</div>
+      </div>
+    </div>
+  );
+}
+
+export default function ChiefPage() {
+  return (
+    <Suspense fallback={<ChiefPageLoading />}>
+      <ChiefPageContent />
+    </Suspense>
   );
 } 

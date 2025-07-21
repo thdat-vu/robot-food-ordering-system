@@ -3,12 +3,11 @@
 
 'use client';
 
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export function useCustomRouter() {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   // Example: Add custom navigation logic here (guards, analytics, etc.)
   function push(path: string) {
@@ -30,7 +29,7 @@ export function useCustomRouter() {
     replace,
     back,
     pathname,
-    searchParams,
-    // Expose more router methods as needed
+    // Note: searchParams removed to avoid Suspense boundary requirement
+    // Add back when needed with proper Suspense wrapping
   };
 } 
