@@ -70,6 +70,78 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/iced-cacao.jpg",
     orderTime: "10:25"
+  },
+  // Món chính
+  {
+    id: 8,
+    itemName: "Phở bò",
+    category: "Món chính",
+    tableNumber: 7,
+    quantity: 1,
+    status: "đang chờ",
+    image: "/avatars/pho-bo.jpg",
+    orderTime: "10:40"
+  },
+  {
+    id: 9,
+    itemName: "Phở bò",
+    category: "Món chính",
+    tableNumber: 9,
+    quantity: 1,
+    status: "đang chờ",
+    image: "/avatars/pho-bo.jpg",
+    orderTime: "10:45"
+  },
+  {
+    id: 10,
+    itemName: "Bún bò Huế",
+    category: "Món chính",
+    tableNumber: 10,
+    quantity: 1,
+    status: "đang chờ",
+    image: "/avatars/bun-bo-hue.jpg",
+    orderTime: "10:50"
+  },
+  {
+    id: 11,
+    itemName: "Bún bò Huế",
+    category: "Món chính",
+    tableNumber: 12,
+    quantity: 1,
+    status: "đang chờ",
+    image: "/avatars/bun-bo-hue.jpg",
+    orderTime: "10:55"
+  },
+  // Tráng miệng
+  {
+    id: 12,
+    itemName: "Gỏi cuốn",
+    category: "Tráng miệng",
+    tableNumber: 11,
+    quantity: 1,
+    status: "đang chờ",
+    image: "/avatars/goi-cuon.jpg",
+    orderTime: "11:00"
+  },
+  {
+    id: 13,
+    itemName: "Gỏi cuốn",
+    category: "Tráng miệng",
+    tableNumber: 13,
+    quantity: 1,
+    status: "đang chờ",
+    image: "/avatars/goi-cuon.jpg",
+    orderTime: "11:05"
+  },
+  {
+    id: 14,
+    itemName: "Chả cá",
+    category: "Tráng miệng",
+    tableNumber: 14,
+    quantity: 1,
+    status: "đang chờ",
+    image: "/avatars/cha-ca.jpg",
+    orderTime: "11:10"
   }
 ];
 
