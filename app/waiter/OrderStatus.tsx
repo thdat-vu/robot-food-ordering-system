@@ -1,4 +1,5 @@
-import "@google/model-viewer";
+import React from "react";
+import ModelViewer from "./ModelViewer";
 
 export default function OrderStatus({ dish }: { dish: any }) {
   if (!dish) {
@@ -34,14 +35,14 @@ export default function OrderStatus({ dish }: { dish: any }) {
 
       {/* Sơ đồ phục vụ với overlay vị trí bàn */}
       <div className="relative w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-        <model-viewer
+        <ModelViewer
           src="/assets/map1.glb"
           alt="Mô hình phục vụ"
-          auto-rotate
-          camera-controls
-          shadow-intensity="1"
+          autoRotate={true}
+          cameraControls={true}
+          shadowIntensity="1"
           exposure="1"
-          interaction-prompt="none"
+          interactionPrompt="none"
           style={{ width: "100%", height: "100%" }}
         />
         {/* Overlay vị trí bàn mẫu */}
