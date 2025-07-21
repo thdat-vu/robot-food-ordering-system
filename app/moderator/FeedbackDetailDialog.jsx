@@ -18,7 +18,6 @@ const FeedbackDetailDialog = ({ open, onClose, request, tableId }) => {
             style={{ border: "none" }}
             title="Map Embed"
             />
-
         </div>
   
         {/* Nội dung bên phải */}
@@ -26,8 +25,6 @@ const FeedbackDetailDialog = ({ open, onClose, request, tableId }) => {
           <p className="text-lg font-semibold mb-2">Chi tiết</p>
           <ul className="mb-4 space-y-2">
             <li>• <strong>Nội dung:</strong> {request.content}</li>
-            <li>• <strong>Ghi chú:</strong> {request.note || 'Không có'}</li>
-            <li>• <strong>Thanh toán:</strong> {request.pay}</li>
           </ul>
   
           <div className="text-right">
