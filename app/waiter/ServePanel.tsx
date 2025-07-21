@@ -120,7 +120,7 @@ const ServePanel: React.FC = () => {
       {toast && <Toast message={toast} />}
 
       {/* Sidebar */}
-      <div className="w-full md:max-w-[300px] flex-shrink-0 flex flex-col justify-start items-start overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-400">
+      <div className="w-full md:max-w-[300px] flex-shrink-0 flex flex-col justify-start items-start overflow-y-auto max-h-[80vh] pr-2 scrollbar-thin scrollbar-thumb-emerald-400">
         {Object.entries(grouped).map(([type, items]) => {
           const style = typeStyle[type] || {
             label: type,
