@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCustomRouter } from '@/lib/custom-router';
 
 // Type definitions
@@ -18,6 +18,11 @@ interface Category {
   id: number;
   name: string;
   color: string;
+}
+
+interface SidebarItem {
+  name: string;
+  isRemoving: boolean;
 }
 
 // Mock data structure
@@ -109,6 +114,7 @@ export default function ChiefPage() {
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isSidebarAnimating, setIsSidebarAnimating] = useState(false);
 
   // Group orders by item name and filter by status and category
   const getFilteredOrders = (): Order[] => {
@@ -202,6 +208,51 @@ export default function ChiefPage() {
     }
   };
 
+  // Function to get remaining sidebar items (not completed)
+  const getRemainingItems = () => {
+    const remainingItems: Record<string, number> = {};
+    
+    // Count orders that are NOT completed
+    orders.forEach(order => {
+      if (order.status !== "bắt đầu phục vụ") {
+        remainingItems[order.itemName] = (remainingItems[order.itemName] || 0) + 1;
+      }
+    });
+    
+    return remainingItems;
+  };
+
+  const remainingItems = getRemainingItems();
+
+  // Function to check if an item should be shown in sidebar
+  const shouldShowInSidebar = (itemName: string) => {
+    return remainingItems[itemName] > 0;
+  };
+
+  // Function to check if all orders of a specific itemName are completed
+  const areAllOrdersCompleted = (itemName: string) => {
+    const group = groupedOrders[itemName];
+    if (!group) return false;
+    return group.every(order => order.status === "bắt đầu phục vụ");
+  };
+
+  // Effect to handle sidebar animation
+  useEffect(() => {
+    const allCompleted = Object.values(groupedOrders).every(group => 
+      group.every(order => order.status === "bắt đầu phục vụ")
+    );
+
+    if (allCompleted && !isSidebarAnimating) {
+      setIsSidebarAnimating(true);
+      // Simulate sidebar removal animation
+      setTimeout(() => {
+        setIsSidebarAnimating(false);
+      }, 500); // Match CSS transition duration
+    } else if (!allCompleted && isSidebarAnimating) {
+      setIsSidebarAnimating(false);
+    }
+  }, [groupedOrders, isSidebarAnimating]);
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Confirmation Modal */}
@@ -278,44 +329,95 @@ export default function ChiefPage() {
           </div>
         </div>
 
-        {/* Beverages Section */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <div className="flex flex-col gap-3">
-            {["Nước chanh dây", "Nước chanh dây", "Nước chanh dây"].map((item, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedCategory("Đồ uống")}
-                className="bg-yellow-400 hover:bg-yellow-500 transition-colors duration-200 text-black font-medium py-3 px-6 rounded-full text-center"
-              >
-                {item}
-              </button>
-            ))}
+        {/* Beverages Section - Dynamic based on remaining orders */}
+        {remainingItems["Nước chanh dây"] > 0 && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: remainingItems["Nước chanh dây"] || 0 }, (_, index) => (
+                <div
+                  key={`nuoc-chanh-day-${index}`}
+                  className={`transition-all duration-500 ease-in-out transform ${
+                    shouldShowInSidebar("Nước chanh dây") 
+                      ? 'opacity-100 translate-y-0 scale-100' 
+                      : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
+                  }`}
+                  style={{
+                    transitionDelay: `${index * 100}ms`
+                  }}
+                >
+                  <button
+                    onClick={() => setSelectedCategory("Đồ uống")}
+                    className="w-full bg-yellow-400 hover:bg-yellow-500 transition-colors duration-200 text-black font-medium py-3 px-6 rounded-full text-center"
+                  >
+                    Nước chanh dây
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Mixed Items Section */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={() => setSelectedCategory("Đồ uống")}
-              className="bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white font-medium py-3 px-6 rounded-full text-center"
-            >
-              Nước chanh dây
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Đồ uống")}
-              className="bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white font-medium py-3 px-6 rounded-full text-center"
-            >
-              Trà đào ối hồng
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Đồ uống")}
-              className="bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white font-medium py-3 px-6 rounded-full text-center"
-            >
-              Cacao đá xay
-            </button>
+        {/* Mixed Items Section - Dynamic based on remaining orders */}
+        {(shouldShowInSidebar("Nước chanh dây") || shouldShowInSidebar("Trà đào ối hồng") || shouldShowInSidebar("Cacao đá xay")) && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <div className="flex flex-col gap-3">
+              {shouldShowInSidebar("Nước chanh dây") && (
+                <div
+                  className={`transition-all duration-500 ease-in-out transform ${
+                    shouldShowInSidebar("Nước chanh dây") 
+                      ? 'opacity-100 translate-y-0 scale-100' 
+                      : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
+                  }`}
+                >
+                  <button
+                    onClick={() => setSelectedCategory("Đồ uống")}
+                    className="w-full bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white font-medium py-3 px-6 rounded-full text-center"
+                  >
+                    Nước chanh dây
+                  </button>
+                </div>
+              )}
+              {shouldShowInSidebar("Trà đào ối hồng") && (
+                <div
+                  className={`transition-all duration-500 ease-in-out transform ${
+                    shouldShowInSidebar("Trà đào ối hồng") 
+                      ? 'opacity-100 translate-y-0 scale-100' 
+                      : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
+                  }`}
+                  style={{
+                    transitionDelay: shouldShowInSidebar("Nước chanh dây") ? '100ms' : '0ms'
+                  }}
+                >
+                  <button
+                    onClick={() => setSelectedCategory("Đồ uống")}
+                    className="w-full bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white font-medium py-3 px-6 rounded-full text-center"
+                  >
+                    Trà đào ối hồng
+                  </button>
+                </div>
+              )}
+              {shouldShowInSidebar("Cacao đá xay") && (
+                <div
+                  className={`transition-all duration-500 ease-in-out transform ${
+                    shouldShowInSidebar("Cacao đá xay") 
+                      ? 'opacity-100 translate-y-0 scale-100' 
+                      : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
+                  }`}
+                  style={{
+                    transitionDelay: shouldShowInSidebar("Trà đào ối hồng") ? '200ms' : shouldShowInSidebar("Nước chanh dây") ? '100ms' : '0ms'
+                  }}
+                >
+                  <button
+                    onClick={() => setSelectedCategory("Đồ uống")}
+                    className="w-full bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white font-medium py-3 px-6 rounded-full text-center"
+                  >
+                    Cacao đá xay
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Main Content */}
