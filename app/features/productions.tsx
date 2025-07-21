@@ -17,7 +17,7 @@ const products = [
 
 export const Productions: React.FC = () => {
     return (
-        <div className="flex flex-wrap gap-4 justify-center p-4">
+        <div className="grid mt-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {products.map((item, index) => (
                 <ProductionCard
                     key={index}
