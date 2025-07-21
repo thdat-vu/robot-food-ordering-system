@@ -170,6 +170,38 @@ export default function ChiefPage() {
 
   const groupedOrders = getGroupedOrders();
 
+  // Function to count orders by status
+  const getOrderCounts = () => {
+    const counts = {
+      all: orders.length,
+      toCook: orders.filter(order => order.status === "đang chờ").length,
+      ready: orders.filter(order => order.status === "đang thực hiện").length,
+      completed: orders.filter(order => order.status === "bắt đầu phục vụ").length
+    };
+    return counts;
+  };
+
+  const orderCounts = getOrderCounts();
+
+  // Map Vietnamese status to English for display
+  const getTabDisplayName = (status: string) => {
+    switch (status) {
+      case "đang chờ": return "Đang chờ";
+      case "đang thực hiện": return "Đang thực hiện";
+      case "bắt đầu phục vụ": return "Bắt đầu phục vụ";
+      default: return status;
+    }
+  };
+
+  const getTabCount = (status: string) => {
+    switch (status) {
+      case "đang chờ": return orderCounts.toCook;
+      case "đang thực hiện": return orderCounts.ready;
+      case "bắt đầu phục vụ": return orderCounts.completed;
+      default: return 0;
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Confirmation Modal */}
@@ -288,20 +320,30 @@ export default function ChiefPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs with Counts - Centered */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <nav className="flex space-x-8">
+          <nav className="flex justify-center space-x-2">
+            {/* Status Tabs */}
             {(["đang chờ", "đang thực hiện", "bắt đầu phục vụ"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-2 px-4 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                className={`py-2 px-4 text-sm font-medium rounded-lg transition-colors duration-200 flex items-center gap-2 ${
                   activeTab === tab
-                    ? 'bg-blue-500 text-white'
+                    ? 'bg-gray-300 text-gray-700'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                <span>{getTabDisplayName(tab)}</span>
+                <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-bold rounded-full ${
+                  tab === "đang chờ" 
+                    ? 'bg-gray-400 text-white' 
+                    : tab === "đang thực hiện"
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-green-500 text-white'
+                }`}>
+                  {getTabCount(tab)}
+                </span>
               </button>
             ))}
           </nav>
