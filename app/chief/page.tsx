@@ -27,6 +27,9 @@ function ChiefPageContent() {
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Sidebar item selection state
+  const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
+
   // Custom hooks
   const {
     activeTab,
@@ -41,6 +44,7 @@ function ChiefPageContent() {
     handleServeOrder,
     shouldShowInSidebar,
     getTabCount,
+    itemNameToCategory,
   } = useKitchenOrders();
 
   const { toasts, addToast, removeToast } = useToastKitchen();
@@ -74,6 +78,16 @@ function ChiefPageContent() {
     setSelectedOrder(null);
   };
 
+  // Sidebar item click handler
+  const handleSidebarItemClick = (itemName: string) => {
+    setSelectedItemName(prev => (prev === itemName ? null : itemName));
+  };
+
+  // Filter groupedOrders for selected item
+  const filteredGroupedOrders = selectedItemName
+    ? { [selectedItemName]: groupedOrders[selectedItemName] || [] }
+    : {};
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Toast Container */}
@@ -94,6 +108,9 @@ function ChiefPageContent() {
         onCategorySelect={setSelectedCategory}
         remainingItems={remainingItems}
         shouldShowInSidebar={shouldShowInSidebar}
+        itemNameToCategory={itemNameToCategory}
+        selectedItemName={selectedItemName}
+        onSidebarItemClick={handleSidebarItemClick}
       />
 
       {/* Main Content */}
@@ -105,15 +122,21 @@ function ChiefPageContent() {
           getTabCount={getTabCount}
         />
 
-        {/* Orders Content */}
-        <OrdersContent
-          groupedOrders={groupedOrders}
-          activeTab={activeTab}
-          expandedGroup={expandedGroup}
-          onGroupClick={handleGroupClick}
-          onPrepareClick={handlePrepareClick}
-          onServeClick={handleServeClick}
-        />
+        {/* Orders Content or Placeholder */}
+        {selectedItemName ? (
+          <OrdersContent
+            groupedOrders={filteredGroupedOrders}
+            activeTab={activeTab}
+            expandedGroup={expandedGroup}
+            onGroupClick={handleGroupClick}
+            onPrepareClick={handlePrepareClick}
+            onServeClick={handleServeClick}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
+            Chọn một món ăn để xem chi tiết
+          </div>
+        )}
       </div>
     </div>
   );

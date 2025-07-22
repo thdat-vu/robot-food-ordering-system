@@ -7,6 +7,9 @@ interface KitchenSidebarProps {
   onCategorySelect: (categoryName: string) => void;
   remainingItems: RemainingItems;
   shouldShowInSidebar: (itemName: string) => boolean;
+  itemNameToCategory: Record<string, string>;
+  selectedItemName: string | null; // <-- add this
+  onSidebarItemClick: (itemName: string) => void; // <-- add this
 }
 
 export function KitchenSidebar({ 
@@ -14,7 +17,10 @@ export function KitchenSidebar({
   selectedCategory, 
   onCategorySelect, 
   remainingItems, 
-  shouldShowInSidebar 
+  shouldShowInSidebar, 
+  itemNameToCategory,
+  selectedItemName,
+  onSidebarItemClick
 }: KitchenSidebarProps) {
   const renderAnimatedButton = (
     itemName: string, 
@@ -33,8 +39,8 @@ export function KitchenSidebar({
       style={{ transitionDelay: delay }}
     >
       <button
-        onClick={() => onCategorySelect("Đồ uống")}
-        className={`w-full ${bgColor} hover:opacity-90 transition-colors duration-200 ${textColor} font-medium py-3 px-6 rounded-full text-center`}
+        onClick={() => onSidebarItemClick(itemName)}
+        className={`w-full ${bgColor} hover:opacity-90 transition-colors duration-200 ${textColor} font-medium py-3 px-6 rounded-full text-center ${selectedItemName === itemName ? 'ring-2 ring-blue-500' : ''}`}
       >
         {itemName}
       </button>
@@ -54,6 +60,12 @@ export function KitchenSidebar({
       {itemName}
     </button>
   );
+
+  // Helper to filter items by selectedCategory
+  const filterByCategory = (itemName: string) => {
+    if (selectedCategory === 'Tất cả') return true;
+    return itemNameToCategory[itemName] === selectedCategory;
+  };
 
   return (
     <div className="w-80 bg-gray-200 flex flex-col h-screen">
@@ -83,81 +95,24 @@ export function KitchenSidebar({
             </div>
           </div>
 
-          {/* Beverages Section - Dynamic based on remaining orders */}
-          {remainingItems["Nước chanh dây"] > 0 && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: remainingItems["Nước chanh dây"] || 0 }, (_, index) => 
-                  renderAnimatedButton(
-                    "Nước chanh dây", 
-                    index, 
-                    "bg-yellow-400 hover:bg-yellow-500", 
-                    "text-black",
-                    `${index * 100}ms`
+          {/* Filtered Items Section - show only items matching selectedCategory */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <div className="flex flex-col gap-3">
+              {Object.entries(remainingItems)
+                .filter(([itemName, count]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
+                .map(([itemName, count]) =>
+                  Array.from({ length: count }, (_, index) =>
+                    renderAnimatedButton(
+                      itemName,
+                      index,
+                      itemNameToCategory[itemName] === 'Đồ uống' ? 'bg-yellow-400 hover:bg-yellow-500 text-black' : 'bg-green-500 hover:bg-green-600',
+                      itemNameToCategory[itemName] === 'Đồ uống' ? 'text-black' : 'text-white',
+                      `${index * 100}ms`
+                    )
                   )
                 )}
-              </div>
             </div>
-          )}
-
-          {/* Mixed Items Section - Dynamic based on remaining orders */}
-          {(shouldShowInSidebar("Nước chanh dây") || shouldShowInSidebar("Trà đào ối hồng") || shouldShowInSidebar("Cacao đá xay")) && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <div className="flex flex-col gap-3">
-                {shouldShowInSidebar("Nước chanh dây") && 
-                  renderAnimatedButton("Nước chanh dây", 0, "bg-green-500 hover:bg-green-600")
-                }
-                {shouldShowInSidebar("Trà đào ối hồng") && 
-                  renderAnimatedButton(
-                    "Trà đào ối hồng", 
-                    0, 
-                    "bg-green-500 hover:bg-green-600", 
-                    "text-white",
-                    shouldShowInSidebar("Nước chanh dây") ? '100ms' : '0ms'
-                  )
-                }
-                {shouldShowInSidebar("Cacao đá xay") && 
-                  renderAnimatedButton(
-                    "Cacao đá xay", 
-                    0, 
-                    "bg-green-500 hover:bg-green-600", 
-                    "text-white",
-                    shouldShowInSidebar("Trà đào ối hồng") ? '200ms' : shouldShowInSidebar("Nước chanh dây") ? '100ms' : '0ms'
-                  )
-                }
-              </div>
-            </div>
-          )}
-
-          {/* Món chính Section - Dynamic based on remaining orders */}
-          {(shouldShowInSidebar("Phở bò") || shouldShowInSidebar("Bún bò Huế")) && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <h3 className="font-semibold mb-3 text-gray-700">Món chính</h3>
-              <div className="flex flex-col gap-3">
-                {shouldShowInSidebar("Phở bò") && 
-                  renderCategoryButton("Phở bò", "Món chính", "bg-red-500 hover:bg-red-600")
-                }
-                {shouldShowInSidebar("Bún bò Huế") && 
-                  renderCategoryButton("Bún bò Huế", "Món chính", "bg-red-500 hover:bg-red-600")
-                }
-              </div>
-            </div>
-          )}
-
-          {/* Tráng miệng Section - Dynamic based on remaining orders */}
-          {(shouldShowInSidebar("Gỏi cuốn") || shouldShowInSidebar("Chả cá")) && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <h3 className="font-semibold mb-3 text-gray-700">Tráng miệng</h3>
-              <div className="flex flex-col gap-3">
-                {shouldShowInSidebar("Gỏi cuốn") && 
-                  renderCategoryButton("Gỏi cuốn", "Tráng miệng", "bg-blue-500 hover:bg-blue-600")
-                }
-                {shouldShowInSidebar("Chả cá") && 
-                  renderCategoryButton("Chả cá", "Tráng miệng", "bg-blue-500 hover:bg-blue-600")
-                }
-              </div>
-            </div>
-          )}
+          </div>
 
           {/* Add bottom padding for better scrolling experience */}
           <div className="h-4"></div>
