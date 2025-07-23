@@ -40,7 +40,11 @@ export function KitchenSidebar({
       }`}
       style={{ transitionDelay: delay }}
     >
-      <Button onClick={() => onSidebarItemClick(itemName)}>
+      <Button
+        onClick={() => onSidebarItemClick(itemName)}
+        variant="secondary"
+        className={`hover:bg-gray-200 ${selectedItemName === itemName ? 'bg-gray-300' : ''}`}
+      >
         {itemName}
       </Button>
     </div>

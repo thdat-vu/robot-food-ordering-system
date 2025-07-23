@@ -13,16 +13,7 @@ const TAB_ORDER: OrderStatus[] = ["đang chờ", "đang thực hiện", "bắt �
 
 export function NavigationTabs({ activeTab, onTabChange, getTabCount }: NavigationTabsProps) {
   const getBadgeColor = (tab: OrderStatus): string => {
-    switch (tab) {
-      case "đang chờ": 
-        return 'bg-gray-400 text-white';
-      case "đang thực hiện":
-        return 'bg-blue-500 text-white';
-      case "bắt đầu phục vụ":
-        return 'bg-green-500 text-white';
-      default:
-        return 'bg-gray-400 text-white';
-    }
+    return 'bg-gray-400 text-white';
   };
 
   return (
