@@ -1,5 +1,7 @@
 import React from 'react';
 import { Category, RemainingItems } from '@/types/kitchen';
+import { Button } from '@/components/ui/button'
+import { IconList, IconCup, IconSoup, IconIceCream } from '@tabler/icons-react'
 
 interface KitchenSidebarProps {
   categories: Category[];
@@ -38,12 +40,9 @@ export function KitchenSidebar({
       }`}
       style={{ transitionDelay: delay }}
     >
-      <button
-        onClick={() => onSidebarItemClick(itemName)}
-        className={`w-full ${bgColor} hover:opacity-90 transition-colors duration-200 ${textColor} font-medium py-3 px-6 rounded-full text-center ${selectedItemName === itemName ? 'ring-2 ring-blue-500' : ''}`}
-      >
+      <Button onClick={() => onSidebarItemClick(itemName)}>
         {itemName}
-      </button>
+      </Button>
     </div>
   );
 
@@ -53,12 +52,9 @@ export function KitchenSidebar({
     bgColor: string,
     textColor: string = "text-white"
   ) => (
-    <button
-      onClick={() => onCategorySelect(categoryName)}
-      className={`w-full ${bgColor} hover:opacity-90 transition-colors duration-200 ${textColor} font-medium py-3 px-6 rounded-full text-center`}
-    >
+    <Button onClick={() => onCategorySelect(categoryName)}>
       {itemName}
-    </button>
+    </Button>
   );
 
   // Helper to filter items by selectedCategory
@@ -81,17 +77,24 @@ export function KitchenSidebar({
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <h3 className="font-semibold mb-3 text-gray-700">Bộ lọc</h3>
             <div className="flex flex-col gap-2">
-              {categories.map(category => (
-                <button
-                  key={category.id}
-                  onClick={() => onCategorySelect(category.name)}
-                  className={`${category.color} ${
-                    selectedCategory === category.name ? 'ring-2 ring-blue-300' : ''
-                  } hover:opacity-90 transition-all duration-200 text-white font-medium py-2 px-4 rounded-lg text-center`}
-                >
-                  {category.name}
-                </button>
-              ))}
+              {categories.map(category => {
+                let IconComponent = IconList;
+                if (category.name === 'Đồ uống') IconComponent = IconCup;
+                else if (category.name === 'Món chính') IconComponent = IconSoup;
+                else if (category.name === 'Tráng miệng') IconComponent = IconIceCream;
+                return (
+                  <Button
+                    key={category.id}
+                    onClick={() => onCategorySelect(category.name)}
+                    variant="outline"
+                    size="sm"
+                    className="justify-start"
+                  >
+                    <IconComponent className="mr-2 h-4 w-4" />
+                    {category.name}
+                  </Button>
+                );
+              })}
             </div>
           </div>
 

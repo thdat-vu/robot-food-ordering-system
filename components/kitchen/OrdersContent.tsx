@@ -1,6 +1,7 @@
 import React from 'react';
 import { Order, OrderStatus, GroupedOrders } from '@/types/kitchen';
 import { DEFAULT_IMAGE_PLACEHOLDER } from '@/constants/kitchen-data';
+import { Button } from '@/components/ui/button';
 
 interface OrdersContentProps {
   groupedOrders: GroupedOrders;
@@ -54,15 +55,12 @@ export function OrdersContent({
   );
 
   const renderServeButton = (order: Order) => (
-    <button
-      onClick={() => onServeClick(order)}
-      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold px-4 py-2 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
-    >
+    <Button onClick={() => onServeClick(order)}>
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
       </svg>
       Bắt đầu phục vụ
-    </button>
+    </Button>
   );
 
   const renderNumberBadge = (number: number) => (
@@ -154,12 +152,9 @@ export function OrdersContent({
                 {/* Action Button - Only for "đang chờ" status */}
                 {activeTab === "đang chờ" && (
                   <div className="flex justify-center mt-4">
-                    <button
-                      onClick={() => onPrepareClick(itemName)}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-3 px-8 rounded-2xl transition-colors duration-200"
-                    >
+                    <Button onClick={() => onPrepareClick(itemName)}>
                       Thực hiện
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
