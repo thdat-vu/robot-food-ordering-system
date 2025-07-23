@@ -1,5 +1,5 @@
 import React from 'react';
-import { Category, RemainingItems } from '@/types/kitchen';
+import { Category, RemainingItems, GroupedOrders } from '@/types/kitchen';
 import { Button } from '@/components/ui/button'
 import { IconList, IconCup, IconSoup, IconIceCream } from '@tabler/icons-react'
 
@@ -10,8 +10,10 @@ interface KitchenSidebarProps {
   remainingItems: RemainingItems;
   shouldShowInSidebar: (itemName: string) => boolean;
   itemNameToCategory: Record<string, string>;
-  selectedItemName: string | null; // <-- add this
-  onSidebarItemClick: (itemName: string) => void; // <-- add this
+  selectedOrderKey: { itemName: string; tableNumber: number; id: number } | null;
+  onSidebarItemClick: (orderKey: { itemName: string; tableNumber: number; id: number }) => void;
+  groupedOrders: GroupedOrders;
+  className?: string;
 }
 
 export function KitchenSidebar({ 
@@ -21,8 +23,10 @@ export function KitchenSidebar({
   remainingItems, 
   shouldShowInSidebar, 
   itemNameToCategory,
-  selectedItemName,
-  onSidebarItemClick
+  selectedOrderKey,
+  onSidebarItemClick,
+  groupedOrders,
+  className
 }: KitchenSidebarProps) {
   const renderAnimatedButton = (
     itemName: string, 
@@ -41,9 +45,9 @@ export function KitchenSidebar({
       style={{ transitionDelay: delay }}
     >
       <Button
-        onClick={() => onSidebarItemClick(itemName)}
+        onClick={() => onSidebarItemClick({ itemName, tableNumber: 0, id: 0 })}
         variant="secondary"
-        className={`hover:bg-gray-200 ${selectedItemName === itemName ? 'bg-gray-300' : ''}`}
+        className={`hover:bg-gray-200 ${selectedOrderKey?.itemName === itemName ? 'bg-gray-300' : ''}`}
       >
         {itemName}
       </Button>
@@ -68,7 +72,7 @@ export function KitchenSidebar({
   };
 
   return (
-    <div className="w-80 bg-gray-200 flex flex-col h-screen">
+    <div className={`w-80 bg-gray-200 flex flex-col h-screen ${className || ''}`}>
       {/* Fixed Header */}
       <div className="flex-shrink-0 p-6 pb-4">
         <h2 className="text-xl font-bold text-gray-800">Danh mục món ăn</h2>
@@ -104,20 +108,54 @@ export function KitchenSidebar({
 
           {/* Filtered Items Section - show only items matching selectedCategory */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex flex-col gap-3">
-              {Object.entries(remainingItems)
-                .filter(([itemName, count]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
-                .map(([itemName, count]) =>
-                  Array.from({ length: count }, (_, index) =>
-                    renderAnimatedButton(
-                      itemName,
-                      index,
-                      itemNameToCategory[itemName] === 'Đồ uống' ? 'bg-yellow-400 hover:bg-yellow-500 text-black' : 'bg-green-500 hover:bg-green-600',
-                      itemNameToCategory[itemName] === 'Đồ uống' ? 'text-black' : 'text-white',
-                      `${index * 100}ms`
-                    )
-                  )
-                )}
+            <div className="flex flex-col gap-4"> {/* gap between groups */}
+              {(() => {
+                // Flatten all filtered orders into a single array
+                const allOrders = Object.entries(groupedOrders)
+                  .filter(([itemName, orders]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
+                  .flatMap(([itemName, orders]) =>
+                    orders
+                      .filter(order => order.status !== 'bắt đầu phục vụ')
+                      .map((order) => ({
+                        itemName,
+                        tableNumber: order.tableNumber,
+                        id: order.id,
+                      }))
+                  );
+                // Group into chunks of 3
+                const groups = [];
+                for (let i = 0; i < allOrders.length; i += 3) {
+                  groups.push(allOrders.slice(i, i + 3));
+                }
+                return groups.map((group, groupIdx) => (
+                  <div
+                    key={`sidebar-group-${groupIdx}`}
+                    className="bg-gray-100 rounded-xl shadow p-3 flex flex-col gap-2"
+                  >
+                    {group.map(({ itemName, tableNumber, id }) => {
+                      const isSelected =
+                        selectedOrderKey &&
+                        selectedOrderKey.itemName === itemName &&
+                        selectedOrderKey.tableNumber === tableNumber &&
+                        selectedOrderKey.id === id;
+                      return (
+                        <div
+                          key={`${itemName}-table-${tableNumber}-${id}`}
+                          className="transition-all duration-500 ease-in-out transform opacity-100 translate-y-0 scale-100"
+                        >
+                          <Button
+                            onClick={() => onSidebarItemClick({ itemName, tableNumber, id })}
+                            variant="secondary"
+                            className={`hover:bg-gray-200 ${isSelected ? 'bg-gray-300' : ''}`}
+                          >
+                            {`${itemName} - bàn ${tableNumber}`}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
             </div>
           </div>
 

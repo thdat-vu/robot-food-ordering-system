@@ -4,7 +4,7 @@ import React, { useState, Suspense } from 'react';
 import { useCustomRouter } from '@/lib/custom-router';
 
 // Types
-import { Order } from '@/types/kitchen';
+import { Order, OrderStatus } from '@/types/kitchen';
 
 // Constants
 import { CATEGORIES } from '@/constants/kitchen-data';
@@ -28,7 +28,7 @@ function ChiefPageContent() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Sidebar item selection state
-  const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
+  const [selectedOrderKey, setSelectedOrderKey] = useState<{ itemName: string; tableNumber: number; id: number } | null>(null);
 
   // Custom hooks
   const {
@@ -54,8 +54,8 @@ function ChiefPageContent() {
     setExpandedGroup(expandedGroup === itemName ? null : itemName);
   };
 
-  const handlePrepareClick = (itemName: string) => {
-    handlePrepareOrders(itemName);
+  const handlePrepareClick = (orderId: number, itemName: string) => {
+    handlePrepareOrders(orderId);
     addToast(`Đã bắt đầu thực hiện món: ${itemName}`, 'success');
   };
 
@@ -79,14 +79,47 @@ function ChiefPageContent() {
   };
 
   // Sidebar item click handler
-  const handleSidebarItemClick = (itemName: string) => {
-    setSelectedItemName(prev => (prev === itemName ? null : itemName));
+  const handleSidebarItemClick = (orderKey: { itemName: string; tableNumber: number; id: number }) => {
+    setSelectedOrderKey(prev => {
+      if (
+        prev &&
+        prev.itemName === orderKey.itemName &&
+        prev.tableNumber === orderKey.tableNumber &&
+        prev.id === orderKey.id
+      ) {
+        return null;
+      }
+      return orderKey;
+    });
   };
 
-  // Filter groupedOrders for selected item
-  const filteredGroupedOrders = selectedItemName
-    ? { [selectedItemName]: groupedOrders[selectedItemName] || [] }
-    : {};
+  // Filter groupedOrders for selected order
+  let filteredGroupedOrders: Record<string, Order[]> = {};
+  if (selectedOrderKey) {
+    const { itemName, tableNumber, id } = selectedOrderKey;
+    const orderList = (groupedOrders as Record<string, Order[]>)[itemName] || [];
+    const foundOrder = orderList.find(
+      o => o.tableNumber === tableNumber && o.id === id
+    );
+    if (foundOrder) {
+      filteredGroupedOrders = { [itemName]: [foundOrder] };
+    }
+  }
+
+  // Get all orders in 'bắt đầu phục vụ' state for the right panel
+  const isServeTab = activeTab === 'bắt đầu phục vụ';
+  let serveTabGroupedOrders: Record<string, Order[]> = {};
+  if (isServeTab) {
+    // Flatten all groupedOrders into a single array of orders in 'bắt đầu phục vụ' state
+    const allOrders = Object.values(groupedOrders as Record<string, Order[]>).flat();
+    const serveOrders = allOrders.filter(order => order.status === 'bắt đầu phục vụ');
+    // Group by itemName for OrdersContent
+    serveTabGroupedOrders = serveOrders.reduce((acc: Record<string, Order[]>, order: Order) => {
+      if (!acc[order.itemName]) acc[order.itemName] = [];
+      acc[order.itemName].push(order);
+      return acc;
+    }, {} as Record<string, Order[]>);
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -102,28 +135,40 @@ function ChiefPageContent() {
       />
 
       {/* Kitchen Sidebar */}
-      <KitchenSidebar
-        categories={CATEGORIES}
-        selectedCategory={selectedCategory}
-        onCategorySelect={setSelectedCategory}
-        remainingItems={remainingItems}
-        shouldShowInSidebar={shouldShowInSidebar}
-        itemNameToCategory={itemNameToCategory}
-        selectedItemName={selectedItemName}
-        onSidebarItemClick={handleSidebarItemClick}
-      />
+      <div className={isServeTab ? 'pointer-events-none opacity-50' : ''}>
+        <KitchenSidebar
+          categories={CATEGORIES}
+          selectedCategory={selectedCategory}
+          onCategorySelect={setSelectedCategory}
+          remainingItems={remainingItems}
+          shouldShowInSidebar={shouldShowInSidebar}
+          itemNameToCategory={itemNameToCategory}
+          selectedOrderKey={selectedOrderKey}
+          onSidebarItemClick={handleSidebarItemClick}
+          groupedOrders={groupedOrders}
+        />
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Navigation Tabs */}
         <NavigationTabs
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
+          activeTab={activeTab as OrderStatus}
+          onTabChange={setActiveTab as (tab: OrderStatus) => void}
           getTabCount={getTabCount}
         />
 
         {/* Orders Content or Placeholder */}
-        {selectedItemName ? (
+        {isServeTab ? (
+          <OrdersContent
+            groupedOrders={serveTabGroupedOrders}
+            activeTab={activeTab}
+            expandedGroup={expandedGroup}
+            onGroupClick={handleGroupClick}
+            onPrepareClick={handlePrepareClick}
+            onServeClick={handleServeClick}
+          />
+        ) : selectedOrderKey ? (
           <OrdersContent
             groupedOrders={filteredGroupedOrders}
             activeTab={activeTab}

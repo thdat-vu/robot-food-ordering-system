@@ -44,7 +44,7 @@ export function ConfirmationModal({ isOpen, selectedOrder, onConfirm, onCancel }
           
           {/* Modal Footer */}
           <div className="flex justify-end space-x-3">
-            <Button onClick={onCancel}>Hủy</Button>
+            <Button variant="secondary" onClick={onCancel}>Hủy</Button>
             <Button onClick={onConfirm}>Xác nhận</Button>
           </div>
         </div>

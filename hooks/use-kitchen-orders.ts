@@ -82,10 +82,10 @@ export function useKitchenOrders() {
   };
 
   // Update order status to "đang thực hiện"
-  const handlePrepareOrders = (itemName: string): void => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.itemName === itemName && order.status === "đang chờ"
+  const handlePrepareOrders = (orderId: number): void => {
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
+        order.id === orderId && order.status === "đang chờ"
           ? { ...order, status: "đang thực hiện" }
           : order
       )
