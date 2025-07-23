@@ -55,6 +55,17 @@ export function useKitchenOrders() {
     return remaining;
   }, [orders]);
 
+  // Create a mapping from itemName to category
+  const itemNameToCategory = useMemo(() => {
+    const map: Record<string, string> = {};
+    orders.forEach(order => {
+      if (!map[order.itemName]) {
+        map[order.itemName] = order.category;
+      }
+    });
+    return map;
+  }, [orders]);
+
   // Check if item should be shown in sidebar
   const shouldShowInSidebar = (itemName: string): boolean => {
     return remainingItems[itemName] > 0;
@@ -71,10 +82,10 @@ export function useKitchenOrders() {
   };
 
   // Update order status to "đang thực hiện"
-  const handlePrepareOrders = (itemName: string): void => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.itemName === itemName && order.status === "đang chờ"
+  const handlePrepareOrders = (orderId: number): void => {
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
+        order.id === orderId && order.status === "đang chờ"
           ? { ...order, status: "đang thực hiện" }
           : order
       )
@@ -122,6 +133,7 @@ export function useKitchenOrders() {
     groupedOrders,
     orderCounts,
     remainingItems,
+    itemNameToCategory, // <-- add this
     
     // Actions
     setActiveTab,
