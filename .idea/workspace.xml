@@ -5,10 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/api/OrderApi.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/entites/request/OrderRequest.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hooks/customHooks/useOrderHooks.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api-endpoint-env.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api-endpoint-env.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/Dialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/Dialog.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/entites/Props/ShoppingCart.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/Props/ShoppingCart.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/store/ShoppingCart.ts" beforeDir="false" afterPath="$PROJECT_DIR$/store/ShoppingCart.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/unit/unit.ts" beforeDir="false" afterPath="$PROJECT_DIR$/unit/unit.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,8 +23,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="TypeScript File" />
         <option value="TypeScript JSX File" />
+        <option value="TypeScript File" />
       </list>
     </option>
   </component>
@@ -97,7 +102,7 @@
       <workItem from="1753381556339" duration="4426000" />
       <workItem from="1753423221411" duration="4421000" />
       <workItem from="1753454674555" duration="11332000" />
-      <workItem from="1753533442433" duration="7881000" />
+      <workItem from="1753533442433" duration="17878000" />
     </task>
     <servers />
   </component>

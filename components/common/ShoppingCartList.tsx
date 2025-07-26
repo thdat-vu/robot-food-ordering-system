@@ -2,19 +2,21 @@
 import React, {useEffect, useState} from "react";
 import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
 import {Minus, ShoppingBag, Trash2} from "lucide-react";
-import formatCurrency from "@/unit/unit";
+import formatCurrency, {totolPrice} from "@/unit/unit";
 import {
     loadListFromLocalStorage,
     removeProduction,
     updateProduction
 } from "@/store/ShoppingCart";
 import {IoMdAdd} from "react-icons/io";
+import {ConfimOrder} from "@/app/features/components/ConfimOrder";
 
 export const ShoppingCartList: React.FC = () => {
 
 
     const [cartItems, setCartItems] = useState<ShoppingCart[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
+    const [open, setOpen] = useState<boolean>(false)
 
 
     const calculateItemTotal = (item: ShoppingCart) => {
@@ -64,11 +66,7 @@ export const ShoppingCartList: React.FC = () => {
 
     useEffect(() => {
         (() => {
-            let sum = 0;
-            cartItems.forEach(value => {
-                sum += value.size.price;
-                value.toppings.forEach(t => sum += t.quantity * t.price);
-            });
+            let sum = totolPrice(cartItems);
             setTotalPrice(sum);
         })()
     }, [cartItems]);
@@ -194,27 +192,27 @@ export const ShoppingCartList: React.FC = () => {
                         </div>
                     </div>
 
-                    <ActionButtons/>
+                    <ActionButtons handle={() => setOpen(true)}/>
                 </div>
             </div>
-            {/*<ConfimOrder data={Pd} topping={Tp} id={id} isOpen={open} onClose={() => setOpen(false)}/>*/}
-
+            <ConfimOrder isOpen={open} onClose={() => setOpen(false)}/>
         </>
     );
 };
 
 
-const ActionButtons = () => {
+const ActionButtons: React.FC<{ handle: () => void }> = ({handle}) => {
     return (
         <>
             <div className="flex space-x-3">
+                {/*<button*/}
+                {/*    className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors">*/}
+                {/*    Tiếp tục mua*/}
+                {/*</button>*/}
                 <button
-                    className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors">
-                    Tiếp tục mua
-                </button>
-                <button
+                    onClick={handle}
                     className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
-                    Thanh toán
+                    Gọi Món
                 </button>
             </div>
         </>
