@@ -3,7 +3,6 @@ export const saveListToLocalStorage = <T>(key: string, list: T[]): void => {
 };
 
 
-
 export const addProduction = <T>(key: string, item: T): void => {
     const data = localStorage.getItem(key);
     const list: T[] = data ? JSON.parse(data) : [];
@@ -12,24 +11,38 @@ export const addProduction = <T>(key: string, item: T): void => {
 };
 
 
-
-export const updateProduction = <T extends { id: string }>(
+export const updateProduction = <T>(
     key: string,
-    updatedItem: T
+    updatedItem: T,
+    index: number
 ): void => {
     const data = localStorage.getItem(key);
     let list: T[] = data ? JSON.parse(data) : [];
-    list = list.map(item => (item.id === updatedItem.id ? updatedItem : item));
-    saveListToLocalStorage(key, list);
+    if (index >= 0 && index < list.length) {
+        list[index] = updatedItem;
+        saveListToLocalStorage(key, list);
+    }
 };
 
 
-export const removeProduction = <T extends { id: string }>(
+export const removeProduction = <T>(
     key: string,
-    id: string
+    index: number
 ): void => {
     const data = localStorage.getItem(key);
     const list: T[] = data ? JSON.parse(data) : [];
-    const newList = list.filter(item => item.id !== id);
-    saveListToLocalStorage(key, newList);
+    if (index >= 0 && index < list.length) {
+        list.splice(index, 1);
+        saveListToLocalStorage(key, list);
+    }
+};
+
+export const loadListFromLocalStorage = <T>(key: string): T[] => {
+    try {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error("Lỗi khi load từ localStorage:", e);
+        return [];
+    }
 };

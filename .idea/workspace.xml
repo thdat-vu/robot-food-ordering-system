@@ -5,61 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/api-endpoint-env.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/api/CategogyApi.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/api/ProductionApi.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/api/ProductionSizeApi.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/api/TableApi.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/api/ToppingApi.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/api/api.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/common/Alert.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/common/CatagoryList.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/common/ChoceToping.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/common/Loading.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/BaseEntity.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/PaginatedList.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/PagingRequest.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/Props/ShoppingCart.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/Props/Toppings.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/request/CategogyRequest.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/request/OrderCreateRequest.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/request/ProductionRequest.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/respont/Catagory.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/respont/Production.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/respont/ProductionSize.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/respont/Table.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/respont/Topping.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hooks/context/Context.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hooks/context/ContextProduct.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hooks/customHooks/useCategoryHooks.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hooks/customHooks/useProductionHooks.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hooks/customHooks/useProductionSizeHooks.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hooks/customHooks/useTableHooks.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hooks/customHooks/userTopingHooks.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/store/ProductionStore.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/store/ShoppingCart.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/unit/unit.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/[id]/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/OrderList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/OrderList.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/ProductionsPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ProductionsPage.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/Rating.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/Rating.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/ToppingList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ToppingList.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/productions.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/productions.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/productions/detail/[idProduction]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/productions/detail/[idProduction]/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/productions/topping/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/productions/topping/[id]/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/BottomModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/BottomModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/Header.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/ProductionCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ProductionCard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/Topping.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/Topping.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/next.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entites/Props/ShoppingCart.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/Props/ShoppingCart.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/store/ShoppingCart.ts" beforeDir="false" afterPath="$PROJECT_DIR$/store/ShoppingCart.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -148,6 +97,7 @@
       <workItem from="1753381556339" duration="4426000" />
       <workItem from="1753423221411" duration="4421000" />
       <workItem from="1753454674555" duration="11332000" />
+      <workItem from="1753533442433" duration="7881000" />
     </task>
     <servers />
   </component>

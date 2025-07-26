@@ -3,11 +3,18 @@ import React, {useEffect, useState} from "react";
 import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
 import {Minus, ShoppingBag, Trash2} from "lucide-react";
 import formatCurrency from "@/unit/unit";
+import {
+    loadListFromLocalStorage,
+    removeProduction,
+    updateProduction
+} from "@/store/ShoppingCart";
+import {IoMdAdd} from "react-icons/io";
 
 export const ShoppingCartList: React.FC = () => {
 
 
     const [cartItems, setCartItems] = useState<ShoppingCart[]>([]);
+    const [totalPrice, setTotalPrice] = useState<number>(0);
 
 
     const calculateItemTotal = (item: ShoppingCart) => {
@@ -15,29 +22,56 @@ export const ShoppingCartList: React.FC = () => {
         return item.size.price + toppingsTotal;
     };
 
+
     const calculateGrandTotal = () => {
         return cartItems.reduce((sum, item) => sum + calculateItemTotal(item), 0);
     };
 
-    const removeItem = (itemId: string) => {
-        setCartItems(prev => prev.filter(item => item.id !== itemId));
+
+    const removeItem = (index: number) => {
+
+        setCartItems(prevState => prevState.filter((_, index1) => index1 !== index))
+        removeProduction("shopping-carts", index)
+    }
+
+
+    const remoteItemToping = (index: number, topping: string, isAdd: boolean) => {
+        setCartItems(prevState => {
+            const updatedItems = prevState.map((item, i) =>
+                i === index
+                    ? {
+                        ...item,
+                        toppings: item.toppings.map(t =>
+                            t.id === topping
+                                ? {...t, quantity: Math.max(isAdd ? t.quantity + 1 : t.quantity - 1, 0)}
+                                : t
+                        )
+                    }
+                    : item
+            );
+            const updatedItem = updatedItems[index];
+            if (updatedItem) updateProduction("shopping-carts", updatedItem, index);
+            return updatedItems;
+        });
     };
 
-    const removeToppingFromItem = (itemId: string, toppingId: string) => {
-        setCartItems(prev =>
-            prev.map(item =>
-                item.id === itemId
-                    ? {...item, toppings: item.toppings.filter(t => t.id !== toppingId)}
-                    : item
-            )
-        );
-    };
 
     useEffect(() => {
-        const stores = localStorage.getItem("shopping-carts");
-        if (stores)
-            setCartItems(JSON.parse(stores));
+        const data = loadListFromLocalStorage<ShoppingCart>("shopping-carts");
+        setCartItems(data);
     }, []);
+
+
+    useEffect(() => {
+        (() => {
+            let sum = 0;
+            cartItems.forEach(value => {
+                sum += value.size.price;
+                value.toppings.forEach(t => sum += t.quantity * t.price);
+            });
+            setTotalPrice(sum);
+        })()
+    }, [cartItems]);
 
     if (cartItems.length === 0) {
         return (
@@ -102,7 +136,7 @@ export const ShoppingCartList: React.FC = () => {
                                             </div>
 
                                             <button
-                                                onClick={() => removeItem(item.id)}
+                                                onClick={() => removeItem(index)}
                                                 className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                                             >
                                                 <Trash2 className="w-4 h-4"/>
@@ -114,16 +148,20 @@ export const ShoppingCartList: React.FC = () => {
                                 </div>
                             </div>
 
+
                             {item.toppings.length > 0 && (
                                 <div className="px-4 pb-4">
                                     <div className="border-t border-gray-100 pt-3">
                                         <p className="text-sm font-medium text-gray-700 mb-2">Topping:</p>
                                         <div className="space-y-2">
-                                            <ToppingCartList item={item} removeToppingFromItem={removeToppingFromItem}/>
+                                            <ToppingCartList item={item} index={index}
+                                                             removeToppingFromItem={remoteItemToping}/>
                                         </div>
                                     </div>
                                 </div>
                             )}
+
+
                             <div className="bg-gray-50 px-4 py-3 border-t border-gray-100">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-gray-600">Tổng món này:</span>
@@ -140,7 +178,7 @@ export const ShoppingCartList: React.FC = () => {
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Tạm tính ({cartItems.length} món):</span>
-                            <span className="font-medium">{formatCurrency(calculateGrandTotal())}</span>
+                            <span className="font-medium">{formatCurrency(totalPrice)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Phí giao hàng:</span>
@@ -150,7 +188,7 @@ export const ShoppingCartList: React.FC = () => {
                             <div className="flex justify-between">
                                 <span className="text-base font-semibold text-gray-900">Tổng cộng:</span>
                                 <span className="text-lg font-bold text-green-600">
-                                {formatCurrency(calculateGrandTotal())}
+                                {formatCurrency(totalPrice)}
                             </span>
                             </div>
                         </div>
@@ -164,8 +202,6 @@ export const ShoppingCartList: React.FC = () => {
         </>
     );
 };
-
-
 
 
 const ActionButtons = () => {
@@ -187,8 +223,9 @@ const ActionButtons = () => {
 
 const ToppingCartList: React.FC<{
     item: ShoppingCart,
-    removeToppingFromItem: (idProduct: string, idTopping: string) => void
-}> = ({item, removeToppingFromItem}) => {
+    index: number;
+    removeToppingFromItem: (index: number, idTopping: string, isAdd: boolean) => void
+}> = ({item, index, removeToppingFromItem}) => {
     return (
         <>
             {item.toppings.map((topping) => (
@@ -208,14 +245,25 @@ const ToppingCartList: React.FC<{
                                                     </span>
                     </div>
                     <div className="flex items-center space-x-2">
-                                                    <span className="text-sm font-semibold text-green-600">
-                                                        {formatCurrency(topping.price)}
+                          <span className="text-sm font-semibold text-green-600">
+                                                        {formatCurrency(topping.price * topping.quantity)}
                                                     </span>
                         <button
-                            onClick={() => removeToppingFromItem(item.id, topping.id)}
+                            onClick={() => removeToppingFromItem(index, topping.id, false)}
                             className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                         >
                             <Minus className="w-3 h-3"/>
+                        </button>
+
+                        <span className="text-sm font-semibold text-green-600">
+                                                        {topping.quantity}
+                                                    </span>
+
+                        <button
+                            onClick={() => removeToppingFromItem(index, topping.id, true)}
+                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                            <IoMdAdd className="w-3 h-3"/>
                         </button>
                     </div>
                 </div>
