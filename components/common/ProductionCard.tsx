@@ -1,15 +1,14 @@
 'use client'
 import React from "react";
-import {FaPlus} from "react-icons/fa";
 import {useRouter} from "next/navigation";
 
 export const ProductionCard: React.FC<{
     idProduction: string,
     name: string,
-    price: string,
+    // price: string,
     url: string,
-    sale?: number,
-}> = ({url, name, price, sale, idProduction}) => {
+    // sale?: number,
+}> = ({url, name, idProduction}) => {
     const router = useRouter();
 
     const handle = () => {
@@ -34,26 +33,16 @@ export const ProductionCard: React.FC<{
             </div>
 
             <div className="mt-5 bg-gray-50 rounded-2xl p-2 sm:p-3 transition hover:bg-gray-100">
-                <div className="flex items-center justify-between">
-                    <div className="text-left">
-                        <h3 className="text-sm font-medium sm:font-semibold text-gray-800 line-clamp-1">
-                            {name}
-                        </h3>
-                        <p className="text-green-600 font-bold text-sm sm:text-base">
-                            {price}
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                        }}
-                        className="bg-green-500 text-white p-1.5 sm:p-2 rounded-full hover:bg-green-600 transition"
-                    >
-                        <FaPlus size={12} className="sm:size-[14px]"/>
-                    </button>
+                <div className="flex flex-col items-center justify-center text-center">
+                    <h3 className="text-sm font-medium sm:font-semibold text-gray-800 line-clamp-1">
+                        {name}
+                    </h3>
+                    {/*<p className="text-green-600 font-bold text-sm sm:text-base">*/}
+                    {/*    {price}*/}
+                    {/*</p>*/}
                 </div>
             </div>
+
         </div>
     );
 };

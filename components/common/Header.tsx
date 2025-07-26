@@ -3,33 +3,38 @@
 import React from "react";
 import {BsFillPersonFill} from "react-icons/bs";
 import {useRouter} from "next/navigation";
+import {useTableContext} from "@/hooks/context/Context";
 
 export const Header: React.FC<{ id: string }> = ({id}) => {
+
+    const context = useTableContext();
+
+    const {tableName} = context;
+
     const router = useRouter();
-    const infor = id !== "undefined" ? id : "!";
 
     return (
         <div className="w-full bg-white text-black shadow-sm fixed top-0 left-0 z-50">
             <div className="flex items-center justify-between px-4 py-2 min-h-[60px]">
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-lg font-bold">{infor}</span>
-                    </div>
-                    <span className="text-base sm:text-xl font-semibold whitespace-nowrap">
-                        {infor === "!" ? "" : `Bàn ${id}`}
+                    {/*<div className="w-10 h-10 rounded-full bg-black flex items-center justify-center flex-shrink-0">*/}
+                    {/*    <span className="text-white text-lg font-bold">{tableName}</span>*/}
+                    {/*</div>*/}
+                    <span className="text-3xl sm:text-3xl font-semibold whitespace-nowrap">
+                        {tableName === "!" ? "" : `${tableName}`}
                     </span>
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <button
-                        onClick={() => router.push(`/productions/topping/${id}`)}
+                        onClick={() => router.push(`/productions/order/${id}`)}
                         className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
                         aria-label="Giỏ hàng"
                     >
                         <div className="indicator">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-6 w-6 sm:h-7 sm:w-7"
+                                className="h-7 w-7 sm:h-7 sm:w-7"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -46,10 +51,10 @@ export const Header: React.FC<{ id: string }> = ({id}) => {
 
                     <button
                         onClick={() => router.push(`/profile/${id}`)}
-                        className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
+                        className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 ml-2"
                         aria-label="Hồ sơ"
                     >
-                        <BsFillPersonFill className="text-xl sm:text-2xl md:text-3xl"/>
+                        <BsFillPersonFill className="text-3xl sm:text-2xl md:text-3xl"/>
                     </button>
                 </div>
             </div>

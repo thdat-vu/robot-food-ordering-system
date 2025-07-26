@@ -26,6 +26,7 @@ export const Rating: React.FC<RatingProps> = ({id, isOpen, onClose, onSave}) => 
     const [rating, setRating] = useState<number>(0);
     const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
     const [customFeedback, setCustomFeedback] = useState<string>('');
+
     const handleReasonToggle = (reason: string) => {
         setSelectedReasons(prev =>
             prev.includes(reason)
@@ -42,7 +43,7 @@ export const Rating: React.FC<RatingProps> = ({id, isOpen, onClose, onSave}) => 
         <>
             <BottomModal
                 id={id}
-                title="Đánh  "
+                title="Đánh  Gía"
                 isOpen={isOpen}
                 onClose={onClose}
                 onSave={onSave}

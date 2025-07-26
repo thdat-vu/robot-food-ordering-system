@@ -32,6 +32,7 @@ export const BottomModal: React.FC<{
 
     if (!isOpen) return null;
 
+
     return (
         <div
             className="fixed inset-0 z-50 overflow-hidden"
@@ -40,7 +41,7 @@ export const BottomModal: React.FC<{
             aria-modal="true"
         >
             <div
-                className={`fixed inset-0 bg-black transition-opacity duration-300 ${
+                className={`fixed inset-0 bg-while transition-opacity duration-300 ${
                     isOpen ? 'opacity-50' : 'opacity-0'
                 }`}
                 onClick={onClose}
@@ -50,7 +51,7 @@ export const BottomModal: React.FC<{
                 <div
                     className={`w-full max-w-lg bg-white border border-gray-200 shadow-2xl rounded-t-xl transform transition-transform duration-300 ease-out ${
                         isOpen ? 'translate-y-0' : 'translate-y-full'
-                    } dark:bg-neutral-800 dark:border-neutral-700`}
+                    } `}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div
@@ -64,7 +65,9 @@ export const BottomModal: React.FC<{
                         <button
                             type="button"
                             onClick={onClose}
-                            className="size-8 inline-flex justify-center items-center rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600"
+                            className="size-8 inline-flex justify-center items-center rounded-full border border-transparent
+                             bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 disabled:opacity-50
+                              disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600"
                             aria-label="Close"
                         >
                             <X className="size-4"/>
@@ -78,4 +81,6 @@ export const BottomModal: React.FC<{
             </div>
         </div>
     );
+
 };
+

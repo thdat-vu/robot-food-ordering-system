@@ -2,29 +2,22 @@
 import React from "react";
 import img from "@/public/img.png";
 import {ProductionCard} from "@/components/common/ProductionCard";
+import {Production} from "@/entites/respont/Production";
 
-const products = [
-    {id: '1', name: "Cà phê", price: "35.000", url: img.src, sale: 0},
-    {id: '2', name: "Matcha Latte", price: "45.000", url: img.src, sale: 10},
-    {id: '3', name: "Trà Đào", price: "30.000", url: img.src, sale: 5},
-    {id: '4', name: "Cà phê", price: "35.000", url: img.src, sale: 0},
-    {id: '5', name: "Matcha Latte", price: "45.000", url: img.src, sale: 10},
-    {id: '6', name: "Trà Đào", price: "30.000", url: img.src, sale: 5},
-    {id: '7', name: "Cà phê", price: "35.000", url: img.src, sale: 0},
-    {id: '8', name: "Matcha Latte", price: "45.000", url: img.src, sale: 10},
-    {id: '9', name: "Trà Đào", price: "30.000", url: img.src, sale: 5},
-];
 
-export const Productions: React.FC = () => {
+type Prop = {
+    products: Production[];
+}
+
+export const ProductionsList: React.FC<Prop> = ({products}) => {
+
     return (
         <div className="grid mt-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {products.map((item, index) => (
                 <ProductionCard
                     key={index}
-                    name={item.name}
-                    price={item.price}
-                    url={item.url}
-                    sale={item.sale}
+                    name={item.productName}
+                    url={item.imageUrl}
                     idProduction={item.id}
                 />
             ))}

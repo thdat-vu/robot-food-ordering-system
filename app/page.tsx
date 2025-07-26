@@ -1,6 +1,5 @@
 "use client";
 
-import {use} from 'react';
 import Button from "@/components/common/Button";
 import {useRouter, useParams} from "next/navigation";
 
@@ -17,7 +16,7 @@ export default function Home() {
     return (
         <>
             <div
-                className="w-full flex flex-col justify-end items-center bg-cover bg-center"
+                className="w-full h-screen flex flex-col justify-end items-center bg-cover bg-center"
                 style={{backgroundImage: `url('/img.png')`}}
             >
                 <div className="min-h-screen flex justify-center items-end pb-10">

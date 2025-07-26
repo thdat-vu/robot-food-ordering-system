@@ -1,6 +1,8 @@
 import type {Metadata} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
 import "../styles/globals.css";
+import {TableProvider} from "@/hooks/context/Context";
+import {ProductProvider} from "@/hooks/context/ContextProduct";
 
 
 const geistSans = Geist({
@@ -31,7 +33,11 @@ export default function RootLayout({
     return (
         <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
         <body className="antialiased min-h-screen flex flex-col justify-end items-center bg-white">
-        {children}
+        <TableProvider>
+            <ProductProvider>
+                {children}
+            </ProductProvider>
+        </TableProvider>
         </body>
         </html>
     );

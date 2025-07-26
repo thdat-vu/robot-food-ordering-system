@@ -8,6 +8,7 @@ export default function Page({params}: { params: Promise<{ idProduction: string 
 
     const {idProduction} = use(params)
 
+
     return (
         <ProductionDetailPage id={idProduction}/>
     )
