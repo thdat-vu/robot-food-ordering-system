@@ -37,11 +37,14 @@ function ChiefPageContent() {
     expandedGroup,
     groupedOrders,
     remainingItems,
+    isLoading,
+    error,
     setActiveTab,
     setSelectedCategory,
     setExpandedGroup,
     handlePrepareOrders,
     handleServeOrder,
+    refreshOrders,
     shouldShowInSidebar,
     getTabCount,
     itemNameToCategory,
@@ -54,9 +57,13 @@ function ChiefPageContent() {
     setExpandedGroup(expandedGroup === itemName ? null : itemName);
   };
 
-  const handlePrepareClick = (orderId: number, itemName: string) => {
-    handlePrepareOrders(orderId);
-    addToast(`Đã bắt đầu thực hiện món: ${itemName}`, 'success');
+  const handlePrepareClick = async (orderId: number, itemName: string) => {
+    try {
+      await handlePrepareOrders(orderId);
+      addToast(`Đã bắt đầu thực hiện món: ${itemName}`, 'success');
+    } catch (error) {
+      addToast(`Lỗi khi cập nhật trạng thái: ${itemName}`, 'error');
+    }
   };
 
   const handleServeClick = (order: Order) => {
@@ -64,10 +71,14 @@ function ChiefPageContent() {
     setShowModal(true);
   };
 
-  const handleConfirmServe = () => {
+  const handleConfirmServe = async () => {
     if (selectedOrder) {
-      handleServeOrder(selectedOrder.id);
-      addToast(`Đã bắt đầu phục vụ món: ${selectedOrder.itemName}`, 'success');
+      try {
+        await handleServeOrder(selectedOrder.id);
+        addToast(`Đã bắt đầu phục vụ món: ${selectedOrder.itemName}`, 'success');
+      } catch (error) {
+        addToast(`Lỗi khi cập nhật trạng thái: ${selectedOrder.itemName}`, 'error');
+      }
     }
     setShowModal(false);
     setSelectedOrder(null);
@@ -119,6 +130,36 @@ function ChiefPageContent() {
       acc[order.itemName].push(order);
       return acc;
     }, {} as Record<string, Order[]>);
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <div className="flex items-center justify-center w-full">
+          <div className="text-gray-500">Đang tải dữ liệu...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <div className="flex items-center justify-center w-full">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">Lỗi: {error}</div>
+            <button
+              onClick={refreshOrders}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
