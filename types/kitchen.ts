@@ -10,6 +10,9 @@ export interface Order {
   image: string;
   orderTime: string;
   estimatedTime: string; // Time needed to prepare the dish (e.g., "15 phút", "20 phút")
+  // API IDs for making API calls
+  apiOrderId: string;
+  apiItemId: string;
 }
 
 export interface Category {

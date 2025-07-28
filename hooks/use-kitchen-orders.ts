@@ -138,8 +138,18 @@ export function useKitchenOrders() {
       );
       setExpandedGroup(null);
 
-      // TODO: Implement API call when ID mapping is available
-      console.log('Order status updated locally. API call pending ID mapping implementation.');
+      // Make API call to update order item status to "Preparing" (status 2)
+      const response = await ordersApi.updateOrderItemStatus(
+        order.apiOrderId,
+        order.apiItemId,
+        2 // Preparing status
+      );
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to update order status');
+      }
+
+      console.log('Order status updated successfully via API');
       
     } catch (err) {
       console.error('Error updating order status:', err);
@@ -174,8 +184,18 @@ export function useKitchenOrders() {
         )
       );
 
-      // TODO: Implement API call when ID mapping is available
-      console.log('Order status updated locally. API call pending ID mapping implementation.');
+      // Make API call to update order item status to "Ready" (status 3)
+      const response = await ordersApi.updateOrderItemStatus(
+        order.apiOrderId,
+        order.apiItemId,
+        3 // Ready status
+      );
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to update order status');
+      }
+
+      console.log('Order status updated successfully via API');
       
     } catch (err) {
       console.error('Error updating order status:', err);
