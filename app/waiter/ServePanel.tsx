@@ -192,7 +192,7 @@ const ServePanel: React.FC = () => {
           </div>
         </>
       ) : (
-        <PaymentPanel dishes={dishes} onPaymentComplete={handlePaymentComplete} />
+        <PaymentPanel onPaymentComplete={handlePaymentComplete} />
       )}
     </div>
   );

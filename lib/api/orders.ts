@@ -15,11 +15,12 @@ export interface ApiOrderItemResponse {
   id: string;
   productId: string;
   productName: string;
-  productSizeId: string;
+  sizeId: string;
   sizeName: string;
   quantity: number;
   status: string;
   toppings: ApiToppingResponse[];
+  price: number; // Add price field for order items
 }
 
 export interface ApiToppingResponse {
@@ -48,6 +49,16 @@ export interface ApiPaginatedResponse<T> {
 
 export interface UpdateOrderItemStatusRequest {
   status: number; // OrderItemStatus enum value
+}
+
+export interface OrderPaymentRequest {
+  paymentMethod: string; // "COD" or "VNPay"
+}
+
+export interface OrderPaymentResponse {
+  orderId: string;
+  paymentStatus: string;
+  message: string;
 }
 
 // API service functions
@@ -90,6 +101,27 @@ export const ordersApi = {
   // Get orders by table ID
   async getOrdersByTableId(orderId: string, tableId: string) {
     const response = await apiClient.get<ApiBaseResponse<ApiOrderResponse>>(`/Order/${orderId}/table/${tableId}`);
+    return response.data;
+  },
+
+  // NEW: Get orders by table ID only (for payment)
+  async getOrdersByTableIdOnly(tableId: string) {
+    const response = await apiClient.get<ApiBaseResponse<ApiOrderResponse[]>>(`/Order/table/${tableId}`);
+    return response.data;
+  },
+
+  // NEW: Get orders by table ID with Delivering status (for payment)
+  async getOrdersByTableIdWithStatus(tableId: string, status: string) {
+    const response = await apiClient.get<ApiBaseResponse<ApiOrderResponse[]>>(`/Order/table/${tableId}/status/${status}`);
+    return response.data;
+  },
+
+  // Initiate payment for an order
+  async initiatePayment(orderId: string, paymentMethod: string) {
+    const response = await apiClient.post<ApiBaseResponse<OrderPaymentResponse>>(
+      `/Order/${orderId}/pay`,
+      { paymentMethod }
+    );
     return response.data;
   }
 }; 
