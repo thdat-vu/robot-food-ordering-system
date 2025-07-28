@@ -4,11 +4,14 @@ import React, {useState} from "react";
 import {useRouter} from "next/navigation";
 import {IoIosArrowBack} from "react-icons/io";
 import {ShoppingCartList} from "@/components/common/ShoppingCartList";
+import {OrderDisplay} from "@/components/common/OrderDisplay";
 
 
 export const OrderList: React.FC<{ id: string }> = ({id}) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<"food" | "ordered">("food");
+
+
 
     return (
         <>
@@ -61,7 +64,7 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
                             activeTab === "food" ? (
                                 <ShoppingCartList/>
                             ) : (
-                                <></>
+                                <OrderDisplay/>
                             )
                         }
                     </div>

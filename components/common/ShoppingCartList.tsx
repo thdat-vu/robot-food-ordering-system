@@ -1,11 +1,11 @@
 "use client"
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
 import {Minus, ShoppingBag, Trash2} from "lucide-react";
 import formatCurrency, {totolPrice} from "@/unit/unit";
 import {
     loadListFromLocalStorage,
-    removeProduction,
+    removeProduction, saveListToLocalStorage,
     updateProduction
 } from "@/store/ShoppingCart";
 import {IoMdAdd} from "react-icons/io";
@@ -30,14 +30,17 @@ export const ShoppingCartList: React.FC = () => {
     };
 
 
-    const removeItem = (index: number) => {
+    const handleRemove = useCallback((index: number) => {
+        removeProduction<ShoppingCart>("shopping-carts", index);
+        setTimeout(() => {
+            const updated = loadListFromLocalStorage<ShoppingCart>("shopping-carts");
+            setCartItems(updated);
+        }, 0);
+    }, []);
 
-        setCartItems(prevState => prevState.filter((_, index1) => index1 !== index))
-        removeProduction("shopping-carts", index)
-    }
 
+    const remoteItemTopping = (index: number, topping: string, isAdd: boolean) => {
 
-    const remoteItemToping = (index: number, topping: string, isAdd: boolean) => {
         setCartItems(prevState => {
             const updatedItems = prevState.map((item, i) =>
                 i === index
@@ -48,15 +51,18 @@ export const ShoppingCartList: React.FC = () => {
                                 ? {...t, quantity: Math.max(isAdd ? t.quantity + 1 : t.quantity - 1, 0)}
                                 : t
                         )
-                    }
-                    : item
+                    } : item
             );
             const updatedItem = updatedItems[index];
-            if (updatedItem) updateProduction("shopping-carts", updatedItem, index);
+            if (updatedItem) updateProduction<ShoppingCart>("shopping-carts", updatedItem, index);
             return updatedItems;
         });
+
     };
 
+    // (()=>{
+    //     localStorage.removeItem("shopping-carts");
+    // })()
 
     useEffect(() => {
         const data = loadListFromLocalStorage<ShoppingCart>("shopping-carts");
@@ -70,6 +76,7 @@ export const ShoppingCartList: React.FC = () => {
             setTotalPrice(sum);
         })()
     }, [cartItems]);
+
 
     if (cartItems.length === 0) {
         return (
@@ -134,7 +141,7 @@ export const ShoppingCartList: React.FC = () => {
                                             </div>
 
                                             <button
-                                                onClick={() => removeItem(index)}
+                                                onClick={() => handleRemove(index)}
                                                 className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                                             >
                                                 <Trash2 className="w-4 h-4"/>
@@ -153,7 +160,7 @@ export const ShoppingCartList: React.FC = () => {
                                         <p className="text-sm font-medium text-gray-700 mb-2">Topping:</p>
                                         <div className="space-y-2">
                                             <ToppingCartList item={item} index={index}
-                                                             removeToppingFromItem={remoteItemToping}/>
+                                                             removeToppingFromItem={remoteItemTopping}/>
                                         </div>
                                     </div>
                                 </div>
@@ -195,7 +202,7 @@ export const ShoppingCartList: React.FC = () => {
                     <ActionButtons handle={() => setOpen(true)}/>
                 </div>
             </div>
-            <ConfimOrder isOpen={open} onClose={() => setOpen(false)}/>
+            <ConfimOrder ShoppingCart={undefined} isOpen={open} onClose={() => setOpen(false)}/>
         </>
     );
 };

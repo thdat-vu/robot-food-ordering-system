@@ -8,7 +8,7 @@ type Prop<
     data: D | null;
     loading: boolean;
     error: E;
-    run: (...args: Parameters<F>) => Promise<void>;
+    run: (...args: Parameters<F>) => Promise<any>;
     reset: () => void;
 };
 
@@ -21,12 +21,13 @@ export function useApiHandler<
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<E>(null as any);
 
-    const run = async (...args: Parameters<F>): Promise<void> => {
+    const run = async (...args: Parameters<F>): Promise<any> => {
         setLoading(true);
         setError(null as any);
         try {
             const result = await apiFunc(...args);
             setData(result);
+            return result;
         } catch (err) {
             setError(err as E);
         } finally {

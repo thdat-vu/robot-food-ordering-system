@@ -29,6 +29,8 @@ export default function ProductionDetailPage({id}: { id: string }) {
         run: dataRun,
     } = useGetProductionID();
 
+    console.log(dataProduct)
+
 
     useEffect(() => {
         (async () => {

@@ -7,6 +7,10 @@ import {Check, Minus, Plus} from "lucide-react";
 import {useProductContext} from "@/hooks/context/ContextProduct";
 import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
 import {addProduction} from "@/store/ShoppingCart";
+import {useCreateOreder} from "@/hooks/customHooks/useOrderHooks";
+import {item, OrderRequest} from "@/entites/request/OrderRequest";
+import {useTableContext} from "@/hooks/context/Context";
+import {ConfimOrder} from "@/app/features/components/ConfimOrder";
 
 type ChoceTopingProps = {
     id: string;
@@ -25,19 +29,22 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
                                                         }) => {
 
     const [data, setData] = useState<ToppingProduct[]>([]);
-
     const [selectedToppings, setSelectedToppings] = useState<{
         [key: string]: { name: string, price: number, quanlity: number }
     }>({});
 
     const context = useProductContext();
+    const tableId = useTableContext();
     const {size_name, name, size, price, urlImg} = context;
+    const [open, setOpen] = useState<boolean>(false);
+    const [res, setRes] = useState<ShoppingCart>()
 
     const {
         run: runGetToppingForProduct,
         loading: loadinggetToppingsForProduct,
         data: dataToppings
     } = useGetToppingForProduct();
+    const {run, data: responcreat} = useCreateOreder();
 
     useEffect(() => {
         (async () => {
@@ -104,7 +111,32 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
             toppings: toppingsArray,
         };
 
-        addProduction<ShoppingCart>("shopping-carts", temp);
+
+        switch (content) {
+            case 'Gọi món ngay' :
+                const items: item[] = [{
+                    productId: temp.id,
+                    productSizeId: temp.size.id,
+                    toppingIds: toppingsArray.map(value => value.id)
+                }];
+                const orderRequet: OrderRequest = {
+                    tableId: tableId.tableId,
+                    items: items,
+                };
+                // (async () => {
+                //     await run(orderRequet)
+                // })()
+                // if (responcreat)
+                //     alert(responcreat.data)
+                setRes(temp);
+                setOpen(true);
+                break;
+            case 'Lưu võ hàng':
+                addProduction<ShoppingCart>("shopping-carts", temp);
+                break;
+            default:
+                break;
+        }
         onClose();
     };
 
@@ -254,6 +286,8 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
                     </div>
                 </div>
             </BottomModal>
+            <ConfimOrder ShoppingCart={res} isOpen={open} onClose={() => setOpen(false)}/>
+
         </>
     );
 };

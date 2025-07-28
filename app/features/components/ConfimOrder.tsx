@@ -3,26 +3,39 @@ import {DialogComponation} from "@/components/common/Dialog";
 import Button from "@/components/common/Button";
 import {useTableContext} from "@/hooks/context/Context";
 import {ShoppingCart} from "@/entites/Props/ShoppingCart";
-import {loadListFromLocalStorage} from "@/store/ShoppingCart";
+import {addProduction, loadListFromLocalStorage} from "@/store/ShoppingCart";
 import formatCurrency, {totolPrice} from "@/unit/unit";
 import {item, OrderRequest} from "@/entites/request/OrderRequest";
 import {useCreateOreder} from "@/hooks/customHooks/useOrderHooks";
+import {Order} from "@/entites/Props/Order";
 
-export const ConfimOrder: React.FC<{ isOpen: boolean, onClose: () => void }> = ({isOpen, onClose}) => {
+export const ConfimOrder: React.FC<{
+    isOpen: boolean,
+    onClose: () => void,
+    ShoppingCart: ShoppingCart | undefined
+}> = ({
+          isOpen,
+          onClose,
+          ShoppingCart
+      }) => {
 
     const context = useTableContext();
     const [data, setData] = useState<ShoppingCart[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
     const [open, setOpen] = useState<boolean>(false);
-
     const {tableId, tableName} = context;
+    const {run, data: responcreat, loading} = useCreateOreder();
 
-    const {run, loading} = useCreateOreder()
 
     useEffect(() => {
-        const res = loadListFromLocalStorage<ShoppingCart>("shopping-carts");
-        setData(res as ShoppingCart[]);
-    }, []);
+        if (ShoppingCart) {
+            setData([ShoppingCart]);
+        } else {
+            const res = loadListFromLocalStorage<ShoppingCart>("shopping-carts");
+            setData(res as ShoppingCart[]);
+        }
+    }, [isOpen]);
+
 
     useEffect(() => {
         (() => {
@@ -30,6 +43,7 @@ export const ConfimOrder: React.FC<{ isOpen: boolean, onClose: () => void }> = (
             setTotalPrice(sum);
         })()
     }, [data]);
+
 
     const handleConfirm = (typePayment: string) => {
 
@@ -56,6 +70,18 @@ export const ConfimOrder: React.FC<{ isOpen: boolean, onClose: () => void }> = (
                 break;
         }
     }
+
+
+    useEffect(() => {
+        (() => {
+            if (responcreat && responcreat.data.id) {
+                addProduction<Order>("order-ss", {
+                    tableId: responcreat.data.tableId,
+                    id: responcreat.data.id
+                });
+            }
+        })()
+    }, [responcreat]);
 
 
     return (
@@ -98,9 +124,10 @@ export const ConfimOrder: React.FC<{ isOpen: boolean, onClose: () => void }> = (
                                                 {item.toppings.map((topping, toppingIdx) => (
                                                     <div key={toppingIdx}
                                                          className="flex justify-between items-center py-1">
-                                                        <span className="text-sm text-gray-600">+ {topping.name}</span>
+                                                        <span
+                                                            className="text-sm text-gray-600">+ {topping.name} (x{topping.quantity})</span>
                                                         <span className="text-sm font-medium text-gray-700">
-                                                        {formatCurrency(topping.price)}
+                                                        {formatCurrency(topping.price * topping.quantity)}
                                                     </span>
                                                     </div>
                                                 ))}
@@ -163,7 +190,7 @@ const DialogConfim: React.FC<Prop> = ({isOpen, onClose, handleConfirm, loading})
     const {tableId} = context;
     const [table] = useState<boolean>(tableId == 'default_id')
 
-    const [TypePayment, setTypePayment] = useState<string>(!table ? 'VNPay' : '');
+    const [TypePayment, setTypePayment] = useState<string>(!table ? 'COD' : '');
 
 
     return (

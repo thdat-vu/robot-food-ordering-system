@@ -1,7 +1,7 @@
 export interface Topping{
     id:string;
     name:string;
-    price:string;
+    price:number;
     urlImg:string;
 }
 
