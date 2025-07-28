@@ -1,197 +1,3 @@
-// "use client";
-
-// import React, { useState } from "react";
-// import { Button } from "@/components/ui/button";
-// import { Checkbox } from "@/components/ui/checkbox";
-// import { toast } from "sonner";
-// import PaymentPanel from "./PaymentPanel";
-
-// const MapPanel = () => (
-//   <div className="w-full h-[340px] md:h-[460px] flex items-center justify-center bg-muted rounded-2xl shadow-inner border border-border overflow-hidden">
-//     <iframe
-//       src="https://map-doan-nhattruowngs-projects.vercel.app/map/5"
-//       allowFullScreen
-//       loading="lazy"
-//       referrerPolicy="strict-origin-when-cross-origin"
-//       className="w-full h-full"
-//       title="Map Embed"
-//       style={{ border: "none" }}
-//     />
-//   </div>
-// );
-
-// interface Dish {
-//   id: number;
-//   name: string;
-//   type: string;
-//   selected: boolean;
-//   served?: boolean;
-// }
-
-// const initialDishes: Dish[] = [
-//   { id: 1, name: "Nước chanh dây", type: "juice", selected: false },
-//   { id: 2, name: "Nước cam", type: "juice", selected: false },
-//   { id: 3, name: "Cà phê sữa", type: "coffee", selected: false },
-//   { id: 4, name: "Cà phê đen", type: "coffee", selected: false },
-//   { id: 5, name: "Trà đào", type: "tea", selected: false },
-//   { id: 6, name: "Trà sữa", type: "tea", selected: false },
-//   { id: 7, name: "Trà chanh", type: "tea", selected: false },
-//   { id: 8, name: "Sữa tươi", type: "milk", selected: false },
-//   { id: 9, name: "Nước suối", type: "water", selected: false },
-//   { id: 10, name: "Soda chanh", type: "soda", selected: false },
-// ];
-
-// const typeStyle: Record<
-//   string,
-//   { label: string; bg: string; border: string; icon?: React.ReactNode }
-// > = {
-//   juice: { label: "Nước ép", bg: "bg-muted", border: "border-border" },
-//   coffee: { label: "Cà phê", bg: "bg-muted", border: "border-border" },
-//   tea: { label: "Trà", bg: "bg-muted", border: "border-border" },
-//   milk: { label: "Sữa", bg: "bg-muted", border: "border-border" },
-//   water: { label: "Nước suối", bg: "bg-muted", border: "border-border" },
-//   soda: { label: "Soda", bg: "bg-muted", border: "border-border" },
-// };
-
-// const ServePanel: React.FC = () => {
-//   const [dishes, setDishes] = useState(initialDishes);
-//   const [panel, setPanel] = useState<"control" | "payment">("control");
-
-//   const grouped = dishes.reduce<Record<string, Dish[]>>((acc, dish) => {
-//     if (!acc[dish.type]) acc[dish.type] = [];
-//     acc[dish.type].push(dish);
-//     return acc;
-//   }, {});
-
-//   const hasSelected = dishes.some((d) => d.selected && !d.served);
-
-//   const toggleDish = (id: number) => {
-//     setDishes((prev) =>
-//       prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d))
-//     );
-//   };
-
-//   const handleServe = () => {
-//     const selectedDishes = dishes.filter((d) => d.selected && !d.served);
-//     if (selectedDishes.length === 0) return;
-//     toast("Đã phục vụ", {
-//       description: selectedDishes.map((d) => d.name).join(", "),
-//     });
-//     setDishes((prev) =>
-//       prev.map((d) =>
-//         d.selected && !d.served ? { ...d, served: true, selected: false } : d
-//       )
-//     );
-//   };
-
-//   return (
-//     <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-background">
-//       {/* Sidebar chuyển panel */}
-//       <div className="flex flex-col gap-4 items-center mr-4">
-//         <Button
-//           variant={panel === "control" ? "default" : "outline"}
-//           className="w-32"
-//           onClick={() => setPanel("control")}
-//         >
-//           Điều khiển
-//         </Button>
-//         <Button
-//           variant={panel === "payment" ? "default" : "outline"}
-//           className="w-32"
-//           onClick={() => setPanel("payment")}
-//         >
-//           Thanh toán
-//         </Button>
-//       </div>
-
-//       {panel === "control" ? (
-//         <>
-//           {/* Sidebar món ăn */}
-//           <div className="w-full md:max-w-[300px] overflow-y-auto max-h-[80vh] pr-2 space-y-6">
-//             {Object.entries(grouped).map(([type, items]) => {
-//               const style = typeStyle[type];
-//               return (
-//                 <div key={type} className="w-full">
-//                   <div className="mb-2 text-sm font-semibold text-foreground uppercase tracking-wide">
-//                     {style.label}
-//                   </div>
-//                   <ul className="space-y-3 w-full">
-//                     {items
-//                       .filter((dish) => !dish.served)
-//                       .map((dish) => (
-//                         <li key={dish.id}>
-//                           <label
-//                             className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} cursor-pointer transition hover:bg-accent`}
-//                           >
-//                             <Checkbox
-//                               checked={dish.selected}
-//                               onCheckedChange={() => toggleDish(dish.id)}
-//                               className="mr-3"
-//                             />
-//                             <span className="text-sm font-medium text-foreground">
-//                               {dish.name}
-//                             </span>
-//                           </label>
-//                         </li>
-//                       ))}
-//                   </ul>
-//                 </div>
-//               );
-//             })}
-//           </div>
-
-//           {/* Nội dung chính */}
-//           <div className="flex-1 px-2 md:px-4 flex flex-col items-center">
-//             <h2 className="text-xl md:text-2xl font-bold mb-4 text-foreground text-center">
-//               Chọn món để phục vụ
-//             </h2>
-
-//             <div className="w-full min-h-[320px]">
-//               {hasSelected ? (
-//                 <MapPanel />
-//               ) : (
-//                 <div className="w-full h-full flex items-center justify-center text-muted-foreground text-base italic">
-//                   Vui lòng chọn ít nhất 1 món...
-//                 </div>
-//               )}
-//             </div>
-
-//             {hasSelected && (
-//               <div className="w-full flex justify-center">
-//                 <Button
-//                   onClick={handleServe}
-//                   className="mt-6 mb-4 px-6 py-3 text-lg rounded-full"
-//                 >
-//                   🚀 Phục vụ
-//                 </Button>
-//               </div>
-//             )}
-
-//             {/* Món đã phục vụ */}
-//             {dishes.some((d) => d.served) && (
-//               <div className="w-full mt-2 bg-muted rounded-xl p-4 shadow-sm">
-//                 <h3 className="font-semibold text-sm text-foreground mb-2">
-//                   Món đã phục vụ
-//                 </h3>
-//                 <ul className="list-disc pl-5 text-sm text-muted-foreground">
-//                   {dishes
-//                     .filter((d) => d.served)
-//                     .map((d) => (
-//                       <li key={d.id}>{d.name}</li>
-//                     ))}
-//                 </ul>
-//               </div>
-//             )}
-//           </div>
-//         </>
-//       ) : (
-//         <PaymentPanel dishes={dishes} />
-//       )}
-//     </div>
-//   );
-// };
-
-// export default ServePanel;
 "use client";
 
 import React, { useState } from "react";
@@ -199,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import PaymentPanel from "./PaymentPanel";
+import { useWaiterOrders, WaiterDish } from "@/hooks/use-waiter-orders";
 
 const MapPanel = () => (
   <div className="w-full h-[340px] md:h-[460px] flex items-center justify-center bg-muted rounded-2xl shadow-inner border border-border overflow-hidden">
@@ -214,74 +21,76 @@ const MapPanel = () => (
   </div>
 );
 
-interface Dish {
-  id: number;
-  name: string;
-  type: string;
-  selected: boolean;
-  served?: boolean;
-}
-
-const initialDishes: Dish[] = [
-  { id: 1, name: "Nước chanh dây", type: "juice", selected: false },
-  { id: 2, name: "Nước cam", type: "juice", selected: false },
-  { id: 3, name: "Cà phê sữa", type: "coffee", selected: false },
-  { id: 4, name: "Cà phê đen", type: "coffee", selected: false },
-  { id: 5, name: "Trà đào", type: "tea", selected: false },
-  { id: 6, name: "Trà sữa", type: "tea", selected: false },
-  { id: 7, name: "Trà chanh", type: "tea", selected: false },
-  { id: 8, name: "Sữa tươi", type: "milk", selected: false },
-  { id: 9, name: "Nước suối", type: "water", selected: false },
-  { id: 10, name: "Soda chanh", type: "soda", selected: false },
-];
-
-const typeStyle: Record<
+const categoryStyle: Record<
   string,
   { label: string; bg: string; border: string; icon?: React.ReactNode }
 > = {
-  juice: { label: "Nước ép", bg: "bg-muted", border: "border-border" },
-  coffee: { label: "Cà phê", bg: "bg-muted", border: "border-border" },
-  tea: { label: "Trà", bg: "bg-muted", border: "border-border" },
-  milk: { label: "Sữa", bg: "bg-muted", border: "border-border" },
-  water: { label: "Nước suối", bg: "bg-muted", border: "border-border" },
-  soda: { label: "Soda", bg: "bg-muted", border: "border-border" },
+  "Tráng Miệng": { label: "Tráng Miệng", bg: "bg-orange-50", border: "border-orange-200" },
+  "Món Chính": { label: "Món Chính", bg: "bg-green-50", border: "border-green-200" },
+  "Đồ Uống": { label: "Đồ Uống", bg: "bg-blue-50", border: "border-blue-200" },
+  "Khác": { label: "Khác", bg: "bg-gray-50", border: "border-gray-200" },
 };
 
 const ServePanel: React.FC = () => {
-  const [dishes, setDishes] = useState(initialDishes);
   const [panel, setPanel] = useState<"control" | "payment">("control");
+  const {
+    dishes,
+    groupedDishes,
+    categories,
+    hasSelected,
+    isLoading,
+    error,
+    toggleDish,
+    handleServe,
+    refreshOrders
+  } = useWaiterOrders();
 
-  const grouped = dishes.reduce<Record<string, Dish[]>>((acc, dish) => {
-    if (!acc[dish.type]) acc[dish.type] = [];
-    acc[dish.type].push(dish);
-    return acc;
-  }, {});
-
-  const hasSelected = dishes.some((d) => d.selected && !d.served);
-
-  const toggleDish = (id: number) => {
-    setDishes((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d))
-    );
-  };
-
-  const handleServe = () => {
-    const selectedDishes = dishes.filter((d) => d.selected && !d.served);
-    if (selectedDishes.length === 0) return;
-    toast("Đã phục vụ", {
-      description: selectedDishes.map((d) => d.name).join(", "),
-    });
-    setDishes((prev) =>
-      prev.map((d) =>
-        d.selected && !d.served ? { ...d, served: true, selected: false } : d
-      )
-    );
+  const handleServeClick = async () => {
+    const success = await handleServe();
+    if (success) {
+      toast("Đã phục vụ", {
+        description: "Các món đã được phục vụ thành công!",
+      });
+    } else {
+      toast("Lỗi phục vụ", {
+        description: "Có lỗi xảy ra khi phục vụ món ăn.",
+      });
+    }
   };
 
   const handlePaymentComplete = () => {
-    setDishes((prev) => prev.map((d) => ({ ...d, served: false })));
+    // Refresh orders after payment completion
+    refreshOrders();
     setPanel("control");
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-background">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Đang tải danh sách món ăn...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-background">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={refreshOrders} variant="outline">
+              Thử lại
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-background">
@@ -305,10 +114,10 @@ const ServePanel: React.FC = () => {
       {panel === "control" ? (
         <>
           <div className="w-full md:max-w-[300px] overflow-y-auto max-h-[80vh] pr-2 space-y-6">
-            {Object.entries(grouped).map(([type, items]) => {
-              const style = typeStyle[type];
+            {Object.entries(groupedDishes).map(([categoryName, items]) => {
+              const style = categoryStyle[categoryName] || categoryStyle["Khác"];
               return (
-                <div key={type} className="w-full">
+                <div key={categoryName} className="w-full">
                   <div className="mb-2 text-sm font-semibold text-foreground uppercase tracking-wide">
                     {style.label}
                   </div>
@@ -326,7 +135,7 @@ const ServePanel: React.FC = () => {
                               className="mr-3"
                             />
                             <span className="text-sm font-medium text-foreground">
-                              {dish.name}
+                              {dish.name} {dish.quantity > 1 && `(${dish.quantity})`}
                             </span>
                           </label>
                         </li>
@@ -347,7 +156,10 @@ const ServePanel: React.FC = () => {
                 <MapPanel />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground text-base italic">
-                  Vui lòng chọn ít nhất 1 món...
+                  {dishes.length === 0 
+                    ? "Không có món nào sẵn sàng phục vụ"
+                    : "Vui lòng chọn ít nhất 1 món..."
+                  }
                 </div>
               )}
             </div>
@@ -355,7 +167,7 @@ const ServePanel: React.FC = () => {
             {hasSelected && (
               <div className="w-full flex justify-center">
                 <Button
-                  onClick={handleServe}
+                  onClick={handleServeClick}
                   className="mt-6 mb-4 px-6 py-3 text-lg rounded-full"
                 >
                   🚀 Phục vụ
@@ -372,7 +184,7 @@ const ServePanel: React.FC = () => {
                   {dishes
                     .filter((d) => d.served)
                     .map((d) => (
-                      <li key={d.id}>{d.name}</li>
+                      <li key={d.id}>{d.name} {d.quantity > 1 && `(${d.quantity})`}</li>
                     ))}
                 </ul>
               </div>
