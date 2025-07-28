@@ -1,4 +1,4 @@
-import React from "react";
+// waiter/DishList.tsx
 import DishItem from "./DishItem";
 
 interface Dish {
@@ -12,16 +12,9 @@ interface DishListProps {
   onToggle: (id: number) => void;
 }
 
-const DishList: React.FC<DishListProps> = ({ dishes, onToggle }) => {
+export default function DishList({ dishes, onToggle }: DishListProps) {
   return (
-    <div
-      style={{
-        backgroundColor: "#D1D5DB", // xám
-        padding: 16,
-        borderRadius: 12,
-        width: "250px",
-      }}
-    >
+    <div className="bg-gray-100 p-4 rounded-xl w-full space-y-3">
       {dishes.map((dish) => (
         <DishItem
           key={dish.id}
@@ -32,6 +25,4 @@ const DishList: React.FC<DishListProps> = ({ dishes, onToggle }) => {
       ))}
     </div>
   );
-};
-
-export default DishList;
+}
