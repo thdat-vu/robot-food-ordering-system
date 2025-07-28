@@ -1,4 +1,5 @@
-import React from "react";
+// waiter/DishItem.tsx
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DishItemProps {
   label: string;
@@ -6,28 +7,11 @@ interface DishItemProps {
   onChange: () => void;
 }
 
-const DishItem: React.FC<DishItemProps> = ({ label, checked, onChange }) => {
+export default function DishItem({ label, checked, onChange }: DishItemProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        backgroundColor: "#FBBF24", // màu vàng
-        padding: "12px 16px",
-        margin: "8px 0",
-        borderRadius: "8px",
-        cursor: "pointer",
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        style={{ marginRight: 12 }}
-      />
-      <span style={{ fontWeight: 500 }}>{label}</span>
-    </div>
+    <label className="flex items-center px-4 py-3 rounded-xl border border-yellow-300 bg-yellow-50 cursor-pointer gap-3 transition-all hover:bg-yellow-100 shadow-sm">
+      <Checkbox checked={checked} onCheckedChange={onChange} />
+      <span className="font-medium text-sm text-yellow-900">{label}</span>
+    </label>
   );
-};
-
-export default DishItem;
+}
