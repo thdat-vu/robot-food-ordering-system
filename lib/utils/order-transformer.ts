@@ -104,7 +104,10 @@ export const transformApiOrderItemToOrder = (
       hour: '2-digit', 
       minute: '2-digit' 
     }),
-    estimatedTime: getEstimatedTime(orderItem.productName)
+    estimatedTime: getEstimatedTime(orderItem.productName),
+    // Store API IDs for making API calls
+    apiOrderId: order.id,
+    apiItemId: orderItem.id
   };
 };
 

@@ -109,7 +109,7 @@ export function OrdersContent({
             <div className="flex-1">
               <CardTitle>{order.itemName}</CardTitle>
               <CardDescription>
-                x{order.quantity} &nbsp;|&nbsp; Bàn: {order.tableNumber}
+                {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
               </CardDescription>
               <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                 {renderClockIcon()}
@@ -161,7 +161,7 @@ export function OrdersContent({
                 <div className="flex-1">
                   <CardTitle>{order.itemName}</CardTitle>
                   <CardDescription>
-                    x{order.quantity}
+                    {order.quantity > 0 ? `x${order.quantity}` : ''}
                   </CardDescription>
                   <div className="text-sm mt-1">Bàn: {order.tableNumber}</div>
                   <div className="text-xs opacity-60">{order.orderTime}</div>
@@ -215,7 +215,7 @@ export function OrdersContent({
                         {renderOrderImage(order)}
                         <div className="text-white">
                           <h3 className="text-lg font-semibold">{order.itemName}</h3>
-                          <p className="text-sm opacity-90">x{order.quantity}</p>
+                          <p className="text-sm opacity-90">{order.quantity > 0 ? `x${order.quantity}` : ''}</p>
                           <p className="text-sm opacity-75">Bàn: {order.tableNumber}</p>
                           <p className="text-xs opacity-60">{order.orderTime}</p>
                           {/* Estimated Time for Individual Order */}

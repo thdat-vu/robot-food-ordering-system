@@ -22,7 +22,7 @@ export function useKitchenOrders() {
       
       const response = await ordersApi.getOrders(1, 100); // Get first 100 orders
       
-      if (response.data && response.data.length > 0) {
+      if (response.statusCode === 200 && response.data && response.data.length > 0) {
         const transformedOrders = transformApiOrdersToOrders(response.data);
         setOrders(transformedOrders);
         setIdMappings([]); // For now, we'll use empty mappings
@@ -138,8 +138,18 @@ export function useKitchenOrders() {
       );
       setExpandedGroup(null);
 
-      // TODO: Implement API call when ID mapping is available
-      console.log('Order status updated locally. API call pending ID mapping implementation.');
+      // Make API call to update order item status to "Preparing" (status 2)
+      const response = await ordersApi.updateOrderItemStatus(
+        order.apiOrderId,
+        order.apiItemId,
+        2 // Preparing status
+      );
+
+      if (response.statusCode !== 200) {
+        throw new Error(response.message || 'Failed to update order status');
+      }
+
+      console.log('Order status updated successfully via API');
       
     } catch (err) {
       console.error('Error updating order status:', err);
@@ -174,8 +184,18 @@ export function useKitchenOrders() {
         )
       );
 
-      // TODO: Implement API call when ID mapping is available
-      console.log('Order status updated locally. API call pending ID mapping implementation.');
+      // Make API call to update order item status to "Ready" (status 3)
+      const response = await ordersApi.updateOrderItemStatus(
+        order.apiOrderId,
+        order.apiItemId,
+        3 // Ready status
+      );
+
+      if (response.statusCode !== 200) {
+        throw new Error(response.message || 'Failed to update order status');
+      }
+
+      console.log('Order status updated successfully via API');
       
     } catch (err) {
       console.error('Error updating order status:', err);
