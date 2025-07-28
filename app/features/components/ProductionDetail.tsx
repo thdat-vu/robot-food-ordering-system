@@ -21,7 +21,6 @@ export default function ProductionDetailPage({id}: { id: string }) {
     const [content, setContent] = useState<string>('')
     const context = useProductContext();
     const {setProduct, clearProduct} = context;
-    const [erro, setErro] = useState<string>('');
 
 
     const {

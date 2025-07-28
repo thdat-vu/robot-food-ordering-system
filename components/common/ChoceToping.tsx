@@ -7,8 +7,6 @@ import {Check, Minus, Plus} from "lucide-react";
 import {useProductContext} from "@/hooks/context/ContextProduct";
 import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
 import {addProduction} from "@/store/ShoppingCart";
-import {useCreateOreder} from "@/hooks/customHooks/useOrderHooks";
-import {item, OrderRequest} from "@/entites/request/OrderRequest";
 import {useTableContext} from "@/hooks/context/Context";
 import {ConfimOrder} from "@/app/features/components/ConfimOrder";
 

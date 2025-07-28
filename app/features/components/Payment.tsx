@@ -1,17 +1,23 @@
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {BottomModal} from "@/components/common/BottomModal";
 import Button from "@/components/common/Button";
 import {RiBankCard2Line} from "react-icons/ri";
-import {useCreatePayment} from "@/hooks/customHooks/useOrderHooks";
+import {useCreateOreder, useCreatePayment} from "@/hooks/customHooks/useOrderHooks";
 import {BaseEntityData} from "@/entites/BaseEntity";
 import {PaymentRespont} from "@/entites/respont/Payment";
+import {useFastOrderContext} from "@/hooks/context/FastOrderContext";
+import {item, OrderRequest} from "@/entites/request/OrderRequest";
+import {useTableContext} from "@/hooks/context/Context";
+import {OrderRespont} from "@/entites/respont/OrderRespont";
+import {addProduction} from "@/store/ShoppingCart";
+import {Order} from "@/entites/Props/Order";
 
 type PaymentProps = {
     id: string;
     isOpen: boolean;
     onClose: () => void;
     onSave: () => void;
-    orderId: string;
+    orderId?: string; // Make optional since it might be empty
 }
 
 type AlertDialogProps = {
@@ -57,10 +63,16 @@ const AlertDialog: React.FC<AlertDialogProps> = ({isOpen, title, message, type, 
     );
 };
 
-export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, orderId}) => {
+export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, orderId = ''}) => {
     const [payment, setPayment] = useState<number>(0);
-    const {run, loading} = useCreatePayment();
+    const {run: runPayment, loading: paymentLoading} = useCreatePayment();
+    const {run: runOrder, loading: orderLoading} = useCreateOreder();
     const [error, setError] = useState<string>('');
+    const [currentOrderId, setCurrentOrderId] = useState<string>(orderId);
+
+    const context = useFastOrderContext();
+    const tablecontext = useTableContext();
+
     const [alert, setAlert] = useState<{
         isOpen: boolean;
         title: string;
@@ -73,26 +85,75 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
         type: 'success'
     });
 
-    const showAlert = (title: string, message: string, type: 'success' | 'error') => {
+    const isLoading = paymentLoading || orderLoading;
+
+    const showAlert = useCallback((title: string, message: string, type: 'success' | 'error') => {
         setAlert({
             isOpen: true,
             title,
             message,
             type
         });
-    };
+    }, []);
 
-    const closeAlert = () => {
+    const closeAlert = useCallback(() => {
         setAlert(prev => ({...prev, isOpen: false}));
-        if (alert.type === 'success') {
-            onSave();
-            onClose();
+        setTimeout(() => {
+            if (alert.type === 'success') {
+                onSave();
+                onClose();
+            }
+        }, 100);
+    }, [alert.type, onSave, onClose]);
+
+    const createOrderIfNeeded = async (): Promise<string | null> => {
+        if (currentOrderId) {
+            return currentOrderId;
+        }
+
+        const items: item[] = context.items;
+
+        if (!items || items.length === 0) {
+            showAlert(
+                'Lỗi đơn hàng',
+                'Không có món nào trong đơn hàng. Vui lòng thêm món trước khi thanh toán.',
+                'error'
+            );
+            return null;
+        }
+
+        if (!tablecontext.tableId) {
+            showAlert(
+                'Lỗi bàn',
+                'Không xác định được bàn. Vui lòng chọn bàn trước khi đặt hàng.',
+                'error'
+            );
+            return null;
+        }
+
+        const orderRequest: OrderRequest = {
+            tableId: tablecontext.tableId,
+            items: items,
+        };
+
+        try {
+            const orderRes: BaseEntityData<OrderRespont> = await runOrder(orderRequest);
+            const newOrderId = orderRes.data.id;
+            setCurrentOrderId(newOrderId);
+            return newOrderId;
+
+        } catch (error: any) {
+            showAlert(
+                'Lỗi hệ thống',
+                error?.message || 'Không thể tạo đơn hàng. Vui lòng kiểm tra kết nối mạng.',
+                'error'
+            );
+            return null;
         }
     };
 
     const handlePayment = async () => {
         setError('');
-
 
         if (payment === 0) {
             setError("Vui lòng chọn phương thức thanh toán");
@@ -100,24 +161,28 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
         }
 
         try {
-            console.log(payment, orderId);
-            const res: BaseEntityData<PaymentRespont> = await run(orderId, {paymentMethod: payment});
-
-            if (res && res.statusCode === '200') {
-                const paymentMethodText = payment === 1 ? 'Tiền mặt' : 'Ngân hàng';
-                showAlert(
-                    'Thanh toán thành công!',
-                    `Yêu cầu thanh toán bằng ${paymentMethodText} đã được gửi thành công. Mã đơn hàng: ${orderId}`,
-                    'success'
-                );
-            } else {
-                showAlert(
-                    'Thanh toán thất bại',
-                    res?.data.message || 'Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.',
-                    'error'
-                );
+            const orderIdToUse = await createOrderIfNeeded();
+            if (!orderIdToUse) {
+                return;
             }
+            addProduction<Order>("order-ss", {
+                tableId: tablecontext.tableId,
+                id: orderIdToUse
+            });
+
+
+            const paymentRes: BaseEntityData<PaymentRespont> = await runPayment(orderIdToUse, {
+                paymentMethod: payment
+            });
+
+            showAlert(
+                'Thanh toán',
+                `Đã gửi yêu cầu thanh toán`,
+                'success'
+            );
+            onClose();
         } catch (error: any) {
+            console.error('Payment error:', error);
             showAlert(
                 'Lỗi hệ thống',
                 error?.message || 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và thử lại.',
@@ -125,6 +190,10 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
             );
         }
     };
+
+    useEffect(() => {
+        setCurrentOrderId(orderId || '');
+    }, [orderId]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -152,17 +221,19 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
                     </div>
                 )}
 
+
                 <div className="space-y-4">
                     <label
-                        className={`flex items-center p-3 bg-gray-100 text-black rounded-lg cursor-pointer hover:bg-gray-200 ${
+                        className={`flex items-center p-3 bg-gray-100 text-black rounded-lg cursor-pointer hover:bg-gray-200 transition-colors ${
                             payment === 1 ? 'ring-2 ring-yellow-500 bg-yellow-50' : ''
-                        }`}>
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                         <input
                             type="radio"
                             name="payment"
                             className="mr-3"
                             checked={payment === 1}
-                            onChange={() => setPayment(1)}
+                            onChange={() => !isLoading && setPayment(1)}
+                            disabled={isLoading}
                         />
                         <div className="flex items-center">
                             <img src="https://img.icons8.com/color/48/000000/money.png" alt="Cash"
@@ -172,15 +243,16 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
                     </label>
 
                     <label
-                        className={`flex items-center p-3 bg-gray-100 text-black rounded-lg cursor-pointer hover:bg-gray-200 ${
+                        className={`flex items-center p-3 bg-gray-100 text-black rounded-lg cursor-pointer hover:bg-gray-200 transition-colors ${
                             payment === 2 ? 'ring-2 ring-yellow-500 bg-yellow-50' : ''
-                        }`}>
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                         <input
                             type="radio"
                             name="payment"
                             className="mr-3"
                             checked={payment === 2}
-                            onChange={() => setPayment(2)}
+                            onChange={() => !isLoading && setPayment(2)}
+                            disabled={isLoading}
                         />
                         <div className="flex items-center">
                             <RiBankCard2Line className="w-6 h-6 mr-2"/>
@@ -190,12 +262,16 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
                 </div>
 
                 <Button
-                    className={`w-full mt-6 py-3 rounded-3xl font-semibold ${
-                        loading
+                    className={`w-full mt-6 py-3 rounded-3xl font-semibold transition-colors ${
+                        isLoading
                             ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                             : 'bg-yellow-500 text-white hover:bg-yellow-600'
                     }`}
-                    content={loading ? 'Đang xử lý...' : 'Gửi yêu cầu'}
+                    content={
+                        orderLoading ? 'Đang tạo đơn hàng...' :
+                            paymentLoading ? 'Đang xử lý thanh toán...' :
+                                'Gửi yêu cầu'
+                    }
                     handle={handlePayment}
                 />
             </BottomModal>

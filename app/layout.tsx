@@ -3,6 +3,7 @@ import {Geist, Geist_Mono} from "next/font/google";
 import "../styles/globals.css";
 import {TableProvider} from "@/hooks/context/Context";
 import {ProductProvider} from "@/hooks/context/ContextProduct";
+import {FastOrderProvider} from "@/hooks/context/FastOrderContext";
 
 
 const geistSans = Geist({
@@ -35,7 +36,9 @@ export default function RootLayout({
         <body className="antialiased min-h-screen flex flex-col justify-end items-center bg-white">
         <TableProvider>
             <ProductProvider>
-                {children}
+                <FastOrderProvider>
+                    {children}
+                </FastOrderProvider>
             </ProductProvider>
         </TableProvider>
         </body>

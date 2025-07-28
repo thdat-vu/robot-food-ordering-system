@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {DialogComponation} from "@/components/common/Dialog";
 import Button from "@/components/common/Button";
 import {useTableContext} from "@/hooks/context/Context";
@@ -8,6 +8,8 @@ import formatCurrency, {totolPrice} from "@/unit/unit";
 import {item, OrderRequest} from "@/entites/request/OrderRequest";
 import {useCreateOreder} from "@/hooks/customHooks/useOrderHooks";
 import {Order} from "@/entites/Props/Order";
+import {Payment} from "@/app/features/components/Payment";
+import {useFastOrderContext} from "@/hooks/context/FastOrderContext";
 
 export const ConfimOrder: React.FC<{
     isOpen: boolean,
@@ -26,6 +28,7 @@ export const ConfimOrder: React.FC<{
     const {tableId, tableName} = context;
     const {run, data: responcreat, loading} = useCreateOreder();
 
+    const factContext = useFastOrderContext();
 
     useEffect(() => {
         if (ShoppingCart) {
@@ -47,6 +50,8 @@ export const ConfimOrder: React.FC<{
 
     const handleConfirm = (typePayment: string) => {
 
+        factContext.clearProduct();
+
         const items: item[] = data.map(value => ({
             productId: value.id,
             productSizeId: value.size.id,
@@ -58,6 +63,10 @@ export const ConfimOrder: React.FC<{
             tableId: tableId,
             items: items,
         }
+
+
+        factContext.setProduct(tableId, items);
+
         switch (typePayment) {
             case 'COD':
                 (async () => {
@@ -66,7 +75,8 @@ export const ConfimOrder: React.FC<{
                 })()
                 break;
             case 'VNPay':
-                setOpen(false);
+                setOpen(false)
+                onClose();
                 break;
         }
     }
@@ -189,9 +199,28 @@ const DialogConfim: React.FC<Prop> = ({isOpen, onClose, handleConfirm, loading})
 
     const {tableId} = context;
     const [table] = useState<boolean>(tableId == 'default_id')
-
     const [TypePayment, setTypePayment] = useState<string>(!table ? 'COD' : '');
+    const [open, setOpen] = useState<boolean>(false);
 
+    useEffect(() => {
+        if (TypePayment === 'VNPay' && TypePayment) {
+            setOpen(true);
+        }
+    }, [TypePayment]);
+
+    const handlePaymentTypeSelect = useCallback((type: string) => {
+        setTypePayment(type);
+    }, []);
+
+    const handleClosePaymentModal = useCallback(() => {
+        setOpen(false);
+        setTypePayment('COD');
+    }, []);
+
+    const handlePaymentModalSave = useCallback(() => {
+        setOpen(false);
+        handleConfirm('VNPay');
+    }, [handleConfirm]);
 
     return (
         <>
@@ -219,7 +248,7 @@ const DialogConfim: React.FC<Prop> = ({isOpen, onClose, handleConfirm, loading})
 
                         <div className="space-y-3">
                             <button
-                                onClick={() => setTypePayment('VNPay')}
+                                onClick={() => handlePaymentTypeSelect('VNPay')}
                                 className={`w-full p-4 rounded-lg border-2 transition-all duration-200 text-left
                                 ${TypePayment === 'VNPay'
                                     ? "border-green-500 bg-green-50"
@@ -256,7 +285,7 @@ const DialogConfim: React.FC<Prop> = ({isOpen, onClose, handleConfirm, loading})
                             </button>
 
                             <button
-                                onClick={() => setTypePayment('COD')}
+                                onClick={() => handlePaymentTypeSelect('COD')}
                                 className={`w-full p-4 rounded-lg border-2 transition-all duration-200 text-left
                                 ${TypePayment === "COD"
                                     ? "border-orange-500 bg-orange-50"
@@ -315,6 +344,8 @@ const DialogConfim: React.FC<Prop> = ({isOpen, onClose, handleConfirm, loading})
                     </div>
                 </div>
             </DialogComponation>
+            <Payment id={''} isOpen={open} onClose={handleClosePaymentModal} onSave={() => {
+            }} orderId={''}/>
         </>
     )
 }
