@@ -22,7 +22,7 @@ export function useKitchenOrders() {
       
       const response = await ordersApi.getOrders(1, 100); // Get first 100 orders
       
-      if (response.data && response.data.length > 0) {
+      if (response.statusCode === 200 && response.data && response.data.length > 0) {
         const transformedOrders = transformApiOrdersToOrders(response.data);
         setOrders(transformedOrders);
         setIdMappings([]); // For now, we'll use empty mappings
@@ -145,7 +145,7 @@ export function useKitchenOrders() {
         2 // Preparing status
       );
 
-      if (!response.success) {
+      if (response.statusCode !== 200) {
         throw new Error(response.message || 'Failed to update order status');
       }
 
@@ -191,7 +191,7 @@ export function useKitchenOrders() {
         3 // Ready status
       );
 
-      if (!response.success) {
+      if (response.statusCode !== 200) {
         throw new Error(response.message || 'Failed to update order status');
       }
 

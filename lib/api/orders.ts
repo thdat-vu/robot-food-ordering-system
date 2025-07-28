@@ -30,9 +30,9 @@ export interface ApiToppingResponse {
 
 export interface ApiBaseResponse<T> {
   statusCode: number;
-  message: string;
+  code: string;
   data: T;
-  success: boolean;
+  message?: string;
 }
 
 // Paginated response structure from .NET API
@@ -59,10 +59,10 @@ export const ordersApi = {
     });
     // Transform the paginated response to match the expected structure
     return {
-      success: true,
+      statusCode: 200,
+      code: 'SUCCESS',
       data: response.data.items,
-      message: 'Orders retrieved successfully',
-      statusCode: 200
+      message: 'Orders retrieved successfully'
     };
   },
 
