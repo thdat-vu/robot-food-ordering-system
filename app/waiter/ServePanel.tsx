@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Coffee, CupSoda, GlassWater, Milk } from "lucide-react";
+import PaymentPanel from "./PaymentPanel";
 
 const Toast = ({ message }: { message: string }) => (
   <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-lg font-semibold text-lg z-50 animate-fade-in">
@@ -115,84 +116,114 @@ const ServePanel: React.FC = () => {
     setTimeout(() => setToast(null), 2000);
   };
 
+  const [panel, setPanel] = useState<"control" | "payment">("control");
+
   return (
     <div className="flex h-screen w-full bg-gradient-to-br from-emerald-50 to-white">
       {toast && <Toast message={toast} />}
-
-      {/* Sidebar */}
-      <div className="w-80 flex-shrink-0 h-full overflow-y-auto p-4 border-r border-emerald-200">
-        <div className="space-y-4">
-          {Object.entries(grouped).map(([type, items]) => {
-            const style = typeStyle[type] || {
-              label: type,
-              bg: "bg-white",
-              border: "border-gray-200",
-              icon: null,
-            };
-            return (
-              <div key={type} className="w-full">
-                <div className="flex items-center mb-3">
-                  {style.icon}
-                  <span className="font-bold text-lg text-emerald-700">
-                    {style.label}
-                  </span>
-                </div>
-                <ul className="space-y-2 w-full">
-                  {items
-                    .filter((dish) => !dish.served)
-                    .map((dish) => (
-                      <li key={dish.id}>
-                        <label
-                          className={`flex items-center px-4 py-3 rounded-xl border-2 ${style.bg} ${style.border} cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md hover:bg-emerald-50 focus-within:ring-2 focus-within:ring-emerald-400 group w-full`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={dish.selected}
-                            onChange={() => toggleDish(dish.id)}
-                            className="accent-emerald-500 w-5 h-5 mr-3 transition-all duration-200 focus:ring-2 focus:ring-emerald-400 rounded"
-                          />
-                          <span className="font-medium select-none text-base group-hover:text-emerald-700 transition-colors duration-150">
-                            {dish.name}
-                          </span>
-                        </label>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+      {/* Vertical Button Sidebar */}
+      <div className="flex flex-col gap-4 items-center mr-4">
+        <button
+          className={`w-32 py-3 rounded-xl font-bold text-lg shadow-md transition ${
+            panel === "control"
+              ? "bg-emerald-500 text-white"
+              : "bg-white text-emerald-700 border border-emerald-300"
+          }`}
+          onClick={() => setPanel("control")}
+        >
+          Điều khiển
+        </button>
+        <button
+          className={`w-32 py-3 rounded-xl font-bold text-lg shadow-md transition ${
+            panel === "payment"
+              ? "bg-emerald-500 text-white"
+              : "bg-white text-emerald-700 border border-emerald-300"
+          }`}
+          onClick={() => setPanel("payment")}
+        >
+          Thanh toán
+        </button>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 h-full flex flex-col">
-        <div className="p-6 flex-1 flex flex-col">
-          <h2 className="text-2xl font-bold mb-6 text-emerald-700 text-center">
-            Chọn món để phục vụ
-          </h2>
+      {/* Sidebar & Main Content */}
+      {panel === "control" ? (
+        <>
+          {/* Sidebar */}
+          <div className="w-full md:max-w-[300px] flex-shrink-0 flex flex-col justify-start items-start overflow-y-auto max-h-[80vh] pr-2 scrollbar-thin scrollbar-thumb-emerald-400">
+            {/* ...existing sidebar code... */}
+            {Object.entries(grouped).map(([type, items]) => {
+              const style = typeStyle[type] || {
+                label: type,
+                bg: "bg-white",
+                border: "border-gray-200",
+                icon: null,
+              };
+              return (
+                <div key={type} className="mb-6 w-full">
+                  <div className="flex items-center mb-2">
+                    {style.icon}
+                    <span className="font-bold text-lg text-emerald-700">
+                      {style.label}
+                    </span>
+                  </div>
+                  <ul className="space-y-3 w-full">
+                    {items
+                      .filter((dish) => !dish.served)
+                      .map((dish) => (
+                        <li key={dish.id}>
+                          <label
+                            className={`flex items-center px-6 py-5 rounded-2xl border-2 ${style.bg} ${style.border} cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:bg-emerald-50 focus-within:ring-2 focus-within:ring-emerald-400 group w-full`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={dish.selected}
+                              onChange={() => toggleDish(dish.id)}
+                              className="accent-emerald-500 w-6 h-6 mr-4 transition-all duration-200 focus:ring-2 focus:ring-emerald-400 rounded-lg"
+                            />
+                            <span className="font-semibold select-none text-lg group-hover:text-emerald-700 transition-colors duration-150">
+                              {dish.name}
+                            </span>
+                          </label>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
 
-          <div className="flex-1 w-full">
-            {hasSelected ? (
-              <MapPanel />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xl italic bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
-                Vui lòng chọn ít nhất 1 món...
+          {/* Main Content */}
+          <div className="flex-1 min-w-0 max-w-4xl w-full px-2 md:px-4 flex flex-col items-center justify-start">
+            <h2 className="text-xl md:text-2xl font-bold mb-4 text-emerald-700 text-center w-full">
+              Chọn món để <br className="block md:hidden" /> phục vụ
+            </h2>
+
+            <div className="w-full min-h-[320px]">
+              {hasSelected ? (
+                <MapPanel />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-lg italic">
+                  Vui lòng chọn ít nhất 1 món...
+                </div>
+              )}
+            </div>
+
+            {hasSelected && (
+              <div className="w-full flex justify-center">
+                <button
+                  className="mt-6 mb-4 py-3 px-6 rounded-full font-semibold text-white text-lg bg-emerald-500 hover:bg-emerald-600 transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-95"
+                  onClick={handleServe}
+                >
+                  🚀 Phục vụ
+                </button>
               </div>
             )}
           </div>
-
-          {hasSelected && (
-            <div className="w-full flex justify-center mt-6">
-              <button
-                className="py-4 px-8 rounded-full font-semibold text-white text-xl bg-emerald-500 hover:bg-emerald-600 transition duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-95"
-                onClick={handleServe}
-              >
-                🚀 Phục vụ
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+        </>
+      ) : (
+        // Payment Panel
+        <PaymentPanel dishes={dishes} />
+      )}
     </div>
   );
 };
