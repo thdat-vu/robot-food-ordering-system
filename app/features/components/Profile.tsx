@@ -187,6 +187,7 @@ export default function Profile({id}: { id: string }) {
             />
             <Payment
                 id={id}
+                orderId={''}
                 isOpen={isPaymentOpen}
                 onClose={() => setPaymentOpen(false)}
                 onSave={() => {

@@ -3,6 +3,8 @@ import {BaseEntityData} from "@/entites/BaseEntity";
 import api from "@/api/api";
 import {API_ORDERING} from "@/api-endpoint-env";
 import {OrderRespont, OrderRespontGetByID} from "@/entites/respont/OrderRespont";
+import {PaymentRequest} from "@/entites/request/PaymentRequest";
+import { PaymentRespont} from "@/entites/respont/Payment";
 
 export const createOrderApi = async (orderRequest: OrderRequest):
     Promise<BaseEntityData<OrderRespont>> => {
@@ -18,7 +20,17 @@ export const createOrderApi = async (orderRequest: OrderRequest):
 export const GetOrderByIdAndTaibleId = async (id: string, idTable: string): Promise<BaseEntityData<OrderRespontGetByID>> => {
     try {
         const res = await api.get(`${API_ORDERING}/${id}/table/${idTable}`);
-        // console.log(res.data);
+        return res.data;
+    } catch (e) {
+        throw e;
+    }
+}
+
+
+export const CreatePayment = async (id: string, paymentMethor: PaymentRequest): Promise<BaseEntityData<PaymentRespont>> => {
+    try {
+        const res = await api.post(`${API_ORDERING}/${id}/pay`, paymentMethor);
+        console.log(res);
         return res.data;
     } catch (e) {
         throw e;

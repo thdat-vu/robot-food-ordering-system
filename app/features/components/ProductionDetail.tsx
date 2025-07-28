@@ -21,6 +21,7 @@ export default function ProductionDetailPage({id}: { id: string }) {
     const [content, setContent] = useState<string>('')
     const context = useProductContext();
     const {setProduct, clearProduct} = context;
+    const [erro, setErro] = useState<string>('');
 
 
     const {
@@ -28,8 +29,6 @@ export default function ProductionDetailPage({id}: { id: string }) {
         loading: dataLoading,
         run: dataRun,
     } = useGetProductionID();
-
-    console.log(dataProduct)
 
 
     useEffect(() => {
@@ -60,6 +59,7 @@ export default function ProductionDetailPage({id}: { id: string }) {
         clearProduct();
         setOpent(false);
     }, [setProduct]);
+
 
     return (
         <>
@@ -131,7 +131,9 @@ export default function ProductionDetailPage({id}: { id: string }) {
 
 
                                 <div className="mb-12">
-                                    <h3 className="text-xl font-bold text-gray-900 mb-6">Chọn size</h3>
+                                    <h3 className="text-xl font-bold mb-6 text-gray-900">Chọn size</h3>
+
+
                                     <div className="space-y-3">
                                         {data.sizes.map(value => (
                                             <button
@@ -166,6 +168,7 @@ export default function ProductionDetailPage({id}: { id: string }) {
                                                     handle(data?.id, data?.name, data?.urlImg)
                                                     setContent('Gọi món ngay');
                                                     setOpent(true);
+                                                    // if (size) setErro("Vui lòng chọn size sản phẩm")
                                                 }}
                                                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl transition-all duration-300 transform active:scale-95 text-lg"
                                             />
@@ -175,6 +178,7 @@ export default function ProductionDetailPage({id}: { id: string }) {
                                                     handle(data?.id, data?.name, data?.urlImg)
                                                     setContent('Lưu võ hàng');
                                                     setOpent(true);
+                                                    // if (size) setErro("Vui lòng chọn size sản phẩm")
                                                 }}
                                                 className="w-14 h-14 bg-green-100 hover:bg-green-200 rounded-full flex items-center justify-center transition-all duration-300 transform active:scale-95 shadow-md"
                                             >
@@ -203,13 +207,19 @@ export default function ProductionDetailPage({id}: { id: string }) {
                         <> </>
                     )
             }
-            <ChoceToping
-                id={id}
-                isOpen={open}
-                onClose={handleClose}
-                id_size={size?.id ?? ''}
-                // size_name={size?.name ?? ''}
-                content={content}/>
+
+            {
+                size && (
+                    <ChoceToping
+                        id={id}
+                        isOpen={open}
+                        onClose={handleClose}
+                        id_size={size?.id ?? ''}
+                        // size_name={size?.name ?? ''}
+                        content={content}/>
+                )
+            }
+
         </>
     )
 }

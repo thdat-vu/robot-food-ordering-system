@@ -44,7 +44,6 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
         loading: loadinggetToppingsForProduct,
         data: dataToppings
     } = useGetToppingForProduct();
-    const {run, data: responcreat} = useCreateOreder();
 
     useEffect(() => {
         (async () => {
@@ -114,20 +113,6 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
 
         switch (content) {
             case 'Gọi món ngay' :
-                const items: item[] = [{
-                    productId: temp.id,
-                    productSizeId: temp.size.id,
-                    toppingIds: toppingsArray.map(value => value.id)
-                }];
-                const orderRequet: OrderRequest = {
-                    tableId: tableId.tableId,
-                    items: items,
-                };
-                // (async () => {
-                //     await run(orderRequet)
-                // })()
-                // if (responcreat)
-                //     alert(responcreat.data)
                 setRes(temp);
                 setOpen(true);
                 break;
@@ -287,7 +272,6 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
                 </div>
             </BottomModal>
             <ConfimOrder ShoppingCart={res} isOpen={open} onClose={() => setOpen(false)}/>
-
         </>
     );
 };

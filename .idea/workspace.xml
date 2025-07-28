@@ -5,22 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/Props/Order.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/respont/OrderRespont.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/entites/request/PaymentRequest.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/entites/respont/Payment.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api-endpoint-env.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api-endpoint-env.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/api/OrderApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/OrderApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/OrderList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/OrderList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/Payment.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/Payment.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/Profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/Profile.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/common/ChoceToping.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ChoceToping.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/entites/Props/Toppings.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/Props/Toppings.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/entites/respont/Topping.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/respont/Topping.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hooks/customHooks/useOrderHooks.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/customHooks/useOrderHooks.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hooks/useApiHandler.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/useApiHandler.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/store/ShoppingCart.ts" beforeDir="false" afterPath="$PROJECT_DIR$/store/ShoppingCart.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -110,7 +104,7 @@
       <workItem from="1753423221411" duration="4421000" />
       <workItem from="1753454674555" duration="11332000" />
       <workItem from="1753533442433" duration="18164000" />
-      <workItem from="1753619343727" duration="30680000" />
+      <workItem from="1753619343727" duration="36422000" />
     </task>
     <servers />
   </component>

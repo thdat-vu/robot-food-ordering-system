@@ -1,13 +1,25 @@
 "use client"
 import React, {useEffect, useState, useCallback, useRef, useMemo} from 'react';
-import {Clock, MapPin, CreditCard, Plus, RefreshCw, AlertCircle, ShoppingBag} from 'lucide-react';
+import {
+    Clock,
+    MapPin,
+    CreditCard,
+    Plus,
+    RefreshCw,
+    AlertCircle,
+    ShoppingBag,
+    CheckCircle,
+    Utensils,
+    Truck,
+    XCircle
+} from 'lucide-react';
 import {OrderRespontGetByID} from "@/entites/respont/OrderRespont";
 import {Order} from "@/entites/Props/Order";
 import {useGetOrderByIdAndTaibleId} from "@/hooks/customHooks/useOrderHooks";
 import {loadListFromLocalStorage} from "@/store/ShoppingCart";
 import formatCurrency from "@/unit/unit";
-import {useRouter} from "next/navigation";
 import {Payment} from "@/app/features/components/Payment";
+
 
 export const OrderDisplay = () => {
     const [orderData, setOrderData] = useState<OrderRespontGetByID[]>([]);
@@ -18,7 +30,7 @@ export const OrderDisplay = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const {run} = useGetOrderByIdAndTaibleId();
-    const router = useRouter();
+    const [oerderId, setOerderId] = useState<string>('');
 
     // (() => {
     //     localStorage.removeItem("order-ss")
@@ -116,7 +128,7 @@ export const OrderDisplay = () => {
             if (!isMounted) return;
             const requests = loadRequests();
             await fetchOrders(requests);
-        }, 50000);
+        }, 6000);
 
         return () => {
             isMounted = false;
@@ -131,6 +143,7 @@ export const OrderDisplay = () => {
 
     const handlePayment = (idOrderItem: string) => {
         setIsPaymentOpen(true);
+        setOerderId(idOrderItem);
     }
 
     useEffect(() => {
@@ -302,11 +315,7 @@ export const OrderDisplay = () => {
 
 
                                 <div className="flex items-center gap-3">
-                                    <div
-                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border ${getStatusColor(order.status)} bg-white/20 border-white/30`}>
-                                        <Clock size={12} className="inline mr-1.5"/>
-                                        {order.status}
-                                    </div>
+                                    <OrderStatus status={order.status}/>
                                     <button
                                         onClick={() => handlePayment(order.id)}
                                         className={`px-3 py-1.5 rounded-full text-xs font-medium border ${getPaymentStatusColor(order.paymentStatus)}
@@ -377,6 +386,7 @@ export const OrderDisplay = () => {
             </div>
             <Payment
                 id=""
+                orderId={oerderId}
                 isOpen={isPaymentOpen}
                 onClose={() => setIsPaymentOpen(false)}
                 onSave={() => {
@@ -384,4 +394,110 @@ export const OrderDisplay = () => {
             />
         </>
     );
+};
+
+
+enum OrderStatusEnum {
+    Pending = 'Pending',        // Đang chờ xác nhận
+    Confirmed = 'Confirmed',    // Đã xác nhận
+    Preparing = 'Preparing',    // Đang chuẩn bị món
+    Delivering = 'Delivering',  // Bắt đầu phục vụ
+    Completed = 'Completed',    // Đã giao / hoàn thành
+    Cancelled = 'Cancelled'     // Đã hủy
+}
+
+const OrderStatus: React.FC<{ status: string }> = ({status}) => {
+
+    const getStatusInfo = useMemo(() => {
+        switch (status) {
+            case OrderStatusEnum.Pending:
+                return {
+                    text: 'Đang chờ xác nhận',
+                    color: 'bg-amber-50 text-amber-700 border-amber-200',
+                    icon: Clock
+                };
+            case OrderStatusEnum.Confirmed:
+                return {
+                    text: 'Đã xác nhận',
+                    color: 'bg-blue-50 text-blue-700 border-blue-200',
+                    icon: CheckCircle
+                };
+            case OrderStatusEnum.Preparing:
+                return {
+                    text: 'Đang chuẩn bị món',
+                    color: 'bg-orange-50 text-orange-700 border-orange-200',
+                    icon: Utensils
+                };
+            case OrderStatusEnum.Delivering:
+                return {
+                    text: 'Bắt đầu phục vụ',
+                    color: 'bg-purple-50 text-purple-700 border-purple-200',
+                    icon: Truck
+                };
+            case OrderStatusEnum.Completed:
+                return {
+                    text: 'Đã hoàn thành',
+                    color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    icon: CheckCircle
+                };
+            case OrderStatusEnum.Cancelled:
+                return {
+                    text: 'Đã hủy',
+                    color: 'bg-red-50 text-red-700 border-red-200',
+                    icon: XCircle
+                };
+            default:
+                return {
+                    text: 'Không xác định',
+                    color: 'bg-gray-50 text-gray-700 border-gray-200',
+                    icon: AlertCircle
+                };
+        }
+    }, [status]);
+
+    const {text, color, icon: Icon} = getStatusInfo;
+
+    return (
+        <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border ${color}`}>
+            <Icon size={12} className="mr-1.5"/>
+            {text}
+        </div>
+    );
+};
+const getOrderStatusText = (status: string): string => {
+    switch (status) {
+        case OrderStatusEnum.Pending:
+            return 'Đang chờ xác nhận';
+        case OrderStatusEnum.Confirmed:
+            return 'Đã xác nhận';
+        case OrderStatusEnum.Preparing:
+            return 'Đang chuẩn bị món';
+        case OrderStatusEnum.Delivering:
+            return 'Bắt đầu phục vụ';
+        case OrderStatusEnum.Completed:
+            return 'Đã hoàn thành';
+        case OrderStatusEnum.Cancelled:
+            return 'Đã hủy';
+        default:
+            return 'Không xác định';
+    }
+};
+
+const getOrderStatusColor = (status: string): string => {
+    switch (status) {
+        case OrderStatusEnum.Pending:
+            return 'bg-amber-50 text-amber-700 border-amber-200';
+        case OrderStatusEnum.Confirmed:
+            return 'bg-blue-50 text-blue-700 border-blue-200';
+        case OrderStatusEnum.Preparing:
+            return 'bg-orange-50 text-orange-700 border-orange-200';
+        case OrderStatusEnum.Delivering:
+            return 'bg-purple-50 text-purple-700 border-purple-200';
+        case OrderStatusEnum.Completed:
+            return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        case OrderStatusEnum.Cancelled:
+            return 'bg-red-50 text-red-700 border-red-200';
+        default:
+            return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
 };
