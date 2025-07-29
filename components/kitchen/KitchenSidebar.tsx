@@ -12,6 +12,8 @@ interface KitchenSidebarProps {
   itemNameToCategory: Record<string, string>;
   selectedOrderKey: { itemName: string; tableNumber: number; id: number } | null;
   onSidebarItemClick: (orderKey: { itemName: string; tableNumber: number; id: number }) => void;
+  selectedGroup: { itemName: string; tableNumber: number; id: number }[] | null;
+  onGroupSelection: (group: { itemName: string; tableNumber: number; id: number }[]) => void;
   groupedOrders: GroupedOrders;
   className?: string;
 }
@@ -25,6 +27,8 @@ export function KitchenSidebar({
   itemNameToCategory,
   selectedOrderKey,
   onSidebarItemClick,
+  selectedGroup,
+  onGroupSelection,
   groupedOrders,
   className
 }: KitchenSidebarProps) {
@@ -69,6 +73,17 @@ export function KitchenSidebar({
   const filterByCategory = (itemName: string) => {
     if (selectedCategory === 'Tất cả') return true;
     return itemNameToCategory[itemName] === selectedCategory;
+  };
+
+  // Helper to check if a group is selected
+  const isGroupSelected = (group: { itemName: string; tableNumber: number; id: number }[]) => {
+    if (!selectedGroup || selectedGroup.length !== group.length) return false;
+    return selectedGroup.every((item, index) => 
+      item.itemName === group[index].itemName &&
+      item.tableNumber === group[index].tableNumber &&
+      item.id === group[index].id
+    );
+    
   };
 
   return (
@@ -127,34 +142,43 @@ export function KitchenSidebar({
                 for (let i = 0; i < allOrders.length; i += 3) {
                   groups.push(allOrders.slice(i, i + 3));
                 }
-                return groups.map((group, groupIdx) => (
-                  <div
-                    key={`sidebar-group-${groupIdx}`}
-                    className="bg-gray-100 rounded-xl shadow p-3 flex flex-col gap-2"
-                  >
-                    {group.map(({ itemName, tableNumber, id }) => {
-                      const isSelected =
-                        selectedOrderKey &&
-                        selectedOrderKey.itemName === itemName &&
-                        selectedOrderKey.tableNumber === tableNumber &&
-                        selectedOrderKey.id === id;
-                      return (
-                        <div
-                          key={`${itemName}-table-${tableNumber}-${id}`}
-                          className="transition-all duration-500 ease-in-out transform opacity-100 translate-y-0 scale-100"
-                        >
-                          <Button
-                            onClick={() => onSidebarItemClick({ itemName, tableNumber, id })}
-                            variant="secondary"
-                            className={`hover:bg-gray-200 ${isSelected ? 'bg-gray-300' : ''}`}
+                return groups.map((group, groupIdx) => {
+                  const isSelected = isGroupSelected(group);
+                  return (
+                    <div
+                      key={`sidebar-group-${groupIdx}`}
+                      className={`bg-gray-100 rounded-xl shadow p-3 flex flex-col gap-2 cursor-pointer transition-all duration-200 ${
+                        isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => onGroupSelection(group)}
+                    >
+                      {group.map(({ itemName, tableNumber, id }) => {
+                        const isIndividualSelected =
+                          selectedOrderKey &&
+                          selectedOrderKey.itemName === itemName &&
+                          selectedOrderKey.tableNumber === tableNumber &&
+                          selectedOrderKey.id === id;
+                        return (
+                          <div
+                            key={`${itemName}-table-${tableNumber}-${id}`}
+                            className="transition-all duration-500 ease-in-out transform opacity-100 translate-y-0 scale-100"
                           >
-                            {`${itemName} - bàn ${tableNumber}`}
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ));
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent group selection when clicking individual item
+                                onSidebarItemClick({ itemName, tableNumber, id });
+                              }}
+                              variant="secondary"
+                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''}`}
+                            >
+                              {`${itemName} - bàn ${tableNumber}`}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                });
               })()}
             </div>
           </div>
