@@ -7,17 +7,28 @@ import { toast } from "sonner";
 import PaymentPanel from "./PaymentPanel";
 import { useWaiterOrders, WaiterDish } from "@/hooks/use-waiter-orders";
 
-const MapPanel = () => (
-  <div className="w-full h-[340px] md:h-[460px] flex items-center justify-center bg-muted rounded-2xl shadow-inner border border-border overflow-hidden">
-    <iframe
-      src="https://map-doan-nhattruowngs-projects.vercel.app/map/5"
-      allowFullScreen
-      loading="lazy"
-      referrerPolicy="strict-origin-when-cross-origin"
-      className="w-full h-full"
-      title="Map Embed"
-      style={{ border: "none" }}
-    />
+const MapPanel = ({ selectedTable }: { selectedTable: number | null }) => (
+  <div className="w-full h-[340px] md:h-[460px] flex flex-col bg-muted rounded-2xl shadow-inner border border-border overflow-hidden">
+    {selectedTable ? (
+      <>
+        <div className="bg-primary text-primary-foreground px-4 py-2 text-center font-semibold">
+          Bàn {selectedTable}
+        </div>
+        <iframe
+          src={`https://map-doan-nhattruowngs-projects.vercel.app/map/${selectedTable}`}
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+          className="w-full flex-1"
+          title="Map Embed"
+          style={{ border: "none" }}
+        />
+      </>
+    ) : (
+      <div className="flex items-center justify-center text-muted-foreground flex-1">
+        <p>Chọn món để xem vị trí bàn</p>
+      </div>
+    )}
   </div>
 );
 
@@ -33,6 +44,7 @@ const categoryStyle: Record<
 
 const ServePanel: React.FC = () => {
   const [panel, setPanel] = useState<"control" | "payment">("control");
+  const [selectedTable, setSelectedTable] = useState<number | null>(null);
   const {
     dishes,
     groupedDishes,
@@ -62,6 +74,31 @@ const ServePanel: React.FC = () => {
     // Refresh orders after payment completion
     refreshOrders();
     setPanel("control");
+  };
+
+  const handleDishToggle = (dishId: number) => {
+    // Find the dish to get its table number before toggling
+    const dish = dishes.find(d => d.id === dishId);
+    const isCurrentlySelected = dish?.selected || false;
+    
+    toggleDish(dishId);
+    
+    if (dish) {
+      if (!isCurrentlySelected) {
+        // Dish is being selected, update the selected table
+        setSelectedTable(dish.tableNumber);
+      } else {
+        // Dish is being deselected, check if there are other selected dishes
+        const otherSelectedDishes = dishes.filter(d => d.selected && d.id !== dishId);
+        if (otherSelectedDishes.length === 0) {
+          // No dishes selected, clear the table
+          setSelectedTable(null);
+        } else {
+          // Use the table number of the first selected dish
+          setSelectedTable(otherSelectedDishes[0].tableNumber);
+        }
+      }
+    }
   };
 
   if (isLoading) {
@@ -127,15 +164,17 @@ const ServePanel: React.FC = () => {
                       .map((dish) => (
                         <li key={dish.id}>
                           <label
-                            className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} cursor-pointer transition hover:bg-accent`}
+                            className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} cursor-pointer transition hover:bg-accent ${
+                              dish.selected ? 'ring-2 ring-primary ring-offset-2' : ''
+                            }`}
                           >
                             <Checkbox
                               checked={dish.selected}
-                              onCheckedChange={() => toggleDish(dish.id)}
+                              onCheckedChange={() => handleDishToggle(dish.id)}
                               className="mr-3"
                             />
                             <span className="text-sm font-medium text-foreground">
-                              {dish.name} {dish.quantity > 1 && `(${dish.quantity})`}
+                              {dish.name} - Bàn {dish.tableNumber} {dish.quantity > 1 && `(${dish.quantity})`}
                             </span>
                           </label>
                         </li>
@@ -153,7 +192,7 @@ const ServePanel: React.FC = () => {
 
             <div className="w-full min-h-[320px]">
               {hasSelected ? (
-                <MapPanel />
+                <MapPanel selectedTable={selectedTable} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground text-base italic">
                   {dishes.length === 0 
@@ -184,7 +223,7 @@ const ServePanel: React.FC = () => {
                   {dishes
                     .filter((d) => d.served)
                     .map((d) => (
-                      <li key={d.id}>{d.name} {d.quantity > 1 && `(${d.quantity})`}</li>
+                      <li key={d.id}>{d.name} - Bàn {d.tableNumber} {d.quantity > 1 && `(${d.quantity})`}</li>
                     ))}
                 </ul>
               </div>

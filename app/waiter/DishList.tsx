@@ -5,6 +5,7 @@ interface Dish {
   id: number;
   name: string;
   selected: boolean;
+  tableNumber?: number;
 }
 
 interface DishListProps {
@@ -18,7 +19,7 @@ export default function DishList({ dishes, onToggle }: DishListProps) {
       {dishes.map((dish) => (
         <DishItem
           key={dish.id}
-          label={dish.name}
+          label={dish.tableNumber ? `${dish.name} - Bàn ${dish.tableNumber}` : dish.name}
           checked={dish.selected}
           onChange={() => onToggle(dish.id)}
         />
