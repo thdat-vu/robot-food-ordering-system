@@ -111,6 +111,19 @@ function ChiefPageContent() {
     setSelectedOrderKey(null); // Clear individual selection when group is selected
   };
 
+  // Handle preparing multiple orders at once
+  const handlePrepareMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
+    try {
+      // Prepare all orders in the group
+      for (const order of orders) {
+        await handlePrepareOrders(order.id);
+      }
+      addToast(`Đã bắt đầu thực hiện ${orders.length} món cùng lúc`, 'success');
+    } catch (error) {
+      addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
+    }
+  };
+
   // Filter groupedOrders for selected order
   let filteredGroupedOrders: Record<string, Order[]> = {};
   if (selectedOrderKey) {
@@ -238,6 +251,7 @@ function ChiefPageContent() {
             onGroupClick={handleGroupClick}
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}
+            onPrepareMultipleOrders={handlePrepareMultipleOrders}
             showIndividualCards={true}
           />
         ) : selectedOrderKey ? (

@@ -140,10 +140,8 @@ export function OrdersContent({
         {/* Group Action Button */}
         <div className="flex justify-center">
           <Button 
-            onClick={() => onPrepareMultipleOrders(selectedGroup)}
-            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-semibold shadow-lg"
-          >
-            Thực hiện tất cả ({groupOrders.length} món)
+            onClick={() => onPrepareMultipleOrders(selectedGroup)}          >
+            Thực hiện
           </Button>
         </div>
       </div>
@@ -293,6 +291,23 @@ export function OrdersContent({
               </CardHeader>
             </Card>
           ))}
+          
+          {/* Group action button at the bottom */}
+          {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
+            <div className="mt-6 flex justify-center">
+              <Button 
+                onClick={() => onPrepareMultipleOrders(allOrders.map(order => ({
+                  itemName: order.itemName,
+                  tableNumber: order.tableNumber,
+                  id: order.id
+                })))}
+                size="lg"
+                className="text-lg font-semibold"
+              >
+                Thực hiện 
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
