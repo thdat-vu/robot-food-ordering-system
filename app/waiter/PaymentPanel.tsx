@@ -274,7 +274,7 @@ export default function PaymentPanel({
                             Đang xử lý...
                           </>
                         ) : (
-                          "Xác nhận thanh toán & In hóa đơn"
+                          "Xác nhận thanh toán"
                         )}
                       </Button>
 

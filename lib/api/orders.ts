@@ -51,8 +51,14 @@ export interface UpdateOrderItemStatusRequest {
   status: number; // OrderItemStatus enum value
 }
 
+// Payment method constants
+export const PAYMENT_METHODS = {
+  COD: 1,
+  VNPay: 2
+} as const;
+
 export interface OrderPaymentRequest {
-  paymentMethod: string; // "COD" or "VNPay"
+  paymentMethod: number; // 1 for COD, 2 for VNPay
 }
 
 export interface OrderPaymentResponse {
@@ -117,7 +123,7 @@ export const ordersApi = {
   },
 
   // Initiate payment for an order
-  async initiatePayment(orderId: string, paymentMethod: string) {
+  async initiatePayment(orderId: string, paymentMethod: number) {
     const response = await apiClient.post<ApiBaseResponse<OrderPaymentResponse>>(
       `/Order/${orderId}/pay`,
       { paymentMethod }

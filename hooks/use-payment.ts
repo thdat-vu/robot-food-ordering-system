@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ordersApi, ApiOrderResponse, ApiOrderItemResponse } from '@/lib/api/orders';
+import { ordersApi, ApiOrderResponse, ApiOrderItemResponse, PAYMENT_METHODS } from '@/lib/api/orders';
 import { tablesApi, ApiTableResponse } from '@/lib/api/tables';
 
 export interface PaymentOrderItem {
@@ -151,9 +151,9 @@ export function usePayment() {
   const initiatePayment = useCallback(async (orderId: string) => {
     try {
       setPaymentStatus('processing');
-      const response = await ordersApi.initiatePayment(orderId, 'COD');
+      const response = await ordersApi.initiatePayment(orderId, PAYMENT_METHODS.COD);
       
-      if (response.success) {
+      if (response.statusCode === 200) {
         setPaymentStatus('success');
         return { success: true, message: response.message };
       } else {
