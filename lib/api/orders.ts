@@ -21,6 +21,7 @@ export interface ApiOrderItemResponse {
   status: string;
   toppings: ApiToppingResponse[];
   price: number; // Add price field for order items
+  imageUrl?: string; // Add imageUrl field from API response
 }
 
 export interface ApiToppingResponse {

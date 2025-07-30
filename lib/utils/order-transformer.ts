@@ -99,7 +99,7 @@ export const transformApiOrderItemToOrder = (
     tableNumber,
     quantity: orderItem.quantity,
     status: mapApiStatusToFrontend(orderItem.status),
-    image: getImageFromProductName(orderItem.productName),
+    image: orderItem.imageUrl || getImageFromProductName(orderItem.productName), 
     orderTime: new Date().toLocaleTimeString('vi-VN', { 
       hour: '2-digit', 
       minute: '2-digit' 
