@@ -186,7 +186,7 @@ const ServePanel: React.FC = () => {
                     {style.label}
                   </div>
                   <ul className="space-y-3 w-full">
-                    {items
+                    {filteredItems
                       .filter((dish) => !dish.served)
                       .map((dish) => (
                         <li key={dish.id}>
