@@ -122,7 +122,17 @@ export function OrdersContent({
                   <CardTitle>{order.itemName}</CardTitle>
                   <CardDescription>
                     {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
+                    {order.sizeName && (
+                      <span className="ml-2 text-blue-600 font-medium">
+                        • {order.sizeName}
+                      </span>
+                    )}
                   </CardDescription>
+                  {order.toppings && order.toppings.length > 0 && (
+                    <div className="mt-1 text-xs text-gray-600">
+                      <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                     {renderClockIcon()}
                     <span className="text-xs opacity-80">{order.estimatedTime}</span>
@@ -174,7 +184,17 @@ export function OrdersContent({
               <CardTitle>{order.itemName}</CardTitle>
               <CardDescription>
                 {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
+                {order.sizeName && (
+                  <span className="ml-2 text-blue-600 font-medium">
+                    • {order.sizeName}
+                  </span>
+                )}
               </CardDescription>
+              {order.toppings && order.toppings.length > 0 && (
+                <div className="mt-1 text-xs text-gray-600">
+                  <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                </div>
+              )}
               <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                 {renderClockIcon()}
                 <span className="text-xs opacity-80">{order.estimatedTime}</span>
@@ -268,7 +288,17 @@ export function OrdersContent({
                   <CardTitle>{order.itemName}</CardTitle>
                   <CardDescription>
                     {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
+                    {order.sizeName && (
+                      <span className="ml-2 text-blue-600 font-medium">
+                        • {order.sizeName}
+                      </span>
+                    )}
                   </CardDescription>
+                  {order.toppings && order.toppings.length > 0 && (
+                    <div className="mt-1 text-xs text-gray-600">
+                      <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                     {renderClockIcon()}
                     <span className="text-xs opacity-80">{order.estimatedTime}</span>
@@ -324,7 +354,17 @@ export function OrdersContent({
                 <CardTitle>{itemName}</CardTitle>
                 <CardDescription>
                   x{orderGroup.length} &nbsp;|&nbsp; Bàn: {orderGroup.map(order => order.tableNumber).join(', ')}
+                  {orderGroup[0].sizeName && (
+                    <span className="ml-2 text-blue-600 font-medium">
+                      • Size: {orderGroup[0].sizeName}  
+                    </span>
+                  )}
                 </CardDescription>
+                {orderGroup[0].toppings && orderGroup[0].toppings.length > 0 && (
+                  <div className="mt-1 text-xs text-gray-600">
+                    <span className="font-medium">Toppings:</span> {orderGroup[0].toppings.join(', ')}
+                  </div>
+                )}
                 <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                   {renderClockIcon()}
                   <span className="text-xs opacity-80">{getGroupEstimatedTime(orderGroup)}</span>

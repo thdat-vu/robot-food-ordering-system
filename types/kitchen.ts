@@ -10,6 +10,8 @@ export interface Order {
   image: string;
   orderTime: string;
   estimatedTime: string; // Time needed to prepare the dish (e.g., "15 phút", "20 phút")
+  sizeName?: string; // Size of the item (e.g., "Small", "Medium", "Large")
+  toppings?: string[]; // Array of topping names
   // API IDs for making API calls
   apiOrderId: string;
   apiItemId: string;

@@ -105,6 +105,8 @@ export const transformApiOrderItemToOrder = (
       minute: '2-digit' 
     }),
     estimatedTime: getEstimatedTime(orderItem.productName),
+    sizeName: orderItem.sizeName, // Add size name from API
+    toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API
     // Store API IDs for making API calls
     apiOrderId: order.id,
     apiItemId: orderItem.id
