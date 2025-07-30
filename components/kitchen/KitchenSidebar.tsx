@@ -1,6 +1,7 @@
 import React from 'react';
 import { Category, RemainingItems, GroupedOrders } from '@/types/kitchen';
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { IconList, IconCup, IconSoup, IconIceCream } from '@tabler/icons-react'
 
 interface KitchenSidebarProps {
@@ -14,6 +15,8 @@ interface KitchenSidebarProps {
   onSidebarItemClick: (orderKey: { itemName: string; tableNumber: number; id: number }) => void;
   selectedGroup: { itemName: string; tableNumber: number; id: number }[] | null;
   onGroupSelection: (group: { itemName: string; tableNumber: number; id: number }[]) => void;
+  selectedGroups: { itemName: string; tableNumber: number; id: number }[][];
+  onMultipleGroupSelection: (groups: { itemName: string; tableNumber: number; id: number }[][]) => void;
   groupedOrders: GroupedOrders;
   className?: string;
 }
@@ -29,6 +32,8 @@ export function KitchenSidebar({
   onSidebarItemClick,
   selectedGroup,
   onGroupSelection,
+  selectedGroups,
+  onMultipleGroupSelection,
   groupedOrders,
   className
 }: KitchenSidebarProps) {
@@ -83,7 +88,45 @@ export function KitchenSidebar({
       item.tableNumber === group[index].tableNumber &&
       item.id === group[index].id
     );
+  };
+
+  // Helper to check if a group is in multiple selection
+  const isGroupInMultipleSelection = (group: { itemName: string; tableNumber: number; id: number }[]) => {
+    if (!selectedGroups) return false;
+    return selectedGroups.some(selectedGroup => {
+      if (selectedGroup.length !== group.length) return false;
+      return selectedGroup.every((item, index) => 
+        item.itemName === group[index].itemName &&
+        item.tableNumber === group[index].tableNumber &&
+        item.id === group[index].id
+      );
+    });
+  };
+
+  // Handle checkbox click for multiple selection
+  const handleCheckboxClick = (e: React.MouseEvent, group: { itemName: string; tableNumber: number; id: number }[]) => {
+    e.stopPropagation(); // Prevent group selection when clicking checkbox
     
+    if (!selectedGroups) {
+      onMultipleGroupSelection([group]);
+    } else {
+      const isSelected = isGroupInMultipleSelection(group);
+      if (isSelected) {
+        // Remove group from selection
+        const newSelectedGroups = selectedGroups.filter(selectedGroup => {
+          if (selectedGroup.length !== group.length) return true;
+          return !selectedGroup.every((item, index) => 
+            item.itemName === group[index].itemName &&
+            item.tableNumber === group[index].tableNumber &&
+            item.id === group[index].id
+          );
+        });
+        onMultipleGroupSelection(newSelectedGroups.length > 0 ? newSelectedGroups : []);
+      } else {
+        // Add group to selection
+        onMultipleGroupSelection([...selectedGroups, group]);
+      }
+    }
   };
 
   return (
@@ -144,14 +187,57 @@ export function KitchenSidebar({
                 }
                 return groups.map((group, groupIdx) => {
                   const isSelected = isGroupSelected(group);
+                  const isInMultipleSelection = isGroupInMultipleSelection(group);
                   return (
                     <div
                       key={`sidebar-group-${groupIdx}`}
                       className={`bg-gray-100 rounded-xl shadow p-3 flex flex-col gap-2 cursor-pointer transition-all duration-200 ${
                         isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
                       }`}
-                      onClick={() => onGroupSelection(group)}
+                      onClick={() => {
+                        onGroupSelection(group);
+                        // Toggle the checkbox for multiple selection
+                        if (isInMultipleSelection) {
+                          // Uncheck: remove from multiple selection
+                          const newSelectedGroups = (selectedGroups || []).filter(selectedGroup => {
+                            if (selectedGroup.length !== group.length) return true;
+                            return !selectedGroup.every((item, index) => 
+                              item.itemName === group[index].itemName &&
+                              item.tableNumber === group[index].tableNumber &&
+                              item.id === group[index].id
+                            );
+                          });
+                          onMultipleGroupSelection(newSelectedGroups);
+                        } else {
+                          // Check: add to multiple selection
+                          onMultipleGroupSelection([...(selectedGroups || []), group]);
+                        }
+                      }}
                     >
+                      <div className="flex items-center justify-between">
+                        <Checkbox
+                          checked={isInMultipleSelection}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              onMultipleGroupSelection([...(selectedGroups || []), group]);
+                            } else {
+                              const newSelectedGroups = (selectedGroups || []).filter(selectedGroup => {
+                                if (selectedGroup.length !== group.length) return true;
+                                return !selectedGroup.every((item, index) => 
+                                  item.itemName === group[index].itemName &&
+                                  item.tableNumber === group[index].tableNumber &&
+                                  item.id === group[index].id
+                                );
+                              });
+                              onMultipleGroupSelection(newSelectedGroups);
+                            }
+                          }}
+                          onClick={(e) => handleCheckboxClick(e, group)}
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          {group.length} món
+                        </span>
+                      </div>
                       {group.map(({ itemName, tableNumber, id }) => {
                         const isIndividualSelected =
                           selectedOrderKey &&
@@ -161,7 +247,7 @@ export function KitchenSidebar({
                         return (
                           <div
                             key={`${itemName}-table-${tableNumber}-${id}`}
-                            className="transition-all duration-500 ease-in-out transform opacity-100 translate-y-0 scale-100"
+                            className="transition-all duration-500 ease-in-out transform opacity-100 translate-y-0 scale-100 w-full"
                           >
                             <Button
                               onClick={(e) => {
@@ -169,9 +255,11 @@ export function KitchenSidebar({
                                 onSidebarItemClick({ itemName, tableNumber, id });
                               }}
                               variant="secondary"
-                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''}`}
+                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left truncate max-w-full h-auto min-h-[40px] px-3 py-2`}
                             >
-                              {`${itemName} - bàn ${tableNumber}`}
+                              <span className="truncate block text-sm leading-tight">
+                                {`${itemName} - bàn ${tableNumber}`}
+                              </span>
                             </Button>
                           </div>
                         );

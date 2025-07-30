@@ -138,12 +138,12 @@ export function OrdersContent({
         </div>
 
         {/* Group Action Button */}
-        <div className="flex justify-center">
+        {/* <div className="flex justify-center">
           <Button 
             onClick={() => onPrepareMultipleOrders(selectedGroup)}          >
             Thực hiện
           </Button>
-        </div>
+        </div> */}
       </div>
     );
   };

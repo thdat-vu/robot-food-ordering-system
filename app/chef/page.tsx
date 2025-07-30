@@ -30,6 +30,7 @@ function ChiefPageContent() {
   // Sidebar item selection state
   const [selectedOrderKey, setSelectedOrderKey] = useState<{ itemName: string; tableNumber: number; id: number } | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
+  const [selectedGroups, setSelectedGroups] = useState<{ itemName: string; tableNumber: number; id: number }[][]>([]);
 
   // Custom hooks
   const {
@@ -109,6 +110,12 @@ function ChiefPageContent() {
   const handleGroupSelection = (group: { itemName: string; tableNumber: number; id: number }[]) => {
     setSelectedGroup(group);
     setSelectedOrderKey(null); // Clear individual selection when group is selected
+  };
+
+  // Multiple group selection handler
+  const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][]) => {
+    setSelectedGroups(groups);
+    setSelectedOrderKey(null); // Clear individual selection when groups are selected
   };
 
   // Handle preparing multiple orders at once
@@ -209,6 +216,8 @@ function ChiefPageContent() {
           selectedGroup={selectedGroup}
           onGroupSelection={handleGroupSelection}
           groupedOrders={groupedOrders}
+          selectedGroups={selectedGroups}
+          onMultipleGroupSelection={handleMultipleGroupSelection}
         />
       </div>
 
@@ -229,6 +238,32 @@ function ChiefPageContent() {
             onGroupClick={handleGroupClick}
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}
+          />
+        ) : selectedGroups.length > 0 ? (
+          <OrdersContent
+            groupedOrders={(() => {
+              // Create a filtered groupedOrders with only the selected groups items
+              const filtered: Record<string, Order[]> = {};
+              selectedGroups.forEach(group => {
+                group.forEach(({ itemName, tableNumber, id }) => {
+                  const orderList = (groupedOrders as Record<string, Order[]>)[itemName] || [];
+                  const foundOrder = orderList.find(
+                    o => o.tableNumber === tableNumber && o.id === id
+                  );
+                  if (foundOrder) {
+                    if (!filtered[itemName]) filtered[itemName] = [];
+                    filtered[itemName].push(foundOrder);
+                  }
+                });
+              });
+              return filtered;
+            })()}
+            activeTab={activeTab}
+            onGroupClick={handleGroupClick}
+            onPrepareClick={handlePrepareClick}
+            onServeClick={handleServeClick}
+            onPrepareMultipleOrders={handlePrepareMultipleOrders}
+            showIndividualCards={true}
           />
         ) : selectedGroup ? (
           <OrdersContent
