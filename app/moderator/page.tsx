@@ -1,5 +1,11 @@
 'use client';
+import ModeratorScreen from './ModeratorScreen';
+// app/moderator/page.tsx
+
+
 
 export default function ModeratorPage() {
-  return <div>Moderator Main Screen - Coming Soon</div>;
+  return (
+      <ModeratorScreen />
+  );
 } 

@@ -27,8 +27,13 @@ function ChiefPageContent() {
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Sidebar item selection state
   const [selectedOrderKey, setSelectedOrderKey] = useState<{ itemName: string; tableNumber: number; id: number } | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
+  const [selectedGroups, setSelectedGroups] = useState<{ itemName: string; tableNumber: number; id: number }[][]>([]);
 
   // Custom hooks
   const {
@@ -37,11 +42,14 @@ function ChiefPageContent() {
     expandedGroup,
     groupedOrders,
     remainingItems,
+    isLoading,
+    error,
     setActiveTab,
     setSelectedCategory,
     setExpandedGroup,
     handlePrepareOrders,
     handleServeOrder,
+    refreshOrders,
     shouldShowInSidebar,
     getTabCount,
     itemNameToCategory,
@@ -49,14 +57,45 @@ function ChiefPageContent() {
 
   const { toasts, addToast, removeToast } = useToastKitchen();
 
+  // Filter orders based on search query
+  const filterOrdersBySearch = (orders: Record<string, Order[]>) => {
+    if (!searchQuery.trim()) {
+      return orders;
+    }
+
+    const filtered: Record<string, Order[]> = {};
+    const query = searchQuery.toLowerCase();
+
+    Object.entries(orders).forEach(([itemName, orderList]) => {
+      const filteredOrders = orderList.filter(order => 
+        order.itemName.toLowerCase().includes(query) ||
+        order.tableNumber.toString().includes(query) ||
+        (order.toppings && order.toppings.some(topping => 
+          topping.toLowerCase().includes(query)
+        )) ||
+        (order.sizeName && order.sizeName.toLowerCase().includes(query))
+      );
+
+      if (filteredOrders.length > 0) {
+        filtered[itemName] = filteredOrders;
+      }
+    });
+
+    return filtered;
+  };
+
   // Event handlers
   const handleGroupClick = (itemName: string) => {
     setExpandedGroup(expandedGroup === itemName ? null : itemName);
   };
 
-  const handlePrepareClick = (orderId: number, itemName: string) => {
-    handlePrepareOrders(orderId);
-    addToast(`Đã bắt đầu thực hiện món: ${itemName}`, 'success');
+  const handlePrepareClick = async (orderId: number, itemName: string) => {
+    try {
+      await handlePrepareOrders(orderId);
+      addToast(`Đã bắt đầu thực hiện món: ${itemName}`, 'success');
+    } catch (error) {
+      addToast(`Lỗi khi cập nhật trạng thái: ${itemName}`, 'error');
+    }
   };
 
   const handleServeClick = (order: Order) => {
@@ -64,10 +103,14 @@ function ChiefPageContent() {
     setShowModal(true);
   };
 
-  const handleConfirmServe = () => {
+  const handleConfirmServe = async () => {
     if (selectedOrder) {
-      handleServeOrder(selectedOrder.id);
-      addToast(`Đã bắt đầu phục vụ món: ${selectedOrder.itemName}`, 'success');
+      try {
+        await handleServeOrder(selectedOrder.id);
+        addToast(`Đã bắt đầu phục vụ món: ${selectedOrder.itemName}`, 'success');
+      } catch (error) {
+        addToast(`Lỗi khi cập nhật trạng thái: ${selectedOrder.itemName}`, 'error');
+      }
     }
     setShowModal(false);
     setSelectedOrder(null);
@@ -91,6 +134,44 @@ function ChiefPageContent() {
       }
       return orderKey;
     });
+  };
+
+  // Group selection handler
+  const handleGroupSelection = (group: { itemName: string; tableNumber: number; id: number }[]) => {
+    setSelectedGroup(group);
+    setSelectedOrderKey(null); // Clear individual selection when group is selected
+  };
+
+  // Multiple group selection handler
+  const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][]) => {
+    setSelectedGroups(groups);
+    setSelectedOrderKey(null); // Clear individual selection when groups are selected
+  };
+
+  // Handle preparing multiple orders at once
+  const handlePrepareMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
+    try {
+      // Prepare all orders in the group
+      for (const order of orders) {
+        await handlePrepareOrders(order.id);
+      }
+      addToast(`Đã bắt đầu thực hiện ${orders.length} món cùng lúc`, 'success');
+    } catch (error) {
+      addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
+    }
+  };
+
+  // Handle serving multiple orders at once
+  const handleServeMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
+    try {
+      // Serve all orders in the group
+      for (const order of orders) {
+        await handleServeOrder(order.id);
+      }
+      addToast(`Đã bắt đầu phục vụ ${orders.length} món cùng lúc`, 'success');
+    } catch (error) {
+      addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
+    }
   };
 
   // Filter groupedOrders for selected order
@@ -121,6 +202,40 @@ function ChiefPageContent() {
     }, {} as Record<string, Order[]>);
   }
 
+  // Apply search filter to all order data
+  const filteredGroupedOrdersForSearch = filterOrdersBySearch(groupedOrders as Record<string, Order[]>);
+  const filteredServeTabGroupedOrders = filterOrdersBySearch(serveTabGroupedOrders);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <div className="flex items-center justify-center w-full">
+          <div className="text-gray-500">Đang tải dữ liệu...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <div className="flex items-center justify-center w-full">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">Lỗi: {error}</div>
+            <button
+              onClick={refreshOrders}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Toast Container */}
@@ -145,7 +260,11 @@ function ChiefPageContent() {
           itemNameToCategory={itemNameToCategory}
           selectedOrderKey={selectedOrderKey}
           onSidebarItemClick={handleSidebarItemClick}
+          selectedGroup={selectedGroup}
+          onGroupSelection={handleGroupSelection}
           groupedOrders={groupedOrders}
+          selectedGroups={selectedGroups}
+          onMultipleGroupSelection={handleMultipleGroupSelection}
         />
       </div>
 
@@ -156,23 +275,75 @@ function ChiefPageContent() {
           activeTab={activeTab as OrderStatus}
           onTabChange={setActiveTab as (tab: OrderStatus) => void}
           getTabCount={getTabCount}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
 
         {/* Orders Content or Placeholder */}
         {isServeTab ? (
           <OrdersContent
-            groupedOrders={serveTabGroupedOrders}
+            groupedOrders={filteredServeTabGroupedOrders}
             activeTab={activeTab}
-            expandedGroup={expandedGroup}
             onGroupClick={handleGroupClick}
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}
+          />
+        ) : selectedGroups.length > 0 ? (
+          <OrdersContent
+            groupedOrders={(() => {
+              // Create a filtered groupedOrders with only the selected groups items
+              const filtered: Record<string, Order[]> = {};
+              selectedGroups.forEach(group => {
+                group.forEach(({ itemName, tableNumber, id }) => {
+                  const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
+                  const foundOrder = orderList.find(
+                    o => o.tableNumber === tableNumber && o.id === id
+                  );
+                  if (foundOrder) {
+                    if (!filtered[itemName]) filtered[itemName] = [];
+                    filtered[itemName].push(foundOrder);
+                  }
+                });
+              });
+              return filtered;
+            })()}
+            activeTab={activeTab}
+            onGroupClick={handleGroupClick}
+            onPrepareClick={handlePrepareClick}
+            onServeClick={handleServeClick}
+            onPrepareMultipleOrders={handlePrepareMultipleOrders}
+            onServeMultipleOrders={handleServeMultipleOrders}
+            showIndividualCards={true}
+          />
+        ) : selectedGroup ? (
+          <OrdersContent
+            groupedOrders={(() => {
+              // Create a filtered groupedOrders with only the selected group items
+              const filtered: Record<string, Order[]> = {};
+              selectedGroup.forEach(({ itemName, tableNumber, id }) => {
+                const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
+                const foundOrder = orderList.find(
+                  o => o.tableNumber === tableNumber && o.id === id
+                );
+                if (foundOrder) {
+                  if (!filtered[itemName]) filtered[itemName] = [];
+                  filtered[itemName].push(foundOrder);
+                }
+              });
+              return filtered;
+            })()}
+            activeTab={activeTab}
+            onGroupClick={handleGroupClick}
+            onPrepareClick={handlePrepareClick}
+            onServeClick={handleServeClick}
+            onPrepareMultipleOrders={handlePrepareMultipleOrders}
+            onServeMultipleOrders={handleServeMultipleOrders}
+            showIndividualCards={true}
           />
         ) : selectedOrderKey ? (
           <OrdersContent
             groupedOrders={filteredGroupedOrders}
             activeTab={activeTab}
-            expandedGroup={expandedGroup}
             onGroupClick={handleGroupClick}
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}

@@ -10,7 +10,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/passion-fruit-juice.jpg",
     orderTime: "10:30",
-    estimatedTime: "5 phút"
+    estimatedTime: "5 phút",
+    apiOrderId: "mock-order-1",
+    apiItemId: "mock-item-1"
   },
   {
     id: 2,
@@ -21,7 +23,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/passion-fruit-juice.jpg",
     orderTime: "10:32",
-    estimatedTime: "5 phút"
+    estimatedTime: "5 phút",
+    apiOrderId: "mock-order-2",
+    apiItemId: "mock-item-2"
   },
   {
     id: 3,
@@ -32,7 +36,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/passion-fruit-juice.jpg",
     orderTime: "10:35",
-    estimatedTime: "5 phút"
+    estimatedTime: "5 phút",
+    apiOrderId: "mock-order-3",
+    apiItemId: "mock-item-3"
   },
   {
     id: 4,
@@ -43,7 +49,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/passion-fruit-juice.jpg",
     orderTime: "10:37",
-    estimatedTime: "5 phút"
+    estimatedTime: "5 phút",
+    apiOrderId: "mock-order-4",
+    apiItemId: "mock-item-4"
   },
   {
     id: 5,
@@ -54,7 +62,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/peach-tea.jpg",
     orderTime: "10:28",
-    estimatedTime: "7 phút"
+    estimatedTime: "7 phút",
+    apiOrderId: "mock-order-5",
+    apiItemId: "mock-item-5"
   },
   {
     id: 6,
@@ -65,7 +75,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/peach-tea.jpg",
     orderTime: "10:33",
-    estimatedTime: "7 phút"
+    estimatedTime: "7 phút",
+    apiOrderId: "mock-order-6",
+    apiItemId: "mock-item-6"
   },
   {
     id: 7,
@@ -76,7 +88,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/iced-cacao.jpg",
     orderTime: "10:25",
-    estimatedTime: "8 phút"
+    estimatedTime: "8 phút",
+    apiOrderId: "mock-order-7",
+    apiItemId: "mock-item-7"
   },
   // Món chính
   {
@@ -88,7 +102,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/pho-bo.jpg",
     orderTime: "10:40",
-    estimatedTime: "20 phút"
+    estimatedTime: "20 phút",
+    apiOrderId: "mock-order-8",
+    apiItemId: "mock-item-8"
   },
   {
     id: 9,
@@ -99,7 +115,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/pho-bo.jpg",
     orderTime: "10:45",
-    estimatedTime: "20 phút"
+    estimatedTime: "20 phút",
+    apiOrderId: "mock-order-9",
+    apiItemId: "mock-item-9"
   },
   {
     id: 10,
@@ -110,7 +128,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/bun-bo-hue.jpg",
     orderTime: "10:50",
-    estimatedTime: "25 phút"
+    estimatedTime: "25 phút",
+    apiOrderId: "mock-order-10",
+    apiItemId: "mock-item-10"
   },
   {
     id: 11,
@@ -121,7 +141,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/bun-bo-hue.jpg",
     orderTime: "10:55",
-    estimatedTime: "25 phút"
+    estimatedTime: "25 phút",
+    apiOrderId: "mock-order-11",
+    apiItemId: "mock-item-11"
   },
   // Tráng miệng
   {
@@ -133,7 +155,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/goi-cuon.jpg",
     orderTime: "11:00",
-    estimatedTime: "12 phút"
+    estimatedTime: "12 phút",
+    apiOrderId: "mock-order-12",
+    apiItemId: "mock-item-12"
   },
   {
     id: 13,
@@ -144,7 +168,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/goi-cuon.jpg",
     orderTime: "11:05",
-    estimatedTime: "12 phút"
+    estimatedTime: "12 phút",
+    apiOrderId: "mock-order-13",
+    apiItemId: "mock-item-13"
   },
   {
     id: 14,
@@ -155,7 +181,9 @@ export const MOCK_ORDERS: Order[] = [
     status: "đang chờ",
     image: "/avatars/cha-ca.jpg",
     orderTime: "11:10",
-    estimatedTime: "15 phút"
+    estimatedTime: "15 phút",
+    apiOrderId: "mock-order-14",
+    apiItemId: "mock-item-14"
   }
 ];
 
