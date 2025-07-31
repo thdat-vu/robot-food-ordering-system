@@ -38,14 +38,10 @@ export function NavigationTabs({
               <Button
                 key={tab}
                 onClick={() => onTabChange(tab)}
-                variant={isActive ? 'default' : 'ghost'}
-                className={
-                  isActive
-                    ? 'border border-primary shadow-lg text-primary-foreground font-bold bg-primary/90 hover:bg-primary'
-                    : ''
-                }
+                variant={isActive ? 'default' : 'outline'}
+                size="sm"
               >
-                <span className={isActive ? 'text-white font-bold' : ''}>{TAB_DISPLAY_NAMES[tab]}</span>
+                <span>{TAB_DISPLAY_NAMES[tab]}</span>
                 <span
                   className={`inline-flex items-center justify-center px-2 py-1 text-xs font-bold rounded-full ml-2 ${getBadgeColor(tab, isActive)}`}
                 >
