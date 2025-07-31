@@ -27,6 +27,9 @@ function ChiefPageContent() {
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Sidebar item selection state
   const [selectedOrderKey, setSelectedOrderKey] = useState<{ itemName: string; tableNumber: number; id: number } | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
@@ -53,6 +56,33 @@ function ChiefPageContent() {
   } = useKitchenOrders();
 
   const { toasts, addToast, removeToast } = useToastKitchen();
+
+  // Filter orders based on search query
+  const filterOrdersBySearch = (orders: Record<string, Order[]>) => {
+    if (!searchQuery.trim()) {
+      return orders;
+    }
+
+    const filtered: Record<string, Order[]> = {};
+    const query = searchQuery.toLowerCase();
+
+    Object.entries(orders).forEach(([itemName, orderList]) => {
+      const filteredOrders = orderList.filter(order => 
+        order.itemName.toLowerCase().includes(query) ||
+        order.tableNumber.toString().includes(query) ||
+        (order.toppings && order.toppings.some(topping => 
+          topping.toLowerCase().includes(query)
+        )) ||
+        (order.sizeName && order.sizeName.toLowerCase().includes(query))
+      );
+
+      if (filteredOrders.length > 0) {
+        filtered[itemName] = filteredOrders;
+      }
+    });
+
+    return filtered;
+  };
 
   // Event handlers
   const handleGroupClick = (itemName: string) => {
@@ -159,6 +189,10 @@ function ChiefPageContent() {
     }, {} as Record<string, Order[]>);
   }
 
+  // Apply search filter to all order data
+  const filteredGroupedOrdersForSearch = filterOrdersBySearch(groupedOrders as Record<string, Order[]>);
+  const filteredServeTabGroupedOrders = filterOrdersBySearch(serveTabGroupedOrders);
+
   // Show loading state
   if (isLoading) {
     return (
@@ -228,12 +262,14 @@ function ChiefPageContent() {
           activeTab={activeTab as OrderStatus}
           onTabChange={setActiveTab as (tab: OrderStatus) => void}
           getTabCount={getTabCount}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
 
         {/* Orders Content or Placeholder */}
         {isServeTab ? (
           <OrdersContent
-            groupedOrders={serveTabGroupedOrders}
+            groupedOrders={filteredServeTabGroupedOrders}
             activeTab={activeTab}
             onGroupClick={handleGroupClick}
             onPrepareClick={handlePrepareClick}
@@ -246,7 +282,7 @@ function ChiefPageContent() {
               const filtered: Record<string, Order[]> = {};
               selectedGroups.forEach(group => {
                 group.forEach(({ itemName, tableNumber, id }) => {
-                  const orderList = (groupedOrders as Record<string, Order[]>)[itemName] || [];
+                  const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
                   const foundOrder = orderList.find(
                     o => o.tableNumber === tableNumber && o.id === id
                   );
@@ -271,7 +307,7 @@ function ChiefPageContent() {
               // Create a filtered groupedOrders with only the selected group items
               const filtered: Record<string, Order[]> = {};
               selectedGroup.forEach(({ itemName, tableNumber, id }) => {
-                const orderList = (groupedOrders as Record<string, Order[]>)[itemName] || [];
+                const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
                 const foundOrder = orderList.find(
                   o => o.tableNumber === tableNumber && o.id === id
                 );
