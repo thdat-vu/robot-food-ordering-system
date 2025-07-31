@@ -161,6 +161,19 @@ function ChiefPageContent() {
     }
   };
 
+  // Handle serving multiple orders at once
+  const handleServeMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
+    try {
+      // Serve all orders in the group
+      for (const order of orders) {
+        await handleServeOrder(order.id);
+      }
+      addToast(`Đã bắt đầu phục vụ ${orders.length} món cùng lúc`, 'success');
+    } catch (error) {
+      addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
+    }
+  };
+
   // Filter groupedOrders for selected order
   let filteredGroupedOrders: Record<string, Order[]> = {};
   if (selectedOrderKey) {
@@ -299,6 +312,7 @@ function ChiefPageContent() {
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}
             onPrepareMultipleOrders={handlePrepareMultipleOrders}
+            onServeMultipleOrders={handleServeMultipleOrders}
             showIndividualCards={true}
           />
         ) : selectedGroup ? (
@@ -323,6 +337,7 @@ function ChiefPageContent() {
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}
             onPrepareMultipleOrders={handlePrepareMultipleOrders}
+            onServeMultipleOrders={handleServeMultipleOrders}
             showIndividualCards={true}
           />
         ) : selectedOrderKey ? (

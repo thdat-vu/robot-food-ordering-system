@@ -104,6 +104,7 @@ export const transformApiOrderItemToOrder = (
       hour: '2-digit', 
       minute: '2-digit' 
     }),
+    createdTime: order.createdTime || orderItem.createdTime, // Use order createdTime or fallback to item createdTime
     estimatedTime: getEstimatedTime(orderItem.productName),
     sizeName: orderItem.sizeName, // Add size name from API
     toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API

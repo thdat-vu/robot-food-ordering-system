@@ -9,6 +9,7 @@ export interface Order {
   status: OrderStatus;
   image: string;
   orderTime: string;
+  createdTime?: string; // Created time from API (e.g., "31/07/2025 00:01:28")
   estimatedTime: string; // Time needed to prepare the dish (e.g., "15 phút", "20 phút")
   sizeName?: string; // Size of the item (e.g., "Small", "Medium", "Large")
   toppings?: string[]; // Array of topping names

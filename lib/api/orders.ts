@@ -8,6 +8,7 @@ export interface ApiOrderResponse {
   status: string;
   paymentStatus: string;
   totalPrice: number;
+  createdTime?: string; // Created time from API (e.g., "31/07/2025 00:01:28")
   items: ApiOrderItemResponse[];
 }
 
@@ -22,6 +23,7 @@ export interface ApiOrderItemResponse {
   toppings: ApiToppingResponse[];
   price: number; // Add price field for order items
   imageUrl?: string; // Add imageUrl field from API response
+  createdTime?: string; // Created time from API (e.g., "31/07/2025 00:01:28")
 }
 
 export interface ApiToppingResponse {

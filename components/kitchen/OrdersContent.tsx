@@ -20,6 +20,7 @@ interface OrdersContentProps {
   onServeClick: (order: Order) => void;
   selectedGroup?: { itemName: string; tableNumber: number; id: number }[] | null;
   onPrepareMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
+  onServeMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
   showIndividualCards?: boolean;
 }
 
@@ -31,6 +32,7 @@ export function OrdersContent({
   onServeClick,
   selectedGroup,
   onPrepareMultipleOrders,
+  onServeMultipleOrders,
   showIndividualCards
 }: OrdersContentProps) {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -63,6 +65,26 @@ export function OrdersContent({
         strokeLinejoin="round" 
         strokeWidth="2" 
         d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+      />
+    </svg>
+  );
+
+  const renderCalendarIcon = () => (
+    <svg 
+      className="w-4 h-4 text-gray-500" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
       />
     </svg>
   );
@@ -137,6 +159,12 @@ export function OrdersContent({
                     {renderClockIcon()}
                     <span className="text-xs opacity-80">{order.estimatedTime}</span>
                   </div>
+                  {order.createdTime && (
+                    <div className="flex items-center gap-1 mt-1 text-muted-foreground">
+                      {renderCalendarIcon()}
+                      <span className="text-xs opacity-80">Ngày tạo đơn: {order.createdTime}</span>
+                    </div>
+                  )}
                 </div>
                 {/* Item number badge */}
                 <div className="bg-blue-100 text-blue-800 font-bold rounded-lg px-3 py-1 text-sm">
@@ -199,6 +227,12 @@ export function OrdersContent({
                 {renderClockIcon()}
                 <span className="text-xs opacity-80">{order.estimatedTime}</span>
               </div>
+              {order.createdTime && (
+                <div className="flex items-center gap-1 mt-1 text-muted-foreground">
+                  {renderCalendarIcon()}
+                  <span className="text-xs opacity-80">Ngày tạo đơn: {order.createdTime}</span>
+                </div>
+              )}
             </div>
             {activeTab === 'đang chờ' && (
               <CardAction>
@@ -245,14 +279,29 @@ export function OrdersContent({
                 <div className="flex-1">
                   <CardTitle>{order.itemName}</CardTitle>
                   <CardDescription>
-                    {order.quantity > 0 ? `x${order.quantity}` : ''}
+                    {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
+                    {order.sizeName && (
+                      <span className="ml-2 text-blue-600 font-medium">
+                        • {order.sizeName}
+                      </span>
+                    )}
                   </CardDescription>
-                  <div className="text-sm mt-1">Bàn: {order.tableNumber}</div>
+                  {order.toppings && order.toppings.length > 0 && (
+                    <div className="mt-1 text-xs text-gray-600">
+                      <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
                   <div className="text-xs opacity-60">{order.orderTime}</div>
                   <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                     {renderClockIcon()}
                     <span className="text-xs opacity-80">{order.estimatedTime}</span>
                   </div>
+                  {order.createdTime && (
+                    <div className="flex items-center gap-1 mt-1 text-muted-foreground">
+                      {renderCalendarIcon()}
+                      <span className="text-xs opacity-80">Ngày tạo đơn: {order.createdTime}</span>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
             </Card>
@@ -303,15 +352,21 @@ export function OrdersContent({
                     {renderClockIcon()}
                     <span className="text-xs opacity-80">{order.estimatedTime}</span>
                   </div>
+                  {order.createdTime && (
+                    <div className="flex items-center gap-1 mt-1 text-muted-foreground">
+                      {renderCalendarIcon()}
+                      <span className="text-xs opacity-80">Ngày tạo đơn: {order.createdTime}</span>
+                    </div>
+                  )}
                 </div>
-                {activeTab === 'đang chờ' && (
+                {activeTab === 'đang chờ' && !showIndividualCards && (
                   <CardAction>
                     <Button onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}>
                       Thực hiện
                     </Button>
                   </CardAction>
                 )}
-                {activeTab === 'đang thực hiện' && (
+                {activeTab === 'đang thực hiện' && !showIndividualCards && (
                   <CardAction>
                     <Button onClick={e => { e.stopPropagation(); onServeClick(order); }}>
                       Bắt đầu phục vụ
@@ -322,7 +377,7 @@ export function OrdersContent({
             </Card>
           ))}
           
-          {/* Group action button at the bottom */}
+          {/* Group action buttons at the bottom */}
           {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
             <div className="mt-6 flex justify-center">
               <Button 
@@ -335,6 +390,21 @@ export function OrdersContent({
                 className="text-lg font-semibold"
               >
                 Thực hiện 
+              </Button>
+            </div>
+          )}
+          {activeTab === 'đang thực hiện' && allOrders.length > 0 && onServeMultipleOrders && (
+            <div className="mt-6 flex justify-center">
+              <Button 
+                onClick={() => onServeMultipleOrders(allOrders.map(order => ({
+                  itemName: order.itemName,
+                  tableNumber: order.tableNumber,
+                  id: order.id
+                })))}
+                size="lg"
+                className="text-lg font-semibold"
+              >
+                Bắt đầu phục vụ
               </Button>
             </div>
           )}
@@ -369,6 +439,12 @@ export function OrdersContent({
                   {renderClockIcon()}
                   <span className="text-xs opacity-80">{getGroupEstimatedTime(orderGroup)}</span>
                 </div>
+                {orderGroup[0].createdTime && (
+                  <div className="flex items-center gap-1 mt-1 text-muted-foreground">
+                    {renderCalendarIcon()}
+                    <span className="text-xs opacity-80">Ngày tạo đơn: {orderGroup[0].createdTime}</span>
+                  </div>
+                )}
               </div>
               {activeTab === 'đang chờ' && (
                 <CardAction>
