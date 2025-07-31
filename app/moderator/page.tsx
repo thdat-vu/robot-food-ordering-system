@@ -6,8 +6,6 @@ import ModeratorScreen from './ModeratorScreen';
 
 export default function ModeratorPage() {
   return (
-   
       <ModeratorScreen />
-   
   );
 } 
