@@ -99,12 +99,15 @@ export const transformApiOrderItemToOrder = (
     tableNumber,
     quantity: orderItem.quantity,
     status: mapApiStatusToFrontend(orderItem.status),
-    image: getImageFromProductName(orderItem.productName),
+    image: orderItem.imageUrl || getImageFromProductName(orderItem.productName), 
     orderTime: new Date().toLocaleTimeString('vi-VN', { 
       hour: '2-digit', 
       minute: '2-digit' 
     }),
+    createdTime: order.createdTime || orderItem.createdTime, // Use order createdTime or fallback to item createdTime
     estimatedTime: getEstimatedTime(orderItem.productName),
+    sizeName: orderItem.sizeName, // Add size name from API
+    toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API
     // Store API IDs for making API calls
     apiOrderId: order.id,
     apiItemId: orderItem.id

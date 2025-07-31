@@ -36,15 +36,24 @@ const categoryStyle: Record<
   string,
   { label: string; bg: string; border: string; icon?: React.ReactNode }
 > = {
-  "Tráng Miệng": { label: "Tráng Miệng", bg: "bg-orange-50", border: "border-orange-200" },
-  "Món Chính": { label: "Món Chính", bg: "bg-green-50", border: "border-green-200" },
+  "Tráng Miệng": {
+    label: "Tráng Miệng",
+    bg: "bg-orange-50",
+    border: "border-orange-200",
+  },
+  "Món Chính": {
+    label: "Món Chính",
+    bg: "bg-green-50",
+    border: "border-green-200",
+  },
   "Đồ Uống": { label: "Đồ Uống", bg: "bg-blue-50", border: "border-blue-200" },
-  "Khác": { label: "Khác", bg: "bg-gray-50", border: "border-gray-200" },
+  Khác: { label: "Khác", bg: "bg-gray-50", border: "border-gray-200" },
 };
 
 const ServePanel: React.FC = () => {
   const [panel, setPanel] = useState<"control" | "payment">("control");
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [search, setSearch] = useState(""); // State cho ô tìm kiếm
   const {
     dishes,
     groupedDishes,
@@ -54,7 +63,7 @@ const ServePanel: React.FC = () => {
     error,
     toggleDish,
     handleServe,
-    refreshOrders
+    refreshOrders,
   } = useWaiterOrders();
 
   const handleServeClick = async () => {
@@ -78,18 +87,20 @@ const ServePanel: React.FC = () => {
 
   const handleDishToggle = (dishId: number) => {
     // Find the dish to get its table number before toggling
-    const dish = dishes.find(d => d.id === dishId);
+    const dish = dishes.find((d) => d.id === dishId);
     const isCurrentlySelected = dish?.selected || false;
-    
+
     toggleDish(dishId);
-    
+
     if (dish) {
       if (!isCurrentlySelected) {
         // Dish is being selected, update the selected table
         setSelectedTable(dish.tableNumber);
       } else {
         // Dish is being deselected, check if there are other selected dishes
-        const otherSelectedDishes = dishes.filter(d => d.selected && d.id !== dishId);
+        const otherSelectedDishes = dishes.filter(
+          (d) => d.selected && d.id !== dishId
+        );
         if (otherSelectedDishes.length === 0) {
           // No dishes selected, clear the table
           setSelectedTable(null);
@@ -107,7 +118,9 @@ const ServePanel: React.FC = () => {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Đang tải danh sách món ăn...</p>
+            <p className="text-muted-foreground">
+              Đang tải danh sách món ăn...
+            </p>
           </div>
         </div>
       </div>
@@ -151,21 +164,41 @@ const ServePanel: React.FC = () => {
       {panel === "control" ? (
         <>
           <div className="w-full md:max-w-[300px] overflow-y-auto max-h-[80vh] pr-2 space-y-6">
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Tìm món ăn..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-primary"
+              />
+            </div>
             {Object.entries(groupedDishes).map(([categoryName, items]) => {
-              const style = categoryStyle[categoryName] || categoryStyle["Khác"];
+              const style =
+                categoryStyle[categoryName] || categoryStyle["Khác"];
+              const filteredItems = items.filter((dish) =>
+                dish.name.toLowerCase().includes(search.toLowerCase())
+              );
+              if (filteredItems.length === 0) return null;
               return (
                 <div key={categoryName} className="w-full">
                   <div className="mb-2 text-sm font-semibold text-foreground uppercase tracking-wide">
                     {style.label}
                   </div>
                   <ul className="space-y-3 w-full">
-                    {items
+                    {filteredItems
                       .filter((dish) => !dish.served)
                       .map((dish) => (
                         <li key={dish.id}>
                           <label
-                            className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} cursor-pointer transition hover:bg-accent ${
-                              dish.selected ? 'ring-2 ring-primary ring-offset-2' : ''
+                            className={`flex items-center px-4 py-3 rounded-xl border ${
+                              style.bg
+                            } ${
+                              style.border
+                            } cursor-pointer transition hover:bg-accent ${
+                              dish.selected
+                                ? "ring-2 ring-primary ring-offset-2"
+                                : ""
                             }`}
                           >
                             <Checkbox
@@ -174,7 +207,8 @@ const ServePanel: React.FC = () => {
                               className="mr-3"
                             />
                             <span className="text-sm font-medium text-foreground">
-                              {dish.name} - Bàn {dish.tableNumber} {dish.quantity > 1 && `(${dish.quantity})`}
+                              {dish.name} - Bàn {dish.tableNumber}{" "}
+                              {dish.quantity > 1 && `(${dish.quantity})`}
                             </span>
                           </label>
                         </li>
@@ -195,10 +229,9 @@ const ServePanel: React.FC = () => {
                 <MapPanel selectedTable={selectedTable} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground text-base italic">
-                  {dishes.length === 0 
+                  {dishes.length === 0
                     ? "Không có món nào sẵn sàng phục vụ"
-                    : "Vui lòng chọn ít nhất 1 món..."
-                  }
+                    : "Vui lòng chọn ít nhất 1 món..."}
                 </div>
               )}
             </div>
@@ -223,7 +256,10 @@ const ServePanel: React.FC = () => {
                   {dishes
                     .filter((d) => d.served)
                     .map((d) => (
-                      <li key={d.id}>{d.name} - Bàn {d.tableNumber} {d.quantity > 1 && `(${d.quantity})`}</li>
+                      <li key={d.id}>
+                        {d.name} - Bàn {d.tableNumber}{" "}
+                        {d.quantity > 1 && `(${d.quantity})`}
+                      </li>
                     ))}
                 </ul>
               </div>
