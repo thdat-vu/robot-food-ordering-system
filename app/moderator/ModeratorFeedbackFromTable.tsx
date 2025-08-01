@@ -6,14 +6,14 @@ import {
     CheckCircle,
     AlertCircle,
     Calendar,
-    Filter,
     Search,
     RefreshCw,
-    Trash2,
     ArrowUpDown
 } from "lucide-react";
 import {FeedbackgGetTableId} from "@/entites/moderator/FeedbackModole";
 import {useCheckSS, useGetFeedbackByIdtable} from "@/hooks/moderator/useFeedbackHooks";
+import {useToastKitchen} from '@/hooks/use-toast-kitchen';
+
 
 type Prop = {
     idTable: string;
@@ -28,6 +28,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                                                open,
                                                                tableName = `Bàn ${idTable}`
                                                            }) => {
+    const {addToast} = useToastKitchen();
     const [data, setData] = useState<FeedbackgGetTableId[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
@@ -55,7 +56,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
     const handleCheck = async () => {
         if (listId.length === 0) {
-            alert('Vui lòng chọn ít nhất một phản hồi để đánh dấu đã xử lý');
+            addToast('Vui lòng chọn ít nhất một phản hồi để đánh dấu đã xử lý', `error`);
             return;
         }
 
@@ -74,11 +75,11 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             setSelectedFeedbacks(new Set());
             setListId([]);
 
-            alert(`Đã đánh dấu ${listId.length} phản hồi là đã xử lý`);
+            addToast(`Đã đánh dấu ${listId.length} phản hồi là đã xử lý`, `success`);
 
         } catch (error) {
             console.error('Error checking feedbacks:', error);
-            alert('Có lỗi xảy ra khi đánh dấu phản hồi. Vui lòng thử lại.');
+            addToast('Có lỗi xảy ra khi đánh dấu phản hồi. Vui lòng thử lại.', `error`);
         } finally {
             setIsChecking(false);
         }
@@ -103,11 +104,11 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                 return newSet;
             });
 
-            alert('Đã đánh dấu phản hồi là đã xử lý');
+            addToast('Đã đánh dấu phản hồi là đã xử lý', `success`);
 
         } catch (error) {
             console.error('Error checking single feedback:', error);
-            alert('Có lỗi xảy ra khi đánh dấu phản hồi. Vui lòng thử lại.');
+            addToast('Có lỗi xảy ra khi đánh dấu phản hồi. Vui lòng thử lại.', `error`);
         } finally {
             setIsChecking(false);
         }
@@ -152,8 +153,8 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         if (minutes < 1) return 'Vừa xong';
         if (minutes < 60) return `${minutes} phút trước`;
         if (hours < 24) return `${hours} giờ trước`;
-        return `${days} ngày trước`;
     };
+
 
     const filteredData = data.filter(item => {
         const matchesFilter = selectedFilter === 'all' ||
