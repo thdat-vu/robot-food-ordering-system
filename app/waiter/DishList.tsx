@@ -1,10 +1,12 @@
-import React from "react";
+// waiter/DishList.tsx
+import { log } from "console";
 import DishItem from "./DishItem";
 
 interface Dish {
   id: number;
   name: string;
   selected: boolean;
+  tableNumber?: number;
 }
 
 interface DishListProps {
@@ -12,26 +14,22 @@ interface DishListProps {
   onToggle: (id: number) => void;
 }
 
-const DishList: React.FC<DishListProps> = ({ dishes, onToggle }) => {
+export default function DishList({ dishes, onToggle }: DishListProps) {
+  
   return (
-    <div
-      style={{
-        backgroundColor: "#D1D5DB", // xám
-        padding: 16,
-        borderRadius: 12,
-        width: "250px",
-      }}
-    >
+    <div className="bg-gray-100 p-4 rounded-xl w-full space-y-3">
       {dishes.map((dish) => (
         <DishItem
           key={dish.id}
-          label={dish.name}
+          label={
+            dish.tableNumber
+              ? `${dish.name} - Bàn ${dish.tableNumber}`
+              : dish.name
+          }
           checked={dish.selected}
           onChange={() => onToggle(dish.id)}
         />
       ))}
     </div>
   );
-};
-
-export default DishList;
+}

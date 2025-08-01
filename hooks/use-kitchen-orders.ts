@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Order, OrderStatus, OrderCounts, GroupedOrders, RemainingItems } from '@/types/kitchen';
 import { MOCK_ORDERS, SIDEBAR_ANIMATION_DURATION } from '@/constants/kitchen-data';
+import { ordersApi } from '@/lib/api/orders';
+import { transformApiOrdersToOrders, mapFrontendStatusToApi } from '@/lib/utils/order-transformer';
 
 export function useKitchenOrders() {
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
@@ -8,6 +10,41 @@ export function useKitchenOrders() {
   const [selectedCategory, setSelectedCategory] = useState<string>("Tất cả");
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSidebarAnimating, setIsSidebarAnimating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [idMappings, setIdMappings] = useState<any[]>([]);
+
+  // Fetch orders from API
+  const fetchOrders = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await ordersApi.getOrders(1, 100); // Get first 100 orders
+      
+      if (response.statusCode === 200 && response.data && response.data.length > 0) {
+        const transformedOrders = transformApiOrdersToOrders(response.data);
+        setOrders(transformedOrders);
+        setIdMappings([]); // For now, we'll use empty mappings
+      } else {
+        console.error('Failed to fetch orders: No data received');
+        setError('Failed to fetch orders');
+      }
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Error fetching orders');
+      // Fallback to mock data if API fails
+      setOrders(MOCK_ORDERS);
+      setIdMappings([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Load orders on component mount
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   // Filter orders by status and category
   const filteredOrders = useMemo((): Order[] => {
@@ -81,28 +118,103 @@ export function useKitchenOrders() {
     }
   };
 
-  // Update order status to "đang thực hiện"
-  const handlePrepareOrders = (orderId: number): void => {
-    setOrders(prevOrders =>
-      prevOrders.map(order =>
-        order.id === orderId && order.status === "đang chờ"
-          ? { ...order, status: "đang thực hiện" }
-          : order
-      )
-    );
-    setExpandedGroup(null);
-  };
+  // Update order status to "đang thực hiện" via API
+  const handlePrepareOrders = useCallback(async (orderId: number): Promise<void> => {
+    try {
+      // Find the order to get its API ID
+      const order = orders.find(o => o.id === orderId);
+      if (!order) {
+        console.error('Order not found:', orderId);
+        return;
+      }
 
-  // Update specific order status to "bắt đầu phục vụ"
-  const handleServeOrder = (orderId: number): void => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.id === orderId
-          ? { ...order, status: "bắt đầu phục vụ" }
-          : order
-      )
-    );
-  };
+      // Update local state immediately for better UX
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId && order.status === "đang chờ"
+            ? { ...order, status: "đang thực hiện" }
+            : order
+        )
+      );
+      setExpandedGroup(null);
+
+      // Make API call to update order item status to "Preparing" (status 2)
+      const response = await ordersApi.updateOrderItemStatus(
+        order.apiOrderId,
+        order.apiItemId,
+        2 // Preparing status
+      );
+
+      if (response.statusCode !== 200) {
+        throw new Error(response.message || 'Failed to update order status');
+      }
+
+      console.log('Order status updated successfully via API');
+      
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      // Revert the change if API call fails
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, status: "đang chờ" }
+            : order
+        )
+      );
+      throw err; // Re-throw to let the UI handle the error
+    }
+  }, [orders]);
+
+  // Update specific order status to "bắt đầu phục vụ" via API
+  const handleServeOrder = useCallback(async (orderId: number): Promise<void> => {
+    try {
+      // Find the order to get its API ID
+      const order = orders.find(o => o.id === orderId);
+      if (!order) {
+        console.error('Order not found:', orderId);
+        return;
+      }
+
+      // Update local state immediately for better UX
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId
+            ? { ...order, status: "bắt đầu phục vụ" }
+            : order
+        )
+      );
+
+      // Make API call to update order item status to "Ready" (status 3)
+      const response = await ordersApi.updateOrderItemStatus(
+        order.apiOrderId,
+        order.apiItemId,
+        3 // Ready status
+      );
+
+      if (response.statusCode !== 200) {
+        throw new Error(response.message || 'Failed to update order status');
+      }
+
+      console.log('Order status updated successfully via API');
+      
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      // Revert the change if API call fails
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, status: "đang thực hiện" }
+            : order
+        )
+      );
+      throw err; // Re-throw to let the UI handle the error
+    }
+  }, [orders]);
+
+  // Refresh orders from API
+  const refreshOrders = useCallback(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   // Effect to handle sidebar animation
   useEffect(() => {
@@ -127,13 +239,15 @@ export function useKitchenOrders() {
     selectedCategory,
     expandedGroup,
     isSidebarAnimating,
+    isLoading,
+    error,
     
     // Computed values
     filteredOrders,
     groupedOrders,
     orderCounts,
     remainingItems,
-    itemNameToCategory, // <-- add this
+    itemNameToCategory,
     
     // Actions
     setActiveTab,
@@ -141,6 +255,7 @@ export function useKitchenOrders() {
     setExpandedGroup,
     handlePrepareOrders,
     handleServeOrder,
+    refreshOrders,
     
     // Helpers
     shouldShowInSidebar,

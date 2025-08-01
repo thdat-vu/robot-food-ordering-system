@@ -1,9 +1,12 @@
 import axios from 'axios';
+import { getApiUrl } from '@/env.config';
 
-const PRODUCTION_API_URL = `https://be-robo.zd-dev.xyz`;
+
+const API_BASE_URL = getApiUrl();
+
 
 const api = axios.create({
-    baseURL: PRODUCTION_API_URL,
+    baseURL: API_BASE_URL,
     timeout: 10000
 });
 
