@@ -1,6 +1,6 @@
 'use client'
 import React, {useState} from 'react';
-import {ChevronDown, ChevronRight, Wifi, Battery, Signal} from 'lucide-react';
+import {ChevronRight} from 'lucide-react';
 import Button from "@/components/common/Button";
 import {CallStaff} from "@/app/features/components/CallStaff";
 import {Rating} from "@/app/features/components/Rating";

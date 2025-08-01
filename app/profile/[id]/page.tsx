@@ -1,6 +1,5 @@
 'use client'
 import {use} from 'react'
-import FoodDeliveryApp from "@/app/features/components/Profile";
 import Profile from "@/app/features/components/Profile";
 
 export default function Page({params}: { params: Promise<{ id: string }> }) {

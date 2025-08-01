@@ -338,10 +338,11 @@ export const OrderDisplay = () => {
                                                     className="text-sm bg-gray-100 px-3 py-1 rounded-full text-gray-700 font-medium">
                                                     {item.sizeName}
                                                 </span>
-                                                    <span
-                                                        className={`text-xs px-2.5 py-1 rounded-full font-medium ${getStatusColor(item.status)}`}>
-                                                    {item.status}
-                                                </span>
+                                                {/*    <span*/}
+                                                {/*        className={`text-xs px-2.5 py-1 rounded-full font-medium ${getStatusColor(item.status)}`}>*/}
+                                                {/*    {item.status}*/}
+                                                {/*</span>*/}
+                                                    <OrderStatus status={item.status}/>
                                                 </div>
                                             </div>
                                         </div>
@@ -403,7 +404,8 @@ enum OrderStatusEnum {
     Preparing = 'Preparing',    // Đang chuẩn bị món
     Delivering = 'Delivering',  // Bắt đầu phục vụ
     Completed = 'Completed',    // Đã giao / hoàn thành
-    Cancelled = 'Cancelled'     // Đã hủy
+    Cancelled = 'Cancelled',
+    Served = 'Served'// Đã hủy
 }
 
 const OrderStatus: React.FC<{ status: string }> = ({status}) => {
@@ -446,6 +448,12 @@ const OrderStatus: React.FC<{ status: string }> = ({status}) => {
                     color: 'bg-red-50 text-red-700 border-red-200',
                     icon: XCircle
                 };
+            case OrderStatusEnum.Served:
+                return {
+                    text: 'Bắt đầu phục vụ',
+                    color: 'bg-green-500 text-red-black border-red-200',
+                    icon: XCircle
+                };
             default:
                 return {
                     text: 'Không xác định',
@@ -474,6 +482,8 @@ const getOrderStatusText = (status: string): string => {
             return 'Đang chuẩn bị món';
         case OrderStatusEnum.Delivering:
             return 'Bắt đầu phục vụ';
+        case OrderStatusEnum.Served:
+            return 'Bắt đầu phục vụ';
         case OrderStatusEnum.Completed:
             return 'Đã hoàn thành';
         case OrderStatusEnum.Cancelled:
@@ -494,6 +504,8 @@ const getOrderStatusColor = (status: string): string => {
         case OrderStatusEnum.Delivering:
             return 'bg-purple-50 text-purple-700 border-purple-200';
         case OrderStatusEnum.Completed:
+            return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        case OrderStatusEnum.Served:
             return 'bg-emerald-50 text-emerald-700 border-emerald-200';
         case OrderStatusEnum.Cancelled:
             return 'bg-red-50 text-red-700 border-red-200';

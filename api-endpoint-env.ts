@@ -5,3 +5,4 @@ export const API_PROUCTION_TOPPING: string = `/api/ProductionTopping`
 export const API_TABLE: string = `/api/Table`
 export const API_TOPING: string = `/api/Topping`
 export const API_ORDERING: string = `/api/Order`
+export const API_FEEDBACK: string = `/api/FeedbackControler`

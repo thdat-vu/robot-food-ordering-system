@@ -1,6 +1,7 @@
 import {BottomModal} from "@/components/common/BottomModal";
-import React from "react";
+import React, {useState} from "react";
 import Button from "@/components/common/Button";
+import {useCreateFeedback} from "@/hooks/customHooks/useFeedbackHooks";
 
 type CallStaffProps = {
     id: string;
@@ -9,6 +10,20 @@ type CallStaffProps = {
     onSave: () => void;
 }
 export const CallStaff: React.FC<CallStaffProps> = ({id, isOpen, onClose, onSave}) => {
+    const [Feedback, setFeedback] = useState<string>();
+
+    const {
+        run
+    } = useCreateFeedback();
+
+
+    const handle = () => {
+        (async () => {
+            if (Feedback)
+                await run(id, Feedback);
+        })()
+    }
+
     return (
         <BottomModal
             id={id}
@@ -44,13 +59,13 @@ export const CallStaff: React.FC<CallStaffProps> = ({id, isOpen, onClose, onSave
                             type="text"
                             className="w-full px-3 py-2 border bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Nhập Thông Tin"
+                            onChange={event => setFeedback(event.target.value)}
                         />
                     </div>
                 </div>
                 <div className="flex justify-center items-center">
                     <Button content=" Gửi yêu cầu "
-                            handle={() => {
-                            }}
+                            handle={handle}
                             className="rounded-3xl bg-yellow-700 px-8 py-4 text-lg w-80 sm:w-96 duration-300 ease-in-out
                             transform hover:scale-105 active:scale-110"/>
                 </div>
