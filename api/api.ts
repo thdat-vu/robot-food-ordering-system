@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { getApiUrl } from '@/env.config';
 
-const PRODUCTION_API_URL = `http://localhost:5235`;
+const API_BASE_URL = getApiUrl();
 
 const api = axios.create({
-    baseURL: PRODUCTION_API_URL,
+    baseURL: API_BASE_URL,
     timeout: 10000
 });
 
