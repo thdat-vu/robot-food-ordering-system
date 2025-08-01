@@ -1,1 +1,1 @@
-export const API_FEEDBACK = `/api/FeedbackControler`
+export const API_FEEDBACK = `/FeedbackControler`
