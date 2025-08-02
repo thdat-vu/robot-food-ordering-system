@@ -4,6 +4,8 @@ import {TableData} from "@/entites/moderator/FeedbackModole";
 import {useGetAllFeedbackHome} from "@/hooks/moderator/useFeedbackHooks";
 import ModeratorFeedbackFromTable from "@/app/moderator/ModeratorFeedbackFromTable";
 import { Truck, DollarSign } from 'lucide-react';
+import { useToastModerator } from '@/hooks/use-toast-moderator';
+import { ToastContainer } from '@/components/moderator/ToastContainer';
 
 const ModeratorScreen: React.FC = () => {
     const [data, setData] = useState<Record<string, TableData>>({});
@@ -15,6 +17,7 @@ const ModeratorScreen: React.FC = () => {
     const [idTable, setIdTable] = useState<string>('');
 
     const {run} = useGetAllFeedbackHome();
+    const { toasts, addToast, removeToast } = useToastModerator();
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -63,6 +66,7 @@ const ModeratorScreen: React.FC = () => {
 
             } catch (error) {
                 console.error('Error loading data:', error);
+                addToast('Có lỗi xảy ra khi tải dữ liệu bàn. Vui lòng thử lại.', 'error');
             } finally {
                 setIsLoading(false);
             }
@@ -163,6 +167,9 @@ const ModeratorScreen: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-purple-700 p-4">
+            {/* Toast Container */}
+            <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+            
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-8">
                     <div
