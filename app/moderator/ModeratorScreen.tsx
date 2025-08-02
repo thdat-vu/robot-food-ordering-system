@@ -1,8 +1,9 @@
 import React, {useEffect, useState, useCallback} from 'react';
-import {Bell, Users, Clock} from 'lucide-react';
+import {Bell, Users, Clock, User , CreditCard,UserCheck} from 'lucide-react';
 import {TableData} from "@/entites/moderator/FeedbackModole";
 import {useGetAllFeedbackHome} from "@/hooks/moderator/useFeedbackHooks";
 import ModeratorFeedbackFromTable from "@/app/moderator/ModeratorFeedbackFromTable";
+import { Truck, DollarSign } from 'lucide-react';
 
 const ModeratorScreen: React.FC = () => {
     const [data, setData] = useState<Record<string, TableData>>({});
@@ -250,8 +251,20 @@ const ModeratorScreen: React.FC = () => {
                                         hasNotification ? 'text-white/90' : 'text-gray-700'
                                     }`}>
                                         thông báo
-                                    </div>
 
+                                        
+                                    </div>
+                                     <div className="absolute bottom-2 left-2 flex items-center gap-1 text-black text-sm font-semibold">
+                                            <UserCheck  size={14} />
+                                            <span> {tableData.deliveredCount}/{tableData.totalItems} </span>
+                                        </div>
+
+                                        {/* Bottom-right: thanh toán */}
+                                        <div className="absolute bottom-2 right-2 flex items-center gap-1 text-black text-sm font-semibold">
+                                            <CreditCard size={14} />
+                                            <span> {tableData.paidCount}/{tableData.totalItems} </span>
+                                        </div>
+                                 
                                     {hasNotification && (
                                         <div
                                             className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-lg animate-bounce">
@@ -273,6 +286,7 @@ const ModeratorScreen: React.FC = () => {
                         })}
                 </div>
             </div>
+
             <ModeratorFeedbackFromTable idTable={idTable} open={openDialog} onClose={() => setOpenDialog(false)}/>
         </div>
     );

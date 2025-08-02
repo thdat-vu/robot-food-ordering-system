@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import {FeedbackgGetTableId} from "@/entites/moderator/FeedbackModole";
 import {useCheckSS, useGetFeedbackByIdtable} from "@/hooks/moderator/useFeedbackHooks";
-import {useToastKitchen} from '@/hooks/use-toast-kitchen';
+import { useToastKitchen } from '@/hooks/use-toast-kitchen';
+
 
 
 type Prop = {
@@ -28,7 +29,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                                                open,
                                                                tableName = `Bàn ${idTable}`
                                                            }) => {
-    const {addToast} = useToastKitchen();
+    const {toasts,addToast,removeToast} = useToastKitchen();
     const [data, setData] = useState<FeedbackgGetTableId[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isChecking, setIsChecking] = useState(false);

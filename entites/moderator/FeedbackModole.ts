@@ -9,6 +9,8 @@ export interface FeedbackgGetTableId {
 export interface TableData {
     tableName: string;
     counter: number;
+    isDelivery : boolean;
+    isPayment : boolean;
 }
 
 export interface ResponseType {
