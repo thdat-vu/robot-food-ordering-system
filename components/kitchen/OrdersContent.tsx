@@ -155,8 +155,13 @@ export function OrdersContent({
                     )}
                   </CardDescription>
                   {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-1 text-xs text-gray-600">
+                    <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                       <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
+                  {order.note && (
+                    <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                      <span className="font-medium">Ghi chú:</span> {order.note}
                     </div>
                   )}
                   <div className="flex items-center gap-1 mt-1 text-muted-foreground">
@@ -223,8 +228,13 @@ export function OrdersContent({
                 )}
               </CardDescription>
               {order.toppings && order.toppings.length > 0 && (
-                <div className="mt-1 text-xs text-gray-600">
+                <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                   <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                </div>
+              )}
+              {order.note && (
+                <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                  <span className="font-medium">Ghi chú:</span> {order.note}
                 </div>
               )}
               <div className="flex items-center gap-1 mt-1 text-muted-foreground">
@@ -317,8 +327,13 @@ export function OrdersContent({
                     )}
                   </CardDescription>
                   {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-1 text-xs text-gray-600">
+                    <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                       <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
+                  {order.note && (
+                    <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                      <span className="font-medium">Ghi chú:</span> {order.note}
                     </div>
                   )}
                   <div className="text-xs opacity-60">{order.orderTime}</div>
@@ -374,8 +389,13 @@ export function OrdersContent({
                     )}
                   </CardDescription>
                   {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-1 text-xs text-gray-600">
+                    <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                       <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
+                  {order.note && (
+                    <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                      <span className="font-medium">Ghi chú:</span> {order.note}
                     </div>
                   )}
                   <div className="flex items-center gap-1 mt-1 text-muted-foreground">
@@ -489,10 +509,33 @@ export function OrdersContent({
                   )}
                 </CardDescription>
                 {orderGroup[0].toppings && orderGroup[0].toppings.length > 0 && (
-                  <div className="mt-1 text-xs text-gray-600">
+                  <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                     <span className="font-medium">Toppings:</span> {orderGroup[0].toppings.join(', ')}
                   </div>
                 )}
+                {(() => {
+                  // Show note if any order in the group has a note
+                  const notesWithContent = orderGroup.filter(order => order.note && order.note.trim() !== '');
+                  if (notesWithContent.length > 0) {
+                    const uniqueNotes = [...new Set(notesWithContent.map(order => order.note))];
+                    if (uniqueNotes.length === 1) {
+                      // All orders have the same note
+                      return (
+                        <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                          <span className="font-medium">Ghi chú:</span> {uniqueNotes[0]}
+                        </div>
+                      );
+                    } else {
+                      // Different notes in the group
+                      return (
+                        <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                          <span className="font-medium">Ghi chú:</span> Có {notesWithContent.length} ghi chú khác nhau
+                        </div>
+                      );
+                    }
+                  }
+                  return null;
+                })()}
                 <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                   {renderClockIcon()}
                   <span className="text-xs opacity-80">{getGroupEstimatedTime(orderGroup)}</span>

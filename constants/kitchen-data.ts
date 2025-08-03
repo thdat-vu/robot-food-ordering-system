@@ -198,6 +198,54 @@ export const MOCK_ORDERS: Order[] = [
     estimatedTime: "20 phút",
     apiOrderId: "mock-order-15",
     apiItemId: "mock-item-15"
+  },
+  // Test orders with notes
+  {
+    id: 16,
+    itemName: "Cà Phê Sữa Đá",
+    category: "Đồ uống",
+    tableNumber: 3,
+    quantity: 1,
+    status: "đang chờ",
+    image: "/avatars/iced-cacao.jpg",
+    orderTime: "11:30",
+    estimatedTime: "5 phút",
+    sizeName: "Large",
+    toppings: ["Thêm Sữa"],
+    note: "Ít đường, nhiều đá",
+    apiOrderId: "mock-order-16",
+    apiItemId: "mock-item-16"
+  },
+  {
+    id: 17,
+    itemName: "Phở bò",
+    category: "Món chính",
+    tableNumber: 7,
+    quantity: 1,
+    status: "đang thực hiện",
+    image: "/avatars/pho-bo.jpg",
+    orderTime: "11:45",
+    estimatedTime: "20 phút",
+    sizeName: "Medium",
+    note: "Không hành lá, thêm chanh",
+    apiOrderId: "mock-order-17",
+    apiItemId: "mock-item-17"
+  },
+  {
+    id: 18,
+    itemName: "Trà Sữa Thạch Dừa",
+    category: "Đồ uống",
+    tableNumber: 12,
+    quantity: 2,
+    status: "bắt đầu phục vụ",
+    image: "/avatars/peach-tea.jpg",
+    orderTime: "12:00",
+    estimatedTime: "5 phút",
+    sizeName: "Large",
+    toppings: ["Thạch Dừa", "Trân Châu"],
+    note: "Gọi trước khi phục vụ",
+    apiOrderId: "mock-order-18",
+    apiItemId: "mock-item-18"
   }
 ];
 
