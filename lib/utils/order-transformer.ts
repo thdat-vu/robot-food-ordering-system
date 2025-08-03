@@ -11,6 +11,8 @@ const mapApiStatusToFrontend = (apiStatus: string): OrderStatus => {
     case 'ready':
     case 'served':
       return 'bắt đầu phục vụ';
+    case 'returned':
+      return 'yêu cầu làm lại';
     default:
       return 'đang chờ';
   }
@@ -25,6 +27,8 @@ export const mapFrontendStatusToApi = (frontendStatus: OrderStatus): number => {
       return 2; // Preparing
     case 'bắt đầu phục vụ':
       return 3; // Ready
+    case 'yêu cầu làm lại':
+      return 7; // Returned
     default:
       return 1; // Pending
   }

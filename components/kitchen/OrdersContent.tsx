@@ -18,6 +18,8 @@ interface OrdersContentProps {
   onGroupClick: (itemName: string) => void;
   onPrepareClick: (orderId: number, itemName: string) => void;
   onServeClick: (order: Order) => void;
+  onAcceptRedoClick?: (orderId: number, itemName: string) => void;
+  onRejectRedoClick?: (orderId: number, itemName: string) => void;
   selectedGroup?: { itemName: string; tableNumber: number; id: number }[] | null;
   onPrepareMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
   onServeMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
@@ -30,6 +32,8 @@ export function OrdersContent({
   onGroupClick,
   onPrepareClick,
   onServeClick,
+  onAcceptRedoClick,
+  onRejectRedoClick,
   selectedGroup,
   onPrepareMultipleOrders,
   onServeMultipleOrders,
@@ -248,6 +252,26 @@ export function OrdersContent({
                 </Button>
               </CardAction>
             )}
+            {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && onRejectRedoClick && (
+              <CardAction>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={e => { e.stopPropagation(); onAcceptRedoClick(order.id, order.itemName); }}
+                    variant="default"
+                    size="sm"
+                  >
+                    Bắt đầu làm lại
+                  </Button>
+                  <Button 
+                    onClick={e => { e.stopPropagation(); onRejectRedoClick(order.id, order.itemName); }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Từ chối
+                  </Button>
+                </div>
+              </CardAction>
+            )}
           </CardHeader>
         </Card>
       </div>
@@ -371,6 +395,26 @@ export function OrdersContent({
                     <Button onClick={e => { e.stopPropagation(); onServeClick(order); }}>
                       Bắt đầu phục vụ
                     </Button>
+                  </CardAction>
+                )}
+                {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && onRejectRedoClick && (
+                  <CardAction>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={e => { e.stopPropagation(); onAcceptRedoClick(order.id, order.itemName); }}
+                        variant="default"
+                        size="sm"
+                      >
+                        Bắt đầu làm lại
+                      </Button>
+                      <Button 
+                        onClick={e => { e.stopPropagation(); onRejectRedoClick(order.id, order.itemName); }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Từ chối
+                      </Button>
+                    </div>
                   </CardAction>
                 )}
               </CardHeader>

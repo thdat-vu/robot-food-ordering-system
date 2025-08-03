@@ -184,6 +184,20 @@ export const MOCK_ORDERS: Order[] = [
     estimatedTime: "15 phút",
     apiOrderId: "mock-order-14",
     apiItemId: "mock-item-14"
+  },
+  // Test order for "yêu cầu làm lại" functionality
+  {
+    id: 15,
+    itemName: "Phở bò",
+    category: "Món chính",
+    tableNumber: 15,
+    quantity: 1,
+    status: "yêu cầu làm lại",
+    image: "/avatars/pho-bo.jpg",
+    orderTime: "11:15",
+    estimatedTime: "20 phút",
+    apiOrderId: "mock-order-15",
+    apiItemId: "mock-item-15"
   }
 ];
 
@@ -201,7 +215,8 @@ export const SIDEBAR_ANIMATION_DURATION = 500;
 export const TAB_DISPLAY_NAMES = {
   "đang chờ": "Đang chờ",
   "đang thực hiện": "Đang thực hiện", 
-  "bắt đầu phục vụ": "Bắt đầu phục vụ"
+  "bắt đầu phục vụ": "Bắt đầu phục vụ",
+  "yêu cầu làm lại": "Yêu cầu làm lại"
 } as const;
 
 export const DEFAULT_IMAGE_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23f3f4f6"/><text x="50%" y="50%" font-family="Arial" font-size="12" fill="%236b7280" text-anchor="middle" dy=".3em">No Image</text></svg>`; 

@@ -49,6 +49,8 @@ function ChiefPageContent() {
     setExpandedGroup,
     handlePrepareOrders,
     handleServeOrder,
+    handleAcceptRedoRequest,
+    handleRejectRedoRequest,
     refreshOrders,
     shouldShowInSidebar,
     getTabCount,
@@ -101,6 +103,24 @@ function ChiefPageContent() {
   const handleServeClick = (order: Order) => {
     setSelectedOrder(order);
     setShowModal(true);
+  };
+
+  const handleAcceptRedoClick = async (orderId: number, itemName: string) => {
+    try {
+      await handleAcceptRedoRequest(orderId);
+      addToast(`Đã chấp nhận yêu cầu làm lại: ${itemName}`, 'success');
+    } catch (error) {
+      addToast(`Lỗi khi chấp nhận yêu cầu làm lại: ${itemName}`, 'error');
+    }
+  };
+
+  const handleRejectRedoClick = async (orderId: number, itemName: string) => {
+    try {
+      await handleRejectRedoRequest(orderId);
+      addToast(`Đã từ chối yêu cầu làm lại: ${itemName}`, 'success');
+    } catch (error) {
+      addToast(`Lỗi khi từ chối yêu cầu làm lại: ${itemName}`, 'error');
+    }
   };
 
   const handleConfirmServe = async () => {
@@ -287,6 +307,8 @@ function ChiefPageContent() {
             onGroupClick={handleGroupClick}
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}
+            onAcceptRedoClick={handleAcceptRedoClick}
+            onRejectRedoClick={handleRejectRedoClick}
           />
         ) : selectedGroups.length > 0 ? (
           <OrdersContent
@@ -314,6 +336,8 @@ function ChiefPageContent() {
             onPrepareMultipleOrders={handlePrepareMultipleOrders}
             onServeMultipleOrders={handleServeMultipleOrders}
             showIndividualCards={true}
+            onAcceptRedoClick={handleAcceptRedoClick}
+            onRejectRedoClick={handleRejectRedoClick}
           />
         ) : selectedGroup ? (
           <OrdersContent
@@ -339,6 +363,8 @@ function ChiefPageContent() {
             onPrepareMultipleOrders={handlePrepareMultipleOrders}
             onServeMultipleOrders={handleServeMultipleOrders}
             showIndividualCards={true}
+            onAcceptRedoClick={handleAcceptRedoClick}
+            onRejectRedoClick={handleRejectRedoClick}
           />
         ) : selectedOrderKey ? (
           <OrdersContent
@@ -347,6 +373,8 @@ function ChiefPageContent() {
             onGroupClick={handleGroupClick}
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}
+            onAcceptRedoClick={handleAcceptRedoClick}
+            onRejectRedoClick={handleRejectRedoClick}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
