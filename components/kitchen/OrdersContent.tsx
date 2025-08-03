@@ -240,14 +240,20 @@ export function OrdersContent({
             </div>
             {activeTab === 'đang chờ' && (
               <CardAction>
-                <Button onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}>
+                <Button 
+                  onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}
+                  variant="default"
+                >
                   Thực hiện
                 </Button>
               </CardAction>
             )}
             {activeTab === 'đang thực hiện' && (
               <CardAction>
-                <Button onClick={e => { e.stopPropagation(); onServeClick(order); }}>
+                <Button 
+                  onClick={e => { e.stopPropagation(); onServeClick(order); }}
+                  variant="default"
+                >
                   Bắt đầu phục vụ
                 </Button>
               </CardAction>
@@ -385,14 +391,20 @@ export function OrdersContent({
                 </div>
                 {activeTab === 'đang chờ' && !showIndividualCards && (
                   <CardAction>
-                    <Button onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}>
+                    <Button 
+                      onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}
+                      variant="default"
+                    >
                       Thực hiện
                     </Button>
                   </CardAction>
                 )}
                 {activeTab === 'đang thực hiện' && !showIndividualCards && (
                   <CardAction>
-                    <Button onClick={e => { e.stopPropagation(); onServeClick(order); }}>
+                    <Button 
+                      onClick={e => { e.stopPropagation(); onServeClick(order); }}
+                      variant="default"
+                    >
                       Bắt đầu phục vụ
                     </Button>
                   </CardAction>
@@ -431,6 +443,7 @@ export function OrdersContent({
                   id: order.id
                 })))}
                 size="lg"
+                variant="default"
                 className="text-lg font-semibold"
               >
                 Thực hiện 
@@ -446,6 +459,7 @@ export function OrdersContent({
                   id: order.id
                 })))}
                 size="lg"
+                variant="default"
                 className="text-lg font-semibold"
               >
                 Bắt đầu phục vụ
@@ -492,7 +506,10 @@ export function OrdersContent({
               </div>
               {activeTab === 'đang chờ' && (
                 <CardAction>
-                  <Button onClick={e => { e.stopPropagation(); onPrepareClick(orderGroup[0].id, orderGroup[0].itemName); }}>
+                  <Button 
+                    onClick={e => { e.stopPropagation(); onPrepareClick(orderGroup[0].id, orderGroup[0].itemName); }}
+                    variant="default"
+                  >
                     Thực hiện
                   </Button>
                 </CardAction>
