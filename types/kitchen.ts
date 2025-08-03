@@ -1,4 +1,4 @@
-export type OrderStatus = "đang chờ" | "đang thực hiện" | "bắt đầu phục vụ" | "yêu cầu làm lại";
+export type OrderStatus = "đang chờ" | "đang thực hiện" | "bắt đầu phục vụ" | "yêu cầu làm lại" | "đã huỷ";
 
 export interface Order {
   id: number;
@@ -43,6 +43,7 @@ export interface OrderCounts {
   ready: number;
   completed: number;
   redo: number;
+  cancelled: number;
 }
 
 export type GroupedOrders = Record<string, Order[]>;

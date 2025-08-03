@@ -94,16 +94,17 @@ export function useKitchenOrders() {
       toCook: orders.filter(order => order.status === "đang chờ").length,
       ready: orders.filter(order => order.status === "đang thực hiện").length,
       completed: orders.filter(order => order.status === "bắt đầu phục vụ").length,
-      redo: orders.filter(order => order.status === "yêu cầu làm lại").length
+      redo: orders.filter(order => order.status === "yêu cầu làm lại").length,
+      cancelled: orders.filter(order => order.status === "đã huỷ").length
     };
   }, [orders]);
 
-  // Calculate remaining items (not completed)
+  // Calculate remaining items (not completed and not cancelled)
   const remainingItems = useMemo((): RemainingItems => {
     const remaining: RemainingItems = {};
     
     orders.forEach(order => {
-      if (order.status !== "bắt đầu phục vụ") {
+      if (order.status !== "bắt đầu phục vụ" && order.status !== "đã huỷ") {
         remaining[order.itemName] = (remaining[order.itemName] || 0) + 1;
       }
     });
@@ -134,6 +135,7 @@ export function useKitchenOrders() {
       case "đang thực hiện": return orderCounts.ready;
       case "bắt đầu phục vụ": return orderCounts.completed;
       case "yêu cầu làm lại": return orderCounts.redo;
+      case "đã huỷ": return orderCounts.cancelled;
       default: return 0;
     }
   };

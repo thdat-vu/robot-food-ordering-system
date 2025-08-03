@@ -11,7 +11,7 @@ interface NavigationTabsProps {
   onSearchChange?: (query: string) => void;
 }
 
-const TAB_ORDER: OrderStatus[] = ["đang chờ", "đang thực hiện", "bắt đầu phục vụ", "yêu cầu làm lại" ];
+const TAB_ORDER: OrderStatus[] = ["đang chờ", "đang thực hiện", "bắt đầu phục vụ", "yêu cầu làm lại", "đã huỷ" ];
 
 export function NavigationTabs({ 
   activeTab, 
