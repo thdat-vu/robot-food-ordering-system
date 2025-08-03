@@ -5,6 +5,7 @@ import {
   ApiCategoryResponse,
   ApiProductCategoryResponse,
 } from "@/lib/api/categories";
+import { OrderStatus } from "@/types/kitchen";
 
 export interface WaiterDish {
   id: number;
@@ -17,7 +18,12 @@ export interface WaiterDish {
   itemId: string;
   tableNumber: number;
   quantity: number;
-  status?:"waiting" | "processing" | "redo"; // Optional status field
+  status: OrderStatus; // Updated to use OrderStatus type
+  orderTime?: string;
+  estimatedTime?: string;
+  note?: string;
+  sizeName?: string;
+  toppings?: string[];
 }
 
 export function useWaiterOrders() {
@@ -59,8 +65,31 @@ export function useWaiterOrders() {
     }
   }, []);
 
-  // Fetch orders with status 3 (Ready) from API
-  const fetchReadyOrders = useCallback(async () => {
+  // Helper function to map API status to OrderStatus
+  const mapApiStatusToOrderStatus = (status: string): OrderStatus => {
+    switch (status) {
+      case "1":
+      case "Waiting":
+        return "đang chờ";
+      case "2":
+      case "Processing":
+        return "đang thực hiện";
+      case "3":
+      case "Ready":
+        return "bắt đầu phục vụ";
+      case "4":
+      case "Served":
+        return "đã phục vụ";
+      case "5":
+      case "Redo":
+        return "yêu cầu làm lại";
+      default:
+        return "đang chờ";
+    }
+  };
+
+  // Fetch orders with different statuses from API
+  const fetchOrders = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -70,43 +99,46 @@ export function useWaiterOrders() {
       console.log("Fetched orders:", response);
 
       if (response.data && response.data.length > 0) {
-        // Filter orders to only include items with status 3 (Ready)
-        const readyOrders = response.data.filter((order) =>
-          order.items.some(
-            (item) => item.status === "3" || item.status === "Ready"
-          )
-        );
-
         // Transform API orders to waiter dishes
         const waiterDishes: WaiterDish[] = [];
         let dishId = 1;
 
-        readyOrders.forEach((order) => {
+        response.data.forEach((order) => {
           order.items.forEach((item) => {
-            if (item.status === "3" || item.status === "Ready") {
-              // Only include Ready items
-              const tableNumber =
-                parseInt(order.tableName.replace(/\D/g, "")) || 1;
+            const tableNumber =
+              parseInt(order.tableName.replace(/\D/g, "")) || 1;
 
-              // Get category from product-category mapping
-              const categoryName =
-                productCategoryMap.get(item.productName.toLowerCase()) ||
-                "Khác";
-              const category = categories.find((c) => c.name === categoryName);
+            // Get category from product-category mapping
+            const categoryName =
+              productCategoryMap.get(item.productName.toLowerCase()) || "Khác";
+            const category = categories.find((c) => c.name === categoryName);
 
-              waiterDishes.push({
-                id: dishId++,
-                name: item.productName,
-                categoryId: category?.id || "unknown",
-                categoryName: categoryName,
-                selected: false,
-                served: false,
-                orderId: order.id,
-                itemId: item.id,
-                tableNumber,
-                quantity: item.quantity,
-              });
-            }
+            // Map API status to OrderStatus
+            const orderStatus = mapApiStatusToOrderStatus(item.status);
+
+            waiterDishes.push({
+              id: dishId++,
+              name: item.productName,
+              categoryId: category?.id || "unknown",
+              categoryName: categoryName,
+              selected: false,
+              served: orderStatus === "đã phục vụ",
+              orderId: order.id,
+              itemId: item.id,
+              tableNumber,
+              quantity: item.quantity,
+              status: orderStatus,
+              orderTime: order.createdAt
+                ? new Date(order.createdAt).toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : undefined,
+              estimatedTime: item.estimatedTime || "10 phút",
+              note: item.note,
+              sizeName: item.sizeName,
+              toppings: item.toppings,
+            });
           });
         });
 
@@ -115,8 +147,8 @@ export function useWaiterOrders() {
         setDishes([]);
       }
     } catch (err) {
-      console.error("Error fetching ready orders:", err);
-      setError("Error fetching ready orders");
+      console.error("Error fetching orders:", err);
+      setError("Error fetching orders");
       setDishes([]);
     } finally {
       setIsLoading(false);
@@ -134,9 +166,9 @@ export function useWaiterOrders() {
   // Load orders after categories are loaded
   useEffect(() => {
     if (categories.length > 0) {
-      fetchReadyOrders();
+      fetchOrders();
     }
-  }, [fetchReadyOrders, categories]);
+  }, [fetchOrders, categories]);
 
   // Group dishes by category
   const groupedDishes = useMemo(() => {
@@ -146,6 +178,22 @@ export function useWaiterOrders() {
       return acc;
     }, {});
   }, [dishes]);
+
+  // Filter dishes by status
+  const getDishesByStatus = useCallback(
+    (status: OrderStatus) => {
+      return dishes.filter((dish) => dish.status === status);
+    },
+    [dishes]
+  );
+
+  // Get count for each tab
+  const getTabCount = useCallback(
+    (status: OrderStatus) => {
+      return getDishesByStatus(status).length;
+    },
+    [getDishesByStatus]
+  );
 
   // Check if any dishes are selected
   const hasSelected = dishes.some((d) => d.selected && !d.served);
@@ -173,7 +221,9 @@ export function useWaiterOrders() {
       // Update local state
       setDishes((prev) =>
         prev.map((d) =>
-          d.selected && !d.served ? { ...d, served: true, selected: false } : d
+          d.selected && !d.served
+            ? { ...d, served: true, selected: false, status: "đã phục vụ" }
+            : d
         )
       );
 
@@ -186,8 +236,8 @@ export function useWaiterOrders() {
 
   // Refresh orders
   const refreshOrders = useCallback(() => {
-    fetchReadyOrders();
-  }, [fetchReadyOrders]);
+    fetchOrders();
+  }, [fetchOrders]);
 
   return {
     dishes,
@@ -199,5 +249,7 @@ export function useWaiterOrders() {
     toggleDish,
     handleServe,
     refreshOrders,
+    getTabCount,
+    getDishesByStatus,
   };
 }
