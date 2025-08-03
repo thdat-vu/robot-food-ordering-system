@@ -1,4 +1,4 @@
-export type OrderStatus = "đang chờ" | "đang thực hiện" | "bắt đầu phục vụ";
+export type OrderStatus = "đang chờ" | "đang thực hiện" | "bắt đầu phục vụ" | "yêu cầu làm lại";
 
 export interface Order {
   id: number;
@@ -13,6 +13,7 @@ export interface Order {
   estimatedTime: string; // Time needed to prepare the dish (e.g., "15 phút", "20 phút")
   sizeName?: string; // Size of the item (e.g., "Small", "Medium", "Large")
   toppings?: string[]; // Array of topping names
+  note?: string | null; // Customer note for the item
   // API IDs for making API calls
   apiOrderId: string;
   apiItemId: string;
@@ -41,6 +42,7 @@ export interface OrderCounts {
   toCook: number;
   ready: number;
   completed: number;
+  redo: number;
 }
 
 export type GroupedOrders = Record<string, Order[]>;

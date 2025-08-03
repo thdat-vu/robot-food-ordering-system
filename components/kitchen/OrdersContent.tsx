@@ -18,6 +18,8 @@ interface OrdersContentProps {
   onGroupClick: (itemName: string) => void;
   onPrepareClick: (orderId: number, itemName: string) => void;
   onServeClick: (order: Order) => void;
+  onAcceptRedoClick?: (orderId: number, itemName: string) => void;
+  onRejectRedoClick?: (orderId: number, itemName: string) => void;
   selectedGroup?: { itemName: string; tableNumber: number; id: number }[] | null;
   onPrepareMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
   onServeMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
@@ -30,6 +32,8 @@ export function OrdersContent({
   onGroupClick,
   onPrepareClick,
   onServeClick,
+  onAcceptRedoClick,
+  onRejectRedoClick,
   selectedGroup,
   onPrepareMultipleOrders,
   onServeMultipleOrders,
@@ -151,8 +155,13 @@ export function OrdersContent({
                     )}
                   </CardDescription>
                   {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-1 text-xs text-gray-600">
+                    <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                       <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
+                  {order.note && (
+                    <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                      <span className="font-medium">Ghi chú:</span> {order.note}
                     </div>
                   )}
                   <div className="flex items-center gap-1 mt-1 text-muted-foreground">
@@ -219,8 +228,13 @@ export function OrdersContent({
                 )}
               </CardDescription>
               {order.toppings && order.toppings.length > 0 && (
-                <div className="mt-1 text-xs text-gray-600">
+                <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                   <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                </div>
+              )}
+              {order.note && (
+                <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                  <span className="font-medium">Ghi chú:</span> {order.note}
                 </div>
               )}
               <div className="flex items-center gap-1 mt-1 text-muted-foreground">
@@ -236,16 +250,42 @@ export function OrdersContent({
             </div>
             {activeTab === 'đang chờ' && (
               <CardAction>
-                <Button onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}>
+                <Button 
+                  onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}
+                  variant="default"
+                >
                   Thực hiện
                 </Button>
               </CardAction>
             )}
             {activeTab === 'đang thực hiện' && (
               <CardAction>
-                <Button onClick={e => { e.stopPropagation(); onServeClick(order); }}>
+                <Button 
+                  onClick={e => { e.stopPropagation(); onServeClick(order); }}
+                  variant="default"
+                >
                   Bắt đầu phục vụ
                 </Button>
+              </CardAction>
+            )}
+            {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && onRejectRedoClick && (
+              <CardAction>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={e => { e.stopPropagation(); onAcceptRedoClick(order.id, order.itemName); }}
+                    variant="default"
+                    size="sm"
+                  >
+                    Bắt đầu làm lại
+                  </Button>
+                  <Button 
+                    onClick={e => { e.stopPropagation(); onRejectRedoClick(order.id, order.itemName); }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Từ chối
+                  </Button>
+                </div>
               </CardAction>
             )}
           </CardHeader>
@@ -287,8 +327,13 @@ export function OrdersContent({
                     )}
                   </CardDescription>
                   {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-1 text-xs text-gray-600">
+                    <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                       <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
+                  {order.note && (
+                    <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                      <span className="font-medium">Ghi chú:</span> {order.note}
                     </div>
                   )}
                   <div className="text-xs opacity-60">{order.orderTime}</div>
@@ -344,8 +389,13 @@ export function OrdersContent({
                     )}
                   </CardDescription>
                   {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-1 text-xs text-gray-600">
+                    <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                       <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
+                  {order.note && (
+                    <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                      <span className="font-medium">Ghi chú:</span> {order.note}
                     </div>
                   )}
                   <div className="flex items-center gap-1 mt-1 text-muted-foreground">
@@ -361,16 +411,42 @@ export function OrdersContent({
                 </div>
                 {activeTab === 'đang chờ' && !showIndividualCards && (
                   <CardAction>
-                    <Button onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}>
+                    <Button 
+                      onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}
+                      variant="default"
+                    >
                       Thực hiện
                     </Button>
                   </CardAction>
                 )}
                 {activeTab === 'đang thực hiện' && !showIndividualCards && (
                   <CardAction>
-                    <Button onClick={e => { e.stopPropagation(); onServeClick(order); }}>
+                    <Button 
+                      onClick={e => { e.stopPropagation(); onServeClick(order); }}
+                      variant="default"
+                    >
                       Bắt đầu phục vụ
                     </Button>
+                  </CardAction>
+                )}
+                {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && onRejectRedoClick && (
+                  <CardAction>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={e => { e.stopPropagation(); onAcceptRedoClick(order.id, order.itemName); }}
+                        variant="default"
+                        size="sm"
+                      >
+                        Bắt đầu làm lại
+                      </Button>
+                      <Button 
+                        onClick={e => { e.stopPropagation(); onRejectRedoClick(order.id, order.itemName); }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Từ chối
+                      </Button>
+                    </div>
                   </CardAction>
                 )}
               </CardHeader>
@@ -387,6 +463,7 @@ export function OrdersContent({
                   id: order.id
                 })))}
                 size="lg"
+                variant="default"
                 className="text-lg font-semibold"
               >
                 Thực hiện 
@@ -402,6 +479,7 @@ export function OrdersContent({
                   id: order.id
                 })))}
                 size="lg"
+                variant="default"
                 className="text-lg font-semibold"
               >
                 Bắt đầu phục vụ
@@ -431,10 +509,33 @@ export function OrdersContent({
                   )}
                 </CardDescription>
                 {orderGroup[0].toppings && orderGroup[0].toppings.length > 0 && (
-                  <div className="mt-1 text-xs text-gray-600">
+                  <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                     <span className="font-medium">Toppings:</span> {orderGroup[0].toppings.join(', ')}
                   </div>
                 )}
+                {(() => {
+                  // Show note if any order in the group has a note
+                  const notesWithContent = orderGroup.filter(order => order.note && order.note.trim() !== '');
+                  if (notesWithContent.length > 0) {
+                    const uniqueNotes = [...new Set(notesWithContent.map(order => order.note))];
+                    if (uniqueNotes.length === 1) {
+                      // All orders have the same note
+                      return (
+                        <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                          <span className="font-medium">Ghi chú:</span> {uniqueNotes[0]}
+                        </div>
+                      );
+                    } else {
+                      // Different notes in the group
+                      return (
+                        <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                          <span className="font-medium">Ghi chú:</span> Có {notesWithContent.length} ghi chú khác nhau
+                        </div>
+                      );
+                    }
+                  }
+                  return null;
+                })()}
                 <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                   {renderClockIcon()}
                   <span className="text-xs opacity-80">{getGroupEstimatedTime(orderGroup)}</span>
@@ -448,7 +549,10 @@ export function OrdersContent({
               </div>
               {activeTab === 'đang chờ' && (
                 <CardAction>
-                  <Button onClick={e => { e.stopPropagation(); onPrepareClick(orderGroup[0].id, orderGroup[0].itemName); }}>
+                  <Button 
+                    onClick={e => { e.stopPropagation(); onPrepareClick(orderGroup[0].id, orderGroup[0].itemName); }}
+                    variant="default"
+                  >
                     Thực hiện
                   </Button>
                 </CardAction>

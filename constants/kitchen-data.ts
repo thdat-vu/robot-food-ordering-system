@@ -184,6 +184,68 @@ export const MOCK_ORDERS: Order[] = [
     estimatedTime: "15 phút",
     apiOrderId: "mock-order-14",
     apiItemId: "mock-item-14"
+  },
+  // Test order for "yêu cầu làm lại" functionality
+  {
+    id: 15,
+    itemName: "Phở bò",
+    category: "Món chính",
+    tableNumber: 15,
+    quantity: 1,
+    status: "yêu cầu làm lại",
+    image: "/avatars/pho-bo.jpg",
+    orderTime: "11:15",
+    estimatedTime: "20 phút",
+    apiOrderId: "mock-order-15",
+    apiItemId: "mock-item-15"
+  },
+  // Test orders with notes
+  {
+    id: 16,
+    itemName: "Cà Phê Sữa Đá",
+    category: "Đồ uống",
+    tableNumber: 3,
+    quantity: 1,
+    status: "đang chờ",
+    image: "/avatars/iced-cacao.jpg",
+    orderTime: "11:30",
+    estimatedTime: "5 phút",
+    sizeName: "Large",
+    toppings: ["Thêm Sữa"],
+    note: "Ít đường, nhiều đá",
+    apiOrderId: "mock-order-16",
+    apiItemId: "mock-item-16"
+  },
+  {
+    id: 17,
+    itemName: "Phở bò",
+    category: "Món chính",
+    tableNumber: 7,
+    quantity: 1,
+    status: "đang thực hiện",
+    image: "/avatars/pho-bo.jpg",
+    orderTime: "11:45",
+    estimatedTime: "20 phút",
+    sizeName: "Medium",
+    note: "Không hành lá, thêm chanh",
+    apiOrderId: "mock-order-17",
+    apiItemId: "mock-item-17"
+  },
+  {
+    id: 18,
+    itemName: "Trà Sữa Thạch Dừa",
+    category: "Đồ uống",
+    tableNumber: 12,
+    quantity: 2,
+    status: "bắt đầu phục vụ",
+    image: "/avatars/peach-tea.jpg",
+    orderTime: "12:00",
+    estimatedTime: "5 phút",
+    sizeName: "Large",
+    toppings: ["Thạch Dừa", "Trân Châu"],
+    note: "Gọi trước khi phục vụ",
+    apiOrderId: "mock-order-18",
+    apiItemId: "mock-item-18"
   }
 ];
 
@@ -201,7 +263,8 @@ export const SIDEBAR_ANIMATION_DURATION = 500;
 export const TAB_DISPLAY_NAMES = {
   "đang chờ": "Đang chờ",
   "đang thực hiện": "Đang thực hiện", 
-  "bắt đầu phục vụ": "Bắt đầu phục vụ"
+  "bắt đầu phục vụ": "Bắt đầu phục vụ",
+  "yêu cầu làm lại": "Yêu cầu làm lại"
 } as const;
 
 export const DEFAULT_IMAGE_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23f3f4f6"/><text x="50%" y="50%" font-family="Arial" font-size="12" fill="%236b7280" text-anchor="middle" dy=".3em">No Image</text></svg>`; 
