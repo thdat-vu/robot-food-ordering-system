@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { useCustomRouter } from '@/lib/custom-router';
 
 // Types
@@ -59,6 +59,21 @@ function ChiefPageContent() {
   } = useKitchenOrders();
 
   const { toasts, addToast, removeToast } = useToastKitchen();
+
+  // Auto-fetch orders every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshOrders(true); // Use silent refresh to avoid loading state
+    }, 2000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
+  }, [refreshOrders]);
+
+  // Wrapper function for manual refresh button
+  const handleManualRefresh = () => {
+    refreshOrders(false); // Use normal refresh for manual button
+  };
 
   // Filter orders based on search query
   const filterOrdersBySearch = (orders: Record<string, Order[]>) => {
@@ -290,7 +305,7 @@ function ChiefPageContent() {
           <div className="text-center">
             <div className="text-red-500 mb-4">Lỗi: {error}</div>
             <button
-              onClick={refreshOrders}
+              onClick={handleManualRefresh}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Thử lại

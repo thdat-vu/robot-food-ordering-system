@@ -41,6 +41,24 @@ export function useKitchenOrders() {
     }
   }, []);
 
+  // Silent fetch orders from API (for auto-refresh)
+  const silentFetchOrders = useCallback(async () => {
+    try {
+      setError(null);
+      
+      const response = await ordersApi.getOrders(1, 100); // Get first 100 orders
+      
+      if (response.statusCode === 200 && response.data && response.data.length > 0) {
+        const transformedOrders = transformApiOrdersToOrders(response.data);
+        setOrders(transformedOrders);
+        setIdMappings([]); // For now, we'll use empty mappings
+      }
+    } catch (err) {
+      console.error('Error silently fetching orders:', err);
+      // Don't set error for silent refresh to avoid UI disruption
+    }
+  }, []);
+
   // Load orders on component mount
   useEffect(() => {
     fetchOrders();
@@ -302,9 +320,13 @@ export function useKitchenOrders() {
   }, [orders]);
 
   // Refresh orders from API
-  const refreshOrders = useCallback(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  const refreshOrders = useCallback((silent: boolean = false) => {
+    if (!silent) {
+      fetchOrders();
+    } else {
+      silentFetchOrders();
+    }
+  }, [fetchOrders, silentFetchOrders]);
 
   // Effect to handle sidebar animation
   useEffect(() => {
