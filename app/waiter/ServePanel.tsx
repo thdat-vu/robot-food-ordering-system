@@ -15,7 +15,7 @@ const MapPanel = ({ selectedTable }: { selectedTable: number | null }) => (
           Bàn {selectedTable}
         </div>
         <iframe
-          src={`https://map-doan-nhattruowngs-projects.vercel.app/map/${selectedTable}`}
+          src={`https://mapdto-production.up.railway.app/${selectedTable}`}
           allowFullScreen
           loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
