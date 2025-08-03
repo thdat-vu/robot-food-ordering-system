@@ -246,6 +246,22 @@ export const MOCK_ORDERS: Order[] = [
     note: "Gọi trước khi phục vụ",
     apiOrderId: "mock-order-18",
     apiItemId: "mock-item-18"
+  },
+  // Test cancelled order
+  {
+    id: 19,
+    itemName: "Phở bò",
+    category: "Món chính",
+    tableNumber: 8,
+    quantity: 1,
+    status: "đã huỷ",
+    image: "/avatars/pho-bo.jpg",
+    orderTime: "12:15",
+    estimatedTime: "20 phút",
+    sizeName: "Medium",
+    note: "Khách hủy đơn",
+    apiOrderId: "mock-order-19",
+    apiItemId: "mock-item-19"
   }
 ];
 
@@ -264,7 +280,8 @@ export const TAB_DISPLAY_NAMES = {
   "đang chờ": "Đang chờ",
   "đang thực hiện": "Đang thực hiện", 
   "bắt đầu phục vụ": "Bắt đầu phục vụ",
-  "yêu cầu làm lại": "Yêu cầu làm lại"
+  "yêu cầu làm lại": "Yêu cầu làm lại",
+  "đã huỷ": "Đã huỷ"
 } as const;
 
 export const DEFAULT_IMAGE_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23f3f4f6"/><text x="50%" y="50%" font-family="Arial" font-size="12" fill="%236b7280" text-anchor="middle" dy=".3em">No Image</text></svg>`; 
