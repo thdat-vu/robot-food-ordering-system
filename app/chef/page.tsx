@@ -188,13 +188,28 @@ function ChiefPageContent() {
 
   // Group selection handler
   const handleGroupSelection = (group: { itemName: string; tableNumber: number; id: number }[]) => {
-    setSelectedGroup(group);
+    // Toggle logic: if the same group is selected, deselect it
+    setSelectedGroup(prev => {
+      if (prev && prev.length === group.length && 
+          prev.every((item, index) => 
+            item.itemName === group[index].itemName &&
+            item.tableNumber === group[index].tableNumber &&
+            item.id === group[index].id
+          )) {
+        // Same group selected, deselect it
+        return null;
+      }
+      // Different group or no group selected, select the new group
+      return group;
+    });
+    setSelectedGroups([]); // Clear multiple selection when single group is selected
     setSelectedOrderKey(null); // Clear individual selection when group is selected
   };
 
   // Multiple group selection handler
   const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][]) => {
     setSelectedGroups(groups);
+    setSelectedGroup(null); // Clear single group selection when multiple groups are selected
     setSelectedOrderKey(null); // Clear individual selection when groups are selected
   };
 
@@ -331,20 +346,37 @@ function ChiefPageContent() {
         />
 
         {/* Orders Content or Placeholder */}
-        {isServeTab ? (
-          <OrdersContent
-            groupedOrders={filteredServeTabGroupedOrders}
-            activeTab={activeTab}
-            onGroupClick={handleGroupClick}
-            onPrepareClick={handlePrepareClick}
-            onServeClick={handleServeClick}
-            onAcceptRedoClick={handleAcceptRedoClick}
-            onRejectRedoClick={handleRejectRedoClickWrapper}
-          />
-        ) : selectedGroups.length > 0 ? (
-          <OrdersContent
-            groupedOrders={(() => {
-              // Create a filtered groupedOrders with only the selected groups items
+        {(() => {
+          // Check if we have any selection
+          const hasSelection = selectedGroups.length > 0 || selectedGroup || selectedOrderKey;
+          
+          // If no selection and not serve tab with orders, show placeholder
+          if (!hasSelection && !(isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0)) {
+            return (
+              <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
+                Chọn một món ăn để xem chi tiết
+              </div>
+            );
+          }
+
+          // Serve tab with orders
+          if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
+            return (
+              <OrdersContent
+                groupedOrders={filteredServeTabGroupedOrders}
+                activeTab={activeTab}
+                onGroupClick={handleGroupClick}
+                onPrepareClick={handlePrepareClick}
+                onServeClick={handleServeClick}
+                onAcceptRedoClick={handleAcceptRedoClick}
+                onRejectRedoClick={handleRejectRedoClickWrapper}
+              />
+            );
+          }
+
+          // Selected groups
+          if (selectedGroups.length > 0) {
+            const filtered = (() => {
               const filtered: Record<string, Order[]> = {};
               selectedGroups.forEach(group => {
                 group.forEach(({ itemName, tableNumber, id }) => {
@@ -359,21 +391,27 @@ function ChiefPageContent() {
                 });
               });
               return filtered;
-            })()}
-            activeTab={activeTab}
-            onGroupClick={handleGroupClick}
-            onPrepareClick={handlePrepareClick}
-            onServeClick={handleServeClick}
-            onPrepareMultipleOrders={handlePrepareMultipleOrders}
-            onServeMultipleOrders={handleServeMultipleOrders}
-            showIndividualCards={true}
-            onAcceptRedoClick={handleAcceptRedoClick}
-            onRejectRedoClick={handleRejectRedoClickWrapper}
-          />
-        ) : selectedGroup ? (
-          <OrdersContent
-            groupedOrders={(() => {
-              // Create a filtered groupedOrders with only the selected group items
+            })();
+
+            return (
+              <OrdersContent
+                groupedOrders={filtered}
+                activeTab={activeTab}
+                onGroupClick={handleGroupClick}
+                onPrepareClick={handlePrepareClick}
+                onServeClick={handleServeClick}
+                onPrepareMultipleOrders={handlePrepareMultipleOrders}
+                onServeMultipleOrders={handleServeMultipleOrders}
+                showIndividualCards={true}
+                onAcceptRedoClick={handleAcceptRedoClick}
+                onRejectRedoClick={handleRejectRedoClickWrapper}
+              />
+            );
+          }
+
+          // Selected group
+          if (selectedGroup) {
+            const filtered = (() => {
               const filtered: Record<string, Order[]> = {};
               selectedGroup.forEach(({ itemName, tableNumber, id }) => {
                 const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
@@ -386,32 +424,46 @@ function ChiefPageContent() {
                 }
               });
               return filtered;
-            })()}
-            activeTab={activeTab}
-            onGroupClick={handleGroupClick}
-            onPrepareClick={handlePrepareClick}
-            onServeClick={handleServeClick}
-            onPrepareMultipleOrders={handlePrepareMultipleOrders}
-            onServeMultipleOrders={handleServeMultipleOrders}
-            showIndividualCards={true}
-            onAcceptRedoClick={handleAcceptRedoClick}
-            onRejectRedoClick={handleRejectRedoClickWrapper}
-          />
-        ) : selectedOrderKey ? (
-          <OrdersContent
-            groupedOrders={filteredGroupedOrders}
-            activeTab={activeTab}
-            onGroupClick={handleGroupClick}
-            onPrepareClick={handlePrepareClick}
-            onServeClick={handleServeClick}
-            onAcceptRedoClick={handleAcceptRedoClick}
-            onRejectRedoClick={handleRejectRedoClickWrapper}
-          />
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
-            Chọn một món ăn để xem chi tiết
-          </div>
-        )}
+            })();
+
+            return (
+              <OrdersContent
+                groupedOrders={filtered}
+                activeTab={activeTab}
+                onGroupClick={handleGroupClick}
+                onPrepareClick={handlePrepareClick}
+                onServeClick={handleServeClick}
+                onPrepareMultipleOrders={handlePrepareMultipleOrders}
+                onServeMultipleOrders={handleServeMultipleOrders}
+                showIndividualCards={true}
+                onAcceptRedoClick={handleAcceptRedoClick}
+                onRejectRedoClick={handleRejectRedoClickWrapper}
+              />
+            );
+          }
+
+          // Selected order key
+          if (selectedOrderKey) {
+            return (
+              <OrdersContent
+                groupedOrders={filteredGroupedOrders}
+                activeTab={activeTab}
+                onGroupClick={handleGroupClick}
+                onPrepareClick={handlePrepareClick}
+                onServeClick={handleServeClick}
+                onAcceptRedoClick={handleAcceptRedoClick}
+                onRejectRedoClick={handleRejectRedoClickWrapper}
+              />
+            );
+          }
+
+          // Fallback placeholder
+          return (
+            <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
+              Chọn một món ăn để xem chi tiết
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
