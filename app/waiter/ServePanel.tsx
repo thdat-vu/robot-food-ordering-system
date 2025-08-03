@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import PaymentPanel from "./PaymentPanel";
 import { useWaiterOrders, WaiterDish } from "@/hooks/use-waiter-orders";
+import { NavigationTabs } from "@/components/waiter/NavigationTabs";
 
 const MapPanel = ({ selectedTable }: { selectedTable: number | null }) => (
   <div className="w-full h-[340px] md:h-[460px] flex flex-col bg-muted rounded-2xl shadow-inner border border-border overflow-hidden">
