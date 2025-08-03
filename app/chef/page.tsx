@@ -26,6 +26,7 @@ function ChiefPageContent() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [modalAction, setModalAction] = useState<'serve' | 'reject'>('serve');
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,6 +103,7 @@ function ChiefPageContent() {
 
   const handleServeClick = (order: Order) => {
     setSelectedOrder(order);
+    setModalAction('serve');
     setShowModal(true);
   };
 
@@ -123,6 +125,21 @@ function ChiefPageContent() {
     }
   };
 
+  const handleRejectClick = (order: Order) => {
+    setSelectedOrder(order);
+    setModalAction('reject');
+    setShowModal(true);
+  };
+
+  const handleRejectRedoClickWrapper = (orderId: number, itemName: string) => {
+    // Find the order in groupedOrders
+    const orderList = Object.values(groupedOrders as Record<string, Order[]>).flat();
+    const order = orderList.find(o => o.id === orderId);
+    if (order) {
+      handleRejectClick(order);
+    }
+  };
+
   const handleConfirmServe = async () => {
     if (selectedOrder) {
       try {
@@ -136,7 +153,20 @@ function ChiefPageContent() {
     setSelectedOrder(null);
   };
 
-  const handleCancelServe = () => {
+  const handleConfirmReject = async () => {
+    if (selectedOrder) {
+      try {
+        await handleRejectRedoRequest(selectedOrder.id);
+        addToast(`Đã từ chối yêu cầu làm lại: ${selectedOrder.itemName}`, 'success');
+      } catch (error) {
+        addToast(`Lỗi khi từ chối yêu cầu làm lại: ${selectedOrder.itemName}`, 'error');
+      }
+    }
+    setShowModal(false);
+    setSelectedOrder(null);
+  };
+
+  const handleCancelModal = () => {
     setShowModal(false);
     setSelectedOrder(null);
   };
@@ -265,8 +295,9 @@ function ChiefPageContent() {
       <ConfirmationModal
         isOpen={showModal}
         selectedOrder={selectedOrder}
-        onConfirm={handleConfirmServe}
-        onCancel={handleCancelServe}
+        onConfirm={modalAction === 'serve' ? handleConfirmServe : handleConfirmReject}
+        onCancel={handleCancelModal}
+        action={modalAction}
       />
 
       {/* Kitchen Sidebar */}
@@ -308,7 +339,7 @@ function ChiefPageContent() {
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}
             onAcceptRedoClick={handleAcceptRedoClick}
-            onRejectRedoClick={handleRejectRedoClick}
+            onRejectRedoClick={handleRejectRedoClickWrapper}
           />
         ) : selectedGroups.length > 0 ? (
           <OrdersContent
@@ -337,7 +368,7 @@ function ChiefPageContent() {
             onServeMultipleOrders={handleServeMultipleOrders}
             showIndividualCards={true}
             onAcceptRedoClick={handleAcceptRedoClick}
-            onRejectRedoClick={handleRejectRedoClick}
+            onRejectRedoClick={handleRejectRedoClickWrapper}
           />
         ) : selectedGroup ? (
           <OrdersContent
@@ -364,7 +395,7 @@ function ChiefPageContent() {
             onServeMultipleOrders={handleServeMultipleOrders}
             showIndividualCards={true}
             onAcceptRedoClick={handleAcceptRedoClick}
-            onRejectRedoClick={handleRejectRedoClick}
+            onRejectRedoClick={handleRejectRedoClickWrapper}
           />
         ) : selectedOrderKey ? (
           <OrdersContent
@@ -374,7 +405,7 @@ function ChiefPageContent() {
             onPrepareClick={handlePrepareClick}
             onServeClick={handleServeClick}
             onAcceptRedoClick={handleAcceptRedoClick}
-            onRejectRedoClick={handleRejectRedoClick}
+            onRejectRedoClick={handleRejectRedoClickWrapper}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
