@@ -1,11 +1,12 @@
 "use client";
 import React, {createContext, useContext, useState} from "react";
+import {item} from "@/entites/request/OrderRequest";
 
-export interface item {
-    productId: string,
-    productSizeId: string,
-    toppingIds: string[]
-}
+// export interface item {
+//     productId: string,
+//     productSizeId: string,
+//     toppingIds: string[]
+// }
 
 interface orderRequet {
     tableId: string,
@@ -30,7 +31,7 @@ export const useFastOrderContext = () => {
 
 export function FastOrderProvider({children}: { children: React.ReactNode }) {
     const [data, setData] = useState<orderRequet>({
-        items: [{productId: '', productSizeId: '', toppingIds: ['']}],
+        items: [{productId: '', productSizeId: '', toppingIds: [''], note: ""}],
         tableId: '',
     })
     const setProduct = (tableId: string, items: item[]) => {
