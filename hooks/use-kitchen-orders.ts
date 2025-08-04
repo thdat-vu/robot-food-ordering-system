@@ -98,12 +98,12 @@ export function useKitchenOrders() {
     };
   }, [orders]);
 
-  // Calculate remaining items (not completed and not cancelled)
+  // Calculate remaining items (not completed and not served)
   const remainingItems = useMemo((): RemainingItems => {
     const remaining: RemainingItems = {};
     
     orders.forEach(order => {
-      if (order.status !== "bắt đầu phục vụ" && order.status !== "đã huỷ") {
+      if (order.status !== "bắt đầu phục vụ" && order.status !== "đã phục vụ") {
         remaining[order.itemName] = (remaining[order.itemName] || 0) + 1;
       }
     });
