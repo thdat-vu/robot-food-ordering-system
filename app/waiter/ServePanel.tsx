@@ -15,6 +15,7 @@ import { toast } from "sonner";
 interface ServePanelProps {
   activeTab: OrderStatus;
   onServe: () => Promise<boolean>;
+  onRequestRemake: () => Promise<boolean>;
   hasSelected: boolean;
   dishes: WaiterDish[]; // Add dishes prop
   getDishesByStatus: (status: OrderStatus) => WaiterDish[]; // Add function prop
@@ -223,11 +224,13 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
 const ServePanel: React.FC<ServePanelProps> = ({
   activeTab,
   onServe,
+  onRequestRemake,
   hasSelected,
   dishes, // Destructure dishes prop
   getDishesByStatus, // Destructure getDishesByStatus prop
 }) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [showRemakeConfirmation, setShowRemakeConfirmation] = useState(false);
   // Remove the duplicate useWaiterOrders call
 
   // Get dishes for current tab
@@ -279,6 +282,20 @@ const ServePanel: React.FC<ServePanelProps> = ({
     } else {
       toast("Lỗi phục vụ", {
         description: "Có lỗi xảy ra khi phục vụ món ăn.",
+      });
+    }
+  };
+
+  const handleRequestRemakeClick = async () => {
+    const success = await onRequestRemake();
+    if (success) {
+      toast("Yêu cầu làm lại", {
+        description: "Yêu cầu làm lại đã được gửi đi!",
+      });
+      setShowRemakeConfirmation(false);
+    } else {
+      toast("Lỗi yêu cầu làm lại", {
+        description: "Có lỗi xảy ra khi gửi yêu cầu làm lại.",
       });
     }
   };
@@ -402,13 +419,54 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
         {/* Show serve button only for "bắt đầu phục vụ" tab */}
         {activeTab === "bắt đầu phục vụ" && hasSelected && (
-          <div className="w-full flex justify-center mb-6">
+          <div className="w-full flex justify-center gap-4 mb-6">
             <Button
               onClick={handleServeClick}
               className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
               🚀 Phục vụ
             </Button>
+            <Button
+              onClick={() => setShowRemakeConfirmation(true)}
+              className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              🔄 Yêu cầu làm lại
+            </Button>
+          </div>
+        )}
+
+        {/* Confirmation Dialog for Remake Request */}
+        {showRemakeConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🔄</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-3">
+                  Xác nhận yêu cầu làm lại
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? 
+                  Hành động này sẽ chuyển các món sang trạng thái "Yêu cầu làm lại".
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowRemakeConfirmation(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    onClick={handleRequestRemakeClick}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  >
+                    Xác nhận
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

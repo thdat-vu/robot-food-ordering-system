@@ -6,6 +6,7 @@ import { useWaiterOrders } from "@/hooks/use-waiter-orders";
 import DishList from "./DishList";
 import ServePanel from "./ServePanel";
 import PaymentPanel from "./PaymentPanel";
+import { toast } from "sonner";
 
 function WaiterPageContent() {
   const [activeTab, setActiveTab] = useState<OrderStatus>("bắt đầu phục vụ");
@@ -21,10 +22,25 @@ function WaiterPageContent() {
     error,
     toggleDish,
     handleServe,
+    handleRequestRemake,
     refreshOrders,
     getTabCount,
     getDishesByStatus, // Add this to the destructured values
   } = useWaiterOrders();
+
+  // Clear all selections when switching tabs
+  const handleTabChange = (newTab: OrderStatus) => {
+    if (newTab !== activeTab) {
+      // Clear all selections when switching tabs
+      dishes.forEach(dish => {
+        if (dish.selected) {
+          toggleDish(dish.id);
+        }
+      });
+      toast.info("Đã xóa tất cả các món đã chọn.");
+    }
+    setActiveTab(newTab);
+  };
 
   const handlePaymentComplete = () => {
     refreshOrders();
@@ -92,7 +108,7 @@ function WaiterPageContent() {
             {/* Navigation Tabs */}
             <NavigationTabs
               activeTab={activeTab}
-              onTabChange={setActiveTab}
+              onTabChange={handleTabChange}
               getTabCount={getTabCount}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -119,6 +135,7 @@ function WaiterPageContent() {
                 <ServePanel
                   activeTab={activeTab}
                   onServe={handleServe}
+                  onRequestRemake={handleRequestRemake}
                   hasSelected={hasSelected}
                   dishes={dishes}
                   getDishesByStatus={getDishesByStatus}

@@ -82,7 +82,10 @@ export function useWaiterOrders() {
       case "Served":
         return "đã phục vụ";
       case "5":
-      case "Redo":
+      case "Completed":
+        return "đã phục vụ";
+      case "7":
+      case "Returned":
         return "yêu cầu làm lại";
       default:
         return "đang chờ";
@@ -216,7 +219,7 @@ export function useWaiterOrders() {
 
   // Handle serving dishes
   const handleServe = useCallback(async () => {
-    const selectedDishes = dishes.filter((d) => d.selected && !d.served);
+    const selectedDishes = dishes.filter((dish) => dish.selected);
     if (selectedDishes.length === 0) return false;
 
     try {
@@ -243,6 +246,35 @@ export function useWaiterOrders() {
     }
   }, [dishes]);
 
+  // Handle requesting remake for dishes
+  const handleRequestRemake = useCallback(async () => {
+    const selectedDishes = dishes.filter((dish) => dish.selected);
+    if (selectedDishes.length === 0) return false;
+
+    try {
+      // Update each selected dish status to Returned (7)
+      const updatePromises = selectedDishes.map((dish) =>
+        ordersApi.updateOrderItemStatus(dish.orderId, dish.itemId, 7)
+      );
+
+      await Promise.all(updatePromises);
+
+      // Update local state
+      setDishes((prev) =>
+        prev.map((d) =>
+          d.selected
+            ? { ...d, selected: false, status: "yêu cầu làm lại" }
+            : d
+        )
+      );
+
+      return true;
+    } catch (err) {
+      console.error("Error requesting remake:", err);
+      return false;
+    }
+  }, [dishes]);
+
   // Refresh orders
   const refreshOrders = useCallback(() => {
     fetchOrders();
@@ -257,6 +289,7 @@ export function useWaiterOrders() {
     error,
     toggleDish,
     handleServe,
+    handleRequestRemake,
     refreshOrders,
     getTabCount,
     getDishesByStatus,

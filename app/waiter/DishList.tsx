@@ -46,11 +46,9 @@ const DishList: React.FC<DishListProps> = ({
   dishes, // Destructure dishes prop
   getDishesByStatus, // Destructure getDishesByStatus prop
 }) => {
-  // Get dishes for the active tab, but also include selected dishes from other tabs
+  // Get dishes for the active tab only - don't include selected dishes from other tabs
   const dishesForTab = getDishesByStatus(activeTab);
-  const selectedDishesFromOtherTabs = dishes.filter(d => d.selected && d.status !== activeTab);
-  const allDishesToShow = [...dishesForTab, ...selectedDishesFromOtherTabs];
-
+  const allDishesToShow = dishesForTab;
 
 
   // Filter dishes by search query
