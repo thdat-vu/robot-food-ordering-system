@@ -1,4 +1,5 @@
 import {ShoppingCart} from "@/entites/Props/ShoppingCart";
+import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
 export default function formatCurrency(amount: number): string {
     return amount.toLocaleString('vi-VN', {
@@ -21,3 +22,11 @@ export const totolPrice = (shoppingCarts: ShoppingCart[]) => {
     });
     return sum;
 }
+
+
+export const tokenAuthentic = async (): Promise<string> => {
+    const res = await FingerprintJS.load().then(fp =>
+        fp.get().then(result => result.visitorId)
+    );
+    return res;
+};

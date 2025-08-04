@@ -69,10 +69,7 @@ export default function Profile({id}: { id: string }) {
                 </div>
 
                 <div className="px-4 mb-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <span
-                            className="text-lg text-gray-600 font-semibold"> {infor === "!" ? "" : " Bàn " + id}</span>
-                    </div>
+                    
                     <p className="text-sm text-gray-600 mb-3">Chúng tôi sẽ trợ đỡ cho bạn tại đây!</p>
 
                     <div className="bg-blue-400 text-white p-3 rounded-lg mb-4 flex items-center justify-between">

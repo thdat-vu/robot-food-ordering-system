@@ -51,7 +51,7 @@ export default function ProductionDetailPage({id}: { id: string }) {
 
     const handle = (id: string, name: string, urlImg: string) => {
         if (size)
-            setProduct(id, name, urlImg, size?.price, size?.id, size?.name);
+            setProduct(id, name, urlImg, size?.price, size?.id,"", size?.name);
     }
 
     const handleClose = useCallback(() => {

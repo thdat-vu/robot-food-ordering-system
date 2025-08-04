@@ -10,6 +10,8 @@ import {useCreateOreder} from "@/hooks/customHooks/useOrderHooks";
 import {Order} from "@/entites/Props/Order";
 import {Payment} from "@/app/features/components/Payment";
 import {useFastOrderContext} from "@/hooks/context/FastOrderContext";
+import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
+import {Alert} from "@/components/common/Alert";
 
 export const ConfimOrder: React.FC<{
     isOpen: boolean,
@@ -26,9 +28,14 @@ export const ConfimOrder: React.FC<{
     const [totalPrice, setTotalPrice] = useState<number>(0);
     const [open, setOpen] = useState<boolean>(false);
     const {tableId, tableName} = context;
-    const {run, data: responcreat, loading} = useCreateOreder();
+    const {run, data: responcreat, loading, error} = useCreateOreder();
+    const deviceToken = useDeviceToken();
+    const [ex, setEx] = useState<string>();
+
 
     const factContext = useFastOrderContext();
+
+    console.log(ShoppingCart)
 
     useEffect(() => {
         if (ShoppingCart) {
@@ -51,17 +58,22 @@ export const ConfimOrder: React.FC<{
     const handleConfirm = (typePayment: string) => {
 
         factContext.clearProduct();
+        console.log(deviceToken.deviceToken);
 
         const items: item[] = data.map(value => ({
             productId: value.id,
             productSizeId: value.size.id,
-            toppingIds: value.toppings.map(value1 => value1.id)
+            toppingIds: value.toppings.flatMap(topping =>
+                Array(topping.quantity).fill(topping.id)
+            ),
+            note: value.note,
         }))
 
 
         const orderRequet: OrderRequest = {
             tableId: tableId,
             items: items,
+            deviceToken: deviceToken.deviceToken
         }
 
 
@@ -71,6 +83,8 @@ export const ConfimOrder: React.FC<{
             case 'COD':
                 (async () => {
                     await run(orderRequet);
+                    if (error)
+                        setEx(error.response.data.message);
                     setOpen(false);
                 })()
                 break;
@@ -96,6 +110,11 @@ export const ConfimOrder: React.FC<{
 
     return (
         <>
+            {
+                ex && (
+                    <Alert message={ex} type="error"/>
+                )
+            }
             <DialogComponation scrollBody={false} isOpen={isOpen} onClose={onClose}>
                 <div className="bg-white rounded-lg shadow-xl max-w-md mx-auto">
                     <div className="px-6 py-4 border-b border-gray-200">

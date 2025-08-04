@@ -1,5 +1,5 @@
 import {useApiHandler} from "@/hooks/useApiHandler";
-import {createOrderApi, CreatePayment, GetOrderByIdAndTaibleId} from "@/api/OrderApi";
+import {createOrderApi, CreatePayment, GetOrderByIdAndTaibleId, GetOrderWithIdTableAndToken} from "@/api/OrderApi";
 
 export const useCreateOreder = () => {
    return useApiHandler(createOrderApi)
@@ -11,4 +11,8 @@ export const useGetOrderByIdAndTaibleId = () => {
 
 export const useCreatePayment = () => {
   return useApiHandler(CreatePayment)
+}
+
+export const useGetOrderWithIdTableAndToken = () => {
+    return useApiHandler(GetOrderWithIdTableAndToken)
 }

@@ -8,6 +8,7 @@ interface ProductState {
     urlImg: string;
     price: number;
     size: string;
+    note: string;
     size_name: string;
 }
 
@@ -18,6 +19,7 @@ interface ProductContextType extends ProductState {
         urlImg: string,
         price: number,
         size: string,
+        note: string,
         size_name: string
     ) => void;
     clearProduct: () => void;
@@ -42,16 +44,17 @@ export function ProductProvider({children}: { children: ReactNode }) {
         urlImg: "",
         price: 0,
         size: "",
+        note: "",
         size_name: "",
     });
 
 
-    const setProduct = (id: string, name: string, urlImg: string, price: number, size: string, size_name: string) => {
-        setProductState({id, name, urlImg, price, size, size_name});
+    const setProduct = (id: string, name: string, urlImg: string, price: number, size: string, size_name: string, note: string) => {
+        setProductState({id, name, urlImg, price, size, size_name, note});
     }
 
     const clearProduct = () => {
-        setProductState({id: '', name: '', urlImg: '', price: 0, size: '', size_name: ''});
+        setProductState({id: '', name: '', urlImg: '', price: 0, size: '', size_name: '', note: ''});
     }
 
 

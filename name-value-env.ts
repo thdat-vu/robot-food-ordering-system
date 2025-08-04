@@ -1,0 +1,1 @@
+export const TOKEN_NAME_VALUE = `token_vl_store`

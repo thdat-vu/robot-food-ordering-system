@@ -6,8 +6,9 @@ import {useRouter, useParams} from "next/navigation";
 
 export default function Home() {
 
-
     const router = useRouter();
+
+
 
     const handlChangPage = () => {
         router.push(`/productions/${undefined}`);

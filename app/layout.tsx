@@ -4,6 +4,7 @@ import "../styles/globals.css";
 import {TableProvider} from "@/hooks/context/Context";
 import {ProductProvider} from "@/hooks/context/ContextProduct";
 import {FastOrderProvider} from "@/hooks/context/FastOrderContext";
+import {DeviceTokenContext, DeviceTokenProvider} from "@/hooks/context/deviceTokenContext";
 
 
 const geistSans = Geist({
@@ -34,13 +35,15 @@ export default function RootLayout({
     return (
         <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
         <body className="antialiased min-h-screen flex flex-col justify-end items-center bg-white">
-        <TableProvider>
-            <ProductProvider>
-                <FastOrderProvider>
-                    {children}
-                </FastOrderProvider>
-            </ProductProvider>
-        </TableProvider>
+        <DeviceTokenProvider>
+            <TableProvider>
+                <ProductProvider>
+                    <FastOrderProvider>
+                        {children}
+                    </FastOrderProvider>
+                </ProductProvider>
+            </TableProvider>
+        </DeviceTokenProvider>
         </body>
         </html>
     );

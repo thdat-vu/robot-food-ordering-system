@@ -11,13 +11,14 @@ import {useTableContext} from "@/hooks/context/Context";
 import {OrderRespont} from "@/entites/respont/OrderRespont";
 import {addProduction} from "@/store/ShoppingCart";
 import {Order} from "@/entites/Props/Order";
+import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
 
 type PaymentProps = {
     id: string;
     isOpen: boolean;
     onClose: () => void;
     onSave: () => void;
-    orderId?: string; // Make optional since it might be empty
+    orderId?: string;
 }
 
 type AlertDialogProps = {
@@ -64,14 +65,16 @@ const AlertDialog: React.FC<AlertDialogProps> = ({isOpen, title, message, type, 
 };
 
 export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, orderId = ''}) => {
-    const [payment, setPayment] = useState<number>(0);
+    const [payment, setPayment] = useState<number>(1);
     const {run: runPayment, loading: paymentLoading} = useCreatePayment();
-    const {run: runOrder, loading: orderLoading} = useCreateOreder();
+    const {run: runOrder, loading: orderLoading, error: createErro} = useCreateOreder();
     const [error, setError] = useState<string>('');
     const [currentOrderId, setCurrentOrderId] = useState<string>(orderId);
 
     const context = useFastOrderContext();
     const tablecontext = useTableContext();
+    const deviceToken = useDeviceToken();
+
 
     const [alert, setAlert] = useState<{
         isOpen: boolean;
@@ -134,11 +137,16 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
         const orderRequest: OrderRequest = {
             tableId: tablecontext.tableId,
             items: items,
+            deviceToken: deviceToken.deviceToken
         };
 
         try {
             const orderRes: BaseEntityData<OrderRespont> = await runOrder(orderRequest);
             const newOrderId = orderRes.data.id;
+            if (createErro.status !== 200) {
+                setError("Không thể gọi món");
+                console.log(error)
+            }
             setCurrentOrderId(newOrderId);
             return newOrderId;
 

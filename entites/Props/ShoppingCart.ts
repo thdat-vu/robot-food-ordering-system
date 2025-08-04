@@ -4,6 +4,7 @@ export interface ShoppingCart {
     urlImg: string;
     size: Size;
     toppings: Topping[];
+    note: string | undefined;
 }
 
 export interface Size {

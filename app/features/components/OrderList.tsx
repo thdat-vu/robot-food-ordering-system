@@ -12,7 +12,6 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
     const [activeTab, setActiveTab] = useState<"food" | "ordered">("food");
 
 
-
     return (
         <>
             <div className="w-full bg-white text-black shadow-sm fixed top-0 left-0 z-50">
@@ -69,14 +68,6 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
                         }
                     </div>
                 </div>
-
-                {/*<div className="flex justify-center items-center pt-4 border-t font-bold text-lg text-gray-800">*/}
-                {/*    <Button*/}
-                {/*        className="w-full max-w-xs bg-green-600 text-white py-3 rounded-3xl font-semibold hover:bg-green-500"*/}
-                {/*        content="Xác nhận"*/}
-                {/*        handle={() => setOpen(true)}*/}
-                {/*    />*/}
-                {/*</div>*/}
             </div>
 
         </>

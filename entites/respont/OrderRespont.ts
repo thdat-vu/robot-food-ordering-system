@@ -1,6 +1,6 @@
 import {Topping} from "@/entites/respont/Topping";
 
-export interface OrderRespont {
+export interface    OrderRespont {
     id: string;
     tableId: string;
 }
@@ -24,5 +24,8 @@ export interface InForProductOrderDetail {
     productSizeId: string;
     sizeName: string;
     status: string;
+    note:string;
+    price: number;
+    imageUrl:string;
     toppings: Topping[];
 }

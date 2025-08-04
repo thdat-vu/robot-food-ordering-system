@@ -27,6 +27,8 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
                                                         }) => {
 
     const [data, setData] = useState<ToppingProduct[]>([]);
+    const [note, setNote] = useState<string>('')
+
     const [selectedToppings, setSelectedToppings] = useState<{
         [key: string]: { name: string, price: number, quanlity: number }
     }>({});
@@ -42,6 +44,7 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
         loading: loadinggetToppingsForProduct,
         data: dataToppings
     } = useGetToppingForProduct();
+
 
     useEffect(() => {
         (async () => {
@@ -106,22 +109,28 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
             name: name,
             id: id,
             toppings: toppingsArray,
+            note: note
         };
 
+        console.log(temp);
 
         switch (content) {
             case 'Gọi món ngay' :
+                console.log(temp)
                 setRes(temp);
                 setOpen(true);
                 break;
             case 'Lưu võ hàng':
                 addProduction<ShoppingCart>("shopping-carts", temp);
+                const d = localStorage.getItem("shopping-cart");
+                console.log(d);
                 break;
             default:
                 break;
         }
         onClose();
     };
+
 
     return (
         <>
@@ -252,6 +261,29 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
                             </div>
                         </div>
                     )}
+
+                    {/* Note Input Section */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Ghi chú (tùy chọn)
+                        </label>
+                        <textarea
+                            value={note}
+                            onChange={(event) => setNote(event.target.value)}
+                            placeholder="Thêm ghi chú cho đơn hàng của bạn..."
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
+                            rows={3}
+                            maxLength={200}
+                        />
+                        <div className="flex justify-between items-center mt-2">
+                            <span className="text-xs text-gray-500">
+                                Ví dụ: Ít đá, nhiều đường, không khuấy...
+                            </span>
+                            <span className="text-xs text-gray-400">
+                                {note.length}/200
+                            </span>
+                        </div>
+                    </div>
 
                     <div className="flex space-x-3">
                         <button
