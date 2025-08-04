@@ -1,66 +1,50 @@
 "use client";
 
 import React, { useState } from "react";
+import { MapPin, Eye, RotateCcw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { useWaiterOrders, WaiterDish } from "@/hooks/use-waiter-orders";
 import { OrderStatus } from "@/types/kitchen";
-import {
-  MapPin,
-  Navigation,
-  ArrowRight,
-  Users,
-  Clock,
-  MessageSquare,
-} from "lucide-react";
+import { WaiterDish } from "@/hooks/use-waiter-orders";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 
 interface ServePanelProps {
   activeTab: OrderStatus;
   onServe: () => Promise<boolean>;
   hasSelected: boolean;
+  dishes: WaiterDish[]; // Add dishes prop
+  getDishesByStatus: (status: OrderStatus) => WaiterDish[]; // Add function prop
 }
 
-const MapPanel = ({ selectedTable }: { selectedTable: number | null }) => {
-  const [fromTable, setFromTable] = useState<string>("");
-  const [toTable, setToTable] = useState<string>("");
-  const [showNavigation, setShowNavigation] = useState(false);
+const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
   const [showMap, setShowMap] = useState(false);
 
-  const tables = Array.from({ length: 6 }, (_, i) => i + 1);
-
-  const handleShowNavigation = () => {
-    if (fromTable && toTable) {
-      setShowNavigation(true);
+  // Auto-show map when mapUrl is available
+  React.useEffect(() => {
+    if (mapUrl) {
       setShowMap(true);
+    } else {
+      setShowMap(false);
     }
-  };
+  }, [mapUrl]);
 
-  const handleResetNavigation = () => {
-    setShowNavigation(false);
-    setShowMap(false);
-    setFromTable("");
-    setToTable("");
-  };
-
-  const handleShowSingleTableMap = () => {
+  const handleShowMap = () => {
     setShowMap(true);
-    setShowNavigation(false);
   };
 
-  const getNavigationUrl = () => {
-    if (!fromTable || !toTable) return "";
-    return `https://mapdto-production.up.railway.app/navigation?from=${fromTable}&to=${toTable}`;
+  const handleResetMap = () => {
+    setShowMap(false);
+  };
+
+  // Extract table numbers from mapUrl for display
+  const getTableNumbersFromUrl = () => {
+    if (!mapUrl) return "";
+    const urlParams = new URLSearchParams(mapUrl.split('?')[1]);
+    return urlParams.get('tables') || "";
   };
 
   return (
@@ -70,11 +54,11 @@ const MapPanel = ({ selectedTable }: { selectedTable: number | null }) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <Navigation className="w-5 h-5" />
+              <Eye className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xl font-bold">Hướng dẫn đường đi</h3>
-              <p className="text-blue-100 text-sm">Tìm đường đi giữa các bàn</p>
+              <h3 className="text-xl font-bold">Hướng dẫn đến bàn</h3>
+              <p className="text-blue-100 text-sm">Xem đường đi đến bàn được chọn</p>
             </div>
           </div>
           <div className="flex items-center space-x-2 bg-white/10 rounded-full px-3 py-1">
@@ -83,8 +67,24 @@ const MapPanel = ({ selectedTable }: { selectedTable: number | null }) => {
           </div>
         </div>
 
+        {/* Map Controls */}
+        {mapUrl && showMap && (
+          <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-sm">
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={handleResetMap}
+                variant="outline"
+                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                size="sm"
+              >
+                Ẩn bản đồ
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Navigation Controls */}
-        <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-sm">
+        {/* <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-sm">
           <div className="flex items-center space-x-4 mb-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-blue-100 mb-2">
@@ -177,102 +177,26 @@ const MapPanel = ({ selectedTable }: { selectedTable: number | null }) => {
               </Button>
             )}
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Map Content - Only show when needed */}
       {showMap ? (
-        <div className="flex-1 relative bg-gray-50 min-h-0">
-          {showNavigation && fromTable && toTable ? (
-            // Show navigation map
-            <div className="relative h-full">
+        <div className="flex-1 relative bg-gray-50 min-h-[600px]">
+          {mapUrl ? (
+            // Show map with selected table numbers
+            <div className="relative h-full w-full">
               <iframe
-                src={getNavigationUrl()}
+                src={mapUrl}
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
-                className="w-full h-full"
-                title="Navigation Map"
-                style={{ border: "none" }}
-              />
-
-              {/* Navigation info overlay */}
-              <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg max-w-xs border border-gray-200">
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Navigation className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <span className="font-bold text-gray-800">
-                    Hướng dẫn đường đi
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">Từ:</span>
-                    <Badge
-                      variant="outline"
-                      className="bg-blue-50 text-blue-700 border-blue-200"
-                    >
-                      Bàn {fromTable}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">Đến:</span>
-                    <Badge
-                      variant="outline"
-                      className="bg-green-50 text-green-700 border-green-200"
-                    >
-                      Bàn {toTable}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : selectedTable ? (
-            // Show single table map
-            <div className="relative h-full">
-              <iframe
-                src={`https://mapdto-production.up.railway.app/${selectedTable}`}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="strict-origin-when-cross-origin"
-                className="w-full h-full"
+                className="w-full h-full min-h-[600px]"
                 title="Map Embed"
-                style={{ border: "none" }}
+                style={{ border: "none", zIndex: 1 }}
               />
-
-              {/* Single table info overlay */}
-              <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-gray-200">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <MapPin className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-gray-800">
-                      Vị trí hiện tại
-                    </span>
-                    <div className="text-sm text-gray-600">
-                      Bàn {selectedTable}
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           ) : null}
-
-          {/* Loading indicator */}
-          <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="font-medium text-gray-700 text-sm">
-                {showNavigation
-                  ? "Đang tải hướng dẫn..."
-                  : "Đang tải bản đồ..."}
-              </span>
-            </div>
-          </div>
         </div>
       ) : (
         // Empty state when map is not shown
@@ -282,12 +206,12 @@ const MapPanel = ({ selectedTable }: { selectedTable: number | null }) => {
               <MapPin className="w-10 h-10 text-blue-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-3">
-              Chọn tùy chọn để xem bản đồ
+              Bản đồ nhà hàng
             </h3>
             <p className="text-gray-600 leading-relaxed text-base">
-              {selectedTable
-                ? "Chọn điểm xuất phát và điểm đến để tìm đường đi, hoặc nhấn 'Xem bản đồ' để xem vị trí hiện tại"
-                : "Chọn món để xem vị trí bàn hoặc sử dụng hướng dẫn đường đi ở trên"}
+              {mapUrl
+                ? `Bản đồ sẽ hiển thị 6 bàn với hướng dẫn đến bàn ${getTableNumbersFromUrl()}`
+                : "Chọn món để xem bản đồ với hướng dẫn đến bàn tương ứng"}
             </p>
           </div>
         </div>
@@ -300,17 +224,37 @@ const ServePanel: React.FC<ServePanelProps> = ({
   activeTab,
   onServe,
   hasSelected,
+  dishes, // Destructure dishes prop
+  getDishesByStatus, // Destructure getDishesByStatus prop
 }) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
-  const { dishes, getDishesByStatus } = useWaiterOrders();
+  // Remove the duplicate useWaiterOrders call
 
   // Get dishes for current tab
   const dishesForTab = getDishesByStatus(activeTab);
 
+  // Get ALL selected dishes (not just from current tab)
+  const allSelectedDishes = dishes.filter((dish) => dish.selected);
+  
   // Get selected dishes for the current tab
   const selectedDishes = dishes.filter(
     (dish) => dish.selected && dish.status === activeTab
   );
+
+  // Get unique table numbers from all selected dishes
+  const selectedTableNumbers = React.useMemo(() => {
+    const uniqueNumbers = Array.from(new Set(allSelectedDishes.map(dish => dish.tableNumber)));
+    return uniqueNumbers.sort((a, b) => a - b); // Sort for consistency
+  }, [allSelectedDishes]);
+
+  // Generate map URL with all selected table numbers
+  const mapUrl = React.useMemo(() => {
+    if (selectedTableNumbers.length > 0) {
+      return `https://my-app-henna-three.vercel.app/?tables=${selectedTableNumbers.join(',')}`;
+    }
+    // No fallback - only show map when dishes are actually selected
+    return null;
+  }, [selectedTableNumbers]);
 
   // Update selected table when dishes change
   React.useEffect(() => {
@@ -330,6 +274,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
       toast("Đã phục vụ", {
         description: "Các món đã được phục vụ thành công!",
       });
+      // Reset selected table to hide the map
+      setSelectedTable(null);
     } else {
       toast("Lỗi phục vụ", {
         description: "Có lỗi xảy ra khi phục vụ món ăn.",
@@ -431,25 +377,13 @@ const ServePanel: React.FC<ServePanelProps> = ({
               </div>
             ) : (
               // For other tabs, show the map
-              <MapPanel selectedTable={selectedTable} />
+              <MapPanel mapUrl={mapUrl} />
             )
           ) : (
             <div className="w-full h-[400px] flex items-center justify-center bg-white rounded-2xl shadow-lg border-2 border-gray-200">
               <div className="text-center">
                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-10 h-10 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
+                  <Loader2 className="w-10 h-10 text-gray-400" />
                 </div>
                 <p className="text-gray-500 font-medium text-lg">
                   {activeTab === "đã phục vụ"

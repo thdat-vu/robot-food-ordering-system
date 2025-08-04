@@ -23,6 +23,7 @@ function WaiterPageContent() {
     handleServe,
     refreshOrders,
     getTabCount,
+    getDishesByStatus, // Add this to the destructured values
   } = useWaiterOrders();
 
   const handlePaymentComplete = () => {
@@ -95,6 +96,7 @@ function WaiterPageContent() {
               getTabCount={getTabCount}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
+              selectedCount={dishes.filter(d => d.selected).length}
             />
 
             {/* Content based on active tab */}
@@ -106,6 +108,8 @@ function WaiterPageContent() {
                     activeTab={activeTab}
                     searchQuery={searchQuery}
                     onDishToggle={toggleDish}
+                    dishes={dishes}
+                    getDishesByStatus={getDishesByStatus}
                   />
                 </div>
               </div>
@@ -116,6 +120,8 @@ function WaiterPageContent() {
                   activeTab={activeTab}
                   onServe={handleServe}
                   hasSelected={hasSelected}
+                  dishes={dishes}
+                  getDishesByStatus={getDishesByStatus}
                 />
               </div>
             </div>

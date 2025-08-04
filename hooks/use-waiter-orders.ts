@@ -8,7 +8,7 @@ import {
 import { OrderStatus } from "@/types/kitchen";
 
 export interface WaiterDish {
-  id: number;
+  id: string; // Changed from number to string for consistent IDs
   name: string;
   categoryId: string;
   categoryName: string;
@@ -27,13 +27,14 @@ export interface WaiterDish {
 }
 
 export function useWaiterOrders() {
-  const [dishes, setDishes] = useState<WaiterDish[]>([]);
   const [categories, setCategories] = useState<ApiCategoryResponse[]>([]);
-  const [productCategoryMap, setProductCategoryMap] = useState<
-    Map<string, string>
-  >(new Map());
+  const [dishes, setDishes] = useState<WaiterDish[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [productCategoryMap, setProductCategoryMap] = useState<Map<string, string>>(new Map());
+
+  // Memoize productCategoryMap to prevent unnecessary re-creation
+  const stableProductCategoryMap = useMemo(() => productCategoryMap, [productCategoryMap.size]);
 
   // Fetch categories and product-category mappings
   const fetchCategories = useCallback(async () => {
@@ -101,7 +102,9 @@ export function useWaiterOrders() {
       if (response.data && response.data.length > 0) {
         // Transform API orders to waiter dishes
         const waiterDishes: WaiterDish[] = [];
-        let dishId = 1;
+
+        // Create a unique key for each dish to preserve selection state
+        const createDishKey = (orderId: string, itemId: string) => `${orderId}-${itemId}`;
 
         response.data.forEach((order) => {
           order.items.forEach((item) => {
@@ -110,34 +113,40 @@ export function useWaiterOrders() {
 
             // Get category from product-category mapping
             const categoryName =
-              productCategoryMap.get(item.productName.toLowerCase()) || "Khác";
+              stableProductCategoryMap.get(item.productName.toLowerCase()) || "Khác";
             const category = categories.find((c) => c.name === categoryName);
 
             // Map API status to OrderStatus
             const orderStatus = mapApiStatusToOrderStatus(item.status);
 
+            // Create unique key for this dish
+            const dishKey = createDishKey(order.id, item.id);
+
+            // Check if this dish was previously selected using the consistent ID
+            const previouslySelected = dishes.find(d => d.id === dishKey)?.selected || false;
+
             waiterDishes.push({
-              id: dishId++,
+              id: dishKey, // Use the generated key as the ID
               name: item.productName,
               categoryId: category?.id || "unknown",
               categoryName: categoryName,
-              selected: false,
+              selected: previouslySelected, // Preserve selection state
               served: orderStatus === "đã phục vụ",
               orderId: order.id,
               itemId: item.id,
               tableNumber,
               quantity: item.quantity,
               status: orderStatus,
-              orderTime: order.createdAt
-                ? new Date(order.createdAt).toLocaleTimeString("vi-VN", {
+              orderTime: order.createdTime
+                ? new Date(order.createdTime).toLocaleTimeString("vi-VN", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })
                 : undefined,
-              estimatedTime: item.estimatedTime || "10 phút",
-              note: item.note,
+              estimatedTime: "10 phút", // Default estimated time since API doesn't provide it
+              note: item.note || undefined,
               sizeName: item.sizeName,
-              toppings: item.toppings,
+              toppings: item.toppings?.map(topping => topping.name) || [],
             });
           });
         });
@@ -153,7 +162,7 @@ export function useWaiterOrders() {
     } finally {
       setIsLoading(false);
     }
-  }, [categories, productCategoryMap]);
+  }, [categories, stableProductCategoryMap]);
 
   // Load categories first, then orders
   useEffect(() => {
@@ -199,7 +208,7 @@ export function useWaiterOrders() {
   const hasSelected = dishes.some((d) => d.selected && !d.served);
 
   // Toggle dish selection
-  const toggleDish = (id: number) => {
+  const toggleDish = (id: string) => {
     setDishes((prev) =>
       prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d))
     );
@@ -208,7 +217,7 @@ export function useWaiterOrders() {
   // Handle serving dishes
   const handleServe = useCallback(async () => {
     const selectedDishes = dishes.filter((d) => d.selected && !d.served);
-    if (selectedDishes.length === 0) return;
+    if (selectedDishes.length === 0) return false;
 
     try {
       // Update each selected dish status to Served (4)

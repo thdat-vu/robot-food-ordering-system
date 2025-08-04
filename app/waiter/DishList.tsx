@@ -3,12 +3,14 @@
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { OrderStatus } from "@/types/kitchen";
-import { useWaiterOrders, WaiterDish } from "@/hooks/use-waiter-orders";
+import { WaiterDish } from "@/hooks/use-waiter-orders";
 
 interface DishListProps {
   activeTab: OrderStatus;
   searchQuery: string;
-  onDishToggle: (dishId: number) => void;
+  onDishToggle: (dishId: string) => void; // Changed from number to string
+  dishes: WaiterDish[]; // Add dishes prop
+  getDishesByStatus: (status: OrderStatus) => WaiterDish[]; // Add function prop
 }
 
 const categoryStyle: Record<
@@ -41,14 +43,18 @@ const DishList: React.FC<DishListProps> = ({
   activeTab,
   searchQuery,
   onDishToggle,
+  dishes, // Destructure dishes prop
+  getDishesByStatus, // Destructure getDishesByStatus prop
 }) => {
-  const { getDishesByStatus } = useWaiterOrders();
-
-  // Get dishes for the active tab
+  // Get dishes for the active tab, but also include selected dishes from other tabs
   const dishesForTab = getDishesByStatus(activeTab);
+  const selectedDishesFromOtherTabs = dishes.filter(d => d.selected && d.status !== activeTab);
+  const allDishesToShow = [...dishesForTab, ...selectedDishesFromOtherTabs];
+
+
 
   // Filter dishes by search query
-  const filteredDishes = dishesForTab.filter((dish) => {
+  const filteredDishes = allDishesToShow.filter((dish) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true; // Show all dishes if no search query
     
@@ -99,20 +105,36 @@ const DishList: React.FC<DishListProps> = ({
             <ul className="space-y-3 w-full">
               {items.map((dish) => (
                 <li key={dish.id}>
-                  <label
+                  <div
                     className={`flex items-center px-4 py-3 rounded-xl border ${
                       style.bg
                     } ${
                       style.border
                     } cursor-pointer transition hover:bg-accent ${
-                      dish.selected ? "ring-2 ring-primary ring-offset-2" : ""
+                      dish.selected 
+                        ? "ring-2 ring-green-500 ring-offset-2 bg-green-50 border-green-300" 
+                        : ""
                     }`}
+                    onClick={() => onDishToggle(dish.id)}
                   >
-                    <Checkbox
-                      checked={dish.selected}
-                      onCheckedChange={() => onDishToggle(dish.id)}
-                      className="mr-3"
-                    />
+                    <div 
+                      className={`mr-3 w-4 h-4 border-2 rounded flex items-center justify-center cursor-pointer transition-colors ${
+                        dish.selected 
+                          ? 'bg-green-500 border-green-500' 
+                          : 'bg-white border-gray-300'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDishToggle(dish.id);
+                      }}
+                      title={`Selected: ${dish.selected}`}
+                    >
+                      {dish.selected && (
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
                     <div className="flex-1">
                       <div className="text-sm font-medium text-foreground">
                         {dish.name} - Bàn {dish.tableNumber}{" "}
@@ -139,7 +161,7 @@ const DishList: React.FC<DishListProps> = ({
                         </div>
                       )}
                     </div>
-                  </label>
+                  </div>
                 </li>
               ))}
             </ul>
