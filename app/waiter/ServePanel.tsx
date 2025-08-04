@@ -1,77 +1,284 @@
 "use client";
 
 import React, { useState } from "react";
+import { MapPin, Eye, RotateCcw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { OrderStatus } from "@/types/kitchen";
+import { WaiterDish } from "@/hooks/use-waiter-orders";
 import { toast } from "sonner";
-import PaymentPanel from "./PaymentPanel";
-import { useWaiterOrders, WaiterDish } from "@/hooks/use-waiter-orders";
 
-const MapPanel = ({ selectedTable }: { selectedTable: number | null }) => (
-  <div className="w-full h-[340px] md:h-[460px] flex flex-col bg-muted rounded-2xl shadow-inner border border-border overflow-hidden">
-    {selectedTable ? (
-      <>
-        <div className="bg-primary text-primary-foreground px-4 py-2 text-center font-semibold">
-          Bàn {selectedTable}
+
+interface ServePanelProps {
+  activeTab: OrderStatus;
+  onServe: () => Promise<boolean>;
+  onRequestRemake: () => Promise<boolean>;
+  hasSelected: boolean;
+  dishes: WaiterDish[]; // Add dishes prop
+  getDishesByStatus: (status: OrderStatus) => WaiterDish[]; // Add function prop
+}
+
+const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
+  const [showMap, setShowMap] = useState(false);
+
+  // Auto-show map when mapUrl is available
+  React.useEffect(() => {
+    if (mapUrl) {
+      setShowMap(true);
+    } else {
+      setShowMap(false);
+    }
+  }, [mapUrl]);
+
+  const handleShowMap = () => {
+    setShowMap(true);
+  };
+
+  const handleResetMap = () => {
+    setShowMap(false);
+  };
+
+  // Extract table numbers from mapUrl for display
+  const getTableNumbersFromUrl = () => {
+    if (!mapUrl) return "";
+    const urlParams = new URLSearchParams(mapUrl.split('?')[1]);
+    return urlParams.get('tables') || "";
+  };
+
+  return (
+    <div className="w-full h-full max-h-[800px] md:max-h-[900px] flex flex-col bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+      {/* Header Section */}
+      <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+              <Eye className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold">Hướng dẫn đến bàn</h3>
+              <p className="text-blue-100 text-sm">Xem đường đi đến bàn được chọn</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 bg-white/10 rounded-full px-3 py-1">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium">Trực tuyến</span>
+          </div>
         </div>
-        <iframe
-          src={`https://map-doan-nhattruowngs-projects.vercel.app/map/${selectedTable}`}
-          allowFullScreen
-          loading="lazy"
-          referrerPolicy="strict-origin-when-cross-origin"
-          className="w-full flex-1"
-          title="Map Embed"
-          style={{ border: "none" }}
-        />
-      </>
-    ) : (
-      <div className="flex items-center justify-center text-muted-foreground flex-1">
-        <p>Chọn món để xem vị trí bàn</p>
-      </div>
-    )}
-  </div>
-);
 
-const categoryStyle: Record<
-  string,
-  { label: string; bg: string; border: string; icon?: React.ReactNode }
-> = {
-  "Tráng Miệng": {
-    label: "Tráng Miệng",
-    bg: "bg-orange-50",
-    border: "border-orange-200",
-  },
-  "Món Chính": {
-    label: "Món Chính",
-    bg: "bg-green-50",
-    border: "border-green-200",
-  },
-  "Đồ Uống": { label: "Đồ Uống", bg: "bg-blue-50", border: "border-blue-200" },
-  Khác: { label: "Khác", bg: "bg-gray-50", border: "border-gray-200" },
+        {/* Map Controls */}
+        {mapUrl && showMap && (
+          <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-sm">
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={handleResetMap}
+                variant="outline"
+                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                size="sm"
+              >
+                Ẩn bản đồ
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Controls */}
+        {/* <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-sm">
+          <div className="flex items-center space-x-4 mb-3">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-blue-100 mb-2">
+                Điểm xuất phát
+              </label>
+              <Select value={fromTable} onValueChange={setFromTable}>
+                <SelectTrigger className="bg-white/20 border-white/30 text-white placeholder:text-blue-200 hover:bg-white/30 transition-colors">
+                  <SelectValue placeholder="Chọn bàn từ..." />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-gray-200">
+                  {tables.map((table) => (
+                    <SelectItem key={table} value={table.toString()}>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-semibold text-sm">
+                            {table}
+                          </span>
+                        </div>
+                        <span>Bàn {table}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col items-center space-y-2">
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                <ArrowRight className="w-4 h-4 text-white" />
+              </div>
+              <div className="text-xs text-blue-200 font-medium">Đến</div>
+            </div>
+
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-blue-100 mb-2">
+                Điểm đến
+              </label>
+              <Select value={toTable} onValueChange={setToTable}>
+                <SelectTrigger className="bg-white/20 border-white/30 text-white placeholder:text-blue-200 hover:bg-white/30 transition-colors">
+                  <SelectValue placeholder="Chọn bàn đến..." />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-gray-200">
+                  {tables.map((table) => (
+                    <SelectItem key={table} value={table.toString()}>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                          <span className="text-green-600 font-semibold text-sm">
+                            {table}
+                          </span>
+                        </div>
+                        <span>Bàn {table}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <Button
+              onClick={handleShowNavigation}
+              disabled={!fromTable || !toTable}
+              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              <Navigation className="w-4 h-4 mr-2" />
+              Tìm đường đi
+            </Button>
+
+            {selectedTable && !showMap && (
+              <Button
+                onClick={handleShowSingleTableMap}
+                variant="outline"
+                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                size="sm"
+              >
+                <MapPin className="w-4 h-4 mr-1" />
+                Xem bản đồ
+              </Button>
+            )}
+
+            {showMap && (
+              <Button
+                onClick={handleResetNavigation}
+                variant="outline"
+                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                size="sm"
+              >
+                Ẩn bản đồ
+              </Button>
+            )}
+          </div>
+        </div> */}
+      </div>
+
+      {/* Map Content - Only show when needed */}
+      {showMap ? (
+        <div className="flex-1 relative bg-gray-50 min-h-[600px]">
+          {mapUrl ? (
+            // Show map with selected table numbers
+            <div className="relative h-full w-full">
+              <iframe
+                src={mapUrl}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="w-full h-full min-h-[600px]"
+                title="Map Embed"
+                style={{ border: "none", zIndex: 1 }}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        // Empty state when map is not shown
+        <div className="flex items-center justify-center flex-1 bg-gradient-to-br from-gray-50 to-gray-100 min-h-0">
+          <div className="text-center max-w-sm p-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
+              <MapPin className="w-10 h-10 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-3">
+              Bản đồ nhà hàng
+            </h3>
+            <p className="text-gray-600 leading-relaxed text-base">
+              {mapUrl
+                ? `Bản đồ sẽ hiển thị 6 bàn với hướng dẫn đến bàn ${getTableNumbersFromUrl()}`
+                : "Chọn món để xem bản đồ với hướng dẫn đến bàn tương ứng"}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
-const ServePanel: React.FC = () => {
-  const [panel, setPanel] = useState<"control" | "payment">("control");
+const ServePanel: React.FC<ServePanelProps> = ({
+  activeTab,
+  onServe,
+  onRequestRemake,
+  hasSelected,
+  dishes, // Destructure dishes prop
+  getDishesByStatus, // Destructure getDishesByStatus prop
+}) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
-  const [search, setSearch] = useState(""); // State cho ô tìm kiếm
-  const {
-    dishes,
-    groupedDishes,
-    categories,
-    hasSelected,
-    isLoading,
-    error,
-    toggleDish,
-    handleServe,
-    refreshOrders,
-  } = useWaiterOrders();
+  const [showRemakeConfirmation, setShowRemakeConfirmation] = useState(false);
+  // Remove the duplicate useWaiterOrders call
+
+  // Get dishes for current tab
+  const dishesForTab = getDishesByStatus(activeTab);
+
+  // Get ALL selected dishes (not just from current tab)
+  const allSelectedDishes = dishes.filter((dish) => dish.selected);
+  
+  // Get selected dishes for the current tab
+  const selectedDishes = dishes.filter(
+    (dish) => dish.selected && dish.status === activeTab
+  );
+
+  // Get unique table numbers from all selected dishes
+  const selectedTableNumbers = React.useMemo(() => {
+    const uniqueNumbers = Array.from(new Set(allSelectedDishes.map(dish => dish.tableNumber)));
+    return uniqueNumbers.sort((a, b) => a - b); // Sort for consistency
+  }, [allSelectedDishes]);
+
+  // Generate map URL with all selected table numbers
+  const mapUrl = React.useMemo(() => {
+    if (selectedTableNumbers.length > 0) {
+      return `https://my-app-henna-three.vercel.app/?tables=${selectedTableNumbers.join(',')}`;
+    }
+    // No fallback - only show map when dishes are actually selected
+    return null;
+  }, [selectedTableNumbers]);
+
+  // Update selected table when dishes change
+  React.useEffect(() => {
+    if (selectedDishes.length > 0) {
+      setSelectedTable(selectedDishes[0].tableNumber);
+    } else if (dishesForTab.length > 0) {
+      // If no dishes are selected, use the first dish in the current tab
+      setSelectedTable(dishesForTab[0].tableNumber);
+    } else {
+      setSelectedTable(null);
+    }
+  }, [selectedDishes, dishesForTab]);
 
   const handleServeClick = async () => {
-    const success = await handleServe();
+    const success = await onServe();
     if (success) {
       toast("Đã phục vụ", {
         description: "Các món đã được phục vụ thành công!",
       });
+      // Reset selected table to hide the map
+      setSelectedTable(null);
     } else {
       toast("Lỗi phục vụ", {
         description: "Có lỗi xảy ra khi phục vụ món ăn.",
@@ -79,196 +286,230 @@ const ServePanel: React.FC = () => {
     }
   };
 
-  const handlePaymentComplete = () => {
-    // Refresh orders after payment completion
-    refreshOrders();
-    setPanel("control");
-  };
-
-  const handleDishToggle = (dishId: number) => {
-    // Find the dish to get its table number before toggling
-    const dish = dishes.find((d) => d.id === dishId);
-    const isCurrentlySelected = dish?.selected || false;
-
-    toggleDish(dishId);
-
-    if (dish) {
-      if (!isCurrentlySelected) {
-        // Dish is being selected, update the selected table
-        setSelectedTable(dish.tableNumber);
-      } else {
-        // Dish is being deselected, check if there are other selected dishes
-        const otherSelectedDishes = dishes.filter(
-          (d) => d.selected && d.id !== dishId
-        );
-        if (otherSelectedDishes.length === 0) {
-          // No dishes selected, clear the table
-          setSelectedTable(null);
-        } else {
-          // Use the table number of the first selected dish
-          setSelectedTable(otherSelectedDishes[0].tableNumber);
-        }
-      }
+  const handleRequestRemakeClick = async () => {
+    const success = await onRequestRemake();
+    if (success) {
+      toast("Yêu cầu làm lại", {
+        description: "Yêu cầu làm lại đã được gửi đi!",
+      });
+      setShowRemakeConfirmation(false);
+    } else {
+      toast("Lỗi yêu cầu làm lại", {
+        description: "Có lỗi xảy ra khi gửi yêu cầu làm lại.",
+      });
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-background">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">
-              Đang tải danh sách món ăn...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const getTabTitle = () => {
+    switch (activeTab) {
+      case "đang thực hiện":
+        return "Món đang được thực hiện";
+      case "bắt đầu phục vụ":
+        return "Món sẵn sàng phục vụ";
+      case "yêu cầu làm lại":
+        return "Món yêu cầu làm lại";
+      case "đã phục vụ":
+        return "Món đã phục vụ";
+      default:
+        return "Chọn món để phục vụ";
+    }
+  };
 
-  if (error) {
-    return (
-      <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-background">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-destructive mb-4">{error}</p>
-            <Button onClick={refreshOrders} variant="outline">
-              Thử lại
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const getTabDescription = () => {
+    switch (activeTab) {
+      case "đang thực hiện":
+        return "Các món đang được chế biến trong bếp";
+      case "bắt đầu phục vụ":
+        return "Các món đã sẵn sàng để phục vụ khách hàng";
+      case "yêu cầu làm lại":
+        return "Các món khách hàng yêu cầu làm lại";
+      case "đã phục vụ":
+        return "Các món đã được phục vụ thành công";
+      default:
+        return "Vui lòng chọn ít nhất 1 món...";
+    }
+  };
 
   return (
-    <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-background">
-      <div className="flex flex-col gap-4 items-center mr-4">
-        <Button
-          variant={panel === "control" ? "default" : "outline"}
-          className="w-32"
-          onClick={() => setPanel("control")}
-        >
-          Điều khiển
-        </Button>
-        <Button
-          variant={panel === "payment" ? "default" : "outline"}
-          className="w-32"
-          onClick={() => setPanel("payment")}
-        >
-          Thanh toán
-        </Button>
-      </div>
+    <div className="flex-1 px-4 md:px-6 flex flex-col items-center bg-gradient-to-br from-gray-50 to-white">
+      <div className="w-full max-w-4xl">
+        <h2 className="text-2xl md:text-3xl font-bold mb-3 text-gray-800 text-center">
+          {getTabTitle()}
+        </h2>
 
-      {panel === "control" ? (
-        <>
-          <div className="w-full md:max-w-[300px] overflow-y-auto max-h-[80vh] pr-2 space-y-6">
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Tìm món ăn..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-primary"
-              />
-            </div>
-            {Object.entries(groupedDishes).map(([categoryName, items]) => {
-              const style =
-                categoryStyle[categoryName] || categoryStyle["Khác"];
-              const filteredItems = items.filter((dish) =>
-                dish.name.toLowerCase().includes(search.toLowerCase())
-              );
-              if (filteredItems.length === 0) return null;
-              return (
-                <div key={categoryName} className="w-full">
-                  <div className="mb-2 text-sm font-semibold text-foreground uppercase tracking-wide">
-                    {style.label}
-                  </div>
-                  <ul className="space-y-3 w-full">
-                    {filteredItems
-                      .filter((dish) => !dish.served)
-                      .map((dish) => (
-                        <li key={dish.id}>
-                          <label
-                            className={`flex items-center px-4 py-3 rounded-xl border ${
-                              style.bg
-                            } ${
-                              style.border
-                            } cursor-pointer transition hover:bg-accent ${
-                              dish.selected
-                                ? "ring-2 ring-primary ring-offset-2"
-                                : ""
-                            }`}
-                          >
-                            <Checkbox
-                              checked={dish.selected}
-                              onCheckedChange={() => handleDishToggle(dish.id)}
-                              className="mr-3"
-                            />
-                            <span className="text-sm font-medium text-foreground">
-                              {dish.name} - Bàn {dish.tableNumber}{" "}
-                              {dish.quantity > 1 && `(${dish.quantity})`}
-                            </span>
-                          </label>
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
+        <p className="text-sm text-gray-600 mb-8 text-center max-w-2xl mx-auto">
+          {getTabDescription()}
+        </p>
 
-          <div className="flex-1 px-2 md:px-4 flex flex-col items-center">
-            <h2 className="text-xl md:text-2xl font-bold mb-4 text-foreground text-center">
-              Chọn món để phục vụ
-            </h2>
-
-            <div className="w-full min-h-[320px]">
-              {hasSelected ? (
-                <MapPanel selectedTable={selectedTable} />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-base italic">
-                  {dishes.length === 0
-                    ? "Không có món nào sẵn sàng phục vụ"
-                    : "Vui lòng chọn ít nhất 1 món..."}
-                </div>
-              )}
-            </div>
-
-            {hasSelected && (
-              <div className="w-full flex justify-center">
-                <Button
-                  onClick={handleServeClick}
-                  className="mt-6 mb-4 px-6 py-3 text-lg rounded-full"
-                >
-                  🚀 Phục vụ
-                </Button>
-              </div>
-            )}
-
-            {dishes.some((d) => d.served) && (
-              <div className="w-full mt-2 bg-muted rounded-xl p-4 shadow-sm">
-                <h3 className="font-semibold text-sm text-foreground mb-2">
-                  Món đã phục vụ
+        <div className="w-full mb-6">
+          {dishesForTab.length > 0 ? (
+            activeTab === "đã phục vụ" ? (
+              // For "đã phục vụ" tab, don't show map, just show the list
+              <div className="w-full bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-6">
+                <h3 className="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                  Danh sách món đã phục vụ ({dishesForTab.length})
                 </h3>
-                <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                  {dishes
-                    .filter((d) => d.served)
-                    .map((d) => (
-                      <li key={d.id}>
-                        {d.name} - Bàn {d.tableNumber}{" "}
-                        {d.quantity > 1 && `(${d.quantity})`}
-                      </li>
-                    ))}
+                <ul className="space-y-3">
+                  {dishesForTab.map((d) => (
+                    <li
+                      key={d.id}
+                      className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-100"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-800 font-medium">
+                            {d.name} - Bàn {d.tableNumber}
+                          </span>
+                          {d.quantity > 1 && (
+                            <span className="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                              {d.quantity}
+                            </span>
+                          )}
+                        </div>
+                        {d.orderTime && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Đặt lúc: {d.orderTime}
+                          </div>
+                        )}
+                        {d.note && (
+                          <div className="text-xs text-orange-600 mt-1">
+                            Ghi chú: {d.note}
+                          </div>
+                        )}
+                        {d.sizeName && (
+                          <div className="text-xs text-blue-600">
+                            Size: {d.sizeName}
+                          </div>
+                        )}
+                        {d.toppings && d.toppings.length > 0 && (
+                          <div className="text-xs text-purple-600">
+                            Toppings: {d.toppings.join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
                 </ul>
               </div>
-            )}
+            ) : (
+              // For other tabs, show the map
+              <MapPanel mapUrl={mapUrl} />
+            )
+          ) : (
+            <div className="w-full h-[400px] flex items-center justify-center bg-white rounded-2xl shadow-lg border-2 border-gray-200">
+              <div className="text-center">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Loader2 className="w-10 h-10 text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium text-lg">
+                  {activeTab === "đã phục vụ"
+                    ? "Không có món nào đã phục vụ"
+                    : `Không có món nào trong trạng thái "${activeTab}"`}
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                  {activeTab === "đã phục vụ"
+                    ? "Các món đã phục vụ sẽ hiển thị ở đây"
+                    : "Hãy chờ đợi hoặc chuyển sang tab khác"}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Show serve button only for "bắt đầu phục vụ" tab */}
+        {activeTab === "bắt đầu phục vụ" && hasSelected && (
+          <div className="w-full flex justify-center gap-4 mb-6">
+            <Button
+              onClick={handleServeClick}
+              className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              🚀 Phục vụ
+            </Button>
+            <Button
+              onClick={() => setShowRemakeConfirmation(true)}
+              className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              🔄 Yêu cầu làm lại
+            </Button>
           </div>
-        </>
-      ) : (
-        <PaymentPanel onPaymentComplete={handlePaymentComplete} />
-      )}
+        )}
+
+        {/* Confirmation Dialog for Remake Request */}
+        {showRemakeConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🔄</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-3">
+                  Xác nhận yêu cầu làm lại
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? 
+                  Hành động này sẽ chuyển các món sang trạng thái "Yêu cầu làm lại".
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowRemakeConfirmation(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    onClick={handleRequestRemakeClick}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  >
+                    Xác nhận
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show tab-specific information */}
+        {activeTab === "đang thực hiện" && dishesForTab.length > 0 && (
+          <div className="w-full mb-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+            <h3 className="font-semibold text-lg text-blue-800 mb-3 flex items-center">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3 animate-pulse"></div>
+              Món đang chế biến ({dishesForTab.length})
+            </h3>
+            <p className="text-blue-700 leading-relaxed">
+              Các món này đang được chế biến trong bếp. Vui lòng chờ đến khi
+              chúng chuyển sang trạng thái "Bắt đầu phục vụ".
+            </p>
+          </div>
+        )}
+
+        {activeTab === "yêu cầu làm lại" && dishesForTab.length > 0 && (
+          <div className="w-full mb-6 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
+            <h3 className="font-semibold text-lg text-orange-800 mb-3 flex items-center">
+              <div className="w-2 h-2 bg-orange-500 rounded-full mr-3 animate-pulse"></div>
+              Món yêu cầu làm lại ({dishesForTab.length})
+            </h3>
+            <p className="text-orange-700 leading-relaxed">
+              Khách hàng đã yêu cầu làm lại các món này. Vui lòng liên hệ với
+              bếp để xử lý.
+            </p>
+          </div>
+        )}
+
+        {activeTab === "đã phục vụ" && dishesForTab.length > 0 && (
+          <div className="w-full mb-6 bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+            <h3 className="font-semibold text-lg text-green-800 mb-3 flex items-center">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+              Món đã phục vụ thành công ({dishesForTab.length})
+            </h3>
+            <p className="text-green-700 leading-relaxed">
+              Các món này đã được phục vụ thành công cho khách hàng. Hệ thống sẽ
+              tự động cập nhật trạng thái.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

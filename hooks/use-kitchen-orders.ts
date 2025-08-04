@@ -94,8 +94,7 @@ export function useKitchenOrders() {
       toCook: orders.filter(order => order.status === "đang chờ").length,
       ready: orders.filter(order => order.status === "đang thực hiện").length,
       completed: orders.filter(order => order.status === "bắt đầu phục vụ").length,
-      redo: orders.filter(order => order.status === "yêu cầu làm lại").length,
-      cancelled: orders.filter(order => order.status === "đã huỷ").length
+      redo: orders.filter(order => order.status === "yêu cầu làm lại").length
     };
   }, [orders]);
 
@@ -135,7 +134,6 @@ export function useKitchenOrders() {
       case "đang thực hiện": return orderCounts.ready;
       case "bắt đầu phục vụ": return orderCounts.completed;
       case "yêu cầu làm lại": return orderCounts.redo;
-      case "đã huỷ": return orderCounts.cancelled;
       default: return 0;
     }
   };

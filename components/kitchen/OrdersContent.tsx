@@ -449,7 +449,6 @@ export function OrdersContent({
                     </div>
                   </CardAction>
                 )}
-                {/* No action buttons for cancelled orders */}
               </CardHeader>
             </Card>
           ))}
@@ -487,7 +486,6 @@ export function OrdersContent({
               </Button>
             </div>
           )}
-          {/* No group action buttons for cancelled orders */}
         </div>
       </div>
     );

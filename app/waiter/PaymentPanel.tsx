@@ -4,7 +4,16 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  CreditCard,
+  Receipt,
+  CheckCircle,
+  DollarSign,
+  Printer,
+} from "lucide-react";
 import { toast } from "sonner";
 import { usePayment, PaymentOrder } from "@/hooks/use-payment";
 
@@ -31,14 +40,14 @@ export default function PaymentPanel({
 
   const total = calculateTotal();
 
- const handlePrint = () => {
-  if (!selectedTable || tableOrders.length === 0) return;
+  const handlePrint = () => {
+    if (!selectedTable || tableOrders.length === 0) return;
 
-  const printWindow = window.open("", "_blank");
-  if (printWindow) {
-    const tableName = selectedTableName || `Bàn ${selectedTable}`;
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      const tableName = selectedTableName || `Bàn ${selectedTable}`;
 
-    printWindow.document.write(`
+      printWindow.document.write(`
       <html>
         <head>
           <title>Hóa đơn ${tableName}</title>
@@ -165,21 +174,35 @@ export default function PaymentPanel({
                     return `<li>
                       <div class="item-info">
                         <span class="item-name">${item.productName}</span>
-                        ${item.sizeName ? `<span class="item-detail">(${item.sizeName})</span>` : ""}
-                        ${item.quantity > 1 ? `<span class="item-detail">x${item.quantity}</span>` : ""}
+                        ${
+                          item.sizeName
+                            ? `<span class="item-detail">(${item.sizeName})</span>`
+                            : ""
+                        }
+                        ${
+                          item.quantity > 1
+                            ? `<span class="item-detail">x${item.quantity}</span>`
+                            : ""
+                        }
                         ${
                           item.toppings.length > 0
-                            ? `<div class="item-topping">+ ${item.toppings.map((t) => t.name).join(", ")}</div>`
+                            ? `<div class="item-topping">+ ${item.toppings
+                                .map((t) => t.name)
+                                .join(", ")}</div>`
                             : ""
                         }
                       </div>
-                      <span class="item-price">${totalItemPrice.toLocaleString("vi-VN")}đ</span>
+                      <span class="item-price">${totalItemPrice.toLocaleString(
+                        "vi-VN"
+                      )}đ</span>
                     </li>`;
                   })
                 )
                 .join("")}
             </ul>
-            <div class="bill-total">Tổng cộng: ${total.toLocaleString("vi-VN")}đ</div>
+            <div class="bill-total">Tổng cộng: ${total.toLocaleString(
+              "vi-VN"
+            )}đ</div>
             <div class="bill-footer">
               Thời gian: ${new Date().toLocaleString()}<br/>
               Xin cảm ơn quý khách!<br/>
@@ -197,10 +220,10 @@ export default function PaymentPanel({
         </body>
       </html>
     `);
-    printWindow.document.close();
-    printWindow.focus();
-  }
-};
+      printWindow.document.close();
+      printWindow.focus();
+    }
+  };
 
   const handlePayment = async () => {
     if (!selectedTable || tableOrders.length === 0) {
@@ -263,101 +286,118 @@ export default function PaymentPanel({
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap- w-full">
-      {/* Table Selection */}
-      {/* <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:w-1/2"> */}
-      {/* <div className="flex flex-wrap md:w-1/2 p-0 m-0">
-        {tables.length === 0 ? (
-          <div className="flex items-center justify-center h-20 text-muted-foreground w-full">
-            <p>Không có bàn nào</p>
-          </div>
-        ) : (
-          tables.map((table) => (
-            <Button
-              key={table.id}
-              variant={selectedTable === table.id ? "default" : "outline"}
-              className="h-20 text-lg font-bold rounded-none border-0 m-0 p-0 w-[100px] flex-shrink-0"
-              onClick={() => setSelectedTable(table.id)}
-              style={{}}
-            >
-              {table.name}
-            </Button>
-          ))
-        )}
-      </div> */}
-      <div className="grid grid-cols-6 w-full">
-        {tables.length === 0 ? (
-          <div className="flex items-center justify-center h-16 text-muted-foreground w-full">
-            <p>Không có bàn nào</p>
-          </div>
-        ) : (
-          tables.map((table) => (
-            <Button
-              key={table.id}
-              variant={selectedTable === table.id ? "default" : "outline"}
-              className="text-lg font-bold rounded-none border-0 w-[100px] h-[60px] flex-shrink-0"
-              onClick={() => setSelectedTable(table.id)}
-            >
-              {table.name}
-            </Button>
-          ))
-        )}
+    <div className="flex flex-col lg:flex-row gap-6 w-full h-full overflow-hidden">
+      {/* Table Selection - Left Side */}
+      <div className="lg:w-1/3">
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center">
+              <DollarSign className="w-5 h-5 mr-2 text-green-600" />
+              Chọn Bàn Thanh Toán
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Chọn bàn để xem chi tiết đơn hàng và thanh toán
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-3">
+              {tables.length === 0 ? (
+                <div className="col-span-3 flex items-center justify-center h-32 text-muted-foreground">
+                  <div className="text-center">
+                    <DollarSign className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p>Không có bàn nào</p>
+                  </div>
+                </div>
+              ) : (
+                tables.map((table) => (
+                  <Button
+                    key={table.id}
+                    variant={selectedTable === table.id ? "default" : "outline"}
+                    className={`h-20 text-lg font-bold transition-all duration-200 ${
+                      selectedTable === table.id
+                        ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg scale-105"
+                        : "hover:bg-gray-50 hover:scale-102"
+                    }`}
+                    onClick={() => setSelectedTable(table.id)}
+                  >
+                    <div className="flex flex-col items-center">
+                      <span className="font-bold">{table.name}</span>
+                    </div>
+                  </Button>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Payment Details */}
-      <div className="w-full md:w-1/2 space-y-6">
-        {selectedTable && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">
+      {/* Payment Details - Right Side */}
+      <div className="lg:w-2/3 overflow-hidden">
+        {selectedTable ? (
+          <Card className="h-full flex flex-col">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b flex-shrink-0">
+              <CardTitle className="text-2xl flex items-center">
+                <CreditCard className="w-6 h-6 mr-3 text-green-600" />
                 Thanh toán - {selectedTableName || `Bàn ${selectedTable}`}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Chỉ hiển thị đơn hàng đang phục vụ (Delivering)
+                Chi tiết đơn hàng đang phục vụ (Delivering)
               </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6 flex-1 overflow-y-auto">
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                  <span className="ml-2">Đang tải đơn hàng...</span>
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                  <span className="ml-3 text-lg">Đang tải đơn hàng...</span>
                 </div>
               ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    className="px-0 mb-3"
-                    onClick={() => setShowList(!showList)}
-                  >
-                    {showList ? (
-                      <>
-                        <ChevronUp className="w-4 h-4 mr-1" /> Ẩn món đã đặt
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="w-4 h-4 mr-1" /> Xem món đã đặt
-                      </>
-                    )}
-                  </Button>
-
-                  {showList && (
-                    <div className="max-h-80 overflow-y-auto pr-2 mb-4">
-                      {tableOrders.length === 0 ? (
-                        <p className="text-muted-foreground text-sm italic">
-                          Không có đơn hàng đang phục vụ cho bàn này.
-                        </p>
+                <div className="space-y-6">
+                  {/* Order Details Section */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between text-left font-semibold text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowList(!showList)}
+                    >
+                      <span className="flex items-center">
+                        <Receipt className="w-4 h-4 mr-2" />
+                        Chi tiết đơn hàng ({tableOrders.length} đơn)
+                      </span>
+                      {showList ? (
+                        <ChevronUp className="w-4 h-4" />
                       ) : (
-                        <div className="space-y-4">
-                          {tableOrders.map((order) => (
-                            <div key={order.id} className="space-y-2">
-                              <h4 className="font-semibold text-sm text-gray-600">
-                                Đơn hàng #{order.id.slice(0, 8)} -{" "}
-                                {order.status}
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </Button>
+
+                    {showList && (
+                      <div className="mt-4 max-h-96 overflow-y-auto pr-2 space-y-4">
+                        {tableOrders.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Receipt className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                            <p className="text-muted-foreground text-sm">
+                              Không có đơn hàng đang phục vụ cho bàn này.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="bg-white rounded-lg p-4 border border-gray-200">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="font-semibold text-gray-800 flex items-center">
+                                <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                                Danh sách món đã đặt
                               </h4>
-                              <ul className="space-y-2">
-                                {order.items.map((item) => {
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                {tableOrders.length} đơn hàng
+                              </span>
+                            </div>
+
+                            {/* Gộp tất cả món từ các đơn hàng */}
+                            <ul className="space-y-3">
+                              {tableOrders
+                                .flatMap((order) => order.items)
+                                .map((item, index) => {
                                   const itemPrice =
-                                    (item.price || 0) * (item.quantity || 1); // Add safety checks
+                                    (item.price || 0) * (item.quantity || 1);
                                   const toppingsPrice = item.toppings.reduce(
                                     (sum, t) =>
                                       sum +
@@ -369,25 +409,28 @@ export default function PaymentPanel({
 
                                   return (
                                     <li
-                                      key={item.id}
-                                      className="flex justify-between border-b pb-2 text-sm"
+                                      key={`${item.id}-${index}`}
+                                      className="flex justify-between items-start border-b border-gray-100 pb-3"
                                     >
                                       <div className="flex-1">
-                                        <span className="font-medium">
-                                          {item.productName}
-                                        </span>
-                                        {item.sizeName && (
-                                          <span className="text-gray-500 ml-1">
-                                            ({item.sizeName})
+                                        <div className="flex items-center">
+                                          <span className="font-medium text-gray-900">
+                                            {item.productName}
                                           </span>
-                                        )}
-                                        {item.quantity > 1 && (
-                                          <span className="text-gray-500 ml-1">
-                                            x{item.quantity}
-                                          </span>
-                                        )}
+                                          {item.sizeName && (
+                                            <span className="text-sm text-blue-600 ml-2 px-2 py-1 bg-blue-50 rounded">
+                                              {item.sizeName}
+                                            </span>
+                                          )}
+                                          {item.quantity > 1 && (
+                                            <span className="text-sm text-gray-500 ml-2 px-2 py-1 bg-gray-100 rounded">
+                                              x{item.quantity}
+                                            </span>
+                                          )}
+                                        </div>
                                         {item.toppings.length > 0 && (
-                                          <div className="text-xs text-gray-500 ml-2">
+                                          <div className="text-xs text-green-600 mt-1 flex items-center">
+                                            <span className="w-1 h-1 bg-green-500 rounded-full mr-1"></span>
                                             +{" "}
                                             {item.toppings
                                               .map((t) => t.name)
@@ -406,64 +449,93 @@ export default function PaymentPanel({
                                             )}đ (toppings)`}
                                         </div>
                                       </div>
-                                      <span className="font-semibold text-emerald-600">
+                                      <span className="font-semibold text-green-600 text-lg">
                                         {totalItemPrice.toLocaleString("vi-VN")}
                                         đ
                                       </span>
                                     </li>
                                   );
                                 })}
-                              </ul>
-                              <div className="text-right text-sm font-medium text-gray-700 pt-2 border-t">
-                                Tổng đơn hàng:{" "}
-                                {order.totalPrice.toLocaleString("vi-VN")}đ
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <Separator className="my-4" />
-                  <div className="flex justify-between text-base font-semibold mb-4">
-                    <span>Tổng cộng</span>
-                    <span className="text-emerald-700">
-                      {total.toLocaleString("vi-VN")}đ
-                    </span>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Payment Buttons */}
-                  {tableOrders.length > 0 && (
-                    <div className="space-y-3">
+                  {/* Total Amount Section */}
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-xl font-bold text-gray-800">
+                        Tổng cộng
+                      </span>
+                      <span className="text-3xl font-bold text-green-700">
+                        {total.toLocaleString("vi-VN")}đ
+                      </span>
+                    </div>
+
+                    {/* Payment Buttons - Always show when table is selected */}
+                    <div className="space-y-4">
                       <Button
-                        className="w-full text-base font-semibold"
+                        className="w-full h-14 text-lg font-bold bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                         onClick={handlePayment}
-                        disabled={paymentStatus === "processing"}
+                        disabled={
+                          paymentStatus === "processing" ||
+                          tableOrders.length === 0
+                        }
                       >
                         {paymentStatus === "processing" ? (
                           <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Đang xử lý...
+                            <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                            Đang xử lý thanh toán...
                           </>
                         ) : (
-                          "Xác nhận thanh toán"
+                          <>
+                            <CreditCard className="w-5 h-5 mr-3" />
+                            Thanh toán
+                          </>
                         )}
+                      </Button>
+
+                      {/* Print Receipt Button - Always visible when table is selected */}
+                      <Button
+                        variant="outline"
+                        className="w-full h-12 text-base font-semibold border-blue-300 text-blue-700 hover:bg-blue-50"
+                        onClick={handlePrint}
+                        disabled={tableOrders.length === 0}
+                      >
+                        <Printer className="w-4 h-4 mr-2" />
+                        In biên lai
                       </Button>
 
                       {paymentStatus === "success" && (
                         <Button
                           variant="outline"
-                          className="w-full text-base font-semibold"
+                          className="w-full h-12 text-base font-semibold border-green-300 text-green-700 hover:bg-green-50"
                           onClick={handleConfirmMoneyReceived}
                         >
+                          <CheckCircle className="w-4 h-4 mr-2" />
                           Xác nhận đã nhận tiền
                         </Button>
                       )}
                     </div>
-                  )}
-                </>
+                  </div>
+                </div>
               )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="h-full">
+            <CardContent className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <CreditCard className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                  Chưa chọn bàn
+                </h3>
+                <p className="text-gray-500">
+                  Vui lòng chọn một bàn để xem chi tiết thanh toán
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}

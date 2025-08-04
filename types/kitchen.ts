@@ -1,4 +1,9 @@
-export type OrderStatus = "đang chờ" | "đang thực hiện" | "bắt đầu phục vụ" | "yêu cầu làm lại" | "đã huỷ";
+export type OrderStatus =
+  | "đang chờ"
+  | "đang thực hiện"
+  | "bắt đầu phục vụ"
+  | "yêu cầu làm lại"
+  | "đã phục vụ";
 
 export interface Order {
   id: number;
@@ -32,7 +37,7 @@ export interface SidebarItem {
 
 export interface Toast {
   id: number;
-  type: 'success' | 'error' | 'warning';
+  type: "success" | "error" | "warning";
   message: string;
   isVisible: boolean;
 }
@@ -43,8 +48,7 @@ export interface OrderCounts {
   ready: number;
   completed: number;
   redo: number;
-  cancelled: number;
 }
 
 export type GroupedOrders = Record<string, Order[]>;
-export type RemainingItems = Record<string, number>; 
+export type RemainingItems = Record<string, number>;
