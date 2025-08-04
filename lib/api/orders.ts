@@ -16,14 +16,15 @@ export interface ApiOrderItemResponse {
   id: string;
   productId: string;
   productName: string;
-  sizeId: string;
+  productSizeId: string;
   sizeName: string;
+  note: string | null; // Customer note for the item
   quantity: number;
-  status: string;
-  toppings: ApiToppingResponse[];
   price: number; // Add price field for order items
+  status: string;
   imageUrl?: string; // Add imageUrl field from API response
   createdTime?: string; // Created time from API (e.g., "31/07/2025 00:01:28")
+  toppings: ApiToppingResponse[];
 }
 
 export interface ApiToppingResponse {

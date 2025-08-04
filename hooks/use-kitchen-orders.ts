@@ -41,6 +41,24 @@ export function useKitchenOrders() {
     }
   }, []);
 
+  // Silent fetch orders from API (for auto-refresh)
+  const silentFetchOrders = useCallback(async () => {
+    try {
+      setError(null);
+      
+      const response = await ordersApi.getOrders(1, 100); // Get first 100 orders
+      
+      if (response.statusCode === 200 && response.data && response.data.length > 0) {
+        const transformedOrders = transformApiOrdersToOrders(response.data);
+        setOrders(transformedOrders);
+        setIdMappings([]); // For now, we'll use empty mappings
+      }
+    } catch (err) {
+      console.error('Error silently fetching orders:', err);
+      // Don't set error for silent refresh to avoid UI disruption
+    }
+  }, []);
+
   // Load orders on component mount
   useEffect(() => {
     fetchOrders();
@@ -75,16 +93,17 @@ export function useKitchenOrders() {
       all: orders.length,
       toCook: orders.filter(order => order.status === "đang chờ").length,
       ready: orders.filter(order => order.status === "đang thực hiện").length,
-      completed: orders.filter(order => order.status === "bắt đầu phục vụ").length
+      completed: orders.filter(order => order.status === "bắt đầu phục vụ").length,
+      redo: orders.filter(order => order.status === "yêu cầu làm lại").length
     };
   }, [orders]);
 
-  // Calculate remaining items (not completed)
+  // Calculate remaining items (not completed and not served)
   const remainingItems = useMemo((): RemainingItems => {
     const remaining: RemainingItems = {};
     
     orders.forEach(order => {
-      if (order.status !== "bắt đầu phục vụ") {
+      if (order.status !== "bắt đầu phục vụ" && order.status !== "đã phục vụ") {
         remaining[order.itemName] = (remaining[order.itemName] || 0) + 1;
       }
     });
@@ -114,6 +133,7 @@ export function useKitchenOrders() {
       case "đang chờ": return orderCounts.toCook;
       case "đang thực hiện": return orderCounts.ready;
       case "bắt đầu phục vụ": return orderCounts.completed;
+      case "yêu cầu làm lại": return orderCounts.redo;
       default: return 0;
     }
   };
@@ -211,10 +231,102 @@ export function useKitchenOrders() {
     }
   }, [orders]);
 
+  // Accept redo request - change status from "yêu cầu làm lại" to "đang thực hiện"
+  const handleAcceptRedoRequest = useCallback(async (orderId: number): Promise<void> => {
+    try {
+      // Find the order to get its API ID
+      const order = orders.find(o => o.id === orderId);
+      if (!order) {
+        console.error('Order not found:', orderId);
+        return;
+      }
+
+      // Update local state immediately for better UX
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId
+            ? { ...order, status: "đang thực hiện" }
+            : order
+        )
+      );
+
+      // Make API call to update order item status to "Preparing" (status 2)
+      const response = await ordersApi.updateOrderItemStatus(
+        order.apiOrderId,
+        order.apiItemId,
+        2 // Preparing status
+      );
+
+      if (response.statusCode !== 200) {
+        throw new Error(response.message || 'Failed to update order status');
+      }
+
+      console.log('Redo request accepted successfully via API');
+      
+    } catch (err) {
+      console.error('Error accepting redo request:', err);
+      // Revert the change if API call fails
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, status: "yêu cầu làm lại" }
+            : order
+        )
+      );
+      throw err; // Re-throw to let the UI handle the error
+    }
+  }, [orders]);
+
+  // Reject redo request - change status from "yêu cầu làm lại" to "cancelled"
+  const handleRejectRedoRequest = useCallback(async (orderId: number): Promise<void> => {
+    try {
+      // Find the order to get its API ID
+      const order = orders.find(o => o.id === orderId);
+      if (!order) {
+        console.error('Order not found:', orderId);
+        return;
+      }
+
+      // Update local state immediately for better UX - remove from orders list
+      setOrders(prevOrders => 
+        prevOrders.filter(order => order.id !== orderId)
+      );
+
+      // Make API call to update order item status to "Cancelled" (status 6)
+      const response = await ordersApi.updateOrderItemStatus(
+        order.apiOrderId,
+        order.apiItemId,
+        6 // Cancelled status
+      );
+
+      if (response.statusCode !== 200) {
+        throw new Error(response.message || 'Failed to update order status');
+      }
+
+      console.log('Redo request rejected successfully via API');
+      
+    } catch (err) {
+      console.error('Error rejecting redo request:', err);
+      // Revert the change if API call fails
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, status: "yêu cầu làm lại" }
+            : order
+        )
+      );
+      throw err; // Re-throw to let the UI handle the error
+    }
+  }, [orders]);
+
   // Refresh orders from API
-  const refreshOrders = useCallback(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  const refreshOrders = useCallback((silent: boolean = false) => {
+    if (!silent) {
+      fetchOrders();
+    } else {
+      silentFetchOrders();
+    }
+  }, [fetchOrders, silentFetchOrders]);
 
   // Effect to handle sidebar animation
   useEffect(() => {
@@ -255,6 +367,8 @@ export function useKitchenOrders() {
     setExpandedGroup,
     handlePrepareOrders,
     handleServeOrder,
+    handleAcceptRedoRequest,
+    handleRejectRedoRequest,
     refreshOrders,
     
     // Helpers

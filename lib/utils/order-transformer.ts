@@ -11,6 +11,8 @@ const mapApiStatusToFrontend = (apiStatus: string): OrderStatus => {
     case 'ready':
     case 'served':
       return 'bắt đầu phục vụ';
+    case 'returned':
+      return 'yêu cầu làm lại';
     default:
       return 'đang chờ';
   }
@@ -25,6 +27,8 @@ export const mapFrontendStatusToApi = (frontendStatus: OrderStatus): number => {
       return 2; // Preparing
     case 'bắt đầu phục vụ':
       return 3; // Ready
+    case 'yêu cầu làm lại':
+      return 7; // Returned
     default:
       return 1; // Pending
   }
@@ -108,6 +112,7 @@ export const transformApiOrderItemToOrder = (
     estimatedTime: getEstimatedTime(orderItem.productName),
     sizeName: orderItem.sizeName, // Add size name from API
     toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API
+    note: orderItem.note, // Add note from API
     // Store API IDs for making API calls
     apiOrderId: order.id,
     apiItemId: orderItem.id
