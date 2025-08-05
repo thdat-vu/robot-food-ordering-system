@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 import {FeedbackgGetTableId} from "@/entites/moderator/FeedbackModole";
 import {useCheckSS, useGetFeedbackByIdtable} from "@/hooks/moderator/useFeedbackHooks";
-import {useToastKitchen} from '@/hooks/use-toast-kitchen';
+import { useToastModerator } from '@/hooks/use-toast-moderator';
+import { ToastContainer } from '@/components/moderator/ToastContainer';
+
 
 
 type Prop = {
@@ -28,7 +30,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                                                open,
                                                                tableName = `Bàn ${idTable}`
                                                            }) => {
-    const {addToast} = useToastKitchen();
+    const {toasts,addToast,removeToast} = useToastModerator();
     const [data, setData] = useState<FeedbackgGetTableId[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
@@ -219,6 +221,9 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            {/* Toast Container */}
+            <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+            
             <div
                 className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden border border-gray-200">
                 <div

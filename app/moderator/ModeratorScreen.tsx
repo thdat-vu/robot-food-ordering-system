@@ -1,8 +1,11 @@
 import React, {useEffect, useState, useCallback} from 'react';
-import {Bell, Users, Clock} from 'lucide-react';
+import {Bell, Users, Clock, User , CreditCard,UserCheck} from 'lucide-react';
 import {TableData} from "@/entites/moderator/FeedbackModole";
 import {useGetAllFeedbackHome} from "@/hooks/moderator/useFeedbackHooks";
 import ModeratorFeedbackFromTable from "@/app/moderator/ModeratorFeedbackFromTable";
+import { Truck, DollarSign } from 'lucide-react';
+import { useToastModerator } from '@/hooks/use-toast-moderator';
+import { ToastContainer } from '@/components/moderator/ToastContainer';
 
 const ModeratorScreen: React.FC = () => {
     const [data, setData] = useState<Record<string, TableData>>({});
@@ -14,6 +17,7 @@ const ModeratorScreen: React.FC = () => {
     const [idTable, setIdTable] = useState<string>('');
 
     const {run} = useGetAllFeedbackHome();
+    const { toasts, addToast, removeToast } = useToastModerator();
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -62,6 +66,7 @@ const ModeratorScreen: React.FC = () => {
 
             } catch (error) {
                 console.error('Error loading data:', error);
+                addToast('Có lỗi xảy ra khi tải dữ liệu bàn. Vui lòng thử lại.', 'error');
             } finally {
                 setIsLoading(false);
             }
@@ -162,6 +167,9 @@ const ModeratorScreen: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-purple-700 p-4">
+            {/* Toast Container */}
+            <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+            
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-8">
                     <div
@@ -250,8 +258,20 @@ const ModeratorScreen: React.FC = () => {
                                         hasNotification ? 'text-white/90' : 'text-gray-700'
                                     }`}>
                                         thông báo
-                                    </div>
 
+                                        
+                                    </div>
+                                     <div className="absolute bottom-2 left-2 flex items-center gap-1 text-black text-sm font-semibold">
+                                            <UserCheck  size={14} />
+                                            <span> {tableData.deliveredCount}/{tableData.totalItems} </span>
+                                        </div>
+
+                                        {/* Bottom-right: thanh toán */}
+                                        <div className="absolute bottom-2 right-2 flex items-center gap-1 text-black text-sm font-semibold">
+                                            <CreditCard size={14} />
+                                            <span> {tableData.paidCount}/{tableData.totalItems} </span>
+                                        </div>
+                                 
                                     {hasNotification && (
                                         <div
                                             className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-lg animate-bounce">
@@ -273,6 +293,7 @@ const ModeratorScreen: React.FC = () => {
                         })}
                 </div>
             </div>
+
             <ModeratorFeedbackFromTable idTable={idTable} open={openDialog} onClose={() => setOpenDialog(false)}/>
         </div>
     );
