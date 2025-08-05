@@ -269,7 +269,7 @@ const ModeratorScreen: React.FC = () => {
                                         {/* Bottom-right: thanh toán */}
                                         <div className="absolute bottom-2 right-2 flex items-center gap-1 text-black text-sm font-semibold">
                                             <CreditCard size={14} />
-                                            <span> {tableData.paidCount}/{tableData.totalItems} </span>
+                                        <span> {tableData.paidCount}/{tableData.totalItems} </span>
                                         </div>
                                  
                                     {hasNotification && (
