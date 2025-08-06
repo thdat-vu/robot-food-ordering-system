@@ -39,7 +39,7 @@ export const mapFrontendStatusToApi = (frontendStatus: OrderStatus): number => {
 const getCategoryFromProductName = (productName: string): string => {
   const lowerName = productName.toLowerCase();
   
-  if (lowerName.includes('nước') || lowerName.includes('trà') || lowerName.includes('cacao') || lowerName.includes('juice')) {
+  if (lowerName.includes('nước') || lowerName.includes('trà') || lowerName.includes('cacao') || lowerName.includes('juice') || lowerName.includes('cà phê')) {
     return 'Đồ uống';
   }
   
@@ -47,7 +47,7 @@ const getCategoryFromProductName = (productName: string): string => {
     return 'Món chính';
   }
   
-  if (lowerName.includes('gỏi') || lowerName.includes('chả') || lowerName.includes('bánh')) {
+  if (lowerName.includes('gỏi') || lowerName.includes('chả') || lowerName.includes('bánh') || lowerName.includes('chè')) {
     return 'Tráng miệng';
   }
   
