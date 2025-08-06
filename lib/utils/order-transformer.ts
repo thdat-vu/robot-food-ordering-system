@@ -9,8 +9,9 @@ const mapApiStatusToFrontend = (apiStatus: string): OrderStatus => {
     case 'preparing':
       return 'đang thực hiện';
     case 'ready':
-    case 'served':
       return 'bắt đầu phục vụ';
+    case 'served':
+      return 'đã phục vụ';
     case 'returned':
       return 'yêu cầu làm lại';
     default:
@@ -38,7 +39,7 @@ export const mapFrontendStatusToApi = (frontendStatus: OrderStatus): number => {
 const getCategoryFromProductName = (productName: string): string => {
   const lowerName = productName.toLowerCase();
   
-  if (lowerName.includes('nước') || lowerName.includes('trà') || lowerName.includes('cacao') || lowerName.includes('juice')) {
+  if (lowerName.includes('nước') || lowerName.includes('trà') || lowerName.includes('cacao') || lowerName.includes('juice') || lowerName.includes('cà phê')) {
     return 'Đồ uống';
   }
   
@@ -46,7 +47,7 @@ const getCategoryFromProductName = (productName: string): string => {
     return 'Món chính';
   }
   
-  if (lowerName.includes('gỏi') || lowerName.includes('chả') || lowerName.includes('bánh')) {
+  if (lowerName.includes('gỏi') || lowerName.includes('chả') || lowerName.includes('bánh') || lowerName.includes('chè')) {
     return 'Tráng miệng';
   }
   
