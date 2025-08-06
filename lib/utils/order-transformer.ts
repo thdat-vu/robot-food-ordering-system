@@ -9,8 +9,9 @@ const mapApiStatusToFrontend = (apiStatus: string): OrderStatus => {
     case 'preparing':
       return 'đang thực hiện';
     case 'ready':
-    case 'served':
       return 'bắt đầu phục vụ';
+    case 'served':
+      return 'đã phục vụ';
     case 'returned':
       return 'yêu cầu làm lại';
     default:
