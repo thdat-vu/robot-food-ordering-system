@@ -394,9 +394,7 @@ export function OrdersContent({
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         {/* Top-right toolbar for bulk actions */}
-        <div className="flex items-center justify-between mb-4 sticky top-0 bg-white/80 backdrop-blur z-10 py-3">
-          <div className="text-sm text-gray-600">Đã chọn {allOrders.length} món</div>
-          <div>
+        <div className="flex items-center justify-end gap-3 mb-6 sticky top-0 z-10 py-3">
             {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
               <Button 
                 onClick={() => onPrepareMultipleOrders(allOrders.map(order => ({
@@ -423,7 +421,6 @@ export function OrdersContent({
                 Bắt đầu phục vụ ({allOrders.length})
               </Button>
             )}
-          </div>
         </div>
 
         <div className="space-y-4">
