@@ -235,7 +235,43 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Get dishes for current tab
   const dishesForTab = getDishesByStatus(activeTab);
-
+  const normalizeCategory = (cat?: string) => {
+    if (!cat) return "Khác";
+    const c = cat.toLowerCase();
+    if (
+      c.includes("uống") ||
+      c.includes("nuoc") ||
+      c.includes("drink") ||
+      c.includes("beverage")
+    )
+      return "Đồ Uống";
+    if (c.includes("chính") || c.includes("main")) return "Món Chính";
+    if (c.includes("tráng") || c.includes("dessert")) return "Tráng Miệng";
+    return "Khác";
+  };
+  const categoryOrder = ["Đồ Uống", "Món Chính", "Tráng Miệng", "Khác"];
+  const sortedDishesForTab = [...dishesForTab].sort(
+    (a, b) =>
+      categoryOrder.indexOf(normalizeCategory(a.categoryName)) -
+      categoryOrder.indexOf(normalizeCategory(b.categoryName))
+  );
+  console.log(
+    "DishesForTab:",
+    dishesForTab.map((d) => d.categoryName)
+  );
+  console.log(
+    "Normalized:",
+    dishesForTab.map((d) => normalizeCategory(d.categoryName))
+  );
+  const groupedDishes = React.useMemo(() => {
+    const groups: Record<string, WaiterDish[]> = {};
+    sortedDishesForTab.forEach((dish) => {
+      const cat = normalizeCategory(dish.categoryName);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(dish);
+    });
+    return groups;
+  }, [sortedDishesForTab]);
   // Get ALL selected dishes (not just from current tab)
   const allSelectedDishes = dishes.filter((dish) => dish.selected);
 
@@ -354,47 +390,59 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                   Danh sách món đã phục vụ ({dishesForTab.length})
                 </h3>
-                <ul className="space-y-3">
-                  {dishesForTab.map((d) => (
-                    <li
-                      key={d.id}
-                      className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-100"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-800 font-medium">
-                            {d.name} - Bàn {d.tableNumber}
-                          </span>
-                          {d.quantity > 1 && (
-                            <span className="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                              {d.quantity}
-                            </span>
-                          )}
+                {/* <ul className="space-y-3"> */}
+                <div>
+                  {categoryOrder.map((cat) =>
+                    groupedDishes[cat] && groupedDishes[cat].length > 0 ? (
+                      <div key={cat} className="mb-4">
+                        <div className="font-semibold text-base text-gray-700 mb-2">
+                          {cat}
                         </div>
-                        {d.orderTime && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Đặt lúc: {d.orderTime}
-                          </div>
-                        )}
-                        {d.note && (
-                          <div className="text-xs text-orange-600 mt-1">
-                            Ghi chú: {d.note}
-                          </div>
-                        )}
-                        {d.sizeName && (
-                          <div className="text-xs text-blue-600">
-                            Size: {d.sizeName}
-                          </div>
-                        )}
-                        {d.toppings && d.toppings.length > 0 && (
-                          <div className="text-xs text-purple-600">
-                            Toppings: {d.toppings.join(", ")}
-                          </div>
-                        )}
+                        <ul className="space-y-3">
+                          {groupedDishes[cat].map((d) => (
+                            <li
+                              key={d.id}
+                              className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-100"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-gray-800 font-medium">
+                                    {d.name} - Bàn {d.tableNumber}
+                                  </span>
+                                  {d.quantity > 1 && (
+                                    <span className="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                                      {d.quantity}
+                                    </span>
+                                  )}
+                                </div>
+                                {d.orderTime && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Đặt lúc: {d.orderTime}
+                                  </div>
+                                )}
+                                {d.note && (
+                                  <div className="text-xs text-orange-600 mt-1">
+                                    Ghi chú: {d.note}
+                                  </div>
+                                )}
+                                {d.sizeName && (
+                                  <div className="text-xs text-blue-600">
+                                    Size: {d.sizeName}
+                                  </div>
+                                )}
+                                {d.toppings && d.toppings.length > 0 && (
+                                  <div className="text-xs text-purple-600">
+                                    Toppings: {d.toppings.join(", ")}
+                                  </div>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    ) : null
+                  )}
+                </div>
               </div>
             ) : (
               // For other tabs, show the map
@@ -494,10 +542,48 @@ const ServePanel: React.FC<ServePanelProps> = ({
               <div className="w-2 h-2 bg-orange-500 rounded-full mr-3 animate-pulse"></div>
               Món yêu cầu làm lại ({dishesForTab.length})
             </h3>
-            <p className="text-orange-700 leading-relaxed">
+            <p className="text-orange-700 leading-relaxed mb-4">
               Khách hàng đã yêu cầu làm lại các món này. Vui lòng liên hệ với
               bếp để xử lý.
             </p>
+            <ul className="space-y-3">
+              {categoryOrder.map((cat) =>
+                groupedDishes[cat] && groupedDishes[cat].length > 0 ? (
+                  <div key={cat} className="mb-4">
+                    <div className="font-semibold text-base text-gray-700 mb-2">
+                      {cat}
+                    </div>
+                    <ul className="space-y-3">
+                      {groupedDishes[cat].map((d) => (
+                        <li
+                          key={d.id}
+                          className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-orange-100"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-800 font-medium">
+                                {d.name} - Bàn {d.tableNumber}
+                              </span>
+                              {d.quantity > 1 && (
+                                <span className="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                                  {d.quantity}
+                                </span>
+                              )}
+                            </div>
+                            {/* Hiển thị lý do yêu cầu làm lại nếu có */}
+                            {d.note && (
+                              <div className="text-xs text-red-600 mt-1">
+                                Lý do khách yêu cầu làm lại: {d.note}
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null
+              )}
+            </ul>
           </div>
         )}
 
