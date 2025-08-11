@@ -255,11 +255,16 @@ export function KitchenSidebar({
                                 onSidebarItemClick({ itemName, tableNumber, id });
                               }}
                               variant="secondary"
-                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left truncate max-w-full h-auto min-h-[40px] px-3 py-2`}
+                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left max-w-full h-auto min-h-[40px] px-3 py-2`}
                             >
-                              <span className="truncate block text-sm leading-tight">
-                                {`${itemName} - bàn ${tableNumber}`}
-                              </span>
+                              <div className="flex w-full items-center gap-2">
+                                <span className="block text-sm leading-tight truncate flex-1 min-w-0">
+                                  {itemName}
+                                </span>
+                                <span className="text-sm leading-tight font-medium flex-shrink-0">
+                                  - Bàn {tableNumber}
+                                </span>
+                              </div>
                             </Button>
                           </div>
                         );
