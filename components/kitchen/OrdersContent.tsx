@@ -373,6 +373,38 @@ export function OrdersContent({
     }
     return (
       <div className="flex-1 p-6 overflow-y-auto">
+        {/* Top-right toolbar for bulk actions */}
+        <div className="flex justify-end mb-4 sticky top-0 bg-white/80 backdrop-blur z-10 py-3">
+          {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
+            <Button 
+              onClick={() => onPrepareMultipleOrders(allOrders.map(order => ({
+                itemName: order.itemName,
+                tableNumber: order.tableNumber,
+                id: order.id
+              })))}
+              size="lg"
+              variant="default"
+              className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg"
+            >
+              Thực hiện
+            </Button>
+          )}
+          {activeTab === 'đang thực hiện' && allOrders.length > 0 && onServeMultipleOrders && (
+            <Button 
+              onClick={() => onServeMultipleOrders(allOrders.map(order => ({
+                itemName: order.itemName,
+                tableNumber: order.tableNumber,
+                id: order.id
+              })))}
+              size="lg"
+              variant="default"
+              className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg"
+            >
+              Bắt đầu phục vụ
+            </Button>
+          )}
+        </div>
+
         <div className="space-y-4">
           {allOrders.map((order) => (
             <Card key={order.id} className="hover:shadow-md transition-shadow duration-200">
@@ -452,40 +484,6 @@ export function OrdersContent({
               </CardHeader>
             </Card>
           ))}
-          
-          {/* Group action buttons at the bottom */}
-          {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
-            <div className="mt-6 flex justify-center">
-              <Button 
-                onClick={() => onPrepareMultipleOrders(allOrders.map(order => ({
-                  itemName: order.itemName,
-                  tableNumber: order.tableNumber,
-                  id: order.id
-                })))}
-                size="lg"
-                variant="default"
-                className="text-lg font-semibold"
-              >
-                Thực hiện 
-              </Button>
-            </div>
-          )}
-          {activeTab === 'đang thực hiện' && allOrders.length > 0 && onServeMultipleOrders && (
-            <div className="mt-6 flex justify-center">
-              <Button 
-                onClick={() => onServeMultipleOrders(allOrders.map(order => ({
-                  itemName: order.itemName,
-                  tableNumber: order.tableNumber,
-                  id: order.id
-                })))}
-                size="lg"
-                variant="default"
-                className="text-lg font-semibold"
-              >
-                Bắt đầu phục vụ
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     );
