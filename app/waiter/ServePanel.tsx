@@ -142,6 +142,11 @@ const ServePanel: React.FC = () => {
     );
   }
 
+  const categoryOrder = ["Đồ Uống", "Món Chính", "Tráng Miệng", "Khác"];
+  const sortedCategories = Object.entries(groupedDishes).sort(
+    ([a], [b]) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b)
+  );
+
   return (
     <div className="flex flex-col md:flex-row p-4 gap-6 min-h-screen w-full bg-background">
       <div className="flex flex-col gap-4 items-center mr-4">
@@ -173,7 +178,8 @@ const ServePanel: React.FC = () => {
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-primary"
               />
             </div>
-            {Object.entries(groupedDishes).map(([categoryName, items]) => {
+
+            {sortedCategories.map(([categoryName, items]) => {
               const style =
                 categoryStyle[categoryName] || categoryStyle["Khác"];
               const filteredItems = items.filter((dish) =>
