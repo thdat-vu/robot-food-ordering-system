@@ -40,7 +40,6 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
     setShowMap(false);
   };
 
-  // Extract table numbers from mapUrl for display
   const getTableNumbersFromUrl = () => {
     if (!mapUrl) return "";
     const urlParams = new URLSearchParams(mapUrl.split("?")[1]);
