@@ -255,7 +255,7 @@ export function KitchenSidebar({
                                 onSidebarItemClick({ itemName, tableNumber, id });
                               }}
                               variant="secondary"
-                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left max-w-full h-auto min-h-[48px] px-3 py-2`}
+                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left w-full h-auto min-h-[48px] px-3 py-2`}
                             >
                               <div className="flex w-full items-center gap-2">
                                 <span className="block text-sm leading-tight truncate flex-1 min-w-0">
