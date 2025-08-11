@@ -168,24 +168,44 @@ export function KitchenSidebar({
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex flex-col gap-4"> {/* gap between groups */}
               {(() => {
-                // Flatten all filtered orders into a single array
-                const allOrders = Object.entries(groupedOrders)
-                  .filter(([itemName, orders]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
-                  .flatMap(([itemName, orders]) =>
-                    orders
+                // Helper: compute chunk sizes between 3 and 5 to avoid tiny leftovers
+                const getChunkSizes = (total: number): number[] => {
+                  if (total <= 5) return [total];
+                  let numGroups = Math.ceil(total / 5);
+                  let base = Math.floor(total / numGroups);
+                  while (base < 3 && numGroups > 1) {
+                    numGroups -= 1;
+                    base = Math.floor(total / numGroups);
+                  }
+                  const remainder = total % numGroups;
+                  const sizes = new Array(numGroups).fill(base);
+                  for (let i = 0; i < remainder; i++) sizes[i] += 1;
+                  return sizes as number[];
+                };
+
+                // Build per-itemName groups, respecting category/filter and excluding 'bắt đầu phục vụ'
+                const perItemGroups: { items: { itemName: string; tableNumber: number; id: number }[] }[] = [];
+
+                Object.entries(groupedOrders)
+                  .filter(([itemName]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
+                  .forEach(([itemName, orders]) => {
+                    const filtered = orders
                       .filter(order => order.status !== 'bắt đầu phục vụ')
-                      .map((order) => ({
-                        itemName,
-                        tableNumber: order.tableNumber,
-                        id: order.id,
-                      }))
-                  );
-                // Group into chunks of 3
-                const groups = [];
-                for (let i = 0; i < allOrders.length; i += 3) {
-                  groups.push(allOrders.slice(i, i + 3));
-                }
-                return groups.map((group, groupIdx) => {
+                      .map(order => ({ itemName, tableNumber: order.tableNumber, id: order.id }));
+
+                    if (filtered.length === 0) return;
+
+                    const sizes = getChunkSizes(filtered.length);
+                    let cursor = 0;
+                    sizes.forEach(size => {
+                      perItemGroups.push({ items: filtered.slice(cursor, cursor + size) });
+                      cursor += size;
+                    });
+                  });
+
+                // Present groups in the order of item names as they appear
+                return perItemGroups.map((groupObj, groupIdx) => {
+                  const group = groupObj.items;
                   const isSelected = isGroupSelected(group);
                   const isInMultipleSelection = isGroupInMultipleSelection(group);
                   return (
