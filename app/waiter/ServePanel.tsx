@@ -11,14 +11,13 @@ import { OrderStatus } from "@/types/kitchen";
 import { WaiterDish } from "@/hooks/use-waiter-orders";
 import { toast } from "sonner";
 
-
 interface ServePanelProps {
   activeTab: OrderStatus;
   onServe: () => Promise<boolean>;
   onRequestRemake: () => Promise<boolean>;
   hasSelected: boolean;
   dishes: WaiterDish[]; // Add dishes prop
-  getDishesByStatus: (status: OrderStatus) => WaiterDish[]; // Add function prop
+  getDishesByStatus: (status: OrderStatus) => WaiterDish[];
 }
 
 const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
@@ -44,8 +43,8 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
   // Extract table numbers from mapUrl for display
   const getTableNumbersFromUrl = () => {
     if (!mapUrl) return "";
-    const urlParams = new URLSearchParams(mapUrl.split('?')[1]);
-    return urlParams.get('tables') || "";
+    const urlParams = new URLSearchParams(mapUrl.split("?")[1]);
+    return urlParams.get("tables") || "";
   };
 
   return (
@@ -59,7 +58,9 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
             </div>
             <div>
               <h3 className="text-xl font-bold">Hướng dẫn đến bàn</h3>
-              <p className="text-blue-100 text-sm">Xem đường đi đến bàn được chọn</p>
+              <p className="text-blue-100 text-sm">
+                Xem đường đi đến bàn được chọn
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-2 bg-white/10 rounded-full px-3 py-1">
@@ -238,7 +239,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Get ALL selected dishes (not just from current tab)
   const allSelectedDishes = dishes.filter((dish) => dish.selected);
-  
+
   // Get selected dishes for the current tab
   const selectedDishes = dishes.filter(
     (dish) => dish.selected && dish.status === activeTab
@@ -246,14 +247,18 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Get unique table numbers from all selected dishes
   const selectedTableNumbers = React.useMemo(() => {
-    const uniqueNumbers = Array.from(new Set(allSelectedDishes.map(dish => dish.tableNumber)));
+    const uniqueNumbers = Array.from(
+      new Set(allSelectedDishes.map((dish) => dish.tableNumber))
+    );
     return uniqueNumbers.sort((a, b) => a - b); // Sort for consistency
   }, [allSelectedDishes]);
 
   // Generate map URL with all selected table numbers
   const mapUrl = React.useMemo(() => {
     if (selectedTableNumbers.length > 0) {
-      return `https://my-app-henna-three.vercel.app/?tables=${selectedTableNumbers.join(',')}`;
+      return `https://my-app-henna-three.vercel.app/?tables=${selectedTableNumbers.join(
+        ","
+      )}`;
     }
     // No fallback - only show map when dishes are actually selected
     return null;
@@ -447,8 +452,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   Xác nhận yêu cầu làm lại
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? 
-                  Hành động này sẽ chuyển các món sang trạng thái "Yêu cầu làm lại".
+                  Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? Hành
+                  động này sẽ chuyển các món sang trạng thái "Yêu cầu làm lại".
                 </p>
                 <div className="flex gap-3">
                   <Button
