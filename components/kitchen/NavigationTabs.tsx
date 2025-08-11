@@ -58,7 +58,7 @@ export function NavigationTabs({
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Tìm kiếm món"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 className="w-64 px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"

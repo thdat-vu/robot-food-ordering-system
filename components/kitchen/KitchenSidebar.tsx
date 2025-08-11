@@ -168,24 +168,44 @@ export function KitchenSidebar({
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex flex-col gap-4"> {/* gap between groups */}
               {(() => {
-                // Flatten all filtered orders into a single array
-                const allOrders = Object.entries(groupedOrders)
-                  .filter(([itemName, orders]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
-                  .flatMap(([itemName, orders]) =>
-                    orders
+                // Helper: compute chunk sizes between 3 and 5 to avoid tiny leftovers
+                const getChunkSizes = (total: number): number[] => {
+                  if (total <= 5) return [total];
+                  let numGroups = Math.ceil(total / 5);
+                  let base = Math.floor(total / numGroups);
+                  while (base < 3 && numGroups > 1) {
+                    numGroups -= 1;
+                    base = Math.floor(total / numGroups);
+                  }
+                  const remainder = total % numGroups;
+                  const sizes = new Array(numGroups).fill(base);
+                  for (let i = 0; i < remainder; i++) sizes[i] += 1;
+                  return sizes as number[];
+                };
+
+                // Build per-itemName groups, respecting category/filter and excluding 'bắt đầu phục vụ'
+                const perItemGroups: { items: { itemName: string; tableNumber: number; id: number }[] }[] = [];
+
+                Object.entries(groupedOrders)
+                  .filter(([itemName]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
+                  .forEach(([itemName, orders]) => {
+                    const filtered = orders
                       .filter(order => order.status !== 'bắt đầu phục vụ')
-                      .map((order) => ({
-                        itemName,
-                        tableNumber: order.tableNumber,
-                        id: order.id,
-                      }))
-                  );
-                // Group into chunks of 3
-                const groups = [];
-                for (let i = 0; i < allOrders.length; i += 3) {
-                  groups.push(allOrders.slice(i, i + 3));
-                }
-                return groups.map((group, groupIdx) => {
+                      .map(order => ({ itemName, tableNumber: order.tableNumber, id: order.id }));
+
+                    if (filtered.length === 0) return;
+
+                    const sizes = getChunkSizes(filtered.length);
+                    let cursor = 0;
+                    sizes.forEach(size => {
+                      perItemGroups.push({ items: filtered.slice(cursor, cursor + size) });
+                      cursor += size;
+                    });
+                  });
+
+                // Present groups in the order of item names as they appear
+                return perItemGroups.map((groupObj, groupIdx) => {
+                  const group = groupObj.items;
                   const isSelected = isGroupSelected(group);
                   const isInMultipleSelection = isGroupInMultipleSelection(group);
                   return (
@@ -233,6 +253,8 @@ export function KitchenSidebar({
                             }
                           }}
                           onClick={(e) => handleCheckboxClick(e, group)}
+                          className="size-6 border-2 border-gray-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:ring-2 data-[state=checked]:ring-green-300 shadow-sm"
+                          aria-label="Chọn nhóm"
                         />
                         <span className="text-sm font-medium text-gray-700">
                           {group.length} món
@@ -255,11 +277,16 @@ export function KitchenSidebar({
                                 onSidebarItemClick({ itemName, tableNumber, id });
                               }}
                               variant="secondary"
-                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left truncate max-w-full h-auto min-h-[40px] px-3 py-2`}
+                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left w-full h-auto min-h-[48px] px-3 py-2`}
                             >
-                              <span className="truncate block text-sm leading-tight">
-                                {`${itemName} - bàn ${tableNumber}`}
-                              </span>
+                              <div className="flex w-full items-center gap-2">
+                                <span className="block text-sm leading-tight truncate flex-1 min-w-0">
+                                  {itemName}
+                                </span>
+                                <span className="text-sm leading-tight font-semibold flex-shrink-0 bg-gray-200 text-gray-900 rounded px-2 py-0.5">
+                                  Bàn {tableNumber}
+                                </span>
+                              </div>
                             </Button>
                           </div>
                         );
