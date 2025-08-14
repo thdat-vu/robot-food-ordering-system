@@ -11,14 +11,13 @@ import { OrderStatus } from "@/types/kitchen";
 import { WaiterDish } from "@/hooks/use-waiter-orders";
 import { toast } from "sonner";
 
-
 interface ServePanelProps {
   activeTab: OrderStatus;
   onServe: () => Promise<boolean>;
   onRequestRemake: () => Promise<boolean>;
   hasSelected: boolean;
   dishes: WaiterDish[]; // Add dishes prop
-  getDishesByStatus: (status: OrderStatus) => WaiterDish[]; // Add function prop
+  getDishesByStatus: (status: OrderStatus) => WaiterDish[];
 }
 
 const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
@@ -41,11 +40,10 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
     setShowMap(false);
   };
 
-  // Extract table numbers from mapUrl for display
   const getTableNumbersFromUrl = () => {
     if (!mapUrl) return "";
-    const urlParams = new URLSearchParams(mapUrl.split('?')[1]);
-    return urlParams.get('tables') || "";
+    const urlParams = new URLSearchParams(mapUrl.split("?")[1]);
+    return urlParams.get("tables") || "";
   };
 
   return (
@@ -59,7 +57,9 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
             </div>
             <div>
               <h3 className="text-xl font-bold">Hướng dẫn đến bàn</h3>
-              <p className="text-blue-100 text-sm">Xem đường đi đến bàn được chọn</p>
+              <p className="text-blue-100 text-sm">
+                Xem đường đi đến bàn được chọn
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-2 bg-white/10 rounded-full px-3 py-1">
@@ -235,10 +235,46 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Get dishes for current tab
   const dishesForTab = getDishesByStatus(activeTab);
-
+  const normalizeCategory = (cat?: string) => {
+    if (!cat) return "Khác";
+    const c = cat.toLowerCase();
+    if (
+      c.includes("uống") ||
+      c.includes("nuoc") ||
+      c.includes("drink") ||
+      c.includes("beverage")
+    )
+      return "Đồ Uống";
+    if (c.includes("chính") || c.includes("main")) return "Món Chính";
+    if (c.includes("tráng") || c.includes("dessert")) return "Tráng Miệng";
+    return "Khác";
+  };
+  const categoryOrder = ["Đồ Uống", "Món Chính", "Tráng Miệng", "Khác"];
+  const sortedDishesForTab = [...dishesForTab].sort(
+    (a, b) =>
+      categoryOrder.indexOf(normalizeCategory(a.categoryName)) -
+      categoryOrder.indexOf(normalizeCategory(b.categoryName))
+  );
+  console.log(
+    "DishesForTab:",
+    dishesForTab.map((d) => d.categoryName)
+  );
+  console.log(
+    "Normalized:",
+    dishesForTab.map((d) => normalizeCategory(d.categoryName))
+  );
+  const groupedDishes = React.useMemo(() => {
+    const groups: Record<string, WaiterDish[]> = {};
+    sortedDishesForTab.forEach((dish) => {
+      const cat = normalizeCategory(dish.categoryName);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(dish);
+    });
+    return groups;
+  }, [sortedDishesForTab]);
   // Get ALL selected dishes (not just from current tab)
   const allSelectedDishes = dishes.filter((dish) => dish.selected);
-  
+
   // Get selected dishes for the current tab
   const selectedDishes = dishes.filter(
     (dish) => dish.selected && dish.status === activeTab
@@ -246,14 +282,18 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Get unique table numbers from all selected dishes
   const selectedTableNumbers = React.useMemo(() => {
-    const uniqueNumbers = Array.from(new Set(allSelectedDishes.map(dish => dish.tableNumber)));
+    const uniqueNumbers = Array.from(
+      new Set(allSelectedDishes.map((dish) => dish.tableNumber))
+    );
     return uniqueNumbers.sort((a, b) => a - b); // Sort for consistency
   }, [allSelectedDishes]);
 
   // Generate map URL with all selected table numbers
   const mapUrl = React.useMemo(() => {
     if (selectedTableNumbers.length > 0) {
-      return `https://my-app-henna-three.vercel.app/?tables=${selectedTableNumbers.join(',')}`;
+      return `https://my-app-henna-three.vercel.app/?tables=${selectedTableNumbers.join(
+        ","
+      )}`;
     }
     // No fallback - only show map when dishes are actually selected
     return null;
@@ -350,47 +390,59 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                   Danh sách món đã phục vụ ({dishesForTab.length})
                 </h3>
-                <ul className="space-y-3">
-                  {dishesForTab.map((d) => (
-                    <li
-                      key={d.id}
-                      className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-100"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-800 font-medium">
-                            {d.name} - Bàn {d.tableNumber}
-                          </span>
-                          {d.quantity > 1 && (
-                            <span className="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                              {d.quantity}
-                            </span>
-                          )}
+                {/* <ul className="space-y-3"> */}
+                <div>
+                  {categoryOrder.map((cat) =>
+                    groupedDishes[cat] && groupedDishes[cat].length > 0 ? (
+                      <div key={cat} className="mb-4">
+                        <div className="font-semibold text-base text-gray-700 mb-2">
+                          {cat}
                         </div>
-                        {d.orderTime && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Đặt lúc: {d.orderTime}
-                          </div>
-                        )}
-                        {d.note && (
-                          <div className="text-xs text-orange-600 mt-1">
-                            Ghi chú: {d.note}
-                          </div>
-                        )}
-                        {d.sizeName && (
-                          <div className="text-xs text-blue-600">
-                            Size: {d.sizeName}
-                          </div>
-                        )}
-                        {d.toppings && d.toppings.length > 0 && (
-                          <div className="text-xs text-purple-600">
-                            Toppings: {d.toppings.join(", ")}
-                          </div>
-                        )}
+                        <ul className="space-y-3">
+                          {groupedDishes[cat].map((d) => (
+                            <li
+                              key={d.id}
+                              className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border border-gray-100"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-gray-800 font-medium">
+                                    {d.name} - Bàn {d.tableNumber}
+                                  </span>
+                                  {d.quantity > 1 && (
+                                    <span className="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                                      {d.quantity}
+                                    </span>
+                                  )}
+                                </div>
+                                {d.orderTime && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Đặt lúc: {d.orderTime}
+                                  </div>
+                                )}
+                                {d.note && (
+                                  <div className="text-xs text-orange-600 mt-1">
+                                    Ghi chú: {d.note}
+                                  </div>
+                                )}
+                                {d.sizeName && (
+                                  <div className="text-xs text-blue-600">
+                                    Size: {d.sizeName}
+                                  </div>
+                                )}
+                                {d.toppings && d.toppings.length > 0 && (
+                                  <div className="text-xs text-purple-600">
+                                    Toppings: {d.toppings.join(", ")}
+                                  </div>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    ) : null
+                  )}
+                </div>
               </div>
             ) : (
               // For other tabs, show the map
@@ -447,8 +499,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   Xác nhận yêu cầu làm lại
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? 
-                  Hành động này sẽ chuyển các món sang trạng thái "Yêu cầu làm lại".
+                  Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? Hành
+                  động này sẽ chuyển các món sang trạng thái "Yêu cầu làm lại".
                 </p>
                 <div className="flex gap-3">
                   <Button
@@ -490,10 +542,48 @@ const ServePanel: React.FC<ServePanelProps> = ({
               <div className="w-2 h-2 bg-orange-500 rounded-full mr-3 animate-pulse"></div>
               Món yêu cầu làm lại ({dishesForTab.length})
             </h3>
-            <p className="text-orange-700 leading-relaxed">
+            <p className="text-orange-700 leading-relaxed mb-4">
               Khách hàng đã yêu cầu làm lại các món này. Vui lòng liên hệ với
               bếp để xử lý.
             </p>
+            <ul className="space-y-3">
+              {categoryOrder.map((cat) =>
+                groupedDishes[cat] && groupedDishes[cat].length > 0 ? (
+                  <div key={cat} className="mb-4">
+                    <div className="font-semibold text-base text-gray-700 mb-2">
+                      {cat}
+                    </div>
+                    <ul className="space-y-3">
+                      {groupedDishes[cat].map((d) => (
+                        <li
+                          key={d.id}
+                          className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-orange-100"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-800 font-medium">
+                                {d.name} - Bàn {d.tableNumber}
+                              </span>
+                              {d.quantity > 1 && (
+                                <span className="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                                  {d.quantity}
+                                </span>
+                              )}
+                            </div>
+                            {/* Hiển thị lý do yêu cầu làm lại nếu có */}
+                            {d.note && (
+                              <div className="text-xs text-red-600 mt-1">
+                                Lý do khách yêu cầu làm lại: {d.note}
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null
+              )}
+            </ul>
           </div>
         )}
 
