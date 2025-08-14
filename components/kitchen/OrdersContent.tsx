@@ -310,6 +310,15 @@ export function OrdersContent({
             )}
           </CardHeader>
         </Card>
+        {/* Bottom sticky CTA to mirror the top toolbar */}
+        <div className="sticky bottom-0 z-10 mt-6 py-3 flex justify-center border-t">
+          {activeTab === 'đang chờ' && (
+            <Button onClick={() => onPrepareClick(order.id, order.itemName)} size="lg" className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white">Thực hiện</Button>
+          )}
+          {activeTab === 'đang thực hiện' && (
+            <Button onClick={() => onServeClick(order)} size="lg" className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-orange-600 hover:bg-orange-700 text-white">Bắt đầu phục vụ</Button>
+          )}
+        </div>
       </div>
     );
   }
@@ -502,6 +511,35 @@ export function OrdersContent({
               </CardHeader>
             </Card>
           ))}
+        </div>
+        {/* Bottom sticky CTA to mirror the top bulk actions */}
+        <div className="sticky bottom-0 z-10 bg-white/80 backdrop-blur py-3 mt-6 border-t flex justify-center">
+          {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
+            <Button 
+              onClick={() => onPrepareMultipleOrders(allOrders.map(order => ({
+                itemName: order.itemName,
+                tableNumber: order.tableNumber,
+                id: order.id
+              })))}
+              size="lg"
+              className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white"
+            >
+              Thực hiện ({allOrders.length})
+            </Button>
+          )}
+          {activeTab === 'đang thực hiện' && allOrders.length > 0 && onServeMultipleOrders && (
+            <Button 
+              onClick={() => onServeMultipleOrders(allOrders.map(order => ({
+                itemName: order.itemName,
+                tableNumber: order.tableNumber,
+                id: order.id
+              })))}
+              size="lg"
+              className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              Bắt đầu phục vụ ({allOrders.length})
+            </Button>
+          )}
         </div>
       </div>
     );
