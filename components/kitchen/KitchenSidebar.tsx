@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Category, RemainingItems, GroupedOrders } from '@/types/kitchen';
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -19,6 +19,9 @@ interface KitchenSidebarProps {
   onMultipleGroupSelection: (groups: { itemName: string; tableNumber: number; id: number }[][]) => void;
   groupedOrders: GroupedOrders;
   className?: string;
+  initialWidth?: number; // in px, default 320
+  minWidthPx?: number; // default 260
+  maxWidthPx?: number; // default 480
 }
 
 export function KitchenSidebar({ 
@@ -35,8 +38,38 @@ export function KitchenSidebar({
   selectedGroups,
   onMultipleGroupSelection,
   groupedOrders,
-  className
+  className,
+  initialWidth = 480,
+  minWidthPx = 260,
+  maxWidthPx = 480
 }: KitchenSidebarProps) {
+  // Resizable width state
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(initialWidth);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+
+  const onResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    if (!isResizing) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const nextWidth = e.clientX - rect.left; // distance from left edge
+      const clamped = Math.max(minWidthPx, Math.min(maxWidthPx, nextWidth));
+      setSidebarWidth(clamped);
+    };
+    const handleMouseUp = () => setIsResizing(false);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, minWidthPx, maxWidthPx]);
   const renderAnimatedButton = (
     itemName: string, 
     index: number, 
@@ -130,7 +163,11 @@ export function KitchenSidebar({
   };
 
   return (
-    <div className={`w-80 bg-gray-200 flex flex-col h-screen ${className || ''}`}>
+    <div
+      ref={containerRef}
+      style={{ width: sidebarWidth }}
+      className={`bg-gray-200 flex flex-col h-screen relative flex-shrink-0 ${className || ''}`}
+    >
       {/* Fixed Header */}
       <div className="flex-shrink-0 p-6 pb-4">
         <h2 className="text-xl font-bold text-gray-800">Danh mục món ăn</h2>
@@ -302,6 +339,13 @@ export function KitchenSidebar({
           <div className="h-4"></div>
         </div>
       </div>
+
+      {/* Right-edge resize handle */}
+      <div
+        onMouseDown={onResizeMouseDown}
+        className="absolute top-0 right-0 h-full w-2 cursor-col-resize bg-transparent hover:bg-gray-300/60"
+        aria-label="Kéo để thay đổi độ rộng thanh bên"
+      />
     </div>
   );
 } 
