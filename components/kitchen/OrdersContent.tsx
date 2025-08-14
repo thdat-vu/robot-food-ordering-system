@@ -245,14 +245,7 @@ export function OrdersContent({
     const order = orderGroup[0];
     return (
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="flex justify-end mb-4 sticky top-0 bg-white/80 backdrop-blur z-10 py-3">
-          {activeTab === 'đang chờ' && (
-            <Button onClick={() => onPrepareClick(order.id, order.itemName)} size="lg" className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white">Thực hiện</Button>
-          )}
-          {activeTab === 'đang thực hiện' && (
-            <Button onClick={() => onServeClick(order)} size="lg" className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-orange-600 hover:bg-orange-700 text-white">Bắt đầu phục vụ</Button>
-          )}
-        </div>
+        {/* Top CTA moved to header; keep bottom sticky button only */}
         <Card className="cursor-pointer hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
             {renderOrderImage(order)}
@@ -311,7 +304,7 @@ export function OrdersContent({
           </CardHeader>
         </Card>
         {/* Bottom sticky CTA to mirror the top toolbar */}
-        <div className="sticky bottom-0 z-10 mt-6 py-3 flex justify-center border-t">
+        <div className="sticky bottom-0 bg-white/80 backdrop-blur z-10 mt-6 py-3 flex justify-center border-t">
           {activeTab === 'đang chờ' && (
             <Button onClick={() => onPrepareClick(order.id, order.itemName)} size="lg" className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white">Thực hiện</Button>
           )}
@@ -402,35 +395,7 @@ export function OrdersContent({
     }
     return (
       <div className="flex-1 p-6 overflow-y-auto">
-        {/* Top-right toolbar for bulk actions */}
-        <div className="flex items-center justify-end gap-3 mb-6 sticky top-0 z-10 py-3">
-            {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
-              <Button 
-                onClick={() => onPrepareMultipleOrders(allOrders.map(order => ({
-                  itemName: order.itemName,
-                  tableNumber: order.tableNumber,
-                  id: order.id
-                })))}
-                size="lg"
-                className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white"
-              >
-                Thực hiện ({allOrders.length})
-              </Button>
-            )}
-            {activeTab === 'đang thực hiện' && allOrders.length > 0 && onServeMultipleOrders && (
-              <Button 
-                onClick={() => onServeMultipleOrders(allOrders.map(order => ({
-                  itemName: order.itemName,
-                  tableNumber: order.tableNumber,
-                  id: order.id
-                })))}
-                size="lg"
-                className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                Bắt đầu phục vụ ({allOrders.length})
-              </Button>
-            )}
-        </div>
+        {/* Top bulk actions moved to header; keep bottom sticky button only */}
 
         <div className="space-y-4">
           {allOrders.map((order) => (
