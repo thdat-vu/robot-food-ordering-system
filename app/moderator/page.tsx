@@ -1,11 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ModeratorScreen from './ModeratorScreen';
 import ModeratorSidebar from "@/components/moderator/ModeratorSideBar";
 import ModeratorTableManagement from './ModeratorTableManagement';
 
-export default function ModeratorPage() {
+function ModeratorPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('tables');
@@ -50,5 +50,21 @@ export default function ModeratorPage() {
         {renderContent()}
       </div>
     </div>
+  );
+}
+
+function ModeratorPageLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+      <div className="text-gray-500">Đang tải...</div>
+    </div>
+  );
+}
+
+export default function ModeratorPage() {
+  return (
+    <Suspense fallback={<ModeratorPageLoading />}> 
+      <ModeratorPageContent />
+    </Suspense>
   );
 }
