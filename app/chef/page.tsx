@@ -358,6 +358,61 @@ function ChiefPageContent() {
           getTabCount={getTabCount}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          rightAction={(
+            (() => {
+              // Build a CTA for top-right based on current context
+              // Use selected groups if available, else selected single order, else nothing
+              if (activeTab === 'đang chờ') {
+                const selectedOrders = selectedGroups.length > 0
+                  ? selectedGroups.flat()
+                  : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
+                if (selectedOrders.length > 0) {
+                  return (
+                    <button
+                      onClick={() => {
+                        if (selectedGroups.length > 0) {
+                          handlePrepareMultipleOrders(selectedOrders);
+                        } else if (selectedGroup) {
+                          handlePrepareMultipleOrders(selectedGroup);
+                        } else if (selectedOrderKey) {
+                          handlePrepareClick(selectedOrderKey.id, selectedOrderKey.itemName);
+                        }
+                      }}
+                      className="font-medium text-sm px-4 py-2 rounded-full shadow bg-green-600 hover:bg-green-700 text-white whitespace-nowrap"
+                    >
+                      {`Thực hiện${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
+                    </button>
+                  );
+                }
+              }
+              if (activeTab === 'đang thực hiện') {
+                const selectedOrders = selectedGroups.length > 0
+                  ? selectedGroups.flat()
+                  : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
+                if (selectedOrders.length > 0) {
+                  return (
+                    <button
+                      onClick={() => {
+                        if (selectedGroups.length > 0) {
+                          handleServeMultipleOrders(selectedOrders);
+                        } else if (selectedGroup) {
+                          handleServeMultipleOrders(selectedGroup);
+                        } else if (selectedOrderKey) {
+                          const all = Object.values(groupedOrders as Record<string, Order[]>).flat();
+                          const found = all.find(o => o.id === selectedOrderKey!.id);
+                          if (found) handleServeClick(found);
+                        }
+                      }}
+                      className="font-medium text-sm px-4 py-2 rounded-full shadow bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
+                    >
+                      {`Bắt đầu phục vụ${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
+                    </button>
+                  );
+                }
+              }
+              return null;
+            })()
+          )}
         />
 
         {/* Orders Content or Placeholder */}
