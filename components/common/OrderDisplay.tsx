@@ -17,12 +17,19 @@ import {
 } from 'lucide-react';
 import {CgPerformance} from "react-icons/cg";
 
-import {OrderRespontGetByID} from "@/entites/respont/OrderRespont";
+import {InForProductOrderDetail, OrderRespontGetByID} from "@/entites/respont/OrderRespont";
 import {useGetOrderByIdAndTaibleId, useGetOrderWithIdTableAndToken} from "@/hooks/customHooks/useOrderHooks";
 import formatCurrency from "@/unit/unit";
 import {Payment} from "@/app/features/components/Payment";
 import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
 import {useTableContext} from "@/hooks/context/Context";
+import {ShoppingCart} from "@/entites/Props/ShoppingCart";
+import {Topping} from "@/entites/respont/Topping";
+
+type DetailType = {
+    shc: InForProductOrderDetail;
+    quantity: number;
+};
 
 export const OrderDisplay = () => {
     const [orderData, setOrderData] = useState<OrderRespontGetByID[]>([]);
@@ -35,6 +42,8 @@ export const OrderDisplay = () => {
     const {run} = useGetOrderByIdAndTaibleId();
     const {run: runGet} = useGetOrderWithIdTableAndToken();
     const [oerderId, setOerderId] = useState<string>('');
+    const [detail, setDetail] = useState<DetailType[] | undefined>()
+
 
     const token = useDeviceToken();
     const table = useTableContext();
@@ -46,6 +55,59 @@ export const OrderDisplay = () => {
                 setOrderData(res.data as OrderRespontGetByID[]);
         })()
     }, []);
+
+
+    function countShoppingCart(arr: InForProductOrderDetail[]) {
+        const map = new Map<string, { shc: InForProductOrderDetail; quantity: number }>();
+
+        for (const item of arr) {
+            let toppingString = '';
+            item.toppings.forEach(value => {
+                toppingString += `${value.id}+${value.price}-`;
+            });
+            const key = `${item.id}_${item.productId}_${item.productSizeId}_${toppingString}`;
+            if (!map.has(key)) {
+                map.set(key, {shc: item, quantity: 1});
+            } else {
+                map.get(key)!.quantity += 1;
+            }
+        }
+
+        return Array.from(map.values());
+    }
+
+
+    useEffect(() => {
+        if (orderData.length > 0) {
+            const allGrouped: DetailType[] = [];
+
+            orderData.forEach(order => {
+                const grouped = countShoppingCart(order.items);
+                allGrouped.push(...grouped);
+            });
+
+            const mergedMap = new Map<string, DetailType>();
+
+            allGrouped.forEach(item => {
+                let toppingString = '';
+                item.shc.toppings.forEach(t => {
+                    toppingString += `${t.id}+${t.price}-`;
+                });
+                const key = `${item.shc.productId}_${item.shc.productSizeId}_${toppingString}`;
+
+                if (!mergedMap.has(key)) {
+                    mergedMap.set(key, {...item});
+                } else {
+                    mergedMap.get(key)!.quantity += item.quantity;
+                }
+            });
+
+            setDetail(Array.from(mergedMap.values()));
+        } else {
+            setDetail(undefined);
+        }
+    }, [orderData]);
+
 
     const handlePayment = (idOrderItem: string) => {
         setIsPaymentOpen(true);
@@ -184,7 +246,7 @@ export const OrderDisplay = () => {
                                         <div>
                                             <div className="flex items-center space-x-2 mb-1">
                                                 <MapPin size={18} className="text-blue-100"/>
-                                                <span className="font-bold text-xl">Bàn {order.tableName}</span>
+                                                <span className="font-bold text-xl">{order.tableName}</span>
                                             </div>
                                             <span className="text-blue-100 text-sm">
                                                 {new Date(order.createdTime).toLocaleString("vi-VN", {
@@ -216,36 +278,36 @@ export const OrderDisplay = () => {
 
                                 {/* Order Items */}
                                 <div className="p-5 space-y-6">
-                                    {order.items?.map((item, itemIndex) => (
-                                        <div key={item.id}
+                                    {detail && detail.map((item, itemIndex) => (
+                                        <div key={itemIndex}
                                              className={`${itemIndex > 0 ? 'border-t border-gray-100 pt-6' : ''}`}>
                                             {/* Item Header */}
                                             <div className="flex items-start space-x-4 mb-4">
                                                 <img
-                                                    src={item.imageUrl}
-                                                    alt={item.productName}
+                                                    src={item.shc.imageUrl}
+                                                    alt={item.shc.productName}
                                                     className="w-16 h-16 rounded-2xl object-cover border-2 border-gray-100"
                                                     onError={(e) => {
                                                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTMyIDQ0QzM4IDI0IDQ0IDI4IDQ0IDMyUzM4IDQwIDMyIDQwUzIwIDM2IDIwIDMyUzI2IDI0IDMyIDI0VjQ0WiIgZmlsbD0iI0Q1RDlERCIvPgo8L3N2Zz4K';
                                                     }}
                                                 />
                                                 <div className="flex-1">
-                                                    <h3 className="font-bold text-gray-900 text-lg leading-tight mb-2">{item.productName}</h3>
+                                                    <h3 className="font-bold text-gray-900 text-lg leading-tight mb-2">{item.shc.productName}</h3>
                                                     <div className="flex items-center flex-wrap gap-2">
                                                         <span
                                                             className="bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-sm font-medium">
-                                                            {item.sizeName}
+                                                            {item.shc.sizeName} (x{item.quantity})
                                                         </span>
-                                                        <OrderStatus status={item.status}/>
+                                                        <OrderStatus status={item.shc.status}/>
                                                         <span className="text-lg font-bold text-emerald-600">
-                                                            {formatCurrency(item.price)}
+                                                            {formatCurrency(item.shc.price * item.quantity)}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Note */}
-                                            {item.note && (
+                                            {item.shc.note && (
                                                 <div
                                                     className="bg-amber-50 border border-amber-200 rounded-2xl p-3 mb-4">
                                                     <div className="flex items-start space-x-2">
@@ -253,45 +315,59 @@ export const OrderDisplay = () => {
                                                                     className="text-amber-600 mt-0.5 flex-shrink-0"/>
                                                         <div>
                                                             <span className="text-amber-800 text-sm font-medium">Ghi chú: </span>
-                                                            <span className="text-amber-700 text-sm">{item.note}</span>
+                                                            <span
+                                                                className="text-amber-700 text-sm">{item.shc.note}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {/* Toppings */}
-                                            {item.toppings?.length > 0 && (
+
+                                            {item.shc.toppings?.length > 0 && (
                                                 <div className="bg-gray-50 rounded-2xl p-4">
                                                     <div className="flex items-center mb-3">
                                                         <Sparkles size={16} className="text-purple-500 mr-2"/>
                                                         <span className="font-semibold text-gray-800">
-                                                            Topping ({item.toppings.length})
-                                                        </span>
+                                                            Topping ({item.shc.toppings?.length})
+                                                          </span>
                                                     </div>
                                                     <div className="space-y-3">
-                                                        {item.toppings.map((topping, index) => (
-                                                            <div key={index}
-                                                                 className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
+                                                        {Array.from(
+                                                            item.shc.toppings.reduce((map, topping) => {
+                                                                if (!map.has(topping.id)) {
+                                                                    map.set(topping.id, {...topping, quantity: 1});
+                                                                } else {
+                                                                    map.get(topping.id)!.quantity += 1;
+                                                                }
+                                                                return map;
+                                                            }, new Map<string, Topping & { quantity: number }>())
+                                                        ).map(([id, topping]) => (
+                                                            <div
+                                                                key={id}
+                                                                className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm"
+                                                            >
                                                                 <div className="flex items-center space-x-3">
                                                                     <img
                                                                         src={topping.imageUrl}
                                                                         alt={topping.name}
                                                                         className="w-10 h-10 rounded-xl object-cover border border-gray-200"
                                                                         onError={(e) => {
-                                                                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMTAiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTIwIDI4QzI0IDIwIDI4IDIyIDI4IDI0UzI0IDI4IDIwIDI4UzEyIDI2IDEyIDI0UzE2IDIwIDIwIDIwVjI4WiIgZmlsbD0iI0Q1RDlERCIvPgo8L3N2Zz4K';
+                                                                            e.currentTarget.src =
+                                                                                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMTAiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTIwIDI4QzI0IDIwIDI4IDIyIDI4IDI0UzI0IDI4IDIwIDI4UzEyIDI2IDEyIDI0UzE2IDIwIDIwIDIwVjI4WiIgZmlsbD0iI0Q1RDlERCIvPgo8L3N2Zz4K';
                                                                         }}
                                                                     />
                                                                     <span
-                                                                        className="font-medium text-gray-900">{topping.name}</span>
+                                                                        className="font-medium text-gray-900">{topping.name} (x{topping.quantity})</span>
                                                                 </div>
                                                                 <span className="font-bold text-emerald-600">
-                                                                    {formatCurrency(topping.price)}
-                                                                </span>
+                                                                            {formatCurrency(topping.price * topping.quantity)}
+                                                                          </span>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
+
                                         </div>
                                     ))}
                                 </div>

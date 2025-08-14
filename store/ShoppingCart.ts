@@ -1,4 +1,3 @@
-
 export const saveListToLocalStorage = <T>(key: string, list: T[]): void => {
     localStorage.setItem(key, JSON.stringify(list));
 };

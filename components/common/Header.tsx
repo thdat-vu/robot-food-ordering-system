@@ -5,18 +5,19 @@ import {BsFillPersonFill} from "react-icons/bs";
 import {useRouter} from "next/navigation";
 import {useTableContext} from "@/hooks/context/Context";
 import {ShoppingCart} from "@/entites/Props/ShoppingCart";
+import {SHOPPING_CARTS} from "@/key-store";
+import {FaSearch} from "react-icons/fa";
 
-export const Header: React.FC<{ id: string }> = ({id}) => {
+
+export const Header: React.FC<{ id: string, handeChangName: (name: string) => void }> = ({id, handeChangName}) => {
 
     const [data, setData] = useState<ShoppingCart[]>([]);
     const context = useTableContext();
-
     const {tableName} = context;
-
     const router = useRouter();
 
     useEffect(() => {
-        const temp = localStorage.getItem("shopping-carts");
+        const temp = localStorage.getItem(SHOPPING_CARTS);
         if (temp) {
             try {
                 setData(JSON.parse(temp) as ShoppingCart[]);
@@ -32,15 +33,35 @@ export const Header: React.FC<{ id: string }> = ({id}) => {
 
     return (
         <div className="w-full bg-white text-black shadow-sm fixed top-0 left-0 z-50">
+
+
             <div className="flex items-center justify-between px-4 py-2 min-h-[60px]">
                 <div className="flex items-center gap-2 flex-shrink-0">
-                    {/*<div className="w-10 h-10 rounded-full bg-black flex items-center justify-center flex-shrink-0">*/}
-                    {/*    <span className="text-white text-lg font-bold">{tableName}</span>*/}
-                    {/*</div>*/}
                     <span className="text-3xl sm:text-3xl font-semibold whitespace-nowrap">
                         {tableName === "!" ? "" : `${tableName}`}
                     </span>
                 </div>
+
+                <div className="flex-1 max-w-sm px-4">
+                    <div className="relative w-full group">
+                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2
+                           text-gray-400 group-focus-within:text-blue-500
+                           transition-colors duration-200 text-sm"/>
+
+                        <input
+                            onChange={event => handeChangName(event.target.value)}
+                            type="search"
+                            placeholder="Tìm kiếm món ăn..."
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-full
+                                         focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                                         hover:border-gray-300
+                                         outline-none transition-all duration-200
+                                         bg-white shadow-sm text-sm
+                                         placeholder:text-gray-400"
+                        />
+                    </div>
+                </div>
+
 
                 <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <button
@@ -65,10 +86,13 @@ export const Header: React.FC<{ id: string }> = ({id}) => {
                             </svg>
 
                             {data.length > 0 && (
-                                <span className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow">
+                                <span
+                                    className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow">
                                 {data.length}
                             </span>
                             )}
+
+
                         </div>
                     </button>
 

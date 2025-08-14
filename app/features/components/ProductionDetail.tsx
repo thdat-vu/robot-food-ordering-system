@@ -1,7 +1,7 @@
 'use client'
 import Button from "@/components/common/Button";
 import React, {useCallback, useEffect, useState} from "react";
-import {Star} from "lucide-react";
+import {Check, Minus, Plus, Star} from "lucide-react";
 import {IoIosArrowBack} from "react-icons/io";
 import {useRouter} from "next/navigation";
 import {useGetProductionID} from "@/hooks/customHooks/useProductionHooks";
@@ -51,7 +51,7 @@ export default function ProductionDetailPage({id}: { id: string }) {
 
     const handle = (id: string, name: string, urlImg: string) => {
         if (size)
-            setProduct(id, name, urlImg, size?.price, size?.id,"", size?.name);
+            setProduct(id, name, urlImg, size?.price, size?.id, size?.name, "");
     }
 
     const handleClose = useCallback(() => {
@@ -95,12 +95,10 @@ export default function ProductionDetailPage({id}: { id: string }) {
                                             <h1 className="text-3xl font-bold text-gray-900 leading-tight mb-2">
                                                 {data.name}
                                             </h1>
-                                            <p className="text-gray-500 text-lg">With Chocolate</p>
                                         </div>
 
                                         <div className="flex items-center gap-1 bg-gray-50 px-3 py-2 rounded-lg">
                                             <Star className="w-5 h-5 fill-green-500 text-green-500"/>
-                                            <span className="text-gray-700 font-medium">4.6 (1,250)</span>
                                         </div>
                                     </div>
                                 </div>
@@ -111,13 +109,13 @@ export default function ProductionDetailPage({id}: { id: string }) {
                                         {formatCurrency(data.price)}
                                     </div>
 
-                                    <Button
-                                        className="px-6 py-3 bg-green-100 text-green-700 hover:bg-green-200 transition-all duration-300 rounded-full font-medium"
-                                        content="Xem Topping"
-                                        handle={() => {
-                                            router.push(`/productions/topping/${id}`)
-                                        }}
-                                    />
+                                    {/*<Button*/}
+                                    {/*    className="px-6 py-3 bg-green-100 text-green-700 hover:bg-green-200 transition-all duration-300 rounded-full font-medium"*/}
+                                    {/*    content="Xem Topping"*/}
+                                    {/*    handle={() => {*/}
+                                    {/*        router.push(`/productions/topping/${id}`)*/}
+                                    {/*    }}*/}
+                                    {/*/>*/}
                                 </div>
 
 
@@ -137,11 +135,14 @@ export default function ProductionDetailPage({id}: { id: string }) {
                                         {data.sizes.map(value => (
                                             <button
                                                 key={value.id}
-                                                onClick={() => setSize({
-                                                    id: value.id,
-                                                    name: value.sizeName,
-                                                    price: value.price
-                                                })}
+                                                onClick={() => {
+                                                    setSize({
+                                                        id: value.id,
+                                                        name: value.sizeName,
+                                                        price: value.price
+                                                    })
+                                                    console.log(value)
+                                                }}
                                                 className={`w-full p-4 rounded-xl border-2 transition-all duration-200 ${
                                                     size?.name === value.sizeName
                                                         ? 'border-gray-500 bg-green-300 text-green-700 shadow-sm'
@@ -157,6 +158,8 @@ export default function ProductionDetailPage({id}: { id: string }) {
                                             </button>
                                         ))}
                                     </div>
+
+
                                     <div
                                         className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-100 shadow-lg">
                                         <div className="flex items-center gap-3">
@@ -200,7 +203,6 @@ export default function ProductionDetailPage({id}: { id: string }) {
                                 </div>
                                 <div className="h-24"></div>
                             </div>
-
                         </div>
                     ) : (
                         <> </>

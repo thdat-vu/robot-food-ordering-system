@@ -4,7 +4,6 @@ import {ChevronRight} from 'lucide-react';
 import Button from "@/components/common/Button";
 import {CallStaff} from "@/app/features/components/CallStaff";
 import {Rating} from "@/app/features/components/Rating";
-import {Payment} from "@/app/features/components/Payment";
 import {IoIosArrowBack} from "react-icons/io";
 import {useRouter} from "next/navigation";
 
@@ -16,7 +15,6 @@ export default function Profile({id}: { id: string }) {
     const [isRatingOpen, setIsRatingOpen] = useState<boolean>(false);
     const [isPaymentOpen, setPaymentOpen] = useState<boolean>(false);
 
-    const infor = id !== "undefined" ? id : "!";
 
 
     return (
@@ -78,11 +76,11 @@ export default function Profile({id}: { id: string }) {
                     </div>
 
                     <div className="flex justify-center space-x-2">
-                        <Button
-                            content="Thanh toán"
-                            className="bg-red-200 hover:bg-red-400 text-red-800 px-4 py-2 rounded-full text-sm"
-                            handle={() => setPaymentOpen(true)}
-                        />
+                        {/*<Button*/}
+                        {/*    content="Thanh toán"*/}
+                        {/*    className="bg-red-200 hover:bg-red-400 text-red-800 px-4 py-2 rounded-full text-sm"*/}
+                        {/*    handle={() => setPaymentOpen(true)}*/}
+                        {/*/>*/}
                         <Button
                             content="Gọi Nhân Viên"
                             className="bg-red-200 hover:bg-red-400 text-red-800 px-4 py-2 rounded-full text-sm"
@@ -182,14 +180,14 @@ export default function Profile({id}: { id: string }) {
                 onSave={() => {
                 }}
             />
-            <Payment
-                id={id}
-                orderId={''}
-                isOpen={isPaymentOpen}
-                onClose={() => setPaymentOpen(false)}
-                onSave={() => {
-                }}
-            />
+            {/*<Payment*/}
+            {/*    id={id}*/}
+            {/*    orderId={''}*/}
+            {/*    isOpen={isPaymentOpen}*/}
+            {/*    onClose={() => setPaymentOpen(false)}*/}
+            {/*    onSave={() => {*/}
+            {/*    }}*/}
+            {/*/>*/}
         </>
     )
         ;

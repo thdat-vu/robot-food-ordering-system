@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const PRODUCTION_API_URL = `http://localhost:5235`;
-// const PRODUCTION_API_URL = `https://be-robo.zd-dev.xyz`;
+// const PRODUCTION_API_URL = `http://localhost:5235`;
+const PRODUCTION_API_URL = `https://be-robo.zd-dev.xyz`;
 
 const api = axios.create({
     baseURL: PRODUCTION_API_URL,

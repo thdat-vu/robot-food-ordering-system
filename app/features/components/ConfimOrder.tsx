@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useState} from "react";
 import {DialogComponation} from "@/components/common/Dialog";
 import Button from "@/components/common/Button";
 import {useTableContext} from "@/hooks/context/Context";
-import {ShoppingCart} from "@/entites/Props/ShoppingCart";
+import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
 import {addProduction, loadListFromLocalStorage} from "@/store/ShoppingCart";
 import formatCurrency, {totolPrice} from "@/unit/unit";
 import {item, OrderRequest} from "@/entites/request/OrderRequest";
@@ -12,11 +12,19 @@ import {Payment} from "@/app/features/components/Payment";
 import {useFastOrderContext} from "@/hooks/context/FastOrderContext";
 import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
 import {Alert} from "@/components/common/Alert";
+import {ORDER_CARTS, SHOPPING_CARTS} from "@/key-store";
+
+
+type DetailType = {
+    shc: ShoppingCart;
+    quantity: number;
+};
+
 
 export const ConfimOrder: React.FC<{
     isOpen: boolean,
     onClose: () => void,
-    ShoppingCart: ShoppingCart | undefined
+    ShoppingCart: ShoppingCart[] | undefined
 }> = ({
           isOpen,
           onClose,
@@ -31,17 +39,17 @@ export const ConfimOrder: React.FC<{
     const {run, data: responcreat, loading, error} = useCreateOreder();
     const deviceToken = useDeviceToken();
     const [ex, setEx] = useState<string>();
+    const [detail, setDetail] = useState<DetailType[] | undefined>()
 
 
     const factContext = useFastOrderContext();
 
-    console.log(ShoppingCart)
 
     useEffect(() => {
         if (ShoppingCart) {
-            setData([ShoppingCart]);
+            setData(ShoppingCart);
         } else {
-            const res = loadListFromLocalStorage<ShoppingCart>("shopping-carts");
+            const res = loadListFromLocalStorage<ShoppingCart>(SHOPPING_CARTS);
             setData(res as ShoppingCart[]);
         }
     }, [isOpen]);
@@ -49,11 +57,24 @@ export const ConfimOrder: React.FC<{
 
     useEffect(() => {
         (() => {
-            let sum = totolPrice(data);
+            let sum = 0;
+            detail?.forEach(value => {
+
+                sum += value.shc.size.price * value.quantity;
+                sum += sumTotalPritoping(value.shc.toppings) * value.quantity;
+            })
             setTotalPrice(sum);
         })()
-    }, [data]);
+    }, [detail]);
 
+
+    const sumTotalPritoping = (toppings: Topping[]) => {
+        let sum = 0;
+        toppings.forEach(value => {
+            sum += value.price;
+        })
+        return sum;
+    }
 
     const handleConfirm = (typePayment: string) => {
 
@@ -83,8 +104,10 @@ export const ConfimOrder: React.FC<{
             case 'COD':
                 (async () => {
                     await run(orderRequet);
-                    if (error)
+                    if (error && error.response.data.message)
                         setEx(error.response.data.message);
+
+                    handleRemote()
                     setOpen(false);
                 })()
                 break;
@@ -95,11 +118,14 @@ export const ConfimOrder: React.FC<{
         }
     }
 
+    const handleRemote = () => {
+        localStorage.removeItem(SHOPPING_CARTS)
+    }
 
     useEffect(() => {
         (() => {
             if (responcreat && responcreat.data.id) {
-                addProduction<Order>("order-ss", {
+                addProduction<Order>(ORDER_CARTS, {
                     tableId: responcreat.data.tableId,
                     id: responcreat.data.id
                 });
@@ -108,58 +134,135 @@ export const ConfimOrder: React.FC<{
     }, [responcreat]);
 
 
+    function countShoppingCart(arr: ShoppingCart[]) {
+        const map = new Map<string, { shc: ShoppingCart; quantity: number }>();
+
+        for (const item of arr) {
+            let toppingString = '';
+            item.toppings.forEach(value => {
+                toppingString += `${value.id}+${value.quantity}-`;
+            });
+            const key = `${item.id}_${item.size.id}_${toppingString}`;
+            if (!map.has(key)) {
+                map.set(key, {shc: item, quantity: 1});
+            } else {
+                map.get(key)!.quantity += 1;
+            }
+        }
+
+        return Array.from(map.values());
+    }
+
+
+    useEffect(() => {
+        if (data.length > 0) {
+            const grouped = countShoppingCart(data);
+            setDetail(grouped);
+        } else {
+            setDetail(undefined);
+        }
+    }, [data]);
+
+
     return (
         <>
             {
-                ex && (
-                    <Alert message={ex} type="error"/>
+                error && error.response.data.message && (
+                    <Alert message={error.response.data.message} type="error"/>
                 )
             }
             <DialogComponation scrollBody={false} isOpen={isOpen} onClose={onClose}>
-                <div className="bg-white rounded-lg shadow-xl max-w-md mx-auto">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-xl font-bold text-gray-800 text-center">
+                <div className="bg-white rounded-xl shadow-lg max-w-md mx-auto overflow-hidden">
+                    <div className="bg-emerald-600 px-6 py-4">
+                        <h2 className="text-xl font-bold text-white text-center">
                             Xác Nhận Đơn Hàng
                         </h2>
-                        <p className="text-sm text-gray-600 text-center mt-1">
+                        <p className="text-sm text-emerald-100 text-center mt-1">
                             Bàn: {tableName || tableId}
                         </p>
                     </div>
 
-                    <div className="px-6 py-4 max-h-96 overflow-y-auto">
+                    <div className="px-4 py-4 max-h-[50vh] overflow-y-auto">
                         {data.length === 0 ? (
                             <div className="text-center py-8">
                                 <p className="text-gray-500">Giỏ hàng trống</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {data.map((item, idx) => (
-                                    <div key={idx} className="bg-gray-50 rounded-lg p-4">
-                                        <div className="flex justify-between items-center mb-2">
+
+                                {detail && detail.map((item, idx) => (
+                                    <div key={idx} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                        <div className="flex gap-3 items-start mb-3">
+                                            {item.shc.urlImg && (
+                                                <div
+                                                    className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                                    <img
+                                                        src={item.shc.urlImg}
+                                                        alt={item.shc.name}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            )}
+
                                             <div className="flex-1">
-                                                <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                                                <p className="text-sm text-gray-600">Size: {item.size.name || 'Standard'}</p>
+                                                <div className="flex justify-between items-start">
+                                                    <h3 className="font-semibold text-gray-800">
+                                                        {item.shc.name} (x{item.quantity})
+                                                    </h3>
+                                                    <span className="font-bold text-emerald-600 ml-2 whitespace-nowrap">
+                                                        {formatCurrency(item.shc.size.price * item.quantity)}
+                                                    </span>
+                                                </div>
+
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                    Size: {item.shc.size.name}
+                                                </p>
+
+                                                {item.shc.note && (
+                                                    <div className="mt-2">
+                                                        <p className="text-xs font-medium text-gray-500 mb-1">
+                                                            Ghi chú:
+                                                        </p>
+                                                        <p className="text-sm text-gray-700 bg-emerald-50 px-3 py-2 rounded-lg">
+                                                            {item.shc.note}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <span className="font-bold text-green-600">
-                                            {formatCurrency(item.size.price)}
-                                        </span>
                                         </div>
 
-                                        {item.toppings.length > 0 && (
-                                            <div className="pl-4 border-l-2 border-gray-200">
-                                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                                        {item.shc.toppings.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
                                                     Topping
                                                 </p>
-                                                {item.toppings.map((topping, toppingIdx) => (
-                                                    <div key={toppingIdx}
-                                                         className="flex justify-between items-center py-1">
-                                                        <span
-                                                            className="text-sm text-gray-600">+ {topping.name} (x{topping.quantity})</span>
-                                                        <span className="text-sm font-medium text-gray-700">
-                                                        {formatCurrency(topping.price * topping.quantity)}
-                                                    </span>
-                                                    </div>
-                                                ))}
+                                                <div className="space-y-2">
+                                                    {item.shc.toppings.map((topping, toppingIdx) => (
+                                                        <div key={toppingIdx}
+                                                             className="flex justify-between items-center">
+                                                            <div className="flex items-center gap-2">
+                                                                {topping.imgUrl && (
+                                                                    <div className="w-8 h-8 rounded-md overflow-hidden">
+                                                                        <img
+                                                                            src={topping.imgUrl}
+                                                                            alt={topping.name}
+                                                                            className="w-full h-full object-cover"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                <span className="text-sm text-gray-700">
+                                                                    {topping.name}
+                                                                    <span className="text-gray-500 ml-1">
+                                                                        (x{topping.quantity})
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-sm font-medium text-gray-700">
+                                                                +{formatCurrency(topping.price * topping.quantity)}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -168,33 +271,46 @@ export const ConfimOrder: React.FC<{
                         )}
                     </div>
 
-                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
                         <div className="flex justify-between items-center mb-4">
                             <span className="text-lg font-bold text-gray-800">Tổng cộng:</span>
-                            <span className="text-xl font-bold text-green-600">
-                            {formatCurrency(totalPrice)}
-                        </span>
+                            <span className="text-xl font-bold text-emerald-600">
+                                {formatCurrency(totalPrice)}
+                            </span>
                         </div>
 
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <button
                                 onClick={onClose}
-                                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700
-                                     rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                                className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg
+                                    font-medium hover:bg-gray-50 transition-colors flex-1"
                             >
-                                Hủy
+                                Quay lại
                             </button>
-                            <Button
-                                className="bg-green-600 w-80 sm:w-96 transition-all duration-300 ease-in-out
-                                         transform hover:scale-105 rounded-3xl active:scale-110
-                                         px-8 py-4 text-lg"
-                                content="Xác Nhận Đặt Hàng"
-                                handle={() => {
-
-                                    setOpen(true)
-                                    onClose()
+                            <button
+                                onClick={() => {
+                                    setOpen(true);
+                                    onClose();
                                 }}
-                            />
+                                className="bg-emerald-600 text-white rounded-lg font-bold
+                                    hover:bg-emerald-700 transition-colors px-4 py-3 flex-1
+                                    flex items-center justify-center"
+                            >
+                                {loading ? (
+                                    <div className="flex items-center">
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                    strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor"
+                                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Đang xử lý...
+                                    </div>
+                                ) : (
+                                    "Xác nhận đặt hàng"
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -204,6 +320,8 @@ export const ConfimOrder: React.FC<{
     )
 }
 
+
+///////////////////////////////////////////////////////////
 
 type Prop = {
     isOpen: boolean,

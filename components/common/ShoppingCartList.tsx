@@ -10,34 +10,75 @@ import {
 } from "@/store/ShoppingCart";
 import {IoMdAdd} from "react-icons/io";
 import {ConfimOrder} from "@/app/features/components/ConfimOrder";
+import {SHOPPING_CARTS} from "@/key-store";
+
+
+type DetailType = {
+    shc: ShoppingCart;
+    quantity: number;
+};
+
 
 export const ShoppingCartList: React.FC = () => {
 
-
+    const [detail, setDetail] = useState<DetailType[] | undefined>()
     const [cartItems, setCartItems] = useState<ShoppingCart[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
     const [open, setOpen] = useState<boolean>(false)
 
 
-    const calculateItemTotal = (item: ShoppingCart) => {
-        const toppingsTotal = item.toppings.reduce((sum, topping) => sum + topping.price, 0);
-        return item.size.price + toppingsTotal;
+    const calculateItemTotal = (item: DetailType) => {
+        let sum = 0;
+        sum += item.shc.size.price * item.quantity;
+        item.shc.toppings.forEach(value => sum += value.price * item.quantity);
+
+        return sum;
     };
 
 
     const calculateGrandTotal = () => {
-        return cartItems.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+        if (detail)
+            return detail.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+        return 0;
     };
 
 
     const handleRemove = useCallback((index: number) => {
-        removeProduction<ShoppingCart>("shopping-carts", index);
+        removeProduction<ShoppingCart>(SHOPPING_CARTS, index);
         setTimeout(() => {
-            const updated = loadListFromLocalStorage<ShoppingCart>("shopping-carts");
+            const updated = loadListFromLocalStorage<ShoppingCart>(SHOPPING_CARTS);
             setCartItems(updated);
         }, 0);
     }, []);
 
+
+    function countShoppingCart(arr: ShoppingCart[]) {
+        const map = new Map<string, { shc: ShoppingCart; quantity: number }>();
+
+        for (const item of arr) {
+            let toppingString = '';
+            item.toppings.forEach(value => {
+                toppingString += `${value.id}+${value.quantity}-`;
+            });
+            const key = `${item.id}_${item.size.id}_${toppingString}`;
+            if (!map.has(key)) {
+                map.set(key, {shc: item, quantity: 1});
+            } else {
+                map.get(key)!.quantity += 1;
+            }
+        }
+
+        return Array.from(map.values());
+    }
+
+    useEffect(() => {
+        if (cartItems.length > 0) {
+            const grouped = countShoppingCart(cartItems);
+            setDetail(grouped);
+        } else {
+            setDetail(undefined);
+        }
+    }, [cartItems]);
 
     const remoteItemTopping = (index: number, topping: string, isAdd: boolean) => {
 
@@ -54,7 +95,7 @@ export const ShoppingCartList: React.FC = () => {
                     } : item
             );
             const updatedItem = updatedItems[index];
-            if (updatedItem) updateProduction<ShoppingCart>("shopping-carts", updatedItem, index);
+            if (updatedItem) updateProduction<ShoppingCart>(SHOPPING_CARTS, updatedItem, index);
             return updatedItems;
         });
 
@@ -65,7 +106,7 @@ export const ShoppingCartList: React.FC = () => {
     // })()
 
     useEffect(() => {
-        const data = loadListFromLocalStorage<ShoppingCart>("shopping-carts");
+        const data = loadListFromLocalStorage<ShoppingCart>(SHOPPING_CARTS);
         setCartItems(data);
     }, []);
 
@@ -109,7 +150,7 @@ export const ShoppingCartList: React.FC = () => {
                 </div>
 
                 <div className="px-4 py-4 space-y-4">
-                    {cartItems.map((item, index) => (
+                    {detail && detail.map((item, index) => (
                         <div key={index}
                              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="p-4">
@@ -117,8 +158,8 @@ export const ShoppingCartList: React.FC = () => {
 
                                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                                         <img
-                                            src={item.urlImg}
-                                            alt={item.name}
+                                            src={item.shc.urlImg}
+                                            alt={item.shc.name}
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
@@ -127,15 +168,15 @@ export const ShoppingCartList: React.FC = () => {
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 <h3 className="font-semibold text-gray-900 text-base leading-tight">
-                                                    {item.name}
+                                                    {item.shc.name}
                                                 </h3>
                                                 <div className="mt-1 flex items-center">
                                                 <span
                                                     className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                    {item.size.name}
+                                                    {item.shc.size.name} (x{item.quantity})
                                                 </span>
                                                     <span className="ml-2 text-sm font-medium text-gray-600">
-                                                    {formatCurrency(item.size.price)}
+                                                    {formatCurrency(item.shc.size.price * item.quantity)}
                                                 </span>
                                                 </div>
                                             </div>
@@ -149,17 +190,22 @@ export const ShoppingCartList: React.FC = () => {
                                         </div>
                                     </div>
 
-
                                 </div>
                             </div>
 
+                            <div className="flex flex-col">
+                                {item.shc.note && (
+                                    <span className="text-sm text-gray-500 italic">📝 {item.shc.note}</span>
+                                )}
+                            </div>
 
-                            {item.toppings.length > 0 && (
+
+                            {item.shc.toppings.length > 0 && (
                                 <div className="px-4 pb-4">
                                     <div className="border-t border-gray-100 pt-3">
                                         <p className="text-sm font-medium text-gray-700 mb-2">Topping:</p>
                                         <div className="space-y-2">
-                                            <ToppingCartList item={item} index={index}
+                                            <ToppingCartList quantity={item.quantity} item={item.shc} index={index}
                                                              removeToppingFromItem={remoteItemTopping}/>
                                         </div>
                                     </div>
@@ -185,15 +231,11 @@ export const ShoppingCartList: React.FC = () => {
                             <span className="text-gray-600">Tạm tính ({cartItems.length} món):</span>
                             <span className="font-medium">{formatCurrency(totalPrice)}</span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Phí giao hàng:</span>
-                            <span className="font-medium text-green-600">Miễn phí</span>
-                        </div>
                         <div className="border-t border-gray-200 pt-2">
                             <div className="flex justify-between">
                                 <span className="text-base font-semibold text-gray-900">Tổng cộng:</span>
                                 <span className="text-lg font-bold text-green-600">
-                                {formatCurrency(totalPrice)}
+                                {formatCurrency(calculateGrandTotal())}
                             </span>
                             </div>
                         </div>
@@ -208,14 +250,16 @@ export const ShoppingCartList: React.FC = () => {
 };
 
 
+//////////////--------------------------------------------------------------------------------------------------------------------------------
+
+
+//////////////--------------------------------------------------------------------------------------------------------------------------------
+
+
 const ActionButtons: React.FC<{ handle: () => void }> = ({handle}) => {
     return (
         <>
             <div className="flex space-x-3">
-                {/*<button*/}
-                {/*    className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors">*/}
-                {/*    Tiếp tục mua*/}
-                {/*</button>*/}
                 <button
                     onClick={handle}
                     className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
@@ -225,12 +269,17 @@ const ActionButtons: React.FC<{ handle: () => void }> = ({handle}) => {
         </>
     )
 }
+//////////////--------------------------------------------------------------------------------------------------------------------------------
+
+
+//////////////--------------------------------------------------------------------------------------------------------------------------------
 
 const ToppingCartList: React.FC<{
     item: ShoppingCart,
     index: number;
-    removeToppingFromItem: (index: number, idTopping: string, isAdd: boolean) => void
-}> = ({item, index, removeToppingFromItem}) => {
+    removeToppingFromItem: (index: number, idTopping: string, isAdd: boolean) => void;
+    quantity: number;
+}> = ({item, index, removeToppingFromItem, quantity}) => {
     return (
         <>
             {item.toppings.map((topping) => (
@@ -251,25 +300,25 @@ const ToppingCartList: React.FC<{
                     </div>
                     <div className="flex items-center space-x-2">
                           <span className="text-sm font-semibold text-green-600">
-                                                        {formatCurrency(topping.price * topping.quantity)}
-                                                    </span>
-                        <button
-                            onClick={() => removeToppingFromItem(index, topping.id, false)}
-                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                            <Minus className="w-3 h-3"/>
-                        </button>
+                                                        {formatCurrency(topping.price * quantity)}
+                          </span>
+                        {/*<button*/}
+                        {/*    onClick={() => removeToppingFromItem(index, topping.id, false)}*/}
+                        {/*    className="p-1 text-gray-400 hover:text-red-500 transition-colors"*/}
+                        {/*>*/}
+                        {/*    <Minus className="w-3 h-3"/>*/}
+                        {/*</button>*/}
 
                         <span className="text-sm font-semibold text-green-600">
-                                                        {topping.quantity}
-                                                    </span>
+                                                        (x{topping.quantity * quantity})
+                        </span>
 
-                        <button
-                            onClick={() => removeToppingFromItem(index, topping.id, true)}
-                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                            <IoMdAdd className="w-3 h-3"/>
-                        </button>
+                        {/*<button*/}
+                        {/*    onClick={() => removeToppingFromItem(index, topping.id, true)}*/}
+                        {/*    className="p-1 text-gray-400 hover:text-red-500 transition-colors"*/}
+                        {/*>*/}
+                        {/*    <IoMdAdd className="w-3 h-3"/>*/}
+                        {/*</button>*/}
                     </div>
                 </div>
             ))}

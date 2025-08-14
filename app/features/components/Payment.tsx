@@ -9,9 +9,10 @@ import {useFastOrderContext} from "@/hooks/context/FastOrderContext";
 import {item, OrderRequest} from "@/entites/request/OrderRequest";
 import {useTableContext} from "@/hooks/context/Context";
 import {OrderRespont} from "@/entites/respont/OrderRespont";
-import {addProduction} from "@/store/ShoppingCart";
+import {addProduction, removeProduction} from "@/store/ShoppingCart";
 import {Order} from "@/entites/Props/Order";
 import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
+import {ORDER_CARTS} from "@/key-store";
 
 type PaymentProps = {
     id: string;
@@ -173,7 +174,7 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
             if (!orderIdToUse) {
                 return;
             }
-            addProduction<Order>("order-ss", {
+            addProduction<Order>(ORDER_CARTS, {
                 tableId: tablecontext.tableId,
                 id: orderIdToUse
             });
@@ -188,6 +189,12 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
                 `Đã gửi yêu cầu thanh toán`,
                 'success'
             );
+
+            (() => {
+                localStorage.removeItem(ORDER_CARTS)
+            })()
+
+
             onClose();
         } catch (error: any) {
             console.error('Payment error:', error);
