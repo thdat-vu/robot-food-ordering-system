@@ -5,22 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/key-store.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/OrderApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/OrderApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/ProductionApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/ProductionApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/api.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/Payment.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/Payment.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/ProductionsPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ProductionsPage.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/Profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/Profile.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/ChoceToping.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ChoceToping.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/Header.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/entites/request/ProductionRequest.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/request/ProductionRequest.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/store/ShoppingCart.ts" beforeDir="false" afterPath="$PROJECT_DIR$/store/ShoppingCart.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -130,6 +117,8 @@
       <workItem from="1754968340957" duration="3810000" />
       <workItem from="1755053868725" duration="15600000" />
       <workItem from="1755098969668" duration="3288000" />
+      <workItem from="1755166324114" duration="38000" />
+      <workItem from="1755184237035" duration="4718000" />
     </task>
     <servers />
   </component>

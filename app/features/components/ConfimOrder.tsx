@@ -258,7 +258,7 @@ export const ConfimOrder: React.FC<{
                                                                 </span>
                                                             </div>
                                                             <span className="text-sm font-medium text-gray-700">
-                                                                +{formatCurrency(topping.price * topping.quantity)}
+                                                                +{formatCurrency(topping.price * item.quantity)}
                                                             </span>
                                                         </div>
                                                     ))}
