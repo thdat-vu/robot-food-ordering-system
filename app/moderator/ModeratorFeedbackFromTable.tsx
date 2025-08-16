@@ -11,9 +11,10 @@ import {
     ArrowUpDown
 } from "lucide-react";
 import {FeedbackgGetTableId} from "@/entites/moderator/FeedbackModole";
-import {useCheckSS, useGetFeedbackByIdtable} from "@/hooks/moderator/useFeedbackHooks";
+
 import { useToastModerator } from '@/hooks/use-toast-moderator';
 import { ToastContainer } from '@/components/moderator/ToastContainer';
+import { useCheckSS, useGetFeedbackByIdtable, UseGetOrderbytable } from "@/hooks/moderator/useFeedbackHooks";
 
 
 
@@ -41,7 +42,9 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const [listId, setListId] = useState<string[]>([])
 
     const {run} = useGetFeedbackByIdtable();
-    const {run: runCheck} = useCheckSS();
+    const {run: orderbytableid} = UseGetOrderbytable();
+    
+    const {run: runCheck } = useCheckSS();
 
     useEffect(() => {
         if (open && idTable) {
@@ -121,6 +124,8 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         setIsLoading(true);
         try {
             const res = await run(idTable);
+            const getOrderBy = await orderbytableid(idTable);
+            console.log('getOrderBy', getOrderBy);
             const sorted = (res.data as FeedbackgGetTableId[]).sort((a, b) => {
                 return sortOrder === 'newest'
                     ? new Date(b.createData).getTime() - new Date(a.createData).getTime()

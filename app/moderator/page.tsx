@@ -4,11 +4,65 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ModeratorScreen from './ModeratorScreen';
 import ModeratorSidebar from "@/components/moderator/ModeratorSideBar";
 import ModeratorTableManagement from './ModeratorTableManagement';
+import FeedbackList from "@/components/moderator/FeedbackList";
+
+
+export interface FeedbackData {
+  idFeedback: string;
+  idTable: string;
+  feedBack: string;
+  isPending: boolean;
+  createDate: string;
+  orderId: string;
+  orderItems: {
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
+  totalPrice: number;
+  rating?: number;
+  customerName?: string;
+}
 
 function ModeratorPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('tables');
+
+  
+  
+  const dummyFeedbacks: FeedbackData[] = [
+    {
+      idFeedback: "fb1",
+      idTable: "1",
+      feedBack: "Món ăn rất ngon, phục vụ nhanh",
+      isPending: true,
+      createDate: "2025-08-16",
+      orderId: "O-123",
+      orderItems: [
+        { name: "Phở bò", price: 50000, quantity: 2 },
+        { name: "Trà đá", price: 5000, quantity: 3 },
+      ],
+      totalPrice: 115000,
+      rating: 4,
+      customerName: "Nguyễn Văn A",
+    },
+    {
+      idFeedback: "fb2",
+      idTable: "3",
+      feedBack: "Món ăn hơi mặn, mong cải thiện",
+      isPending: false,
+      createDate: "2025-08-15",
+      orderId: "O-456",
+      orderItems: [{ name: "Cơm gà", price: 45000, quantity: 1 }],
+      totalPrice: 45000,
+      rating: 3,
+      customerName: "Lê Thị B",
+    },
+  ];
+
+  const [feedbacks, setFeedbacks] = useState<FeedbackData[]>(dummyFeedbacks);
+
 
   // Lấy tab từ URL params hoặc mặc định là 'tables'
   useEffect(() => {
@@ -32,9 +86,14 @@ function ModeratorPageContent() {
         return <ModeratorScreen />;
       case 'tables':
         return <ModeratorTableManagement />;
+        case 'test':
+          return <FeedbackList tableId="test-table" feedbacks={feedbacks} />;
+        
+         
       default:
         return <ModeratorTableManagement />;
-    }
+     
+    } 
   };
 
   return (
@@ -66,5 +125,6 @@ export default function ModeratorPage() {
     <Suspense fallback={<ModeratorPageLoading />}> 
       <ModeratorPageContent />
     </Suspense>
+
   );
 }

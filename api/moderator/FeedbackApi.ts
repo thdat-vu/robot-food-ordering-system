@@ -3,6 +3,10 @@ import {FeedbackgGetTableId, TableData} from "@/entites/moderator/FeedbackModole
 import api from "@/api/api";
 import {API_FEEDBACK} from "@/api-endpoint-env";
 
+import { Order } from "@/types/kitchen";
+import { ordersApi } from "@/lib/api/orders";
+
+
 export const GetFeedbackByIdtable = async (id: string): Promise<BaseEntityData<FeedbackgGetTableId[]>> => {
     try {
         const res = await api.get(`${API_FEEDBACK}/${id}`)
@@ -11,6 +15,15 @@ export const GetFeedbackByIdtable = async (id: string): Promise<BaseEntityData<F
         throw err;
     }
 }
+export const getOrdersByTableId = async (id: string): Promise<any> => {
+    try {
+        const res = await ordersApi.getOrdersByTableIdOnly(id);
+       
+    } catch (err) {
+        throw err;
+    }
+}
+
 
 
 export const GetAllFeedbackHome = async (): Promise<BaseEntityData<Record<string, TableData[]>>
