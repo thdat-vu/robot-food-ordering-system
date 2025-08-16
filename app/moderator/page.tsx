@@ -6,6 +6,13 @@ import ModeratorSidebar from "@/components/moderator/ModeratorSideBar";
 import ModeratorTableManagement from './ModeratorTableManagement';
 import FeedbackList from "@/components/moderator/FeedbackList";
 
+export interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl: string;
+}
 
 export interface FeedbackData {
   idFeedback: string;
@@ -14,63 +21,90 @@ export interface FeedbackData {
   isPending: boolean;
   createDate: string;
   orderId: string;
-  orderItems: {
-    name: string;
-    price: number;
-    quantity: number;
-  }[];
+  orderItems: OrderItem[];
   totalPrice: number;
   rating?: number;
   customerName?: string;
 }
 
+// Sample feedback data
+const dummyFeedbacks: FeedbackData[] = [
+  {
+    idFeedback: "fb-001",
+    idTable: "T01",
+    feedBack: "Món ăn rất ngon, nhân viên phục vụ nhiệt tình.",
+    isPending: false,
+    createDate: "2023-11-15T14:30:00Z",
+    orderId: "ORD-20231115-001",
+    customerName: "Nguyễn Văn A",
+    rating: 5,
+    totalPrice: 350000,
+    orderItems: [
+      {
+        id: "item-1",
+        name: "Phở bò",
+        price: 70000,
+        quantity: 2,
+        imageUrl: "../assets/Picture/notificationfeedback.PNG"
+      },
+      {
+        id: "item-2",
+        name: "Bún chả",
+        price: 65000,
+        quantity: 1,
+        imageUrl: "../assets/Picture/notificationfeedback.PNG"
+      },
+      {
+        id: "item-3",
+        name: "Nước cam",
+        price: 30000,
+        quantity: 2,
+        imageUrl: "../assets/Picture/notificationfeedback.PNG"
+      }
+    ]
+  },
+  {
+    idFeedback: "fb-002",
+    idTable: "T02",
+    feedBack: "Chờ đợi hơi lâu khi gọi món.",
+    isPending: true,
+    createDate: "2023-11-14T19:15:00Z",
+    orderId: "ORD-20231114-002",
+    rating: 3,
+    totalPrice: 250000,
+    orderItems: [
+      {
+        id: "item-4",
+        name: "Cơm gà",
+        price: 55000,
+        quantity: 3,
+        imageUrl:  "../assets/Picture/notificationfeedback.PNG"
+      },
+      {
+        id: "item-5",
+        name: "Trà đá",
+        price: 10000,
+        quantity: 2,
+        imageUrl: "../assets/Picture/notificationfeedback.PNG"
+        
+      }
+    ]
+  }
+];
+
 function ModeratorPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('tables');
-
-  
-  
-  const dummyFeedbacks: FeedbackData[] = [
-    {
-      idFeedback: "fb1",
-      idTable: "1",
-      feedBack: "Món ăn rất ngon, phục vụ nhanh",
-      isPending: true,
-      createDate: "2025-08-16",
-      orderId: "O-123",
-      orderItems: [
-        { name: "Phở bò", price: 50000, quantity: 2 },
-        { name: "Trà đá", price: 5000, quantity: 3 },
-      ],
-      totalPrice: 115000,
-      rating: 4,
-      customerName: "Nguyễn Văn A",
-    },
-    {
-      idFeedback: "fb2",
-      idTable: "3",
-      feedBack: "Món ăn hơi mặn, mong cải thiện",
-      isPending: false,
-      createDate: "2025-08-15",
-      orderId: "O-456",
-      orderItems: [{ name: "Cơm gà", price: 45000, quantity: 1 }],
-      totalPrice: 45000,
-      rating: 3,
-      customerName: "Lê Thị B",
-    },
-  ];
-
   const [feedbacks, setFeedbacks] = useState<FeedbackData[]>(dummyFeedbacks);
 
-
-  // Lấy tab từ URL params hoặc mặc định là 'tables'
+  // Get tab from URL params or default to 'tables'
   useEffect(() => {
     const tab = searchParams.get('tab') || 'tables';
     setActiveTab(tab);
   }, [searchParams]);
 
-  // Function để thay đổi tab và update URL
+  // Function to change tab and update URL
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     // Update URL without page reload
@@ -86,13 +120,10 @@ function ModeratorPageContent() {
         return <ModeratorScreen />;
       case 'tables':
         return <ModeratorTableManagement />;
-        case 'test':
-          return <FeedbackList tableId="test-table" feedbacks={feedbacks} />;
-        
-         
+      case 'test':
+        return <FeedbackList tableId="test-table" feedbacks={feedbacks} />;
       default:
         return <ModeratorTableManagement />;
-     
     } 
   };
 
@@ -125,6 +156,5 @@ export default function ModeratorPage() {
     <Suspense fallback={<ModeratorPageLoading />}> 
       <ModeratorPageContent />
     </Suspense>
-
   );
 }

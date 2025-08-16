@@ -2,7 +2,7 @@ import React, {useEffect, useState, useCallback} from 'react';
 import {Bell, Users, Clock, User , CreditCard,UserCheck} from 'lucide-react';
 import {TableData} from "@/entites/moderator/FeedbackModole";
 import {useGetAllFeedbackHome} from "@/hooks/moderator/useFeedbackHooks";
-import ModeratorFeedbackFromTable from "@/app/moderator/ModeratorFeedbackFromTable";
+import {ModeratorFeedbackFromTable} from "@/app/moderator/ModeratorFeedbackFromTable";
 import { Truck, DollarSign } from 'lucide-react';
 import { useToastModerator } from '@/hooks/use-toast-moderator';
 import { ToastContainer } from '@/components/moderator/ToastContainer';
@@ -294,7 +294,8 @@ const ModeratorScreen: React.FC = () => {
                 </div>
             </div>
 
-            <ModeratorFeedbackFromTable idTable={idTable} open={openDialog} onClose={() => setOpenDialog(false)}/>
+            <ModeratorFeedbackFromTable idTable={idTable} open={openDialog} onClose={() => setOpenDialog(false)} tableName={idTable ? data[idTable]?.tableName : ''}  />
+            
         </div>
     );
 };
