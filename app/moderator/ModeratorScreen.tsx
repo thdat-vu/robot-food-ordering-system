@@ -294,7 +294,7 @@ const ModeratorScreen: React.FC = () => {
                 </div>
             </div>
 
-            <ModeratorFeedbackFromTable idTable={idTable} open={openDialog} onClose={() => setOpenDialog(false)}/>
+            <ModeratorFeedbackFromTable idTable={idTable} open={openDialog} onClose={() => setOpenDialog(false)} tableName={ data[idTable]?.tableName }/>
         </div>
     );
 };

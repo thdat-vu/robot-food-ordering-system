@@ -8,29 +8,34 @@ import {
     Calendar,
     Search,
     RefreshCw,
-    ArrowUpDown
+    ArrowUpDown,
+    Package,
+    Clock,
+    CheckCircle2,
+    XCircle,
+    AlertTriangle,
+    Send,
+    Lightbulb
 } from "lucide-react";
-import {FeedbackgGetTableId} from "@/entites/moderator/FeedbackModole";
+import {FeedbackgGetTableId, dto} from "@/entites/moderator/FeedbackModole";
 import {useCheckSS, useGetFeedbackByIdtable} from "@/hooks/moderator/useFeedbackHooks";
-import { useToastModerator } from '@/hooks/use-toast-moderator';
-import { ToastContainer } from '@/components/moderator/ToastContainer';
-
-
+import {useToastModerator} from '@/hooks/use-toast-moderator';
+import {ToastContainer} from '@/components/moderator/ToastContainer';
 
 type Prop = {
     idTable: string;
     open: boolean;
     onClose: () => void;
-    tableName?: string;
+    tableName: string;
 }
 
 export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                                                idTable,
                                                                onClose,
                                                                open,
-                                                               tableName = `Bàn ${idTable}`
+                                                               tableName
                                                            }) => {
-    const {toasts,addToast,removeToast} = useToastModerator();
+    const {toasts, addToast, removeToast} = useToastModerator();
     const [data, setData] = useState<FeedbackgGetTableId[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
@@ -38,10 +43,25 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFeedbacks, setSelectedFeedbacks] = useState<Set<string>>(new Set());
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-    const [listId, setListId] = useState<string[]>([])
+    const [listId, setListId] = useState<string[]>([]);
+    const [responses, setResponses] = useState<{ [key: string]: string }>({});
+    const [showSuggestions, setShowSuggestions] = useState<{ [key: string]: boolean }>({});
 
     const {run} = useGetFeedbackByIdtable();
     const {run: runCheck} = useCheckSS();
+
+    // Gợi ý phản hồi
+    const responseSuggestions = [
+        "Nhân viên đã tiếp nhận và khắc phục sự cố",
+        "Cảm ơn bạn đã góp ý. Chúng tôi đã ghi nhận và sẽ cải thiện chất lượng phục vụ.",
+        "Xin lỗi vì sự bất tiện này. Chúng tôi sẽ khắc phục ngay lập tức.",
+        "Cảm ơn bạn đã phản hồi. Chúng tôi đã chuyển thông tin cho bếp để cải thiện.",
+        "Chúng tôi rất tiếc về trải nghiệm này và sẽ đảm bảo không tái diễn.",
+        "Cảm ơn bạn đã chia sẻ. Ý kiến của bạn rất quan trọng với chúng tôi.",
+        "Chúng tôi đã nhận được phản hồi và sẽ có biện pháp khắc phục phù hợp.",
+        "Xin lỗi về chất lượng món ăn. Chúng tôi sẽ trao đổi với đầu bếp về vấn đề này.",
+        "Cảm ơn bạn đã thông báo. Chúng tôi sẽ kiểm tra và cải thiện quy trình phục vụ."
+    ];
 
     useEffect(() => {
         if (open && idTable) {
@@ -56,6 +76,94 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         setListId(Array.from(selectedFeedbacks));
     }, [selectedFeedbacks]);
 
+    // Set default response value when component opens
+    useEffect(() => {
+        if (open && data.length > 0) {
+            const defaultResponses = data.reduce((acc, feedback) => {
+                if (!responses[feedback.idFeedback]) {
+                    acc[feedback.idFeedback] = "Nhân viên đã tiếp nhận và khắc phục sự cố";
+                }
+                return acc;
+            }, {} as { [key: string]: string });
+
+            if (Object.keys(defaultResponses).length > 0) {
+                setResponses(prev => ({
+                    ...prev,
+                    ...defaultResponses
+                }));
+            }
+        }
+    }, [open, data]);
+
+    const getStatusInfo = (status: number) => {
+        switch (status) {
+            case 0:
+                return {label: 'Chờ xử lý', icon: Clock, color: 'text-yellow-600 bg-yellow-50 border-yellow-200'};
+            case 1:
+                return {
+                    label: 'Đang chuẩn bị',
+                    icon: AlertTriangle,
+                    color: 'text-orange-600 bg-orange-50 border-orange-200'
+                };
+            case 2:
+                return {label: 'Hoàn thành', icon: CheckCircle2, color: 'text-green-600 bg-green-50 border-green-200'};
+            case 3:
+                return {label: 'Đã hủy', icon: XCircle, color: 'text-red-600 bg-red-50 border-red-200'};
+            default:
+                return {label: 'Không xác định', icon: AlertCircle, color: 'text-gray-600 bg-gray-50 border-gray-200'};
+        }
+    };
+
+    const handleResponseChange = (feedbackId: string, value: string) => {
+        setResponses(prev => ({
+            ...prev,
+            [feedbackId]: value
+        }));
+    };
+
+    const handleSuggestionClick = (feedbackId: string, suggestion: string) => {
+        setResponses(prev => ({
+            ...prev,
+            [feedbackId]: suggestion
+        }));
+        setShowSuggestions(prev => ({
+            ...prev,
+            [feedbackId]: false
+        }));
+    };
+
+    const toggleSuggestions = (feedbackId: string) => {
+        setShowSuggestions(prev => ({
+            ...prev,
+            [feedbackId]: !prev[feedbackId]
+        }));
+    };
+
+    const handleSendResponse = async (feedbackId: string) => {
+        const responseText = responses[feedbackId]?.trim();
+        if (!responseText) {
+            addToast('Vui lòng nhập nội dung phản hồi', 'error');
+            return;
+        }
+
+        try {
+            // Ở đây bạn có thể gọi API để gửi phản hồi
+            // await sendResponseAPI(feedbackId, responseText);
+
+            addToast('Đã gửi phản hồi thành công', 'success');
+
+            // Clear response after sending
+            setResponses(prev => ({
+                ...prev,
+                [feedbackId]: ''
+            }));
+
+        } catch (error) {
+            console.error('Error sending response:', error);
+            addToast('Có lỗi xảy ra khi gửi phản hồi. Vui lòng thử lại.', 'error');
+        }
+    };
+
     const handleCheck = async () => {
         if (listId.length === 0) {
             addToast('Vui lòng chọn ít nhất một phản hồi để đánh dấu đã xử lý', `error`);
@@ -64,7 +172,9 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
         setIsChecking(true);
         try {
-            await runCheck(idTable, listId);
+            const responseText = "Nhân viên đã tiếp nhận và khắc phục sự cố";
+
+            await runCheck(idTable, listId, responseText);
 
             setData(prevData =>
                 prevData.map(feedback =>
@@ -90,7 +200,8 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const handleSingleCheck = async (feedbackId: string) => {
         setIsChecking(true);
         try {
-            await runCheck(tableName, [feedbackId]);
+            const responseText = responses[feedbackId] || "Nhân viên đã tiếp nhận và khắc phục sự cố";
+            await runCheck(idTable, [feedbackId], responseText);
 
             setData(prevData =>
                 prevData.map(feedback =>
@@ -116,11 +227,11 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         }
     };
 
-
     const loadFeedbackData = async () => {
         setIsLoading(true);
         try {
             const res = await run(idTable);
+           
             const sorted = (res.data as FeedbackgGetTableId[]).sort((a, b) => {
                 return sortOrder === 'newest'
                     ? new Date(b.createData).getTime() - new Date(a.createData).getTime()
@@ -129,34 +240,53 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             setData(sorted);
         } catch (error) {
             console.error('Error fetching feedback:', error);
+            
             setData([]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const formatDate = (date: Date) => {
-        return new Date(date).toLocaleString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+    const parseDate = (date: string | Date) => {
+        if (date instanceof Date) return date;
+      
+        // format hiện tại: DD/MM/YYYY HH:mm:ss
+        const [day, month, yearAndTime] = date.split("/");
+        const [year, time] = yearAndTime.split(" ");
+        return new Date(`${year}-${month}-${day}T${time}`);
+      };
+      
+      const formatDate = (date: Date | string) => {
+        const parsedDate = parseDate(date);
+        if (isNaN(parsedDate.getTime())) return "Không xác định";
+      
+        return parsedDate.toLocaleString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
         });
-    };
-
-    const getRelativeTime = (date: Date) => {
+      };
+      
+      const getRelativeTime = (date: Date | string) => {
+        const parsedDate = parseDate(date);
+        if (isNaN(parsedDate.getTime())) return "Không xác định";
+      
         const now = new Date();
-        const diff = now.getTime() - new Date(date).getTime();
+        const diff = now.getTime() - parsedDate.getTime();
+      
         const minutes = Math.floor(diff / (1000 * 60));
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-        if (minutes < 1) return 'Vừa xong';
+      
+        if (minutes < 1) return "Vừa xong";
         if (minutes < 60) return `${minutes} phút trước`;
         if (hours < 24) return `${hours} giờ trước`;
-    };
-
+        return `${days} ngày trước`;
+      };
+      
+      
 
     const filteredData = data.filter(item => {
         const matchesFilter = selectedFilter === 'all' ||
@@ -165,8 +295,10 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
         const matchesSearch = searchQuery === '' ||
             item.feedBack.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.idFeedback.toLowerCase().includes(searchQuery.toLowerCase());
+            item.idFeedback.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.dtos.some(dto => dto.orderItemName.toLowerCase().includes(searchQuery.toLowerCase()));
 
+           
         return matchesFilter && matchesSearch;
     });
 
@@ -183,8 +315,9 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             } else {
                 newSet.add(feedbackId);
             }
+            
             return newSet;
-        });
+        }); 
     };
 
     const handleSelectAll = () => {
@@ -221,9 +354,8 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            {/* Toast Container */}
-            <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-            
+            <ToastContainer toasts={toasts} onRemoveToast={removeToast}/>
+
             <div
                 className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden border border-gray-200">
                 <div
@@ -244,11 +376,8 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                 </div>
                                 <div>
                                     <h2 className="text-3xl font-bold mb-1">Quản lý phản hồi khách hàng</h2>
+                                    <p className="text-blue-100">{tableName}</p>
                                 </div>
-                            </div>
-
-                            <div className="text-right">
-                                <div className="text-blue-100 text-sm"></div>
                             </div>
                         </div>
 
@@ -289,7 +418,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                     className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"/>
                                 <input
                                     type="text"
-                                    placeholder="Tìm kiếm trong nội dung phản hồi hoặc ID..."
+                                    placeholder="Tìm kiếm phản hồi, món ăn hoặc ID..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full pl-12 pr-12 py-4 rounded-2xl border-2 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-medium placeholder-gray-400 bg-white shadow-sm"
@@ -508,14 +637,142 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                                     </div>
                                                 </div>
 
+                                                {feedback.dtos && feedback.dtos.length > 0 && (
+                                                    <div className="mb-4">
+                                                        <div className="flex items-center space-x-2 mb-3">
+                                                            <Package className="w-5 h-5 text-gray-600"/>
+                                                            <h4 className="text-lg font-semibold text-gray-700">
+                                                                Món ăn liên quan ({feedback.dtos.length})
+                                                            </h4>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            {(() => {
+                                                                // Group items by name and count them
+                                                                const groupedItems = feedback.dtos.reduce((acc: {
+                                                                    [key: string]: { item: dto, count: number }
+                                                                }, item: dto) => {
+                                                                    if (acc[item.orderItemName]) {
+                                                                        acc[item.orderItemName].count++;
+                                                                    } else {
+                                                                        acc[item.orderItemName] = {item, count: 1};
+                                                                    }
+                                                                    return acc;
+                                                                }, {});
+
+                                                                return Object.values(groupedItems).map(({
+                                                                                                            item,
+                                                                                                            count
+                                                                                                        }) => {
+                                                                    const statusInfo = getStatusInfo(item.status);
+                                                                    const StatusIcon = statusInfo.icon;
+
+                                                                    return (
+                                                                        <div
+                                                                            key={item.orderItemId}
+                                                                            className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
+                                                                        >
+                                                                            <div
+                                                                                className="flex items-center space-x-4">
+                                                                                {item.imageUrl && (
+                                                                                    <img
+                                                                                        src={item.imageUrl}
+                                                                                        alt={item.orderItemName}
+                                                                                        className="w-16 h-16 rounded-lg object-cover border-2 border-gray-200"
+                                                                                    />
+                                                                                )}
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <h5 className="font-semibold text-gray-800 mb-2">
+                                                                                        <span
+                                                                                            dangerouslySetInnerHTML={{
+                                                                                                __html: highlightSearchText(item.orderItemName, searchQuery)
+                                                                                            }}
+                                                                                        />
+                                                                                        {count > 1 && (
+                                                                                            <span
+                                                                                                className="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-bold">
+                                                                                                x{count}
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </h5>
+                                                                                    <div
+                                                                                        className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}`}>
+                                                                                        <StatusIcon
+                                                                                            className="w-4 h-4"/>
+                                                                                        <span>{statusInfo.label}</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                });
+                                                            })()}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <div
                                                     className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-4">
+                                                    <div className="flex items-center space-x-2 mb-3">
+                                                        <MessageSquare className="w-5 h-5 text-gray-600"/>
+                                                        <h4 className="font-semibold text-gray-700">Nội dung phản
+                                                            hồi:</h4>
+                                                    </div>
                                                     <p
                                                         className="text-gray-800 leading-relaxed text-lg"
                                                         dangerouslySetInnerHTML={{
                                                             __html: highlightSearchText(feedback.feedBack, searchQuery)
                                                         }}
                                                     />
+                                                </div>
+
+                                                {/* Response Input Section */}
+                                                <div
+                                                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-4">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div className="flex items-center space-x-2">
+                                                            <Send className="w-5 h-5 text-gray-600"/>
+                                                            <h4 className="font-semibold text-gray-700">Phản hồi cho
+                                                                khách hàng:</h4>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => toggleSuggestions(feedback.idFeedback)}
+                                                            className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all duration-200 text-sm font-medium"
+                                                        >
+                                                            <Lightbulb className="w-4 h-4"/>
+                                                            <span>Gợi ý</span>
+                                                        </button>
+                                                    </div>
+
+                                                    {showSuggestions[feedback.idFeedback] && (
+                                                        <div
+                                                            className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                                            <h5 className="font-medium text-blue-800 mb-3 flex items-center space-x-2">
+                                                                <Lightbulb className="w-4 h-4"/>
+                                                                <span>Các gợi ý phản hồi:</span>
+                                                            </h5>
+                                                            <div className="grid grid-cols-1 gap-2">
+                                                                {responseSuggestions.map((suggestion, idx) => (
+                                                                    <button
+                                                                        key={idx}
+                                                                        onClick={() => handleSuggestionClick(feedback.idFeedback, suggestion)}
+                                                                        className="text-left p-3 bg-white hover:bg-blue-50 rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200 text-sm text-gray-700 hover:text-blue-800"
+                                                                    >
+                                                                        {suggestion}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex space-x-3">
+                                                        <textarea
+                                                            value={responses[feedback.idFeedback] || ''}
+                                                            onChange={(e) => handleResponseChange(feedback.idFeedback, e.target.value)}
+                                                            placeholder="Nhập phản hồi cho khách hàng..."
+                                                            className="flex-1 p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none h-24 text-sm"
+                                                            rows={3}
+                                                        />
+                                                    </div>
                                                 </div>
 
                                                 {feedback.isPeeding && (
