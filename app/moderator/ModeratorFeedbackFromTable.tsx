@@ -26,14 +26,14 @@ type Prop = {
     idTable: string;
     open: boolean;
     onClose: () => void;
-    tableName?: string;
+    tableName: string;
 }
 
 export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                                                idTable,
                                                                onClose,
                                                                open,
-                                                               tableName = `Bàn ${idTable}`
+                                                               tableName
                                                            }) => {
     const {toasts, addToast, removeToast} = useToastModerator();
     const [data, setData] = useState<FeedbackgGetTableId[]>([]);
@@ -231,6 +231,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         setIsLoading(true);
         try {
             const res = await run(idTable);
+           
             const sorted = (res.data as FeedbackgGetTableId[]).sort((a, b) => {
                 return sortOrder === 'newest'
                     ? new Date(b.createData).getTime() - new Date(a.createData).getTime()
@@ -239,33 +240,53 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             setData(sorted);
         } catch (error) {
             console.error('Error fetching feedback:', error);
+            
             setData([]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const formatDate = (date: Date) => {
-        return new Date(date).toLocaleString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+    const parseDate = (date: string | Date) => {
+        if (date instanceof Date) return date;
+      
+        // format hiện tại: DD/MM/YYYY HH:mm:ss
+        const [day, month, yearAndTime] = date.split("/");
+        const [year, time] = yearAndTime.split(" ");
+        return new Date(`${year}-${month}-${day}T${time}`);
+      };
+      
+      const formatDate = (date: Date | string) => {
+        const parsedDate = parseDate(date);
+        if (isNaN(parsedDate.getTime())) return "Không xác định";
+      
+        return parsedDate.toLocaleString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
         });
-    };
-
-    const getRelativeTime = (date: Date) => {
+      };
+      
+      const getRelativeTime = (date: Date | string) => {
+        const parsedDate = parseDate(date);
+        if (isNaN(parsedDate.getTime())) return "Không xác định";
+      
         const now = new Date();
-        const diff = now.getTime() - new Date(date).getTime();
+        const diff = now.getTime() - parsedDate.getTime();
+      
         const minutes = Math.floor(diff / (1000 * 60));
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-        if (minutes < 1) return 'Vừa xong';
+      
+        if (minutes < 1) return "Vừa xong";
         if (minutes < 60) return `${minutes} phút trước`;
         if (hours < 24) return `${hours} giờ trước`;
-    };
+        return `${days} ngày trước`;
+      };
+      
+      
 
     const filteredData = data.filter(item => {
         const matchesFilter = selectedFilter === 'all' ||
@@ -277,6 +298,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             item.idFeedback.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.dtos.some(dto => dto.orderItemName.toLowerCase().includes(searchQuery.toLowerCase()));
 
+           
         return matchesFilter && matchesSearch;
     });
 
@@ -293,8 +315,9 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             } else {
                 newSet.add(feedbackId);
             }
+            
             return newSet;
-        });
+        }); 
     };
 
     const handleSelectAll = () => {
