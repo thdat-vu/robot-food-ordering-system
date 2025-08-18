@@ -6,6 +6,7 @@ import {
   PAYMENT_METHODS,
 } from "@/lib/api/orders";
 import { tablesApi, ApiTableResponse } from "@/lib/api/tables";
+import { paymentsApi } from "@/lib/api/payments";
 
 export interface PaymentOrderItem {
   id: string;
@@ -195,6 +196,30 @@ export function usePayment() {
     }
   }, []);
 
+  // Create VNPay URL and redirect
+  const initiateOnlinePayment = useCallback(async (orderId: string) => {
+    try {
+      setPaymentStatus("processing");
+      const res = await paymentsApi.createVNPayUrl(orderId, {
+        moneyUnit: "VND",
+      });
+
+      if (res.statusCode === 200 && res.data?.paymentUrl) {
+        setPaymentStatus("redirect");
+        // Redirect browser to VNPay sandbox URL
+        window.location.href = res.data.paymentUrl as string;
+        return { success: true };
+      }
+
+      setPaymentStatus("error");
+      return { success: false, message: res.message || "Cannot create payment URL" };
+    } catch (error) {
+      console.error("Error creating VNPay URL:", error);
+      setPaymentStatus("error");
+      return { success: false, message: "Error creating VNPay URL" };
+    }
+  }, []);
+
   // Confirm money received
   const confirmMoneyReceived = useCallback(() => {
     setPaymentStatus("confirmed");
@@ -227,6 +252,7 @@ export function usePayment() {
     paymentStatus,
     calculateTotal,
     initiatePayment,
+    initiateOnlinePayment,
     confirmMoneyReceived,
     refreshOrders: () => selectedTable && fetchOrdersByTable(selectedTable),
   };
