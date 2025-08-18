@@ -343,7 +343,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   const getTabTitle = () => {
     switch (activeTab) {
       case "đang thực hiện":
-        return "Món đang được thực hiện";
+        return "Món đang được giao";
       case "bắt đầu phục vụ":
         return "Món sẵn sàng phục vụ";
       case "yêu cầu làm lại":
@@ -478,12 +478,12 @@ const ServePanel: React.FC<ServePanelProps> = ({
             >
               🚀 Phục vụ
             </Button>
-            <Button
+            {/* <Button
               onClick={() => setShowRemakeConfirmation(true)}
               className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
               🔄 Yêu cầu làm lại
-            </Button>
+            </Button> */}
           </div>
         )}
 
@@ -597,6 +597,14 @@ const ServePanel: React.FC<ServePanelProps> = ({
               Các món này đã được phục vụ thành công cho khách hàng. Hệ thống sẽ
               tự động cập nhật trạng thái.
             </p>
+            <div className="w-full flex justify-center mt-6">
+              <Button
+                onClick={() => setShowRemakeConfirmation(true)}
+                className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              >
+                🔄 Yêu cầu làm lại
+              </Button>
+            </div>
           </div>
         )}
       </div>

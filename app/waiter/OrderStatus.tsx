@@ -41,7 +41,7 @@ export default function OrderStatus({ dish }: { dish: any }) {
       <div>
         <Label className="mb-1 block">Tiến trình phục vụ</Label>
         <Progress value={70} className="h-3" />
-        <p className="text-sm mt-1 text-green-700">Đang phục vụ ✅</p>
+        <p className="text-sm mt-1 text-green-700">Đang giao ✅</p>
       </div>
 
       {/* Sơ đồ phục vụ */}
