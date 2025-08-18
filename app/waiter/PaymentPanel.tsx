@@ -34,6 +34,7 @@ export default function PaymentPanel({
     paymentStatus,
     calculateTotal,
     initiatePayment,
+    initiateOnlinePayment,
     confirmMoneyReceived,
     refreshOrders,
   } = usePayment();
@@ -255,6 +256,27 @@ export default function PaymentPanel({
     } catch (err) {
       toast("Lỗi thanh toán", {
         description: "Có lỗi xảy ra khi thanh toán",
+      });
+    }
+  };
+
+  const handleOnlinePayment = async () => {
+    if (!selectedTable || tableOrders.length === 0) {
+      toast("Lỗi", { description: "Không có đơn hàng nào để thanh toán" });
+      return;
+    }
+
+    try {
+      const firstOrder = tableOrders[0];
+      const result = await initiateOnlinePayment(firstOrder.id);
+      if (!result.success) {
+        toast("Lỗi thanh toán", {
+          description: result.message || "Không tạo được URL thanh toán",
+        });
+      }
+    } catch (err) {
+      toast("Lỗi thanh toán", {
+        description: "Có lỗi xảy ra khi tạo URL thanh toán",
       });
     }
   };
@@ -495,6 +517,15 @@ export default function PaymentPanel({
                             Thanh toán
                           </>
                         )}
+                      </Button>
+
+                      <Button
+                        className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                        onClick={handleOnlinePayment}
+                        disabled={paymentStatus === "processing" || tableOrders.length === 0}
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Thanh toán online (VNPay)
                       </Button>
 
                       {/* Print Receipt Button - Always visible when table is selected */}
