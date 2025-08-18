@@ -43,7 +43,7 @@ export default function ModeratorTableManagement() {
         );
       
         // Backend update (chỉ gửi id + status)
-        fetch(`http://localhost:5235/api/Table/${table.id}`, {
+        fetch(`https://be-robo.zd-dev.xyz/api/Table/${table.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -189,8 +189,8 @@ export default function ModeratorTableManagement() {
                                             </span>
                                             </label>
 
-                                    </div>
-                                    </td>
+                                        </div>
+                                        </td>
 
 
 
