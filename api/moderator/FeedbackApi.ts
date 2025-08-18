@@ -23,14 +23,15 @@ export const GetAllFeedbackHome = async (): Promise<BaseEntityData<Record<string
     }
 }
 
-export const CheckSS = async (id: string, idfb: string[]): Promise<any> => {
+export const CheckSS = async (id: string, idfb: string[], content: string): Promise<any> => {
     try {
         const params = new URLSearchParams();
         idfb.forEach(idf => params.append('idFeedback', idf));
         params.append('isPeeding', 'false');
-        console.log(params);
+        params.append('content', content);
 
         const res = await api.put(`${API_FEEDBACK}/${id}?${params.toString()}`);
+
         console.log(res);
         return res.data;
     } catch (err) {
