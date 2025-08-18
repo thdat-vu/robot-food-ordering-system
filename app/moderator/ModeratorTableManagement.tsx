@@ -30,7 +30,46 @@ export default function ModeratorTableManagement() {
         setOpen(false);
         setSelectedQr("");
         setSelectedTable(null);
-    };
+    };  
+    const handleToggleStatus = (table: TableItem) => {
+        const currentStatus = table.status.toString();
+        const newStatus = currentStatus === "0" ? "1" : "0";
+      
+        // UI update trước cho mượt
+        setData((prevData) =>
+          prevData.map((item) =>
+            item.id === table.id ? { ...item, status: newStatus } : item
+          )
+        );
+      
+        // Backend update (chỉ gửi id + status)
+        fetch(`http://localhost:5235/api/Table/${table.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: table.id,
+            status: Number(newStatus),
+          }),
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error("Failed to update status");
+            return res.json();
+          })
+          .then((json) => console.log("Status updated:", json))
+          .catch((err) => {
+            console.error("Error updating status:", err);
+            // rollback nếu fail
+            setData((prevData) =>
+              prevData.map((item) =>
+                item.id === table.id ? { ...item, status: currentStatus } : item
+              )
+            );
+          });
+      };
+      
+    
 
     const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
@@ -107,7 +146,7 @@ export default function ModeratorTableManagement() {
                                         </div>
                                     </td>
                                     <td className="py-4 px-6">
-                      <span
+                      <span 
                           className={`inline-flex px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(row.status)}`}>
                         {getStatusText(row.status)}
                       </span>
@@ -126,16 +165,35 @@ export default function ModeratorTableManagement() {
                                         </button>
                                     </td>
                                     <td>
-                                        <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
+                                            <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
                                             <label className="inline-flex items-center me-5 cursor-pointer">
-                                                <input type="checkbox" value="" className="sr-only peer"/>
-                                                <div
-                                                    className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600 dark:peer-checked:bg-green-600"></div>
-                                                <span
-                                                    className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">{getStatusText(row.status)}</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={row.status === "0"}   // 0 = Available
+                                                onChange={() => handleToggleStatus(row)}
+                                                className="sr-only peer"
+                                            />
+                                            <div
+                                                className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700
+                                                        peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800
+                                                        peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full
+                                                        peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5
+                                                        after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full
+                                                        after:h-5 after:w-5 after:transition-all dark:border-gray-600
+                                                        peer-checked:bg-green-600 dark:peer-checked:bg-green-600">
+                                            </div>
+                                            <span
+                                                className={`ms-3 text-sm font-medium border px-2 py-1 rounded-full ${getStatusColor(row.status)}`}
+                                            >
+                                                {getStatusText(row.status)}
+                                            </span>
                                             </label>
-                                        </div>
+
+                                    </div>
                                     </td>
+
+
+
                                 </tr>
                             ))}
                             </tbody>
