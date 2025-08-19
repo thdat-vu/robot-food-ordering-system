@@ -175,6 +175,69 @@ export function useWaiterOrders() {
     }
   }, [categories, stableProductCategoryMap]);
 
+  // Silent fetch orders (no loading/error UI) for polling
+  const silentFetchOrders = useCallback(async () => {
+    try {
+      const response = await ordersApi.getOrders(1, 100);
+
+      if (response.data && response.data.length > 0) {
+        const waiterDishes: WaiterDish[] = [];
+
+        const createDishKey = (orderId: string, itemId: string) =>
+          `${orderId}-${itemId}`;
+
+        response.data.forEach((order) => {
+          order.items.forEach((item) => {
+            const tableNumber = parseInt(order.tableName.replace(/\D/g, "")) || 1;
+
+            const categoryName =
+              stableProductCategoryMap.get(item.productName.toLowerCase()) ||
+              "Khác";
+            const category = categories.find((c) => c.name === categoryName);
+
+            const orderStatus = mapApiStatusToOrderStatus(item.status);
+
+            const dishKey = createDishKey(order.id, item.id);
+
+            const previouslySelected =
+              dishes.find((d) => d.id === dishKey)?.selected || false;
+
+            waiterDishes.push({
+              id: dishKey,
+              name: item.productName,
+              categoryId: category?.id || "unknown",
+              categoryName: categoryName,
+              selected: previouslySelected,
+              served: orderStatus === "đã phục vụ",
+              orderId: order.id,
+              itemId: item.id,
+              tableNumber,
+              quantity: item.quantity,
+              status: orderStatus,
+              orderTime: order.createdTime
+                ? new Date(order.createdTime).toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : undefined,
+              estimatedTime: "10 phút",
+              note: item.note || undefined,
+              sizeName: item.sizeName,
+              toppings: item.toppings?.map((topping) => topping.name) || [],
+            });
+          });
+        });
+
+        setDishes(waiterDishes);
+      } else {
+        setDishes([]);
+      }
+    } catch (err) {
+      // Silent error: log but do not set error state to avoid UI disruption
+      console.error("Error silently fetching orders:", err);
+    }
+  }, [categories, stableProductCategoryMap, dishes]);
+
   // Load categories first, then orders
   useEffect(() => {
     const loadData = async () => {
@@ -282,9 +345,16 @@ export function useWaiterOrders() {
   }, [dishes]);
 
   // Refresh orders
-  const refreshOrders = useCallback(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  const refreshOrders = useCallback(
+    (silent?: boolean) => {
+      if (silent) {
+        silentFetchOrders();
+      } else {
+        fetchOrders();
+      }
+    },
+    [fetchOrders, silentFetchOrders]
+  );
 
   return {
     dishes,
