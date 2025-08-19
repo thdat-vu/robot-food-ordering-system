@@ -133,6 +133,20 @@ export function OrdersContent({
     );
   };
 
+  // Category priority: Drinks > Main > Dessert
+  const categoryPriority = (categoryName?: string): number => {
+    switch (categoryName) {
+      case 'Đồ uống':
+        return 0;
+      case 'Món chính':
+        return 1;
+      case 'Tráng miệng':
+        return 2;
+      default:
+        return 3;
+    }
+  };
+
   // Get the most common estimated time for a group
   const getGroupEstimatedTime = (orderGroup: Order[]): string => {
     // Since items in the same group should have the same estimated time
@@ -320,6 +334,9 @@ export function OrdersContent({
   if (activeTab === 'bắt đầu phục vụ') {
     // Flatten all orders
     const allOrders = Object.values(groupedOrders).flat();
+    const sortedOrders = [...allOrders].sort(
+      (a, b) => categoryPriority(a.category) - categoryPriority(b.category)
+    );
     if (allOrders.length === 0) {
       return (
         <div className="flex-1 p-6 overflow-y-auto">
@@ -334,7 +351,7 @@ export function OrdersContent({
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="space-y-4">
-          {allOrders.map((order) => (
+          {sortedOrders.map((order) => (
             <Card key={order.id} className="hover:shadow-md transition-shadow duration-200">
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
@@ -382,6 +399,9 @@ export function OrdersContent({
   if (showIndividualCards) {
     // Flatten all orders
     const allOrders = Object.values(groupedOrders).flat();
+    const sortedOrders = [...allOrders].sort(
+      (a, b) => categoryPriority(a.category) - categoryPriority(b.category)
+    );
     if (allOrders.length === 0) {
       return (
         <div className="flex-1 p-6 overflow-y-auto">
@@ -398,7 +418,7 @@ export function OrdersContent({
         {/* Top bulk actions moved to header; keep bottom sticky button only */}
 
         <div className="space-y-4">
-          {allOrders.map((order) => (
+          {sortedOrders.map((order) => (
             <Card key={order.id} className="hover:shadow-md transition-shadow duration-200">
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
@@ -481,7 +501,7 @@ export function OrdersContent({
         <div className="sticky bottom-0 z-10 bg-white/80 backdrop-blur py-3 mt-6 border-t flex justify-center">
           {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
             <Button 
-              onClick={() => onPrepareMultipleOrders(allOrders.map(order => ({
+              onClick={() => onPrepareMultipleOrders(sortedOrders.map(order => ({
                 itemName: order.itemName,
                 tableNumber: order.tableNumber,
                 id: order.id
@@ -489,12 +509,12 @@ export function OrdersContent({
               size="lg"
               className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white"
             >
-              Thực hiện ({allOrders.length})
+              Thực hiện ({sortedOrders.length})
             </Button>
           )}
           {activeTab === 'đang thực hiện' && allOrders.length > 0 && onServeMultipleOrders && (
             <Button 
-              onClick={() => onServeMultipleOrders(allOrders.map(order => ({
+              onClick={() => onServeMultipleOrders(sortedOrders.map(order => ({
                 itemName: order.itemName,
                 tableNumber: order.tableNumber,
                 id: order.id
@@ -502,7 +522,7 @@ export function OrdersContent({
               size="lg"
               className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-orange-600 hover:bg-orange-700 text-white"
             >
-              Bắt đầu phục vụ ({allOrders.length})
+              Bắt đầu phục vụ ({sortedOrders.length})
             </Button>
           )}
         </div>
@@ -569,7 +589,19 @@ export function OrdersContent({
               {activeTab === 'đang chờ' && (
                 <CardAction>
                   <Button 
-                    onClick={e => { e.stopPropagation(); onPrepareClick(orderGroup[0].id, orderGroup[0].itemName); }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      if (onPrepareMultipleOrders) {
+                        onPrepareMultipleOrders(
+                          orderGroup.map(o => ({ itemName: o.itemName, tableNumber: o.tableNumber, id: o.id }))
+                        );
+                      } else {
+                        // Fallback: iterate to prepare each item in the group
+                        for (const o of orderGroup) {
+                          onPrepareClick(o.id, o.itemName);
+                        }
+                      }
+                    }}
                     variant="default"
                   >
                     Thực hiện

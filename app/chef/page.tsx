@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, Suspense, useEffect, useMemo, useCallback } from 'react';
 import { useCustomRouter } from '@/lib/custom-router';
 
 // Types
@@ -38,6 +38,7 @@ function ChiefPageContent() {
 
   // Custom hooks
   const {
+    orders,
     activeTab,
     selectedCategory,
     expandedGroup,
@@ -59,6 +60,39 @@ function ChiefPageContent() {
   } = useKitchenOrders();
 
   const { toasts, addToast, removeToast } = useToastKitchen();
+
+  // Build set of currently selected order IDs from all selection modes
+  const getCurrentlySelectedIds = useCallback((): Set<number> => {
+    const ids = new Set<number>();
+    if (selectedGroups && selectedGroups.length > 0) {
+      selectedGroups.flat().forEach(it => ids.add(it.id));
+    }
+    if (selectedGroup && selectedGroup.length > 0) {
+      selectedGroup.forEach(it => ids.add(it.id));
+    }
+    if (selectedOrderKey) {
+      ids.add(selectedOrderKey.id);
+    }
+    return ids;
+  }, [selectedGroups, selectedGroup, selectedOrderKey]);
+
+  // Check if all drinks in trạng thái "đang chờ" are already selected
+  const areAllDrinksSelected = useCallback((): boolean => {
+    const pendingDrinkIds = orders
+      .filter(o => o.status === 'đang chờ' && o.category === 'Đồ uống')
+      .map(o => o.id);
+    if (pendingDrinkIds.length === 0) return true; // no pending drinks -> considered complete
+    const selectedIds = getCurrentlySelectedIds();
+    return pendingDrinkIds.every(id => selectedIds.has(id));
+  }, [orders, getCurrentlySelectedIds]);
+
+  // Show a warning only if selecting/preparing main dishes while NOT all drinks are selected
+  const maybeWarnForMainSelection = (itemNames: string[]) => {
+    const includesMain = itemNames.some(name => itemNameToCategory[name] === 'Món chính');
+    if (includesMain && !areAllDrinksSelected()) {
+      addToast('Nên ưu tiên làm Đồ uống trước Món chính.', 'warning');
+    }
+  };
 
   // Auto-fetch orders every 2 seconds
   useEffect(() => {
@@ -109,8 +143,14 @@ function ChiefPageContent() {
 
   const handlePrepareClick = async (orderId: number, itemName: string) => {
     try {
+      // Warning when preparing main dish before drinks/desserts
+      maybeWarnForMainSelection([itemName]);
       await handlePrepareOrders(orderId);
       addToast(`Đã bắt đầu thực hiện món: ${itemName}`, 'success');
+      // Clear any existing selections to keep the top-right counter accurate
+      setSelectedGroups([]);
+      setSelectedGroup(null);
+      setSelectedOrderKey(null);
     } catch (error) {
       addToast(`Lỗi khi cập nhật trạng thái: ${itemName}`, 'error');
     }
@@ -188,6 +228,8 @@ function ChiefPageContent() {
 
   // Sidebar item click handler
   const handleSidebarItemClick = (orderKey: { itemName: string; tableNumber: number; id: number }) => {
+    // Warning when selecting a main dish while drinks/desserts are pending
+    maybeWarnForMainSelection([orderKey.itemName]);
     setSelectedOrderKey(prev => {
       if (
         prev &&
@@ -204,6 +246,11 @@ function ChiefPageContent() {
   // Group selection handler
   const handleGroupSelection = (group: { itemName: string; tableNumber: number; id: number }[]) => {
     // Toggle logic: if the same group is selected, deselect it
+    // Warning when selecting a main dish group while drinks/desserts are pending
+    if (group && group.length > 0) {
+      const uniqueItemNames = Array.from(new Set(group.map(g => g.itemName)));
+      maybeWarnForMainSelection(uniqueItemNames);
+    }
     setSelectedGroup(prev => {
       if (prev && prev.length === group.length && 
           prev.every((item, index) => 
@@ -223,6 +270,11 @@ function ChiefPageContent() {
 
   // Multiple group selection handler
   const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][]) => {
+    // Warning when selecting multiple groups that include main dishes while drinks/desserts are pending
+    if (groups && groups.length > 0) {
+      const uniqueItemNames = Array.from(new Set(groups.flat().map(g => g.itemName)));
+      maybeWarnForMainSelection(uniqueItemNames);
+    }
     setSelectedGroups(groups);
     setSelectedGroup(null); // Clear single group selection when multiple groups are selected
     setSelectedOrderKey(null); // Clear individual selection when groups are selected
@@ -231,11 +283,18 @@ function ChiefPageContent() {
   // Handle preparing multiple orders at once
   const handlePrepareMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
     try {
+      // Warning when preparing main dish(es) before drinks/desserts
+      const uniqueItemNames = Array.from(new Set(orders.map(o => o.itemName)));
+      maybeWarnForMainSelection(uniqueItemNames);
       // Prepare all orders in the group
       for (const order of orders) {
         await handlePrepareOrders(order.id);
       }
       addToast(`Đã bắt đầu thực hiện ${orders.length} món cùng lúc`, 'success');
+      // Clear selections after bulk action
+      setSelectedGroups([]);
+      setSelectedGroup(null);
+      setSelectedOrderKey(null);
     } catch (error) {
       addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
     }
@@ -249,6 +308,10 @@ function ChiefPageContent() {
         await handleServeOrder(order.id);
       }
       addToast(`Đã bắt đầu phục vụ ${orders.length} món cùng lúc`, 'success');
+      // Clear selections after bulk action
+      setSelectedGroups([]);
+      setSelectedGroup(null);
+      setSelectedOrderKey(null);
     } catch (error) {
       addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
     }
@@ -285,6 +348,33 @@ function ChiefPageContent() {
   // Apply search filter to all order data
   const filteredGroupedOrdersForSearch = filterOrdersBySearch(groupedOrders as Record<string, Order[]>);
   const filteredServeTabGroupedOrders = filterOrdersBySearch(serveTabGroupedOrders);
+
+  // Helper: sort grouped orders by category priority: Đồ uống > Món chính > Tráng miệng
+  const sortGroupedByCategoryPriority = (input: Record<string, Order[]>): Record<string, Order[]> => {
+    const categoryPriority = (categoryName: string | undefined): number => {
+      switch (categoryName) {
+        case 'Đồ uống':
+          return 0;
+        case 'Món chính':
+          return 1;
+        case 'Tráng miệng':
+          return 2;
+        default:
+          return 3;
+      }
+    };
+
+    const sortedEntries = Object.entries(input).sort(([itemNameA], [itemNameB]) => {
+      const aCat = itemNameToCategory[itemNameA];
+      const bCat = itemNameToCategory[itemNameB];
+      return categoryPriority(aCat) - categoryPriority(bCat);
+    });
+
+    return sortedEntries.reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, Order[]>);
+  };
 
   // Show loading state
   if (isLoading) {
@@ -431,9 +521,10 @@ function ChiefPageContent() {
 
           // Serve tab with orders
           if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
+            const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
             return (
               <OrdersContent
-                groupedOrders={filteredServeTabGroupedOrders}
+                groupedOrders={sortedForServe}
                 activeTab={activeTab}
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
@@ -463,9 +554,10 @@ function ChiefPageContent() {
               return filtered;
             })();
 
+            const sortedSelectedGroups = sortGroupedByCategoryPriority(filtered);
             return (
               <OrdersContent
-                groupedOrders={filtered}
+                groupedOrders={sortedSelectedGroups}
                 activeTab={activeTab}
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
@@ -496,9 +588,10 @@ function ChiefPageContent() {
               return filtered;
             })();
 
+            const sortedSelectedGroup = sortGroupedByCategoryPriority(filtered);
             return (
               <OrdersContent
-                groupedOrders={filtered}
+                groupedOrders={sortedSelectedGroup}
                 activeTab={activeTab}
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
@@ -514,9 +607,10 @@ function ChiefPageContent() {
 
           // Selected order key
           if (selectedOrderKey) {
+            const sortedSelectedOrder = sortGroupedByCategoryPriority(filteredGroupedOrders);
             return (
               <OrdersContent
-                groupedOrders={filteredGroupedOrders}
+                groupedOrders={sortedSelectedOrder}
                 activeTab={activeTab}
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
