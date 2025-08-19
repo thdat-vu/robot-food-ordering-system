@@ -111,6 +111,10 @@ function ChiefPageContent() {
     try {
       await handlePrepareOrders(orderId);
       addToast(`Đã bắt đầu thực hiện món: ${itemName}`, 'success');
+      // Clear any existing selections to keep the top-right counter accurate
+      setSelectedGroups([]);
+      setSelectedGroup(null);
+      setSelectedOrderKey(null);
     } catch (error) {
       addToast(`Lỗi khi cập nhật trạng thái: ${itemName}`, 'error');
     }
@@ -236,6 +240,10 @@ function ChiefPageContent() {
         await handlePrepareOrders(order.id);
       }
       addToast(`Đã bắt đầu thực hiện ${orders.length} món cùng lúc`, 'success');
+      // Clear selections after bulk action
+      setSelectedGroups([]);
+      setSelectedGroup(null);
+      setSelectedOrderKey(null);
     } catch (error) {
       addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
     }
@@ -249,6 +257,10 @@ function ChiefPageContent() {
         await handleServeOrder(order.id);
       }
       addToast(`Đã bắt đầu phục vụ ${orders.length} món cùng lúc`, 'success');
+      // Clear selections after bulk action
+      setSelectedGroups([]);
+      setSelectedGroup(null);
+      setSelectedOrderKey(null);
     } catch (error) {
       addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
     }

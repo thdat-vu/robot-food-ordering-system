@@ -569,7 +569,19 @@ export function OrdersContent({
               {activeTab === 'đang chờ' && (
                 <CardAction>
                   <Button 
-                    onClick={e => { e.stopPropagation(); onPrepareClick(orderGroup[0].id, orderGroup[0].itemName); }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      if (onPrepareMultipleOrders) {
+                        onPrepareMultipleOrders(
+                          orderGroup.map(o => ({ itemName: o.itemName, tableNumber: o.tableNumber, id: o.id }))
+                        );
+                      } else {
+                        // Fallback: iterate to prepare each item in the group
+                        for (const o of orderGroup) {
+                          onPrepareClick(o.id, o.itemName);
+                        }
+                      }
+                    }}
                     variant="default"
                   >
                     Thực hiện
