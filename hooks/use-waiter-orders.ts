@@ -31,10 +31,15 @@ export function useWaiterOrders() {
   const [dishes, setDishes] = useState<WaiterDish[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [productCategoryMap, setProductCategoryMap] = useState<Map<string, string>>(new Map());
+  const [productCategoryMap, setProductCategoryMap] = useState<
+    Map<string, string>
+  >(new Map());
 
   // Memoize productCategoryMap to prevent unnecessary re-creation
-  const stableProductCategoryMap = useMemo(() => productCategoryMap, [productCategoryMap.size]);
+  const stableProductCategoryMap = useMemo(
+    () => productCategoryMap,
+    [productCategoryMap.size]
+  );
 
   // Fetch categories and product-category mappings
   const fetchCategories = useCallback(async () => {
@@ -107,7 +112,8 @@ export function useWaiterOrders() {
         const waiterDishes: WaiterDish[] = [];
 
         // Create a unique key for each dish to preserve selection state
-        const createDishKey = (orderId: string, itemId: string) => `${orderId}-${itemId}`;
+        const createDishKey = (orderId: string, itemId: string) =>
+          `${orderId}-${itemId}`;
 
         response.data.forEach((order) => {
           order.items.forEach((item) => {
@@ -116,7 +122,8 @@ export function useWaiterOrders() {
 
             // Get category from product-category mapping
             const categoryName =
-              stableProductCategoryMap.get(item.productName.toLowerCase()) || "Khác";
+              stableProductCategoryMap.get(item.productName.toLowerCase()) ||
+              "Khác";
             const category = categories.find((c) => c.name === categoryName);
 
             // Map API status to OrderStatus
@@ -126,7 +133,8 @@ export function useWaiterOrders() {
             const dishKey = createDishKey(order.id, item.id);
 
             // Check if this dish was previously selected using the consistent ID
-            const previouslySelected = dishes.find(d => d.id === dishKey)?.selected || false;
+            const previouslySelected =
+              dishes.find((d) => d.id === dishKey)?.selected || false;
 
             waiterDishes.push({
               id: dishKey, // Use the generated key as the ID
@@ -149,7 +157,7 @@ export function useWaiterOrders() {
               estimatedTime: "10 phút", // Default estimated time since API doesn't provide it
               note: item.note || undefined,
               sizeName: item.sizeName,
-              toppings: item.toppings?.map(topping => topping.name) || [],
+              toppings: item.toppings?.map((topping) => topping.name) || [],
             });
           });
         });
@@ -166,6 +174,69 @@ export function useWaiterOrders() {
       setIsLoading(false);
     }
   }, [categories, stableProductCategoryMap]);
+
+  // Silent fetch orders (no loading/error UI) for polling
+  const silentFetchOrders = useCallback(async () => {
+    try {
+      const response = await ordersApi.getOrders(1, 100);
+
+      if (response.data && response.data.length > 0) {
+        const waiterDishes: WaiterDish[] = [];
+
+        const createDishKey = (orderId: string, itemId: string) =>
+          `${orderId}-${itemId}`;
+
+        response.data.forEach((order) => {
+          order.items.forEach((item) => {
+            const tableNumber = parseInt(order.tableName.replace(/\D/g, "")) || 1;
+
+            const categoryName =
+              stableProductCategoryMap.get(item.productName.toLowerCase()) ||
+              "Khác";
+            const category = categories.find((c) => c.name === categoryName);
+
+            const orderStatus = mapApiStatusToOrderStatus(item.status);
+
+            const dishKey = createDishKey(order.id, item.id);
+
+            const previouslySelected =
+              dishes.find((d) => d.id === dishKey)?.selected || false;
+
+            waiterDishes.push({
+              id: dishKey,
+              name: item.productName,
+              categoryId: category?.id || "unknown",
+              categoryName: categoryName,
+              selected: previouslySelected,
+              served: orderStatus === "đã phục vụ",
+              orderId: order.id,
+              itemId: item.id,
+              tableNumber,
+              quantity: item.quantity,
+              status: orderStatus,
+              orderTime: order.createdTime
+                ? new Date(order.createdTime).toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : undefined,
+              estimatedTime: "10 phút",
+              note: item.note || undefined,
+              sizeName: item.sizeName,
+              toppings: item.toppings?.map((topping) => topping.name) || [],
+            });
+          });
+        });
+
+        setDishes(waiterDishes);
+      } else {
+        setDishes([]);
+      }
+    } catch (err) {
+      // Silent error: log but do not set error state to avoid UI disruption
+      console.error("Error silently fetching orders:", err);
+    }
+  }, [categories, stableProductCategoryMap, dishes]);
 
   // Load categories first, then orders
   useEffect(() => {
@@ -262,9 +333,7 @@ export function useWaiterOrders() {
       // Update local state
       setDishes((prev) =>
         prev.map((d) =>
-          d.selected
-            ? { ...d, selected: false, status: "yêu cầu làm lại" }
-            : d
+          d.selected ? { ...d, selected: false, status: "yêu cầu làm lại" } : d
         )
       );
 
@@ -276,9 +345,16 @@ export function useWaiterOrders() {
   }, [dishes]);
 
   // Refresh orders
-  const refreshOrders = useCallback(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  const refreshOrders = useCallback(
+    (silent?: boolean) => {
+      if (silent) {
+        silentFetchOrders();
+      } else {
+        fetchOrders();
+      }
+    },
+    [fetchOrders, silentFetchOrders]
+  );
 
   return {
     dishes,

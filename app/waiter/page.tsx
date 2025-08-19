@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, Suspense } from "react";
+import React, { useState, Suspense, useEffect } from "react";
 import { OrderStatus } from "@/types/kitchen";
 import { NavigationTabs } from "@/components/waiter/NavigationTabs";
 import { useWaiterOrders } from "@/hooks/use-waiter-orders";
@@ -27,6 +27,14 @@ function WaiterPageContent() {
     getTabCount,
     getDishesByStatus, // Add this to the destructured values
   } = useWaiterOrders();
+
+  // Auto-refresh orders every 1 second without triggering loading state
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshOrders(true);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [refreshOrders]);
 
   // Clear all selections when switching tabs
   const handleTabChange = (newTab: OrderStatus) => {
@@ -64,7 +72,7 @@ function WaiterPageContent() {
           <div className="text-center">
             <div className="text-red-500 mb-4">Lỗi: {error}</div>
             <button
-              onClick={refreshOrders}
+              onClick={() => refreshOrders(false)}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Thử lại
