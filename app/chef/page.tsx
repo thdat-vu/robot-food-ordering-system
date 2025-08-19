@@ -286,6 +286,33 @@ function ChiefPageContent() {
   const filteredGroupedOrdersForSearch = filterOrdersBySearch(groupedOrders as Record<string, Order[]>);
   const filteredServeTabGroupedOrders = filterOrdersBySearch(serveTabGroupedOrders);
 
+  // Helper: sort grouped orders by category priority: Đồ uống > Món chính > Tráng miệng
+  const sortGroupedByCategoryPriority = (input: Record<string, Order[]>): Record<string, Order[]> => {
+    const categoryPriority = (categoryName: string | undefined): number => {
+      switch (categoryName) {
+        case 'Đồ uống':
+          return 0;
+        case 'Món chính':
+          return 1;
+        case 'Tráng miệng':
+          return 2;
+        default:
+          return 3;
+      }
+    };
+
+    const sortedEntries = Object.entries(input).sort(([itemNameA], [itemNameB]) => {
+      const aCat = itemNameToCategory[itemNameA];
+      const bCat = itemNameToCategory[itemNameB];
+      return categoryPriority(aCat) - categoryPriority(bCat);
+    });
+
+    return sortedEntries.reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, Order[]>);
+  };
+
   // Show loading state
   if (isLoading) {
     return (
@@ -431,9 +458,10 @@ function ChiefPageContent() {
 
           // Serve tab with orders
           if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
+            const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
             return (
               <OrdersContent
-                groupedOrders={filteredServeTabGroupedOrders}
+                groupedOrders={sortedForServe}
                 activeTab={activeTab}
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
@@ -463,9 +491,10 @@ function ChiefPageContent() {
               return filtered;
             })();
 
+            const sortedSelectedGroups = sortGroupedByCategoryPriority(filtered);
             return (
               <OrdersContent
-                groupedOrders={filtered}
+                groupedOrders={sortedSelectedGroups}
                 activeTab={activeTab}
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
@@ -496,9 +525,10 @@ function ChiefPageContent() {
               return filtered;
             })();
 
+            const sortedSelectedGroup = sortGroupedByCategoryPriority(filtered);
             return (
               <OrdersContent
-                groupedOrders={filtered}
+                groupedOrders={sortedSelectedGroup}
                 activeTab={activeTab}
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
@@ -514,9 +544,10 @@ function ChiefPageContent() {
 
           // Selected order key
           if (selectedOrderKey) {
+            const sortedSelectedOrder = sortGroupedByCategoryPriority(filteredGroupedOrders);
             return (
               <OrdersContent
-                groupedOrders={filteredGroupedOrders}
+                groupedOrders={sortedSelectedOrder}
                 activeTab={activeTab}
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}

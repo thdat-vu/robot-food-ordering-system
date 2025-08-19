@@ -240,7 +240,27 @@ export function KitchenSidebar({
                     });
                   });
 
-                // Present groups in the order of item names as they appear
+                // Sort groups by category priority: Đồ uống > Món chính > Tráng miệng
+                const categoryPriority = (categoryName: string | undefined): number => {
+                  switch (categoryName) {
+                    case 'Đồ uống':
+                      return 0;
+                    case 'Món chính':
+                      return 1;
+                    case 'Tráng miệng':
+                      return 2;
+                    default:
+                      return 3;
+                  }
+                };
+
+                perItemGroups.sort((a, b) => {
+                  const aCategory = itemNameToCategory[a.items[0]?.itemName];
+                  const bCategory = itemNameToCategory[b.items[0]?.itemName];
+                  return categoryPriority(aCategory) - categoryPriority(bCategory);
+                });
+
+                // Present groups after sorting by category priority
                 return perItemGroups.map((groupObj, groupIdx) => {
                   const group = groupObj.items;
                   const isSelected = isGroupSelected(group);
