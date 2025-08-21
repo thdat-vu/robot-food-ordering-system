@@ -208,10 +208,7 @@ const ModeratorScreen: React.FC = () => {
                         <span>Bình thường</span>
                         </div>
                     </div>
-                    </div>
-
-
-                   
+                </div>
 
                     <p className="text-white/90 text-lg font-medium mb-4">
                         Theo dõi và xử lý thông báo từ khách hàng
