@@ -77,6 +77,7 @@ function ChiefPageContent() {
     }
     return ids;
   }, [selectedGroups, selectedGroup, selectedOrderKey]);
+  const selectedIds = getCurrentlySelectedIds();
 
   // Check if all drinks in trạng thái "đang chờ" are already selected
   const areAllDrinksSelected = useCallback((): boolean => {
@@ -334,6 +335,7 @@ function ChiefPageContent() {
 
   // Get all orders in 'bắt đầu phục vụ' state for the right panel
   const isServeTab = activeTab === 'bắt đầu phục vụ';
+  const isInProgressTab = activeTab === 'đang thực hiện';
   let serveTabGroupedOrders: Record<string, Order[]> = {};
   if (isServeTab) {
     // Flatten all groupedOrders into a single array of orders in 'bắt đầu phục vụ' state
@@ -350,6 +352,7 @@ function ChiefPageContent() {
   // Apply search filter to all order data
   const filteredGroupedOrdersForSearch = filterOrdersBySearch(groupedOrders as Record<string, Order[]>);
   const filteredServeTabGroupedOrders = filterOrdersBySearch(serveTabGroupedOrders);
+  const filteredInProgressGroupedOrders = filteredGroupedOrdersForSearch;
 
   // Helper: sort grouped orders by category priority: Đồ uống > Món chính > Tráng miệng
   const sortGroupedByCategoryPriority = (input: Record<string, Order[]>): Record<string, Order[]> => {
@@ -519,8 +522,12 @@ function ChiefPageContent() {
           // Check if we have any selection
           const hasSelection = selectedGroups.length > 0 || selectedGroup || selectedOrderKey;
           
-          // If no selection and not serve tab with orders, show placeholder
-          if (!hasSelection && !(isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0)) {
+          // If no selection and not serve/in-progress tab with orders, show placeholder
+          if (
+            !hasSelection &&
+            !(isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) &&
+            !(isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0)
+          ) {
             return (
               <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
                 Chọn một món ăn để xem chi tiết
@@ -540,6 +547,24 @@ function ChiefPageContent() {
                 onServeClick={handleServeClick}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
+                selectedIds={selectedIds}
+              />
+            );
+          }
+
+          // In-progress tab with orders
+          if (isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0) {
+            const sortedInProgress = sortGroupedByCategoryPriority(filteredInProgressGroupedOrders);
+            return (
+              <OrdersContent
+                groupedOrders={sortedInProgress}
+                activeTab={activeTab}
+                onGroupClick={handleGroupClick}
+                onPrepareClick={handlePrepareClick}
+                onServeClick={handleServeClick}
+                onAcceptRedoClick={handleAcceptRedoClick}
+                onRejectRedoClick={handleRejectRedoClickWrapper}
+                selectedIds={selectedIds}
               />
             );
           }
@@ -576,6 +601,7 @@ function ChiefPageContent() {
                 showIndividualCards={true}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
+                selectedIds={selectedIds}
               />
             );
           }
@@ -610,6 +636,7 @@ function ChiefPageContent() {
                 showIndividualCards={true}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
+                selectedIds={selectedIds}
               />
             );
           }
@@ -626,6 +653,7 @@ function ChiefPageContent() {
                 onServeClick={handleServeClick}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
+                selectedIds={selectedIds}
               />
             );
           }
