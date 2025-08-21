@@ -206,6 +206,54 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
         return colors[status.toLowerCase() as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200';
     };
 
+    // thay doi tieng viet 
+    // Trả về nhãn tiếng Việt cho trạng thái Order
+const getOrderStatusLabel = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "Đang chờ xác nhận";
+      case "confirmed":
+        return "Đã xác nhận";
+      case "preparing":
+        return "Đang chuẩn bị món";
+      case "delivering":
+        return "Đang phục vụ";
+      case "completed":
+        return "Đã hoàn thành";
+      case "cancelled":
+        return "Đã hủy";
+      case "redorequested":
+        return "Yêu cầu làm lại món";
+      default:
+        return "Không xác định";
+    }
+  };
+  
+  // Trả về nhãn tiếng Việt cho trạng thái Payment
+  const getPaymentStatusLabel = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "Chưa thanh toán";
+      case "paid":
+        return "Đã thanh toán";
+      case "failed":
+        return "Thanh toán thất bại";
+      case "refunded":
+        return "Đã hoàn tiền";
+      default:
+        return "Không xác định";
+    }
+  };
+   const OrderItemStatusLabel: Record<string, string> = {
+    pending: "Đang chờ xác nhận",
+    preparing: "Đang chuẩn bị món",
+    ready: "Sẵn sàng / Đã xong món",
+    served: "Đã phục vụ",
+    completed: "Hoàn thành",
+    cancelled: "Đã hủy",
+    remark: "Yêu cầu làm lại món"
+  };
+  
     // Gộp món theo productName + sizeName + note
 const mergeOrderItems = (items: OrderItem[]): OrderItem[] => {
     const map = new Map<string, OrderItem>();
@@ -256,7 +304,7 @@ const mergeOrderItems = (items: OrderItem[]): OrderItem[] => {
                 </div>
 
               {/* Dialog Body */}
-                <div className="flex-1 overflow-y-auto p-6" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+                <div className="flex-1 overflow-y-scroll p-6" style={{ maxHeight: 'calc(90vh - 200px)' }}>
                 {loading ? (
                     <div className="text-center py-12">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -309,12 +357,12 @@ const mergeOrderItems = (items: OrderItem[]): OrderItem[] => {
                                 <div className="flex items-center space-x-2 mt-1">
                                     <span className="flex items-center space-x-1">
                                     {getOrderStatusIcon(order.status)}
-                                    <span>{order.status}</span>
+                                    <span>{getOrderStatusLabel(order.status)}</span>
                                     </span>
 
                                     <span className="flex items-center space-x-1">
                                     {getPaymentStatusIcon(order.paymentStatus)}
-                                    <span>{order.paymentStatus}</span>
+                                    <span>{getPaymentStatusLabel(order.paymentStatus)}</span>
                                     </span>
                                 </div>
                                 </div>
@@ -360,7 +408,7 @@ const mergeOrderItems = (items: OrderItem[]): OrderItem[] => {
                                         item.status
                                         )}`}
                                     >
-                                        {item.status}
+                                        {OrderItemStatusLabel[item.status.toLowerCase()]}
                                     </span>
                                     <span className="text-lg font-semibold text-gray-900">
                                         {formatCurrency(item.price * item.quantity)}

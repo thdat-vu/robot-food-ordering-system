@@ -27,7 +27,7 @@ export default function ModeratorTableManagement() {
         const fetchTables = async () => {
             try {
                 setLoading(true);
-                const response = await fetch("https://be-robo.zd-dev.xyz/api/Table");
+                const response = await fetch( `https://be-robo.zd-dev.xyz/api/Table?PageNumber=${pagination?.pageNumber || 1}&PageSize=${pagination?.pageSize || 10}`);
                 if (!response.ok) throw new Error("Failed to fetch tables");
 
                 const json = await response.json();
@@ -64,7 +64,7 @@ export default function ModeratorTableManagement() {
         };
 
         fetchTables();
-    }, []);
+    }, [pagination?.pageNumber, pagination?.pageSize]);
 
     // Fetch orders for a specific table
     const fetchOrdersForTable = async (tableId: string) => {
@@ -349,7 +349,27 @@ export default function ModeratorTableManagement() {
                                     ))}
                                 </tbody>
                             </table>
+                            
                         )}
+                        {/* Pagination Controls */}
+                        {pagination && pagination.totalPages > 1 && (
+                            <div className="flex justify-center items-center gap-2 p-4 border-t bg-gray-50">
+                                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setPagination(prev => prev ? { ...prev, pageNumber: page } : prev)}
+                                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                                            pagination.pageNumber === page
+                                                ? "bg-blue-500 text-white shadow-md"
+                                                : "bg-white text-gray-700 border hover:bg-gray-100"
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
                     </div>
                 </div>
             </div>
