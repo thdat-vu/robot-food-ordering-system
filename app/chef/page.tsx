@@ -19,6 +19,7 @@ import { ConfirmationModal } from '@/components/kitchen/ConfirmationModal';
 import { NavigationTabs } from '@/components/kitchen/NavigationTabs';
 import { KitchenSidebar } from '@/components/kitchen/KitchenSidebar';
 import { OrdersContent } from '@/components/kitchen/OrdersContent';
+import { InfoModal } from '@/components/kitchen/InfoModal';
 
 function ChiefPageContent() {
   const router = useCustomRouter();
@@ -27,6 +28,7 @@ function ChiefPageContent() {
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalAction, setModalAction] = useState<'serve' | 'reject'>('serve');
+  const [isPriorityInfoOpen, setIsPriorityInfoOpen] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,7 +92,7 @@ function ChiefPageContent() {
   const maybeWarnForMainSelection = (itemNames: string[]) => {
     const includesMain = itemNames.some(name => itemNameToCategory[name] === 'Món chính');
     if (includesMain && !areAllDrinksSelected()) {
-      addToast('Nên ưu tiên làm Đồ uống trước Món chính.', 'warning');
+      setIsPriorityInfoOpen(true);
     }
   };
 
@@ -418,6 +420,13 @@ function ChiefPageContent() {
         onConfirm={modalAction === 'serve' ? handleConfirmServe : handleConfirmReject}
         onCancel={handleCancelModal}
         action={modalAction}
+      />
+
+      {/* Info Modal: Drinks before Main warning */}
+      <InfoModal
+        isOpen={isPriorityInfoOpen}
+        message="Nên ưu tiên làm Đồ uống trước Món chính."
+        onClose={() => setIsPriorityInfoOpen(false)}
       />
 
       {/* Kitchen Sidebar */}
