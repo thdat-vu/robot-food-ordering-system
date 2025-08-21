@@ -445,7 +445,7 @@ function ChiefPageContent() {
           onSidebarItemClick={handleSidebarItemClick}
           selectedGroup={selectedGroup}
           onGroupSelection={handleGroupSelection}
-          groupedOrders={groupedOrders}
+          groupedOrders={filteredGroupedOrdersForSearch}
           selectedGroups={selectedGroups}
           onMultipleGroupSelection={handleMultipleGroupSelection}
         />
