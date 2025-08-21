@@ -134,6 +134,7 @@ function WaiterPageContent() {
                     onDishToggle={toggleDish}
                     dishes={dishes}
                     getDishesByStatus={getDishesByStatus}
+                    onRequestRemake={handleRequestRemake}
                   />
                 </div>
               </div>
