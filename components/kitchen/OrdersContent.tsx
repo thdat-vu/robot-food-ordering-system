@@ -24,6 +24,7 @@ interface OrdersContentProps {
   onPrepareMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
   onServeMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
   showIndividualCards?: boolean;
+  selectedIds?: Set<number>;
 }
 
 export function OrdersContent({
@@ -37,7 +38,8 @@ export function OrdersContent({
   selectedGroup,
   onPrepareMultipleOrders,
   onServeMultipleOrders,
-  showIndividualCards
+  showIndividualCards,
+  selectedIds
 }: OrdersContentProps) {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const target = e.target as HTMLImageElement;
@@ -257,10 +259,12 @@ export function OrdersContent({
   if (singleOrderEntry) {
     const [itemName, orderGroup] = Object.entries(groupedOrders)[0];
     const order = orderGroup[0];
+    const isSelectedSingle = selectedIds ? selectedIds.has(order.id) : false;
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         {/* Top CTA moved to header; keep bottom sticky button only */}
-        <Card className="cursor-pointer hover:shadow-md transition-shadow duration-200">
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${isSelectedSingle ? 'bg-gray-100 border border-gray-300' : ''}`}
+        >
           <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
             {renderOrderImage(order)}
             <div className="flex-1">
@@ -352,7 +356,10 @@ export function OrdersContent({
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="space-y-4">
           {sortedOrders.map((order) => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow duration-200">
+            <Card
+              key={order.id}
+              className={`hover:shadow-md transition-shadow duration-200 ${selectedIds && selectedIds.has(order.id) ? 'bg-gray-100 border border-gray-300' : ''}`}
+            >
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
                 <div className="flex-1">
@@ -419,7 +426,10 @@ export function OrdersContent({
 
         <div className="space-y-4">
           {sortedOrders.map((order) => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow duration-200">
+            <Card
+              key={order.id}
+              className={`hover:shadow-md transition-shadow duration-200 ${selectedIds && selectedIds.has(order.id) ? 'bg-gray-100 border border-gray-300' : ''}`}
+            >
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
                 <div className="flex-1">
@@ -533,8 +543,10 @@ export function OrdersContent({
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       <div className="space-y-4">
-        {Object.entries(groupedOrders).map(([itemName, orderGroup], groupIndex) => (
-          <Card key={itemName} className="cursor-pointer hover:shadow-md transition-shadow duration-200">
+        {Object.entries(groupedOrders).map(([itemName, orderGroup], groupIndex) => {
+          const groupSelected = selectedIds ? orderGroup.some(o => selectedIds!.has(o.id)) : false;
+          return (
+          <Card key={itemName} className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''}`}>
             <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
               {renderOrderImage(orderGroup[0])}
               <div className="flex-1">
@@ -610,7 +622,7 @@ export function OrdersContent({
               )}
             </CardHeader>
           </Card>
-        ))}
+        )})}
       </div>
     </div>
   );
