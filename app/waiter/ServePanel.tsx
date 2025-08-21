@@ -290,13 +290,12 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Generate map URL with all selected table numbers
   const mapUrl = React.useMemo(() => {
+    const baseUrl = `https://my-app-henna-three.vercel.app/`;
     if (selectedTableNumbers.length > 0) {
-      return `https://my-app-henna-three.vercel.app/?tables=${selectedTableNumbers.join(
-        ","
-      )}`;
+      return `${baseUrl}?tables=${selectedTableNumbers.join(",")}`;
     }
-    // No fallback - only show map when dishes are actually selected
-    return null;
+    // Fallback to base map when nothing is selected
+    return baseUrl;
   }, [selectedTableNumbers]);
 
   // Update selected table when dishes change
