@@ -54,7 +54,7 @@ export default function ModeratorTableManagement() {
         try {
           setLoading(true);
     
-          const url = new URL("https://be-robo.zd-dev.xyz/api/Table");
+        const url = new URL("https://be-robo.zd-dev.xyz/api/Table");
           url.searchParams.append("PageNumber", String(pagination.pageNumber));
           url.searchParams.append("PageSize", String(pagination.pageSize));
           if (searchName) url.searchParams.append("tableName", searchName);
@@ -62,10 +62,7 @@ export default function ModeratorTableManagement() {
 
 
           const response = await fetch(url.toString());
-          console.log("Fetching tables from:", url.toString());
-          console.log("Response status:", response.status);
-            console.log("Response headers:", response.headers);
-            console.log("Response URL:", response.url);
+          
           if (!response.ok) throw new Error("Failed to fetch tables");
     
           const json = await response.json();
@@ -84,6 +81,7 @@ export default function ModeratorTableManagement() {
           }));
     
           setData(transformedData);
+          console.log("Transformed table data:", transformedData.length, transformedData);
           setPagination(prev => ({
             ...prev,
             pageNumber: json.pageNumber,
@@ -275,7 +273,7 @@ export default function ModeratorTableManagement() {
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div className="text-2xl font-bold text-blue-600">{data.length}</div>
+                        <div className="text-2xl font-bold text-blue-600">{pagination.totalCount}</div>
                         <div className="text-sm text-gray-600">Tổng Số Bàn</div>
                     </div>
                     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -385,7 +383,9 @@ export default function ModeratorTableManagement() {
                                 </div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi Tải Bàn</h3>
                                 <p className="text-gray-500 mb-4">{error}</p>
-                                <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors" 
+                                 onClick={fetchTables}
+                                >
                                     Thử Lại
                                 </button>
                             </div>
@@ -411,7 +411,7 @@ export default function ModeratorTableManagement() {
                                             Mã QR
                                         </th>
                                         <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                                            Điều Khiển
+                                            
                                         </th>
                                     </tr>
                                 </thead>
