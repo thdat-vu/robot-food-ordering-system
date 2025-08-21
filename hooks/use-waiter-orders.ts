@@ -318,7 +318,7 @@ export function useWaiterOrders() {
   }, [dishes]);
 
   // Handle requesting remake for dishes
-  const handleRequestRemake = useCallback(async () => {
+  const handleRequestRemake = useCallback(async (reason?: string) => {
     const selectedDishes = dishes.filter((dish) => dish.selected);
     if (selectedDishes.length === 0) return false;
 
@@ -337,6 +337,7 @@ export function useWaiterOrders() {
         )
       );
 
+      // Optionally we could persist `reason` here if API supports later
       return true;
     } catch (err) {
       console.error("Error requesting remake:", err);
