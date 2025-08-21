@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Clock, DollarSign, AlertCircle, CheckCircle, X, Utensils, Truck, PackageCheck, XCircle, RefreshCcw, Hourglass, RotateCcw } from 'lucide-react';
 
 
@@ -74,6 +74,11 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
     newStatus
 }) => {
     if (!isOpen || !table) return null;
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+    const toggleOrderExpand = (orderId: string) => {
+      setExpandedOrderId(prev => (prev === orderId ? null : orderId));
+    };
 
     const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
@@ -346,6 +351,7 @@ const getOrderStatusLabel = (status: string) => {
                         <div
                             key={order.id}
                             className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                            onClick={() => toggleOrderExpand(order.id)}
                         >
                             {/* Order Header */}
                             <div className="flex justify-between items-start p-4 border-b border-gray-100">
@@ -377,6 +383,7 @@ const getOrderStatusLabel = (status: string) => {
                             </div>
 
                             {/* Order Items */}
+                            {expandedOrderId === order.id && (
                             <div className="p-4">
                             <div className="space-y-3">
                                 {mergeOrderItems(order.items).map((item, idx) => (
@@ -422,6 +429,7 @@ const getOrderStatusLabel = (status: string) => {
                                 ))}
                             </div>
                             </div>
+                            )}
                         </div>
                         ))}
                     </div>
