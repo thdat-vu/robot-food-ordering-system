@@ -20,7 +20,8 @@ export const CallStaff: React.FC<CallStaffProps> = ({id, isOpen, onClose, onSave
     const handle = () => {
         (async () => {
             if (Feedback)
-                await run(id, Feedback);
+                console.log("Feedback", Feedback);
+            // await run(id, Feedback);
         })()
     }
 

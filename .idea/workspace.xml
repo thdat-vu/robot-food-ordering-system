@@ -5,9 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/components/common/FeedbackDialog.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/entites/request/FeedbackRequest.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/FeedbackApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/FeedbackApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/CallStaff.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/CallStaff.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/Profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/Profile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tailwind.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/tailwind.config.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,6 +32,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;nhattruowng&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/thdat-vu/robot-food-ordering-system.git&quot;,
+    &quot;accountId&quot;: &quot;479eb8d5-f5a2-4b98-8137-f42a946f7080&quot;
+  }
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
 }</component>
@@ -118,7 +137,15 @@
       <workItem from="1755053868725" duration="15600000" />
       <workItem from="1755098969668" duration="3288000" />
       <workItem from="1755166324114" duration="38000" />
-      <workItem from="1755184237035" duration="4718000" />
+      <workItem from="1755184237035" duration="4775000" />
+      <workItem from="1755230982332" duration="540000" />
+      <workItem from="1755488074306" duration="7858000" />
+      <workItem from="1755523699855" duration="13000" />
+      <workItem from="1755523912813" duration="804000" />
+      <workItem from="1755534245984" duration="1209000" />
+      <workItem from="1755559896116" duration="683000" />
+      <workItem from="1755590410666" duration="44000" />
+      <workItem from="1755781757094" duration="950000" />
     </task>
     <servers />
   </component>
@@ -135,5 +162,16 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/components/common/OrderDisplay.tsx</url>
+          <line>326</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

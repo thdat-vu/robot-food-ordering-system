@@ -142,7 +142,7 @@ export const ConfimOrder: React.FC<{
             item.toppings.forEach(value => {
                 toppingString += `${value.id}+${value.quantity}-`;
             });
-            const key = `${item.id}_${item.size.id}_${toppingString}`;
+            const key = `${item.id}_${item.size.id}_${toppingString}_${item.note}`;
             if (!map.has(key)) {
                 map.set(key, {shc: item, quantity: 1});
             } else {

@@ -4,12 +4,10 @@ import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
 import {Minus, ShoppingBag, Trash2, AlertTriangle} from "lucide-react";
 import formatCurrency, {totolPrice} from "@/unit/unit";
 import {
-    addProduction,
     loadListFromLocalStorage,
-    removeProduction, saveListToLocalStorage,
+    removeProduction,
     updateProduction
 } from "@/store/ShoppingCart";
-import {IoMdAdd} from "react-icons/io";
 import {ConfimOrder} from "@/app/features/components/ConfimOrder";
 import {SHOPPING_CARTS} from "@/key-store";
 
@@ -18,7 +16,6 @@ type DetailType = {
     quantity: number;
 };
 
-// Confirmation Modal Component
 const DeleteConfirmModal: React.FC<{
     isOpen: boolean;
     onConfirm: () => void;
@@ -33,7 +30,7 @@ const DeleteConfirmModal: React.FC<{
                 <div className="p-6">
                     <div className="flex items-center space-x-3 mb-4">
                         <div className="flex-shrink-0">
-                            <AlertTriangle className="h-6 w-6 text-red-600" />
+                            <AlertTriangle className="h-6 w-6 text-red-600"/>
                         </div>
                         <div>
                             <h3 className="text-lg font-medium text-gray-900">
@@ -43,7 +40,8 @@ const DeleteConfirmModal: React.FC<{
                     </div>
                     <div className="mb-4">
                         <p className="text-sm text-gray-500">
-                            Bạn có chắc chắn muốn xóa "<span className="font-medium text-gray-900">{itemName}</span>" khỏi giỏ hàng không?
+                            Bạn có chắc chắn muốn xóa "<span className="font-medium text-gray-900">{itemName}</span>"
+                            khỏi giỏ hàng không?
                         </p>
                     </div>
                     <div className="flex space-x-3">
@@ -75,7 +73,7 @@ export const ShoppingCartList: React.FC = () => {
         isOpen: boolean;
         itemId: string;
         itemName: string;
-    }>({ isOpen: false, itemId: '', itemName: '' });
+    }>({isOpen: false, itemId: '', itemName: ''});
     const [isRemoving, setIsRemoving] = useState<string | null>(null);
 
     const calculateItemTotal = (item: DetailType) => {
@@ -91,7 +89,6 @@ export const ShoppingCartList: React.FC = () => {
         return 0;
     };
 
-    // Improved remove function with better user feedback
     const handleRemove = useCallback(async (id: string) => {
         try {
             setIsRemoving(id);
@@ -101,25 +98,22 @@ export const ShoppingCartList: React.FC = () => {
             const indexes = currentItems
                 .map((item, index) => item.id === id ? index : -1)
                 .filter(index => index !== -1)
-                .sort((a, b) => b - a); // Sort in descending order to remove from end first
+                .sort((a, b) => b - a);
 
             indexes.forEach(index => {
                 removeProduction<ShoppingCart>(SHOPPING_CARTS, index);
             });
 
-            // Reload the cart items immediately
             const updatedItems = loadListFromLocalStorage<ShoppingCart>(SHOPPING_CARTS);
             setCartItems(updatedItems);
 
         } catch (error) {
             console.error('Error removing item:', error);
-            // You could add a toast notification here for error feedback
         } finally {
             setIsRemoving(null);
         }
     }, []);
 
-    // Function to initiate delete confirmation
     const initiateDelete = (id: string, name: string) => {
         setDeleteConfirm({
             isOpen: true,
@@ -128,15 +122,13 @@ export const ShoppingCartList: React.FC = () => {
         });
     };
 
-    // Function to confirm delete
     const confirmDelete = () => {
         handleRemove(deleteConfirm.itemId);
-        setDeleteConfirm({ isOpen: false, itemId: '', itemName: '' });
+        setDeleteConfirm({isOpen: false, itemId: '', itemName: ''});
     };
 
-    // Function to cancel delete
     const cancelDelete = () => {
-        setDeleteConfirm({ isOpen: false, itemId: '', itemName: '' });
+        setDeleteConfirm({isOpen: false, itemId: '', itemName: ''});
     };
 
     function countShoppingCart(arr: ShoppingCart[]) {
@@ -147,7 +139,7 @@ export const ShoppingCartList: React.FC = () => {
             item.toppings.forEach(value => {
                 toppingString += `${value.id}+${value.quantity}-`;
             });
-            const key = `${item.id}_${item.size.id}_${toppingString}`;
+            const key = `${item.id}_${item.size.id}_${toppingString}_${item.note}`;
             if (!map.has(key)) {
                 map.set(key, {shc: item, quantity: 1});
             } else {
@@ -254,7 +246,8 @@ export const ShoppingCartList: React.FC = () => {
                                                     {item.shc.name}
                                                 </h3>
                                                 <div className="mt-1 flex items-center">
-                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    <span
+                                                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                         {item.shc.size.name} (x{item.quantity})
                                                     </span>
                                                     <span className="ml-2 text-sm font-medium text-gray-600">

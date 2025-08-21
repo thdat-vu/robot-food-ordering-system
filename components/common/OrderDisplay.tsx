@@ -23,10 +23,14 @@ import formatCurrency from "@/unit/unit";
 import {Payment} from "@/app/features/components/Payment";
 import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
 import {useTableContext} from "@/hooks/context/Context";
-import {ShoppingCart} from "@/entites/Props/ShoppingCart";
 import {Topping} from "@/entites/respont/Topping";
+import {VscFeedback} from "react-icons/vsc";
+import {FeedbackDialog} from "@/components/common/FeedbackDialog";
+import {useCreateFeedback} from "@/hooks/customHooks/useFeedbackHooks";
+import {FeedbackRequest} from "@/entites/request/FeedbackRequest";
 
-type DetailType = {
+
+export type DetailType = {
     shc: InForProductOrderDetail;
     quantity: number;
 };
@@ -43,6 +47,10 @@ export const OrderDisplay = () => {
     const {run: runGet} = useGetOrderWithIdTableAndToken();
     const [oerderId, setOerderId] = useState<string>('');
     const [detail, setDetail] = useState<DetailType[] | undefined>()
+    const [openFeedback, setOpenFeedback] = useState<boolean>(false);
+    const [DetailType, setDetailType] = useState<DetailType>();
+    const [listIdorderItem, setListIdorderItem] = useState<string[]>([])
+    const {run: runCallPayment} = useCreateFeedback();
 
 
     const token = useDeviceToken();
@@ -56,6 +64,31 @@ export const OrderDisplay = () => {
         })()
     }, []);
 
+    const createKeyFromOrderDetail = (item: InForProductOrderDetail): string => {
+        let toppingString = '';
+        item.toppings.forEach(topping => {
+            toppingString += `${topping.id}+${topping.price}-`;
+        });
+        return `${item.productId}_${item.productSizeId}_${toppingString}_${item.note}`;
+    };
+
+    const handleOpenFeedback = (DetailType: DetailType) => {
+        const key = createKeyFromOrderDetail(DetailType.shc);
+        const similarProductIds: string[] = [];
+
+        orderData.forEach(value => {
+            value.items.forEach(process => {
+                var a = createKeyFromOrderDetail(process);
+                if (key === a) {
+                    similarProductIds.push(process.id);
+                }
+            })
+        })
+        setListIdorderItem(similarProductIds);
+        setDetailType(DetailType);
+        setOpenFeedback(true)
+
+    }
 
     function countShoppingCart(arr: InForProductOrderDetail[]) {
         const map = new Map<string, { shc: InForProductOrderDetail; quantity: number }>();
@@ -93,7 +126,7 @@ export const OrderDisplay = () => {
                 item.shc.toppings.forEach(t => {
                     toppingString += `${t.id}+${t.price}-`;
                 });
-                const key = `${item.shc.productId}_${item.shc.productSizeId}_${toppingString}`;
+                const key = `${item.shc.productId}_${item.shc.productSizeId}_${toppingString}_${item.shc.note}`;
 
                 if (!mergedMap.has(key)) {
                     mergedMap.set(key, {...item});
@@ -109,9 +142,17 @@ export const OrderDisplay = () => {
     }, [orderData]);
 
 
-    const handlePayment = (idOrderItem: string) => {
-        setIsPaymentOpen(true);
-        setOerderId(idOrderItem);
+    const handlePayment = async (idOrderItem: string) => {
+        // setIsPaymentOpen(true);
+        // setOerderId(idOrderItem);
+
+        const request: FeedbackRequest = {
+            idTable: table.tableId,
+            note: "Thanh Toan Tien",
+            idOrderItem: []
+        }
+        const a = await runCallPayment(request)
+        console.log(a)
     }
 
     useEffect(() => {
@@ -205,7 +246,6 @@ export const OrderDisplay = () => {
                 {/* Content */}
                 <div className="px-4 py-6">
                     <div className="max-w-sm mx-auto space-y-4">
-                        {/* Status indicators */}
                         {lastFetch && (
                             <div className="text-xs text-gray-400 text-center">
                                 Cập nhật: {lastFetch.toLocaleTimeString('vi-VN')}
@@ -234,13 +274,11 @@ export const OrderDisplay = () => {
                             </div>
                         )}
 
-                        {/* Orders */}
                         {orderData.map((order, index) => (
                             <div
                                 key={order.id}
                                 className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300"
                             >
-                                {/* Order Header */}
                                 <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-5 text-white">
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
@@ -276,12 +314,10 @@ export const OrderDisplay = () => {
                                     </div>
                                 </div>
 
-                                {/* Order Items */}
                                 <div className="p-5 space-y-6">
                                     {detail && detail.map((item, itemIndex) => (
                                         <div key={itemIndex}
                                              className={`${itemIndex > 0 ? 'border-t border-gray-100 pt-6' : ''}`}>
-                                            {/* Item Header */}
                                             <div className="flex items-start space-x-4 mb-4">
                                                 <img
                                                     src={item.shc.imageUrl}
@@ -292,7 +328,13 @@ export const OrderDisplay = () => {
                                                     }}
                                                 />
                                                 <div className="flex-1">
-                                                    <h3 className="font-bold text-gray-900 text-lg leading-tight mb-2">{item.shc.productName}</h3>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <h3 className="font-bold text-gray-900 text-lg leading-tight">
+                                                            {item.shc.productName}
+                                                        </h3>
+                                                        <VscFeedback onClick={() => handleOpenFeedback(item)}
+                                                                     className="text-black text-3xl bg-gray-200 animate-shake cursor-pointer rounded-full p-2 hover:animate-pulse"/>
+                                                    </div>
                                                     <div className="flex items-center flex-wrap gap-2">
                                                         <span
                                                             className="bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-sm font-medium">
@@ -306,7 +348,6 @@ export const OrderDisplay = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Note */}
                                             {item.shc.note && (
                                                 <div
                                                     className="bg-amber-50 border border-amber-200 rounded-2xl p-3 mb-4">
@@ -385,6 +426,10 @@ export const OrderDisplay = () => {
                 onSave={() => {
                 }}
             />
+            <FeedbackDialog isOpen={openFeedback}
+                            productInfo={DetailType}
+                            listIds={listIdorderItem}
+                            onClose={() => setOpenFeedback(false)}/>
         </>
     );
 };

@@ -86,13 +86,13 @@ export default function Profile({id}: { id: string }) {
                             className="bg-red-200 hover:bg-red-400 text-red-800 px-4 py-2 rounded-full text-sm"
                             handle={() => setIsCallStaffOpen(true)}
                         />
-                        <Button
-                            content="Đánh Giá"
-                            className="bg-red-200 hover:bg-red-400 text-red-800 px-4 py-2 rounded-full text-sm"
-                            handle={() => {
-                                setIsRatingOpen(true)
-                            }}
-                        />
+                        {/*<Button*/}
+                        {/*    content="Đánh Giá"*/}
+                        {/*    className="bg-red-200 hover:bg-red-400 text-red-800 px-4 py-2 rounded-full text-sm"*/}
+                        {/*    handle={() => {*/}
+                        {/*        setIsRatingOpen(true)*/}
+                        {/*    }}*/}
+                        {/*/>*/}
                     </div>
                 </div>
 
