@@ -255,27 +255,28 @@ const getOrderStatusLabel = (status: string) => {
   };
   
     // Gộp món theo productName + sizeName + note
-const mergeOrderItems = (items: OrderItem[]): OrderItem[] => {
-    const map = new Map<string, OrderItem>();
-  
-    for (const item of items) {
-      const key = `${item.productId}-${item.sizeName}-${item.note?.trim() || ""}`;
-  
-      if (map.has(key)) {
-        const existing = map.get(key)!;
-        // cộng dồn số lượng
-        existing.quantity += item.quantity;
-        // cộng dồn giá
-        existing.price += item.price;
-        // merge toppings (nếu cần xử lý phức tạp hơn thì tách riêng)
-        existing.toppings = [...existing.toppings, ...item.toppings];
-      } else {
-        map.set(key, { ...item });
+    const mergeOrderItems = (items: OrderItem[]): OrderItem[] => {
+      const map = new Map<string, OrderItem>();
+    
+      console.log("Merging order items:", items);
+      for (const item of items) {
+        const key = `${item.productId}-${item.sizeName}-${item.note?.trim() || ""}`;
+        
+        if (map.has(key)) {
+          const existing = map.get(key)!;
+          // cộng dồn số lượng
+          existing.quantity += item.quantity;
+          // giữ nguyên đơn giá (không cộng dồn)
+          // gộp toppings
+          existing.toppings = [...existing.toppings, ...item.toppings];
+        } else {
+          map.set(key, { ...item });
+        }
       }
-    }
-  
-    return Array.from(map.values());
-  };
+    
+      return Array.from(map.values());
+    };
+    
   
 
     return (
@@ -412,9 +413,12 @@ const mergeOrderItems = (items: OrderItem[]): OrderItem[] => {
                                     </span>
                                     <span className="text-lg font-semibold text-gray-900">
                                         {formatCurrency(item.price * item.quantity)}
+                                       
                                     </span>
+
                                     </div>
-                                </div>
+                                    
+                                 </div>
                                 ))}
                             </div>
                             </div>
