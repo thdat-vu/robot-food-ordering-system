@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Clock, DollarSign, Users, Eye, AlertCircle, CheckCircle ,ChevronLeft, X, Search } from 'lucide-react';
 import OrderDetailDialog, { TableItem, OrderItem, OrderData } from "./OrderDetailDialog";
 import Pagination from "@/lib/utils/Pagination";
+import axios from 'axios';
 
 // Remove duplicate interfaces since they're imported from OrderDetailDialog
 
@@ -26,8 +27,9 @@ export default function ModeratorTableManagement() {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>("");
   
-    const [pendingStatus, setPendingStatus] = useState<{ [key: string]: string }>({});
+    const [pendingStatus, setPendingStatus] = useState<{ [key: string]: number }>({});
 
+    
     
 
     // Order Dialog States
@@ -50,6 +52,17 @@ export default function ModeratorTableManagement() {
         fetchTables();
       }, [pagination.pageNumber, pagination.pageSize, searchName, status]);
 
+    // Debounce function to limit API calls
+    const debounce = (func: Function, delay: number) => {
+        let timeoutId: NodeJS.Timeout;
+        return (...args: any[]) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                func(...args);
+            }, delay);
+        };
+    };
+    // Debounced fetch function
     const fetchTables = async () => {
         try {
           setLoading(true);
@@ -62,6 +75,7 @@ export default function ModeratorTableManagement() {
 
 
           const response = await fetch(url.toString());
+          console.log(response  )
           
           if (!response.ok) throw new Error("Failed to fetch tables");
     
@@ -99,7 +113,9 @@ export default function ModeratorTableManagement() {
         }
       };
     
-      
+      const debouncedFetchTables = useCallback(debounce(fetchTables, 300), [pagination.pageNumber, pagination.pageSize, searchName, status]);
+    
+
     
     // Fetch orders for a specific table
     const fetchOrdersForTable = async (tableId: string) => {
@@ -129,6 +145,7 @@ export default function ModeratorTableManagement() {
             setLoadingOrders(prev => ({ ...prev, [tableId]: false }));
         }
     };
+    const deboundfetchOrdersForTable = useCallback(debounce(fetchOrdersForTable, 300), []);
 
     const handleOpen = (table: TableItem) => {
         setSelectedTable(table);
@@ -142,52 +159,91 @@ export default function ModeratorTableManagement() {
         setSelectedTable(null);
     };
 
-    const handleToggleStatus = (table: TableItem) => {
-        const currentStatus = table.status.toString();
-        const newStatus = currentStatus === "0" ? "1" : "0";
+  // Thêm helper functions
+const getStatusValue = (status: string | number): number => {
+    const strStatus = status.toString().toLowerCase();
+    switch (strStatus) {
+        case 'available':
+        case '0':
+            return 0;
+        case 'occupied':  
+        case '1':
+            return 1;
+        case 'reserved':
+        case '2':
+            return 2;
+        default:
+            return 0;
+    }
+};
 
-        // Set pending status
-        setPendingStatus(prev => ({
-            ...prev,
-            [table.id]: newStatus
-        }));
+const getNextStatus = (currentStatus: string | number): number => {
+    const current = getStatusValue(currentStatus);
+    // Toggle between Available (0) and Occupied (1)
+    return current === 0 ? 1 : 0;
+};
 
-        // Set selected table for orders dialog
-        setSelectedTableForOrders(table);
+// Update handleToggleStatus
+const handleToggleStatus = (table: TableItem) => {
+    const currentStatus = table.status;
+    const newStatus = getNextStatus(currentStatus);
+    
+    console.log(`Changing status from ${currentStatus} to ${newStatus}`);
+
+    setPendingStatus(prev => ({
+        ...prev,
+        [table.id]: newStatus
+    }));
+
+    setSelectedTableForOrders(table);
+    
+    if (!orderData[table.id]) {
+        fetchOrdersForTable(table.id);
+    }
+    
+    setOrderDialogOpen(true);
+};
+
+// Update confirmStatusChange
+const confirmStatusChange = async () => {
+    if (!selectedTableForOrders) return;
+
+    const { id: tableId, name: tableName } = selectedTableForOrders;
+    const newStatus = pendingStatus[tableId];
+    
+    if (newStatus === undefined) {
+        console.error("No pending status found");
+        return;
+    }
+    
+    console.log(`Confirming status change for table: ${tableName} -> ${newStatus}`);
+
+    try {
+        const response = await axios.put(`https://be-robo.zd-dev.xyz/api/Table/${tableId}`, { 
+            status: newStatus 
+        });
         
-        // Fetch orders if not already loaded
-        if (!orderData[table.id]) {
-            fetchOrdersForTable(table.id);
-        }
-        
-        // Open order dialog
-        setOrderDialogOpen(true);
-    };
+        console.log("API Response:", response.data);
 
-    const confirmStatusChange = () => {
-        if (!selectedTableForOrders) return;
+        // Update local state with the new status
+        setData(prev => prev.map(item =>
+            item.id === tableId ? { ...item, status: newStatus.toString() } : item
+        ));
 
-        const tableId = selectedTableForOrders.id;
-        const newStatus = pendingStatus[tableId] ?? selectedTableForOrders.status;
-
-        // Update main data
-        setData(prevData =>
-            prevData.map(item =>
-                item.id === tableId ? { ...item, status: newStatus } : item
-            )
-        );
-
-        // Clear pending status and close dialog
+        console.log(`Status updated successfully for table: ${tableName}`);
+    } catch (err) {
+        console.error("Failed to update table status:", err);
+        // Có thể thêm toast notification ở đây
+    } finally {
         setPendingStatus(prev => {
             const { [tableId]: _, ...rest } = prev;
             return rest;
         });
-        
         setOrderDialogOpen(false);
         setSelectedTableForOrders(null);
-
-        console.log("Status confirmed for table:", selectedTableForOrders.name, "->", newStatus);
-    };
+    }
+};
+    
 
     const cancelStatusChange = () => {
         if (!selectedTableForOrders) return;
@@ -204,25 +260,29 @@ export default function ModeratorTableManagement() {
         setOrderDialogOpen(false);
         setSelectedTableForOrders(null);
     };
+    // Thêm debounce hook
 
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'available':
+
+    const getStatusColor = (status: string | number) => {
+        switch (status.toString()) {
+            case 'Available':
             case '0':
                 return 'bg-green-100 text-green-800 border-green-200';
-            case 'occupied':
+            case 'Occupied':
             case '1':
                 return 'bg-red-100 text-red-800 border-red-200';
-            case 'reserved':
+            case 'Reserved':
             case '2':
                 return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             default:
                 return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
+    
 
-    const getStatusText = (status: string) => {
-        switch (status.toLowerCase()) {
+    const getStatusText = (status: string | number) => {
+        const strStatus = status.toString().toLowerCase(); // convert sang string và lowercase
+        switch (strStatus) {
             case 'available':
             case '0':
                 return 'Trống';
@@ -233,9 +293,14 @@ export default function ModeratorTableManagement() {
             case '2':
                 return 'Đã Đặt';
             default:
-                return status;
+                return strStatus; // trả lại status gốc nếu không match
         }
     };
+    const isAvailableStatus = (status: string | number): boolean => {
+        const statusValue = getStatusValue(status);
+        return statusValue === 0; // Available = 0
+    };
+    
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("vi-VN", {
           style: "currency",
@@ -262,6 +327,7 @@ export default function ModeratorTableManagement() {
 
 
     return (
+        
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
@@ -448,12 +514,13 @@ export default function ModeratorTableManagement() {
                                                     Xem QR
                                                 </button>
                                             </td>
+                                            
                                             <td className="py-4 px-6 text-center">
                                                 <div className="flex flex-col items-center space-y-2">
                                                     <label className="inline-flex items-center cursor-pointer">
                                                         <input
                                                             type="checkbox"
-                                                            checked={row.status === "Available" }
+                                                            checked={isAvailableStatus(row.status)}
                                                             onChange={() => handleToggleStatus(row)}
                                                             className="sr-only peer"
                                                         />

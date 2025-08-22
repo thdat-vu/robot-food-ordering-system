@@ -16,7 +16,7 @@ export interface Pagination {
 export interface TableItem {
     id: string;
     name: string;
-    status: string;
+    status: number | string; // 0: Available, 1: Occupied, 2: Reserved
     qrCode: string;
 }
 
@@ -60,7 +60,7 @@ export interface OrderDetailDialogProps {
     loading: boolean;
     onConfirmStatusChange: () => void;
     onCancelStatusChange: () => void;
-    newStatus: string;
+    newStatus: string | number; // 0: Available, 1: Occupied, 2: Reserved
 }
 
 const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
@@ -81,6 +81,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
     };
 
     const getStatusColor = (status: string) => {
+      console.log("Getting status color for:", status); // Debug log
         switch (status.toLowerCase()) {
             case 'available':
             case '0':
@@ -96,21 +97,23 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
         }
     };
 
-    const getStatusText = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'available':
-            case '0':
-                return 'Trống';
-            case 'occupied':
-            case '1':
-                return 'Có Khách';
-            case 'reserved':
-            case '2':
-                return 'Đã Đặt';
-            default:
-                return status;
-        }
-    };
+    const getStatusText = (status: string | number) => {
+      const strStatus = status.toString().toLowerCase(); // chuyển number sang string và lowercase
+      switch (strStatus) {
+          case 'available':
+          case '0':
+              return 'Trống';
+          case 'occupied':
+          case '1':
+              return 'Có Khách';
+          case 'reserved':
+          case '2':
+              return 'Đã Đặt';
+          default:
+              return strStatus; // trả lại status gốc nếu không match
+      }
+  };
+  
     const parseDate = (date: string | Date) => {
         if (date instanceof Date) return date;
       
