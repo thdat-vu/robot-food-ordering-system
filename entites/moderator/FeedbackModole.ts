@@ -3,7 +3,7 @@ export interface FeedbackgGetTableId {
     idTable: string;
     feedBack: string;
     isPeeding: boolean;
-    createData: Date;
+    createData: string;
     dtos: dto[];
 }
 
