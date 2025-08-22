@@ -235,6 +235,10 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Get dishes for current tab
   const dishesForTab = getDishesByStatus(activeTab);
+
+
+  console.log(dishesForTab);
+
   const normalizeCategory = (cat?: string) => {
     if (!cat) return "Khác";
     const c = cat.toLowerCase();
@@ -249,20 +253,22 @@ const ServePanel: React.FC<ServePanelProps> = ({
     if (c.includes("tráng") || c.includes("dessert")) return "Tráng Miệng";
     return "Khác";
   };
+
   const categoryOrder = ["Đồ Uống", "Món Chính", "Tráng Miệng", "Khác"];
+
   const sortedDishesForTab = [...dishesForTab].sort(
     (a, b) =>
       categoryOrder.indexOf(normalizeCategory(a.categoryName)) -
       categoryOrder.indexOf(normalizeCategory(b.categoryName))
   );
-  console.log(
-    "DishesForTab:",
-    dishesForTab.map((d) => d.categoryName)
-  );
-  console.log(
-    "Normalized:",
-    dishesForTab.map((d) => normalizeCategory(d.categoryName))
-  );
+  // console.log(
+  //   "DishesForTab:",
+  //   dishesForTab.map((d) => d.categoryName)
+  // );
+  // console.log(
+  //   "Normalized:",
+  //   dishesForTab.map((d) => normalizeCategory(d.categoryName))
+  // );
   const groupedDishes = React.useMemo(() => {
     const groups: Record<string, WaiterDish[]> = {};
     sortedDishesForTab.forEach((dish) => {
