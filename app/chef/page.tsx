@@ -523,17 +523,17 @@ function ChiefPageContent() {
           const hasSelection = selectedGroups.length > 0 || selectedGroup || selectedOrderKey;
           
           // If no selection and not serve/in-progress tab with orders, show placeholder
-          if (
-            !hasSelection &&
-            !(isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) &&
-            !(isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0)
-          ) {
-            return (
-              <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
-                Chọn một món ăn để xem chi tiết
-              </div>
-            );
-          }
+          // if (
+          //   !hasSelection &&
+          //   !(isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) &&
+          //   !(isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0)
+          // ) {
+          //   return (
+          //     <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
+          //       Chọn một món ăn để xem chi tiết
+          //     </div>
+          //   );
+          // }
 
           // Serve tab with orders
           if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
@@ -562,9 +562,30 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
+                onServeMultipleOrders={handleServeMultipleOrders}
+                showIndividualCards={true}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
+              />
+            );
+          }
+
+          // No selection: show the full list for the current tab as individual cards
+          if (!hasSelection) {
+            const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
+            return (
+              <OrdersContent
+                groupedOrders={sortedDefault}
+                activeTab={activeTab}
+                onGroupClick={handleGroupClick}
+                onPrepareClick={handlePrepareClick}
+                onServeClick={handleServeClick}
+                onServeMultipleOrders={handleServeMultipleOrders}
+                onAcceptRedoClick={handleAcceptRedoClick}
+                onRejectRedoClick={handleRejectRedoClickWrapper}
+                selectedIds={selectedIds}
+                showIndividualCards={true}
               />
             );
           }

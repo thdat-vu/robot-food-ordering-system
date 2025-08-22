@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Category, RemainingItems, GroupedOrders } from '@/types/kitchen';
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -70,6 +70,24 @@ export function KitchenSidebar({
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizing, minWidthPx, maxWidthPx]);
+
+  // Compute counts per category using remainingItems (all pending items)
+  const categoryCounts = useMemo((): Record<string, number> => {
+    const counts: Record<string, number> = {
+      'Tất cả': 0,
+      'Đồ uống': 0,
+      'Món chính': 0,
+      'Tráng miệng': 0,
+    };
+    Object.entries(remainingItems).forEach(([itemName, count]) => {
+      const categoryName = itemNameToCategory[itemName];
+      if (categoryName && counts.hasOwnProperty(categoryName)) {
+        counts[categoryName] += count;
+      }
+      counts['Tất cả'] += count;
+    });
+    return counts;
+  }, [remainingItems, itemNameToCategory]);
   const renderAnimatedButton = (
     itemName: string, 
     index: number, 
@@ -191,10 +209,15 @@ export function KitchenSidebar({
                     onClick={() => onCategorySelect(category.name)}
                     variant="outline"
                     size="sm"
-                    className="justify-start"
+                    className="justify-between"
                   >
-                    <IconComponent className="mr-2 h-4 w-4" />
-                    {category.name}
+                    <span className="flex items-center">
+                      <IconComponent className="mr-2 h-4 w-4" />
+                      {category.name}
+                    </span>
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-gray-200 text-gray-900">
+                      {categoryCounts[category.name] ?? 0}
+                    </span>
                   </Button>
                 );
               })}
