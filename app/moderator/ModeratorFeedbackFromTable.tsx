@@ -769,6 +769,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                                             value={responses[feedback.idFeedback] || ''}
                                                             onChange={(e) => handleResponseChange(feedback.idFeedback, e.target.value)}
                                                             placeholder="Nhập phản hồi cho khách hàng..."
+                                                            disabled={!feedback.isPeeding || isChecking}
                                                             className="flex-1 p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none h-24 text-sm"
                                                             rows={3}
                                                         />

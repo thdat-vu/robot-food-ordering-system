@@ -15,7 +15,6 @@ const ModeratorScreen: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [currentTime, setCurrentTime] = useState<Date>(new Date());
     const [idTable, setIdTable] = useState<string>('');
-
     const {run} = useGetAllFeedbackHome();
     const { toasts, addToast, removeToast } = useToastModerator();
 
@@ -25,6 +24,7 @@ const ModeratorScreen: React.FC = () => {
         }, 1000);
         return () => clearInterval(timer);
     }, []);
+
 
 
     useEffect(() => {
@@ -166,22 +166,50 @@ const ModeratorScreen: React.FC = () => {
     }
 
     return (
+
+        
         <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-purple-700 p-4">
+
             {/* Toast Container */}
             <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+           
             
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-8">
-                    <div
-                        className="inline-flex items-center justify-center bg-white/20 backdrop-blur-lg rounded-full px-8 py-4 mb-6 border border-white/30">
+                <div className="relative flex justify-center items-center mb-6">
+                    {/* Tiêu đề Moderator */}
+                    <div className="inline-flex items-center justify-center bg-white/20 backdrop-blur-lg rounded-full px-8 py-4 border border-white/30">
                         <div className="flex items-center space-x-3">
-                            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                            <h1 className="text-white text-2xl md:text-3xl font-bold tracking-wide">
-                                BẢNG QUẢN LÝ MODERATOR
-                            </h1>
-                            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                        <h1 className="text-white text-2xl md:text-3xl font-bold tracking-wide">
+                            BẢNG QUẢN LÝ MODERATOR
+                        </h1>
+                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                         </div>
                     </div>
+
+                    {/* Chú thích trạng thái - đưa sang bên trái */}
+                    <div className="absolute left-0 top-12 bg-white/90 rounded-xl shadow-md p-3 space-y-1 text-sm">
+                        <h3 className="font-semibold text-gray-700">Chú thích</h3>
+                        <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 animate-pulse"></span>
+                        <span>Có thông báo</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-gradient-to-br from-green-400 to-green-500"></span>
+                        <span>Đã thanh toán hết</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-gradient-to-br from-red-400 to-pink-500 animate-pulse"></span>
+                        <span>Đang phục vụ</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-gradient-to-br from-gray-100 to-gray-200"></span>
+                        <span>Bình thường</span>
+                        </div>
+                    </div>
+                </div>
+
                     <p className="text-white/90 text-lg font-medium mb-4">
                         Theo dõi và xử lý thông báo từ khách hàng
                     </p>
@@ -226,19 +254,31 @@ const ModeratorScreen: React.FC = () => {
                         .map(([tableId, tableData]) => {
                             const hasNotification = (tableData.counter || 0) > 0;
                             const hasBell = tablesWithBell[tableId] || hasNotification;
-
+                            // const status = tableData.totalItems > 0 ;
+                            const status = (() => {
+                                if (hasNotification) return 1;                                    // Có thông báo
+                                if (tableData.totalItems > 0) {
+                                    if (tableData.paidCount / tableData.totalItems === 1) return 2; // Đã thanh toán hết
+                                    return -1;                                                      // Đang phục vụ (chưa thanh toán hết)
+                                }
+                                return 0;                                                          // Bình thường
+                            })()
                             return (
                                 <div
                                     key={tableId}
-                                    className={`group relative aspect-square rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 transform hover:scale-105 hover:rotate-1 ${
-                                        hasNotification
-                                            ? 'bg-gradient-to-br from-red-400 to-pink-500 shadow-lg shadow-red-500/30 animate-pulse'
-                                            : 'bg-gradient-to-br from-yellow-200 to-yellow-300 hover:from-yellow-300 hover:to-yellow-400'
-                                    } border-4 ${
-                                        hasNotification
-                                            ? 'border-red-300'
-                                            : 'border-yellow-400'
-                                    }`}
+                                    className={`
+                                        group relative aspect-square rounded-3xl flex flex-col items-center justify-center 
+                                        cursor-pointer transition-all duration-300 transform hover:scale-105 hover:rotate-1 
+                                        ${
+                                            status === 1 
+                                                ? 'bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-orange-500/30 animate-pulse'
+                                                : status === 2
+                                                ? 'bg-gradient-to-br from-green-400 to-green-500 shadow-lg shadow-green-500/30'
+                                                : status === -1 
+                                                ? 'bg-gradient-to-br from-red-400 to-pink-500 shadow-lg shadow-red-500/30 animate-pulse'
+                                                : 'bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg shadow-gray-300/30'
+                                        }
+                                    `}  
                                     onClick={() => handle(tableId)}
                                 >
 
@@ -275,7 +315,7 @@ const ModeratorScreen: React.FC = () => {
                                     {hasNotification && (
                                         <div
                                             className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-lg animate-bounce">
-                                            !
+                                            {tableData.counter || 0}
                                         </div>
                                     )}
 
@@ -291,6 +331,7 @@ const ModeratorScreen: React.FC = () => {
                                 </div>
                             );
                         })}
+                        
                 </div>
             </div>
 
