@@ -562,6 +562,8 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
+                onServeMultipleOrders={handleServeMultipleOrders}
+                showIndividualCards={true}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
@@ -579,6 +581,7 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
+                onServeMultipleOrders={handleServeMultipleOrders}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
