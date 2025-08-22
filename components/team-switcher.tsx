@@ -1,0 +1,1 @@
+// Placeholder for TeamSwitcher component. Implement team switching here. 
