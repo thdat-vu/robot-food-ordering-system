@@ -1,9 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { OrderStatus } from "@/types/kitchen";
 import { WaiterDish } from "@/hooks/use-waiter-orders";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface DishListProps {
   activeTab: OrderStatus;
@@ -11,6 +13,7 @@ interface DishListProps {
   onDishToggle: (dishId: string) => void; // Changed from number to string
   dishes: WaiterDish[]; // Add dishes prop
   getDishesByStatus: (status: OrderStatus) => WaiterDish[]; // Add function prop
+  onRequestRemake: (reason?: string) => Promise<boolean>;
 }
 
 const categoryStyle: Record<
@@ -45,7 +48,10 @@ const DishList: React.FC<DishListProps> = ({
   onDishToggle,
   dishes, // Destructure dishes prop
   getDishesByStatus, // Destructure getDishesByStatus prop
+  onRequestRemake,
 }) => {
+  const [showRemakeConfirmation, setShowRemakeConfirmation] = useState(false);
+  const [remakeReason, setRemakeReason] = useState("");
   // Get dishes for the active tab only - don't include selected dishes from other tabs
   const dishesForTab = getDishesByStatus(activeTab);
   const allDishesToShow = dishesForTab;
@@ -166,6 +172,69 @@ const DishList: React.FC<DishListProps> = ({
           </div>
         );
       })}
+      {activeTab === "đã phục vụ" && (
+        <div className="sticky bottom-0 left-0 right-0 bg-white border-t pt-3">
+          <Button
+            onClick={() => setShowRemakeConfirmation(true)}
+            disabled={!dishes.some((d) => d.selected && d.status === activeTab)}
+            className="w-full px-4 py-2 rounded-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold disabled:opacity-50"
+          >
+            🔄 Yêu cầu làm lại
+          </Button>
+        </div>
+      )}
+
+      {showRemakeConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🔄</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">
+                Xác nhận yêu cầu làm lại
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? Hành động này sẽ chuyển các món sang trạng thái "Yêu cầu làm lại".
+              </p>
+              <div className="mt-4 text-left">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do làm lại
+                </label>
+                <input
+                  type="text"
+                  value={remakeReason}
+                  onChange={(e) => setRemakeReason(e.target.value)}
+                  placeholder="Nhập lý do làm lại..."
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div className="mt-4 flex gap-3">
+                <Button onClick={() => setShowRemakeConfirmation(false)} variant="outline" className="flex-1">
+                  Hủy
+                </Button>
+                <Button
+                  disabled={remakeReason.trim().length === 0}
+                  onClick={async () => {
+                    if (remakeReason.trim().length === 0) return;
+                    const ok = await onRequestRemake(remakeReason.trim());
+                    if (ok) {
+                      toast("Yêu cầu làm lại", { description: "Yêu cầu làm lại đã được gửi đi!" });
+                      setShowRemakeConfirmation(false);
+                      setRemakeReason("");
+                    } else {
+                      toast("Lỗi yêu cầu làm lại", { description: "Có lỗi xảy ra khi gửi yêu cầu làm lại." });
+                    }
+                  }}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Xác nhận
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

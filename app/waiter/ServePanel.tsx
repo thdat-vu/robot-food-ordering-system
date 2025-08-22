@@ -14,7 +14,7 @@ import { toast } from "sonner";
 interface ServePanelProps {
   activeTab: OrderStatus;
   onServe: () => Promise<boolean>;
-  onRequestRemake: () => Promise<boolean>;
+  onRequestRemake: (reason?: string) => Promise<boolean>;
   hasSelected: boolean;
   dishes: WaiterDish[]; // Add dishes prop
   getDishesByStatus: (status: OrderStatus) => WaiterDish[];
@@ -230,7 +230,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   getDishesByStatus, // Destructure getDishesByStatus prop
 }) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
-  const [showRemakeConfirmation, setShowRemakeConfirmation] = useState(false);
+  // Remake action is now handled in the left sidebar (DishList)
   // Remove the duplicate useWaiterOrders call
 
   // Get dishes for current tab
@@ -290,13 +290,12 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Generate map URL with all selected table numbers
   const mapUrl = React.useMemo(() => {
+    const baseUrl = `https://my-app-henna-three.vercel.app/`;
     if (selectedTableNumbers.length > 0) {
-      return `https://my-app-henna-three.vercel.app/?tables=${selectedTableNumbers.join(
-        ","
-      )}`;
+      return `${baseUrl}?tables=${selectedTableNumbers.join(",")}`;
     }
-    // No fallback - only show map when dishes are actually selected
-    return null;
+    // Fallback to base map when nothing is selected
+    return baseUrl;
   }, [selectedTableNumbers]);
 
   // Update selected table when dishes change
@@ -326,24 +325,12 @@ const ServePanel: React.FC<ServePanelProps> = ({
     }
   };
 
-  const handleRequestRemakeClick = async () => {
-    const success = await onRequestRemake();
-    if (success) {
-      toast("Yêu cầu làm lại", {
-        description: "Yêu cầu làm lại đã được gửi đi!",
-      });
-      setShowRemakeConfirmation(false);
-    } else {
-      toast("Lỗi yêu cầu làm lại", {
-        description: "Có lỗi xảy ra khi gửi yêu cầu làm lại.",
-      });
-    }
-  };
+  // Request remake logic moved to DishList; keep no-op here if referenced
 
   const getTabTitle = () => {
     switch (activeTab) {
       case "đang thực hiện":
-        return "Món đang được thực hiện";
+        return "Món đang được giao";
       case "bắt đầu phục vụ":
         return "Món sẵn sàng phục vụ";
       case "yêu cầu làm lại":
@@ -478,49 +465,16 @@ const ServePanel: React.FC<ServePanelProps> = ({
             >
               🚀 Phục vụ
             </Button>
-            <Button
+            {/* <Button
               onClick={() => setShowRemakeConfirmation(true)}
               className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
               🔄 Yêu cầu làm lại
-            </Button>
+            </Button> */}
           </div>
         )}
 
-        {/* Confirmation Dialog for Remake Request */}
-        {showRemakeConfirmation && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🔄</span>
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-3">
-                  Xác nhận yêu cầu làm lại
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? Hành
-                  động này sẽ chuyển các món sang trạng thái "Yêu cầu làm lại".
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => setShowRemakeConfirmation(false)}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Hủy
-                  </Button>
-                  <Button
-                    onClick={handleRequestRemakeClick}
-                    className="flex-1 bg-orange-600 hover:bg-orange-700"
-                  >
-                    Xác nhận
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Remake confirmation modal removed; now located in DishList */}
 
         {/* Show tab-specific information */}
         {activeTab === "đang thực hiện" && dishesForTab.length > 0 && (

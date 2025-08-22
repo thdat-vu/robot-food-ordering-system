@@ -24,6 +24,7 @@ interface OrdersContentProps {
   onPrepareMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
   onServeMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
   showIndividualCards?: boolean;
+  selectedIds?: Set<number>;
 }
 
 export function OrdersContent({
@@ -37,7 +38,8 @@ export function OrdersContent({
   selectedGroup,
   onPrepareMultipleOrders,
   onServeMultipleOrders,
-  showIndividualCards
+  showIndividualCards,
+  selectedIds
 }: OrdersContentProps) {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const target = e.target as HTMLImageElement;
@@ -131,6 +133,20 @@ export function OrdersContent({
         {estimatedTime}
       </span>
     );
+  };
+
+  // Category priority: Drinks > Main > Dessert
+  const categoryPriority = (categoryName?: string): number => {
+    switch (categoryName) {
+      case 'Đồ uống':
+        return 0;
+      case 'Món chính':
+        return 1;
+      case 'Tráng miệng':
+        return 2;
+      default:
+        return 3;
+    }
   };
 
   // Get the most common estimated time for a group
@@ -243,10 +259,12 @@ export function OrdersContent({
   if (singleOrderEntry) {
     const [itemName, orderGroup] = Object.entries(groupedOrders)[0];
     const order = orderGroup[0];
+    const isSelectedSingle = selectedIds ? selectedIds.has(order.id) : false;
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         {/* Top CTA moved to header; keep bottom sticky button only */}
-        <Card className="cursor-pointer hover:shadow-md transition-shadow duration-200">
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${isSelectedSingle ? 'bg-gray-100 border border-gray-300' : ''}`}
+        >
           <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
             {renderOrderImage(order)}
             <div className="flex-1">
@@ -320,6 +338,9 @@ export function OrdersContent({
   if (activeTab === 'bắt đầu phục vụ') {
     // Flatten all orders
     const allOrders = Object.values(groupedOrders).flat();
+    const sortedOrders = [...allOrders].sort(
+      (a, b) => categoryPriority(a.category) - categoryPriority(b.category)
+    );
     if (allOrders.length === 0) {
       return (
         <div className="flex-1 p-6 overflow-y-auto">
@@ -334,8 +355,11 @@ export function OrdersContent({
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="space-y-4">
-          {allOrders.map((order) => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow duration-200">
+          {sortedOrders.map((order) => (
+            <Card
+              key={order.id}
+              className={`hover:shadow-md transition-shadow duration-200 ${selectedIds && selectedIds.has(order.id) ? 'bg-gray-100 border border-gray-300' : ''}`}
+            >
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
                 <div className="flex-1">
@@ -382,6 +406,9 @@ export function OrdersContent({
   if (showIndividualCards) {
     // Flatten all orders
     const allOrders = Object.values(groupedOrders).flat();
+    const sortedOrders = [...allOrders].sort(
+      (a, b) => categoryPriority(a.category) - categoryPriority(b.category)
+    );
     if (allOrders.length === 0) {
       return (
         <div className="flex-1 p-6 overflow-y-auto">
@@ -398,8 +425,11 @@ export function OrdersContent({
         {/* Top bulk actions moved to header; keep bottom sticky button only */}
 
         <div className="space-y-4">
-          {allOrders.map((order) => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow duration-200">
+          {sortedOrders.map((order) => (
+            <Card
+              key={order.id}
+              className={`hover:shadow-md transition-shadow duration-200 ${selectedIds && selectedIds.has(order.id) ? 'bg-gray-100 border border-gray-300' : ''}`}
+            >
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
                 <div className="flex-1">
@@ -481,7 +511,7 @@ export function OrdersContent({
         <div className="sticky bottom-0 z-10 bg-white/80 backdrop-blur py-3 mt-6 border-t flex justify-center">
           {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
             <Button 
-              onClick={() => onPrepareMultipleOrders(allOrders.map(order => ({
+              onClick={() => onPrepareMultipleOrders(sortedOrders.map(order => ({
                 itemName: order.itemName,
                 tableNumber: order.tableNumber,
                 id: order.id
@@ -489,12 +519,12 @@ export function OrdersContent({
               size="lg"
               className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white"
             >
-              Thực hiện ({allOrders.length})
+              Thực hiện ({sortedOrders.length})
             </Button>
           )}
           {activeTab === 'đang thực hiện' && allOrders.length > 0 && onServeMultipleOrders && (
             <Button 
-              onClick={() => onServeMultipleOrders(allOrders.map(order => ({
+              onClick={() => onServeMultipleOrders(sortedOrders.map(order => ({
                 itemName: order.itemName,
                 tableNumber: order.tableNumber,
                 id: order.id
@@ -502,7 +532,7 @@ export function OrdersContent({
               size="lg"
               className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-orange-600 hover:bg-orange-700 text-white"
             >
-              Bắt đầu phục vụ ({allOrders.length})
+              Bắt đầu phục vụ ({sortedOrders.length})
             </Button>
           )}
         </div>
@@ -513,8 +543,10 @@ export function OrdersContent({
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       <div className="space-y-4">
-        {Object.entries(groupedOrders).map(([itemName, orderGroup], groupIndex) => (
-          <Card key={itemName} className="cursor-pointer hover:shadow-md transition-shadow duration-200">
+        {Object.entries(groupedOrders).map(([itemName, orderGroup], groupIndex) => {
+          const groupSelected = selectedIds ? orderGroup.some(o => selectedIds!.has(o.id)) : false;
+          return (
+          <Card key={itemName} className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''}`}>
             <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
               {renderOrderImage(orderGroup[0])}
               <div className="flex-1">
@@ -569,7 +601,19 @@ export function OrdersContent({
               {activeTab === 'đang chờ' && (
                 <CardAction>
                   <Button 
-                    onClick={e => { e.stopPropagation(); onPrepareClick(orderGroup[0].id, orderGroup[0].itemName); }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      if (onPrepareMultipleOrders) {
+                        onPrepareMultipleOrders(
+                          orderGroup.map(o => ({ itemName: o.itemName, tableNumber: o.tableNumber, id: o.id }))
+                        );
+                      } else {
+                        // Fallback: iterate to prepare each item in the group
+                        for (const o of orderGroup) {
+                          onPrepareClick(o.id, o.itemName);
+                        }
+                      }
+                    }}
                     variant="default"
                   >
                     Thực hiện
@@ -578,7 +622,7 @@ export function OrdersContent({
               )}
             </CardHeader>
           </Card>
-        ))}
+        )})}
       </div>
     </div>
   );
