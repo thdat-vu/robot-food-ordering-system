@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Clock, DollarSign, Users, Eye, AlertCircle, CheckCircle ,ChevronLeft, X, Search } from 'lucide-react';
-import OrderDetailDialog, { TableItem, OrderItem, OrderData } from "./OrderDetailDialog";
+import OrderDetailDialog, { OrderData, TableItem } from "./OrderDetailDialog";
+
 import Pagination from "@/lib/utils/Pagination";
 import axios from 'axios';
 
@@ -350,8 +351,13 @@ const confirmStatusChange = async () => {
                         <div className="text-sm text-gray-600">Bàn Có Khách</div>
                     </div>
                     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div className="text-2xl font-bold text-green-600">
-                            {formatCurrency(Object.values(orderData).flat().reduce((total, order) => total + order.totalPrice, 0))}
+                    <div className="text-2xl font-bold text-green-600">
+                        {formatCurrency(
+                            Object.values(orderData)
+                            .flat()
+                            .filter(order => order.paymentStatus === "Paid") // chỉ lấy order đã thanh toán
+                            .reduce((total, order) => total + order.totalPrice, 0)
+                        )}
                         </div>
                         <div className="text-sm text-gray-600">Tổng Doanh Thu</div>
                     </div>
