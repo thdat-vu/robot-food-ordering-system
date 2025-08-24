@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 export interface Toast {
   id: number;
-  type: 'success' | 'error' | 'warning';
+  type: 'success' | 'error' | 'warning'| 'System notification';
   message: string;
   isVisible: boolean;
 }
@@ -13,7 +13,7 @@ const TOAST_ANIMATION_DURATION = 300;
 export function useToastModerator() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const addToast = (message: string, type: 'success' | 'error' | 'warning') => {
+  const addToast = (message: string, type: 'success' | 'error' | 'warning' |'System notification') => {
     const newToast: Toast = {
       id: Date.now(),
       type,
