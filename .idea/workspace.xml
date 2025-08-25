@@ -5,16 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/components/common/FeedbackDialog.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/entites/request/FeedbackRequest.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/MobileDialog.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/FeedbackApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/FeedbackApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/CallStaff.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/CallStaff.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/TableApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/TableApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/[id]/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/features/components/Profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/Profile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/OrderList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/OrderList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/FeedbackDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/FeedbackDialog.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tailwind.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/tailwind.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entites/respont/Table.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/respont/Table.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,8 +25,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="TypeScript JSX File" />
         <option value="TypeScript File" />
+        <option value="TypeScript JSX File" />
       </list>
     </option>
   </component>
@@ -145,7 +146,11 @@
       <workItem from="1755534245984" duration="1209000" />
       <workItem from="1755559896116" duration="683000" />
       <workItem from="1755590410666" duration="44000" />
-      <workItem from="1755781757094" duration="950000" />
+      <workItem from="1755781757094" duration="1916000" />
+      <workItem from="1756006106483" duration="13607000" />
+      <workItem from="1756092193241" duration="5070000" />
+      <workItem from="1756098862707" duration="882000" />
+      <workItem from="1756108095546" duration="2191000" />
     </task>
     <servers />
   </component>
@@ -167,9 +172,9 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/components/common/OrderDisplay.tsx</url>
-          <line>326</line>
-          <option name="timeStamp" value="1" />
+          <url>file://$PROJECT_DIR$/app/features/components/ConfimOrder.tsx</url>
+          <line>104</line>
+          <option name="timeStamp" value="4" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

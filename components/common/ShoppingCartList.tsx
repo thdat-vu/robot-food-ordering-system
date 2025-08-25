@@ -1,12 +1,13 @@
 "use client"
 import React, {useCallback, useEffect, useState} from "react";
 import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
-import {Minus, ShoppingBag, Trash2, AlertTriangle} from "lucide-react";
+import {Minus, Plus, ShoppingBag, Trash2, AlertTriangle} from "lucide-react";
 import formatCurrency, {totolPrice} from "@/unit/unit";
 import {
     loadListFromLocalStorage,
     removeProduction,
-    updateProduction
+    updateProduction,
+    addProduction
 } from "@/store/ShoppingCart";
 import {ConfimOrder} from "@/app/features/components/ConfimOrder";
 import {SHOPPING_CARTS} from "@/key-store";
@@ -112,6 +113,40 @@ export const ShoppingCartList: React.FC = () => {
         } finally {
             setIsRemoving(null);
         }
+    }, []);
+
+    const handleQuantityChange = useCallback((itemDetail: DetailType, isIncrease: boolean) => {
+        const currentItems = loadListFromLocalStorage<ShoppingCart>(SHOPPING_CARTS);
+
+        if (isIncrease) {
+            // Thêm 1 sản phẩm giống hệt
+            addProduction<ShoppingCart>(SHOPPING_CARTS, itemDetail.shc);
+        } else {
+            // Giảm 1 sản phẩm - tìm và xóa 1 item đầu tiên matching
+            const targetItem = itemDetail.shc;
+            let toppingString = '';
+            targetItem.toppings.forEach(value => {
+                toppingString += `${value.id}+${value.quantity}-`;
+            });
+            const targetKey = `${targetItem.id}_${targetItem.size.id}_${toppingString}_${targetItem.note}`;
+
+            const indexToRemove = currentItems.findIndex(item => {
+                let itemToppingString = '';
+                item.toppings.forEach(value => {
+                    itemToppingString += `${value.id}+${value.quantity}-`;
+                });
+                const itemKey = `${item.id}_${item.size.id}_${itemToppingString}_${item.note}`;
+                return itemKey === targetKey;
+            });
+
+            if (indexToRemove !== -1) {
+                removeProduction<ShoppingCart>(SHOPPING_CARTS, indexToRemove);
+            }
+        }
+
+        // Reload cart items
+        const updatedItems = loadListFromLocalStorage<ShoppingCart>(SHOPPING_CARTS);
+        setCartItems(updatedItems);
     }, []);
 
     const initiateDelete = (id: string, name: string) => {
@@ -248,10 +283,10 @@ export const ShoppingCartList: React.FC = () => {
                                                 <div className="mt-1 flex items-center">
                                                     <span
                                                         className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                        {item.shc.size.name} (x{item.quantity})
+                                                        {item.shc.size.name}
                                                     </span>
                                                     <span className="ml-2 text-sm font-medium text-gray-600">
-                                                        {formatCurrency(item.shc.size.price * item.quantity)}
+                                                        {formatCurrency(item.shc.size.price)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -264,6 +299,37 @@ export const ShoppingCartList: React.FC = () => {
                                             >
                                                 <Trash2 className="w-4 h-4"/>
                                             </button>
+                                        </div>
+
+                                        {/* Quantity Controls */}
+                                        <div className="mt-3 flex items-center justify-between">
+                                            <div className="flex items-center space-x-3">
+                                                <button
+                                                    onClick={() => handleQuantityChange(item, false)}
+                                                    disabled={item.quantity <= 1}
+                                                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                                >
+                                                    <Minus className="w-4 h-4"/>
+                                                </button>
+
+                                                <span
+                                                    className="text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
+                                                    {item.quantity}
+                                                </span>
+
+                                                <button
+                                                    onClick={() => handleQuantityChange(item, true)}
+                                                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-all duration-200"
+                                                >
+                                                    <Plus className="w-4 h-4"/>
+                                                </button>
+                                            </div>
+
+                                            <div className="text-right">
+                                                <span className="text-sm font-medium text-green-600">
+                                                    {formatCurrency(item.shc.size.price * item.quantity)}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

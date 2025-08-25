@@ -13,6 +13,7 @@ import {useFastOrderContext} from "@/hooks/context/FastOrderContext";
 import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
 import {Alert} from "@/components/common/Alert";
 import {ORDER_CARTS, SHOPPING_CARTS} from "@/key-store";
+import {MobileDialog} from "@/components/common/MobileDialog";
 
 
 type DetailType = {
@@ -40,7 +41,8 @@ export const ConfimOrder: React.FC<{
     const deviceToken = useDeviceToken();
     const [ex, setEx] = useState<string>();
     const [detail, setDetail] = useState<DetailType[] | undefined>()
-
+    const [openMobileDialog, setOpenMobileDialog] = useState<boolean>(false)
+    const [mobileDialog, setMobileDialog] = useState<{ title: string, text: string, status: boolean }>();
 
     const factContext = useFastOrderContext();
 
@@ -104,9 +106,23 @@ export const ConfimOrder: React.FC<{
             case 'COD':
                 (async () => {
                     await run(orderRequet);
-                    if (error && error.response.data.message)
+                    if (error && error.response.data.message) {
                         setEx(error.response.data.message);
+                        setMobileDialog({
+                                title: "Thông báo",
+                                text: "Gọi món thất bại",
+                                status: false
+                            }
+                        );
+                    }
 
+                    setMobileDialog({
+                            title: "Thông báo",
+                            text: "Gọi món thanh Công",
+                            status: true
+                        }
+                    );
+                    setOpenMobileDialog(true)
                     handleRemote()
                     setOpen(false);
                 })()
@@ -169,6 +185,12 @@ export const ConfimOrder: React.FC<{
             {
                 error && error.response.data.message && (
                     <Alert message={error.response.data.message} type="error"/>
+                )
+            }
+            {
+                mobileDialog && (
+                    <MobileDialog isOpen={openMobileDialog} onClose={() => setOpenMobileDialog(false)}
+                                  status={mobileDialog.status ? "success" : "error"} message={mobileDialog.text}/>
                 )
             }
             <DialogComponation scrollBody={false} isOpen={isOpen} onClose={onClose}>

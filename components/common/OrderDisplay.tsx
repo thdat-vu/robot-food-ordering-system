@@ -1,10 +1,9 @@
 "use client"
-import React, {useEffect, useState, useCallback, useRef, useMemo} from 'react';
+import React, {useEffect, useState, useRef, useMemo} from 'react';
 import {
     Clock,
     MapPin,
     CreditCard,
-    Plus,
     RefreshCw,
     AlertCircle,
     ShoppingBag,
@@ -13,7 +12,9 @@ import {
     Truck,
     XCircle,
     StickyNote,
-    Sparkles
+    Sparkles,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import {CgPerformance} from "react-icons/cg";
 
@@ -29,13 +30,20 @@ import {FeedbackDialog} from "@/components/common/FeedbackDialog";
 import {useCreateFeedback} from "@/hooks/customHooks/useFeedbackHooks";
 import {FeedbackRequest} from "@/entites/request/FeedbackRequest";
 
-
-export type DetailType = {
-    shc: InForProductOrderDetail;
-    quantity: number;
+export type GroupedProduct = {
+    productName: string;
+    productId: string;
+    imageUrl: string;
+    items: InForProductOrderDetail[];
+    totalQuantity: number;
+    totalPrice: number;
 };
 
-export const OrderDisplay = () => {
+type OrderDisplay = {
+    handleChange: (number: number) => void;
+}
+
+export const OrderDisplay = ({handleChange}: OrderDisplay) => {
     const [orderData, setOrderData] = useState<OrderRespontGetByID[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [isPaymentOpen, setIsPaymentOpen] = useState<boolean>(false)
@@ -46,12 +54,13 @@ export const OrderDisplay = () => {
     const {run} = useGetOrderByIdAndTaibleId();
     const {run: runGet} = useGetOrderWithIdTableAndToken();
     const [oerderId, setOerderId] = useState<string>('');
-    const [detail, setDetail] = useState<DetailType[] | undefined>()
+    const [detail, setDetail] = useState<InForProductOrderDetail[] | undefined>()
+    const [groupedProducts, setGroupedProducts] = useState<GroupedProduct[]>([]);
+    const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
     const [openFeedback, setOpenFeedback] = useState<boolean>(false);
-    const [DetailType, setDetailType] = useState<DetailType>();
+    const [DetailType, setDetailType] = useState<InForProductOrderDetail>();
     const [listIdorderItem, setListIdorderItem] = useState<string[]>([])
     const {run: runCallPayment} = useCreateFeedback();
-
 
     const token = useDeviceToken();
     const table = useTableContext();
@@ -72,8 +81,8 @@ export const OrderDisplay = () => {
         return `${item.productId}_${item.productSizeId}_${toppingString}_${item.note}`;
     };
 
-    const handleOpenFeedback = (DetailType: DetailType) => {
-        const key = createKeyFromOrderDetail(DetailType.shc);
+    const handleOpenFeedback = (item: InForProductOrderDetail) => {
+        const key = createKeyFromOrderDetail(item);
         const similarProductIds: string[] = [];
 
         orderData.forEach(value => {
@@ -85,9 +94,8 @@ export const OrderDisplay = () => {
             })
         })
         setListIdorderItem(similarProductIds);
-        setDetailType(DetailType);
+        setDetailType(item);
         setOpenFeedback(true)
-
     }
 
     function countShoppingCart(arr: InForProductOrderDetail[]) {
@@ -109,43 +117,66 @@ export const OrderDisplay = () => {
         return Array.from(map.values());
     }
 
+    // Group products by product name
+    const groupProductsByName = (items: InForProductOrderDetail[]): GroupedProduct[] => {
+        const productMap = new Map<string, GroupedProduct>();
+
+        items.forEach(item => {
+            const key = item.productName;
+
+            if (!productMap.has(key)) {
+                productMap.set(key, {
+                    productName: item.productName,
+                    productId: item.productId,
+                    imageUrl: item.imageUrl,
+                    items: [item],
+                    totalQuantity: 1,
+                    totalPrice: item.price
+                });
+            } else {
+                const existing = productMap.get(key)!;
+                existing.items.push(item);
+                existing.totalQuantity += 1;
+                existing.totalPrice += item.price;
+            }
+        });
+
+        return Array.from(productMap.values());
+    };
+
+    const toggleProductExpansion = (productName: string) => {
+        setExpandedProducts(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(productName)) {
+                newSet.delete(productName);
+            } else {
+                newSet.add(productName);
+            }
+            return newSet;
+        });
+    };
 
     useEffect(() => {
         if (orderData.length > 0) {
-            const allGrouped: DetailType[] = [];
+            const allItems: InForProductOrderDetail[] = [];
 
             orderData.forEach(order => {
-                const grouped = countShoppingCart(order.items);
-                allGrouped.push(...grouped);
+                allItems.push(...order.items);
             });
 
-            const mergedMap = new Map<string, DetailType>();
+            setDetail(allItems);
+            setGroupedProducts(groupProductsByName(allItems));
 
-            allGrouped.forEach(item => {
-                let toppingString = '';
-                item.shc.toppings.forEach(t => {
-                    toppingString += `${t.id}+${t.price}-`;
-                });
-                const key = `${item.shc.productId}_${item.shc.productSizeId}_${toppingString}_${item.shc.note}`;
-
-                if (!mergedMap.has(key)) {
-                    mergedMap.set(key, {...item});
-                } else {
-                    mergedMap.get(key)!.quantity += item.quantity;
-                }
-            });
-
-            setDetail(Array.from(mergedMap.values()));
+            // Call handleChange with total number of items
+            handleChange(allItems.length);
         } else {
             setDetail(undefined);
+            setGroupedProducts([]);
+            handleChange(0);
         }
-    }, [orderData]);
-
+    }, [orderData, handleChange]);
 
     const handlePayment = async (idOrderItem: string) => {
-        // setIsPaymentOpen(true);
-        // setOerderId(idOrderItem);
-
         const request: FeedbackRequest = {
             idTable: table.tableId,
             note: "Thanh Toan Tien",
@@ -314,14 +345,18 @@ export const OrderDisplay = () => {
                                     </div>
                                 </div>
 
-                                <div className="p-5 space-y-6">
-                                    {detail && detail.map((item, itemIndex) => (
-                                        <div key={itemIndex}
-                                             className={`${itemIndex > 0 ? 'border-t border-gray-100 pt-6' : ''}`}>
-                                            <div className="flex items-start space-x-4 mb-4">
+                                <div className="p-5 space-y-4">
+                                    {groupedProducts.map((product, productIndex) => (
+                                        <div key={productIndex}
+                                             className="border-b border-gray-100 last:border-b-0 pb-4 last:pb-0">
+                                            {/* Product Header - Clickable */}
+                                            <div
+                                                onClick={() => toggleProductExpansion(product.productName)}
+                                                className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 rounded-2xl p-3 transition-all duration-200"
+                                            >
                                                 <img
-                                                    src={item.shc.imageUrl}
-                                                    alt={item.shc.productName}
+                                                    src={product.imageUrl}
+                                                    alt={product.productName}
                                                     className="w-16 h-16 rounded-2xl object-cover border-2 border-gray-100"
                                                     onError={(e) => {
                                                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTMyIDQ0QzM4IDI0IDQ0IDI4IDQ0IDMyUzM4IDQwIDMyIDQwUzIwIDM2IDIwIDMyUzI2IDI0IDMyIDI0VjQ0WiIgZmlsbD0iI0Q1RDlERCIvPgo8L3N2Zz4K';
@@ -330,85 +365,135 @@ export const OrderDisplay = () => {
                                                 <div className="flex-1">
                                                     <div className="flex items-center justify-between mb-2">
                                                         <h3 className="font-bold text-gray-900 text-lg leading-tight">
-                                                            {item.shc.productName}
+                                                            {product.productName}
                                                         </h3>
-                                                        <VscFeedback onClick={() => handleOpenFeedback(item)}
-                                                                     className="text-black text-3xl bg-gray-200 animate-shake cursor-pointer rounded-full p-2 hover:animate-pulse"/>
+                                                        <div className="flex items-center space-x-2">
+                                                            <span
+                                                                className="bg-blue-100 text-blue-700 px-3 py-1 rounded-xl text-sm font-medium">
+                                                                x{product.totalQuantity}
+                                                            </span>
+                                                            {expandedProducts.has(product.productName) ?
+                                                                <ChevronUp size={20} className="text-gray-400"/> :
+                                                                <ChevronDown size={20} className="text-gray-400"/>
+                                                            }
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center flex-wrap gap-2">
-                                                        <span
-                                                            className="bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-sm font-medium">
-                                                            {item.shc.sizeName} (x{item.quantity})
-                                                        </span>
-                                                        <OrderStatus status={item.shc.status}/>
+                                                    <div className="flex items-center justify-between">
                                                         <span className="text-lg font-bold text-emerald-600">
-                                                            {formatCurrency(item.shc.price * item.quantity)}
+                                                            {
+                                                                formatCurrency(
+                                                                    product.totalPrice +
+                                                                    product.items.reduce(
+                                                                        (sum, item) =>
+                                                                            sum +
+                                                                            item.toppings.reduce((toppingSum, topping) => toppingSum + topping.price, 0),
+                                                                        0
+                                                                    )
+                                                                )
+                                                            }
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {item.shc.note && (
-                                                <div
-                                                    className="bg-amber-50 border border-amber-200 rounded-2xl p-3 mb-4">
-                                                    <div className="flex items-start space-x-2">
-                                                        <StickyNote size={16}
-                                                                    className="text-amber-600 mt-0.5 flex-shrink-0"/>
-                                                        <div>
-                                                            <span className="text-amber-800 text-sm font-medium">Ghi chú: </span>
-                                                            <span
-                                                                className="text-amber-700 text-sm">{item.shc.note}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-
-                                            {item.shc.toppings?.length > 0 && (
-                                                <div className="bg-gray-50 rounded-2xl p-4">
-                                                    <div className="flex items-center mb-3">
-                                                        <Sparkles size={16} className="text-purple-500 mr-2"/>
-                                                        <span className="font-semibold text-gray-800">
-                                                            Topping ({item.shc.toppings?.length})
-                                                          </span>
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        {Array.from(
-                                                            item.shc.toppings.reduce((map, topping) => {
-                                                                if (!map.has(topping.id)) {
-                                                                    map.set(topping.id, {...topping, quantity: 1});
-                                                                } else {
-                                                                    map.get(topping.id)!.quantity += 1;
-                                                                }
-                                                                return map;
-                                                            }, new Map<string, Topping & { quantity: number }>())
-                                                        ).map(([id, topping]) => (
-                                                            <div
-                                                                key={id}
-                                                                className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm"
-                                                            >
-                                                                <div className="flex items-center space-x-3">
-                                                                    <img
-                                                                        src={topping.imageUrl}
-                                                                        alt={topping.name}
-                                                                        className="w-10 h-10 rounded-xl object-cover border border-gray-200"
-                                                                        onError={(e) => {
-                                                                            e.currentTarget.src =
-                                                                                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMTAiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTIwIDI4QzI0IDIwIDI4IDIyIDI4IDI0UzI0IDI4IDIwIDI4UzEyIDI2IDEyIDI0UzE2IDIwIDIwIDIwVjI4WiIgZmlsbD0iI0Q1RDlERCIvPgo8L3N2Zz4K';
-                                                                        }}
-                                                                    />
+                                            {/* Dropdown Content */}
+                                            {expandedProducts.has(product.productName) && (
+                                                <div className="mt-4 space-y-4 pl-4">
+                                                    {product.items.map((item, itemIndex) => (
+                                                        <div key={item.id}
+                                                             className="bg-gray-50 rounded-2xl p-4 relative">
+                                                            <div className="flex items-start justify-between mb-3">
+                                                                <div className="flex-1">
+                                                                    <div
+                                                                        className="flex items-center flex-wrap gap-2 mb-2">
+                                                                        <span
+                                                                            className="bg-gray-200 text-gray-700 px-3 py-1 rounded-xl text-sm font-medium">
+                                                                            {item.sizeName}
+                                                                        </span>
+                                                                        <OrderStatus status={item.status}/>
+                                                                    </div>
                                                                     <span
-                                                                        className="font-medium text-gray-900">{topping.name} (x{topping.quantity})</span>
+                                                                        className="text-lg font-bold text-emerald-600">
+                                                                        {formatCurrency(item.price)}
+                                                                    </span>
                                                                 </div>
-                                                                <span className="font-bold text-emerald-600">
-                                                                            {formatCurrency(topping.price * topping.quantity)}
-                                                                          </span>
+                                                                <VscFeedback
+                                                                    onClick={() => handleOpenFeedback(item)}
+                                                                    className="text-black text-3xl bg-gray-200 animate-shake cursor-pointer rounded-full p-2 hover:animate-pulse"
+                                                                />
                                                             </div>
-                                                        ))}
-                                                    </div>
+
+                                                            {item.note && (
+                                                                <div
+                                                                    className="bg-amber-50 border border-amber-200 rounded-2xl p-3 mb-4">
+                                                                    <div className="flex items-start space-x-2">
+                                                                        <StickyNote size={16}
+                                                                                    className="text-amber-600 mt-0.5 flex-shrink-0"/>
+                                                                        <div>
+                                                                            <span
+                                                                                className="text-amber-800 text-sm font-medium">Ghi chú: </span>
+                                                                            <span
+                                                                                className="text-amber-700 text-sm">{item.note}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {item.toppings?.length > 0 && (
+                                                                <div className="bg-white rounded-2xl p-4">
+                                                                    <div className="flex items-center mb-3">
+                                                                        <Sparkles size={16}
+                                                                                  className="text-purple-500 mr-2"/>
+                                                                        <span className="font-semibold text-gray-800">
+                                                                            Topping ({item.toppings?.length})
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="space-y-3">
+                                                                        {Array.from(
+                                                                            item.toppings.reduce((map, topping) => {
+                                                                                if (!map.has(topping.id)) {
+                                                                                    map.set(topping.id, {
+                                                                                        ...topping,
+                                                                                        quantity: 1
+                                                                                    });
+                                                                                } else {
+                                                                                    map.get(topping.id)!.quantity += 1;
+                                                                                }
+                                                                                return map;
+                                                                            }, new Map<string, Topping & {
+                                                                                quantity: number
+                                                                            }>())
+                                                                        ).map(([id, topping]) => (
+                                                                            <div
+                                                                                key={id}
+                                                                                className="flex items-center justify-between bg-gray-50 rounded-xl p-3 shadow-sm"
+                                                                            >
+                                                                                <div
+                                                                                    className="flex items-center space-x-3">
+                                                                                    <img
+                                                                                        src={topping.imageUrl}
+                                                                                        alt={topping.name}
+                                                                                        className="w-10 h-10 rounded-xl object-cover border border-gray-200"
+                                                                                        onError={(e) => {
+                                                                                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMTAiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTIwIDI4QzI0IDIwIDI4IDIyIDI4IDI0UzI0IDI4IDIwIDI4UzEyIDI2IDEyIDI0UzE2IDIwIDIwIDIwVjI4WiIgZmlsbD0iI0Q1RDlERCIvPgo8L3N2Zz4K';
+                                                                                        }}
+                                                                                    />
+                                                                                    <span
+                                                                                        className="font-medium text-gray-900">{topping.name} (x{topping.quantity})</span>
+                                                                                </div>
+                                                                                <span
+                                                                                    className="font-bold text-emerald-600">
+                                                                                    {formatCurrency(topping.price * topping.quantity)}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
-
                                         </div>
                                     ))}
                                 </div>
@@ -426,10 +511,12 @@ export const OrderDisplay = () => {
                 onSave={() => {
                 }}
             />
-            <FeedbackDialog isOpen={openFeedback}
-                            productInfo={DetailType}
-                            listIds={listIdorderItem}
-                            onClose={() => setOpenFeedback(false)}/>
+            <FeedbackDialog
+                isOpen={openFeedback}
+                productInfo={DetailType}
+                listIds={listIdorderItem}
+                onClose={() => setOpenFeedback(false)}
+            />
         </>
     );
 };

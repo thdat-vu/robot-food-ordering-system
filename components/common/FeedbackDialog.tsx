@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import {X, Send, MessageSquare, RefreshCw, Users, Clock, Star, LucideIcon} from 'lucide-react';
-import {DetailType} from "@/components/common/OrderDisplay";
 import {useCreateFeedback} from "@/hooks/customHooks/useFeedbackHooks";
 import {FeedbackRequest} from "@/entites/request/FeedbackRequest";
 import {useTableContext} from "@/hooks/context/Context";
@@ -15,7 +14,7 @@ interface FeedbackSuggestion {
 interface FeedbackDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    productInfo?: DetailType;
+    productInfo?: any;
     listIds?: string[];
 }
 
@@ -181,7 +180,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({isOpen, onClose, 
                             <div className="mt-2 pt-2 border-t border-white border-opacity-20">
                                 <p className="text-xs opacity-75 mb-1">Topping:</p>
                                 <div className="flex flex-wrap gap-1">
-                                    {productInfo.shc.toppings.map((topping) => (
+                                    {productInfo.shc.toppings.map((topping:any) => (
                                         <span
                                             key={topping.id}
                                             className="text-xs bg-white bg-opacity-30 px-2 py-1 rounded-full"

@@ -10,6 +10,7 @@ import {OrderDisplay} from "@/components/common/OrderDisplay";
 export const OrderList: React.FC<{ id: string }> = ({id}) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<"food" | "ordered">("food");
+    const [count, setCount] = useState<number>(0);
 
 
     return (
@@ -41,16 +42,24 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
                             key={tab.key}
                             type="button"
                             onClick={() => setActiveTab(tab.key as "food" | "ordered")}
-                            className={`flex-1 py-3 px-4 text-sm font-medium text-center border-b-2 transition-all duration-200 ${
+                            className={`relative flex-1 py-3 px-4 text-sm font-medium text-center border-b-2 transition-all duration-200 ${
                                 activeTab === tab.key
                                     ? "border-blue-600 text-blue-600 bg-white"
                                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                             }`}
                         >
                             {tab.label}
+
+                            {tab.key === "ordered" && count > 0 && (
+                                <span
+                                    className="absolute right-5 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                              {count}
+                            </span>
+                            )}
                         </button>
                     ))}
                 </nav>
+
             </div>
 
 
@@ -63,7 +72,7 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
                             activeTab === "food" ? (
                                 <ShoppingCartList/>
                             ) : (
-                                <OrderDisplay/>
+                                <OrderDisplay handleChange={setCount}/>
                             )
                         }
                     </div>
