@@ -113,6 +113,13 @@ function ChiefPageContent() {
     return () => clearInterval(interval);
   }, [refreshOrders]);
 
+  // Clear all selections when switching tabs to avoid stale CTA selections
+  useEffect(() => {
+    setSelectedGroups([]);
+    setSelectedGroup(null);
+    setSelectedOrderKey(null);
+  }, [activeTab]);
+
   // Wrapper function for manual refresh button
   const handleManualRefresh = () => {
     refreshOrders(false); // Use normal refresh for manual button
