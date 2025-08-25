@@ -90,7 +90,7 @@ export function useWaiterOrders() {
             case "Completed":
                 return "đã phục vụ";
             case "7":
-            case "Returned":
+            case "Remark":
                 return "yêu cầu làm lại";
             default:
                 return "đang chờ";
@@ -265,6 +265,7 @@ export function useWaiterOrders() {
     // Filter dishes by status
     const getDishesByStatus = useCallback(
         (status: OrderStatus) => {
+            console.log(dishes);
             return dishes.filter((dish) => dish.status === status);
         },
         [dishes]

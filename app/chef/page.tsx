@@ -29,6 +29,7 @@ function ChiefPageContent() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalAction, setModalAction] = useState<'serve' | 'reject'>('serve');
   const [isPriorityInfoOpen, setIsPriorityInfoOpen] = useState(false);
+  const [isDessertPriorityInfoOpen, setIsDessertPriorityInfoOpen] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,21 +80,39 @@ function ChiefPageContent() {
   }, [selectedGroups, selectedGroup, selectedOrderKey]);
   const selectedIds = getCurrentlySelectedIds();
 
-  // Check if all drinks in trạng thái "đang chờ" are already selected
-  const areAllDrinksSelected = useCallback((): boolean => {
-    const pendingDrinkIds = orders
-      .filter(o => o.status === 'đang chờ' && o.category === 'Đồ uống')
+  // Check if all items of a category in trạng thái "đang chờ" for specific table(s) are already selected
+  const areAllCategorySelectedForTables = useCallback((category: string, tables: number[]): boolean => {
+    const pendingIds = orders
+      .filter(o => o.status === 'đang chờ' && o.category === category && tables.includes(o.tableNumber))
       .map(o => o.id);
-    if (pendingDrinkIds.length === 0) return true; // no pending drinks -> considered complete
-    const selectedIds = getCurrentlySelectedIds();
-    return pendingDrinkIds.every(id => selectedIds.has(id));
+    if (pendingIds.length === 0) return true; // no pending items on those tables
+    const selectedIdsLocal = getCurrentlySelectedIds();
+    return pendingIds.every(id => selectedIdsLocal.has(id));
   }, [orders, getCurrentlySelectedIds]);
 
-  // Show a warning only if selecting/preparing main dishes while NOT all drinks are selected
-  const maybeWarnForMainSelection = (itemNames: string[]) => {
-    const includesMain = itemNames.some(name => itemNameToCategory[name] === 'Món chính');
-    if (includesMain && !areAllDrinksSelected()) {
+  type SelectionItem = { itemName: string; tableNumber: number; id: number };
+
+  // Show a warning only if selecting/preparing main dishes while NOT all drinks
+  // on the SAME table(s) are selected
+  const maybeWarnForMainSelection = (items: SelectionItem[]) => {
+    if (!items || items.length === 0) return;
+    const includesMain = items.some(it => itemNameToCategory[it.itemName] === 'Món chính');
+    if (!includesMain) return;
+    const tables = Array.from(new Set(items.map(it => it.tableNumber)));
+    if (!areAllCategorySelectedForTables('Đồ uống', tables)) {
       setIsPriorityInfoOpen(true);
+    }
+  };
+
+  // Show a warning if selecting/preparing desserts while NOT all main dishes
+  // on the SAME table(s) are selected
+  const maybeWarnForDessertSelection = (items: SelectionItem[]) => {
+    if (!items || items.length === 0) return;
+    const includesDessert = items.some(it => itemNameToCategory[it.itemName] === 'Tráng miệng');
+    if (!includesDessert) return;
+    const tables = Array.from(new Set(items.map(it => it.tableNumber)));
+    if (!areAllCategorySelectedForTables('Món chính', tables)) {
+      setIsDessertPriorityInfoOpen(true);
     }
   };
 
@@ -106,6 +125,13 @@ function ChiefPageContent() {
     // Cleanup interval on component unmount
     return () => clearInterval(interval);
   }, [refreshOrders]);
+
+  // Clear all selections when switching tabs to avoid stale CTA selections
+  useEffect(() => {
+    setSelectedGroups([]);
+    setSelectedGroup(null);
+    setSelectedOrderKey(null);
+  }, [activeTab]);
 
   // Wrapper function for manual refresh button
   const handleManualRefresh = () => {
@@ -146,8 +172,15 @@ function ChiefPageContent() {
 
   const handlePrepareClick = async (orderId: number, itemName: string) => {
     try {
-      // Warning when preparing main dish before drinks/desserts
-      maybeWarnForMainSelection([itemName]);
+      // Warning when preparing main dish or dessert with table-specific priority
+      const found = orders.find(o => o.id === orderId);
+      if (found) {
+        const item = { itemName: found.itemName, tableNumber: found.tableNumber, id: found.id };
+        maybeWarnForMainSelection([item]);
+        maybeWarnForDessertSelection([item]);
+      } else {
+        // Fallback using provided itemName without table context (no warning)
+      }
       await handlePrepareOrders(orderId);
       addToast(`Đã bắt đầu thực hiện món: ${itemName}`, 'success');
       // Clear any existing selections to keep the top-right counter accurate
@@ -231,8 +264,18 @@ function ChiefPageContent() {
 
   // Sidebar item click handler
   const handleSidebarItemClick = (orderKey: { itemName: string; tableNumber: number; id: number }) => {
-    // Warning when selecting a main dish while drinks/desserts are pending
-    maybeWarnForMainSelection([orderKey.itemName]);
+    // Determine if this action will deselect the current selection
+    const willDeselect =
+      !!selectedOrderKey &&
+      selectedOrderKey.itemName === orderKey.itemName &&
+      selectedOrderKey.tableNumber === orderKey.tableNumber &&
+      selectedOrderKey.id === orderKey.id;
+
+    // Only warn on selection (not on deselection)
+    if (!willDeselect) {
+      maybeWarnForMainSelection([orderKey]);
+      maybeWarnForDessertSelection([orderKey]);
+    }
     setSelectedOrderKey(prev => {
       if (
         prev &&
@@ -249,10 +292,18 @@ function ChiefPageContent() {
   // Group selection handler
   const handleGroupSelection = (group: { itemName: string; tableNumber: number; id: number }[]) => {
     // Toggle logic: if the same group is selected, deselect it
-    // Warning when selecting a main dish group while drinks/desserts are pending
-    if (group && group.length > 0) {
-      const uniqueItemNames = Array.from(new Set(group.map(g => g.itemName)));
-      maybeWarnForMainSelection(uniqueItemNames);
+    // Warning for main/dessert priorities on the same table(s). Only on selection.
+    const isSameAsSelected = (() => {
+      if (!selectedGroup || !group || selectedGroup.length !== group.length) return false;
+      return selectedGroup.every((item, index) =>
+        item.itemName === group[index].itemName &&
+        item.tableNumber === group[index].tableNumber &&
+        item.id === group[index].id
+      );
+    })();
+    if (group && group.length > 0 && !isSameAsSelected) {
+      maybeWarnForMainSelection(group);
+      maybeWarnForDessertSelection(group);
     }
     setSelectedGroup(prev => {
       if (prev && prev.length === group.length && 
@@ -273,10 +324,14 @@ function ChiefPageContent() {
 
   // Multiple group selection handler
   const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][]) => {
-    // Warning when selecting multiple groups that include main dishes while drinks/desserts are pending
-    if (groups && groups.length > 0) {
-      const uniqueItemNames = Array.from(new Set(groups.flat().map(g => g.itemName)));
-      maybeWarnForMainSelection(uniqueItemNames);
+    // Warn only when adding to the selection; suppress when removing
+    const prevLen = selectedGroups.length;
+    const newLen = groups.length;
+    const isAdding = newLen > prevLen;
+    if (isAdding) {
+      const flat = groups.flat();
+      maybeWarnForMainSelection(flat);
+      maybeWarnForDessertSelection(flat);
     }
     setSelectedGroups(groups);
     setSelectedGroup(null); // Clear single group selection when multiple groups are selected
@@ -286,9 +341,9 @@ function ChiefPageContent() {
   // Handle preparing multiple orders at once
   const handlePrepareMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
     try {
-      // Warning when preparing main dish(es) before drinks/desserts
-      const uniqueItemNames = Array.from(new Set(orders.map(o => o.itemName)));
-      maybeWarnForMainSelection(uniqueItemNames);
+      // Warning for both priority rules on the same table(s)
+      maybeWarnForMainSelection(orders);
+      maybeWarnForDessertSelection(orders);
       // Prepare all orders in the group
       for (const order of orders) {
         await handlePrepareOrders(order.id);
@@ -430,6 +485,13 @@ function ChiefPageContent() {
         isOpen={isPriorityInfoOpen}
         message="Nên ưu tiên làm Đồ uống trước Món chính."
         onClose={() => setIsPriorityInfoOpen(false)}
+      />
+
+      {/* Info Modal: Main before Dessert warning */}
+      <InfoModal
+        isOpen={isDessertPriorityInfoOpen}
+        message="Nên ưu tiên làm Món chính trước Tráng miệng."
+        onClose={() => setIsDessertPriorityInfoOpen(false)}
       />
 
       {/* Kitchen Sidebar */}
