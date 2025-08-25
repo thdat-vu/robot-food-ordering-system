@@ -42,6 +42,19 @@ const categoryStyle: Record<
     },
 };
 
+const REMAKE_SUGGESTIONS: string[] = [
+    "Món ăn quá mặn",
+    "Món ăn quá nhạt",
+    "Món ăn chưa chín",
+    "Món ăn bị cháy",
+    "Không đúng yêu cầu",
+    "Thiếu gia vị",
+    "Quá cay",
+    "Không đủ nóng",
+    "Sai món",
+    "Chất lượng không đạt"
+];
+
 const MAX_SELECTION = 6;
 
 const DishList: React.FC<DishListProps> = ({
@@ -52,12 +65,40 @@ const DishList: React.FC<DishListProps> = ({
                                                getDishesByStatus,
                                                onRequestRemake,
                                            }) => {
+
+    console.log(activeTab)
+
     const [showRemakeConfirmation, setShowRemakeConfirmation] = useState(false);
     const [remakeReason, setRemakeReason] = useState("");
 
     // Get dishes for the active tab only
     const dishesForTab = getDishesByStatus(activeTab);
     const allDishesToShow = dishesForTab;
+
+    const [showSuggestions, setShowSuggestions] = useState(true);
+
+    const handleSuggestionClick = (suggestion: string) => {
+        setRemakeReason(suggestion);
+        setShowSuggestions(false);
+    };
+
+    const handleInputFocus = () => {
+        if (remakeReason === '') {
+            setShowSuggestions(true);
+        }
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setRemakeReason(value);
+
+        // Hiển thị gợi ý nếu input trống
+        if (value === '') {
+            setShowSuggestions(true);
+        } else {
+            setShowSuggestions(false);
+        }
+    };
 
     // Count currently selected dishes
     const selectedCount = dishes.filter(d => d.selected).length;
@@ -291,7 +332,7 @@ const DishList: React.FC<DishListProps> = ({
                 );
             })}
 
-            {activeTab.toString() === "Đã phục vụ" && (
+            {activeTab.toString() === "đã phục vụ" && (
                 <div className="sticky bottom-0 left-0 right-0 bg-white border-t pt-3">
                     <Button
                         onClick={() => setShowRemakeConfirmation(true)}
@@ -304,39 +345,80 @@ const DishList: React.FC<DishListProps> = ({
             )}
 
             {showRemakeConfirmation && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
-                        <div className="text-center">
-                            <div
-                                className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <span className="text-2xl">🔄</span>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="text-2xl">🔄</div>
+                                <h2 className="text-lg font-semibold">Xác nhận yêu cầu làm lại</h2>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800 mb-3">
-                                Xác nhận yêu cầu làm lại
-                            </h3>
+
                             <p className="text-gray-600 mb-6">
                                 Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? Hành động này sẽ chuyển các món
                                 sang trạng thái "Yêu cầu làm lại".
                             </p>
-                            <div className="mt-4 text-left">
+
+                            <div className="mb-6">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Lý do làm lại
                                 </label>
-                                <input
-                                    type="text"
+
+                                {/* Gợi ý */}
+                                {showSuggestions && remakeReason === '' && (
+                                    <div className="mb-3">
+                                        <p className="text-xs text-gray-500 mb-2">Gợi ý lý do (nhấn để chọn):</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {REMAKE_SUGGESTIONS.map((suggestion, index) => (
+                                                <button
+                                                    key={index}
+                                                    type="button"
+                                                    onClick={() => handleSuggestionClick(suggestion)}
+                                                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200
+                                             text-gray-700 rounded-full border transition-colors
+                                             hover:border-orange-300 focus:outline-none
+                                             focus:ring-2 focus:ring-orange-200"
+                                                >
+                                                    {suggestion}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <textarea
                                     value={remakeReason}
-                                    onChange={(e) => setRemakeReason(e.target.value)}
-                                    placeholder="Nhập lý do làm lại..."
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    onChange={handleInputChange}
+                                    onFocus={handleInputFocus}
+                                    placeholder="Nhập lý do làm lại hoặc chọn từ gợi ý bên trên..."
+                                    rows={3}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2
+                             focus:outline-none focus:ring-2 focus:ring-orange-500
+                             focus:border-orange-500 resize-none"
                                 />
+
+                                <div className="flex justify-between items-center mt-1">
+                                    <p className="text-xs text-gray-500">
+                                        {remakeReason === '' ? 'Có thể chọn gợi ý hoặc nhập tay' : ''}
+                                    </p>
+                                    <span className="text-xs text-gray-400">
+                        {remakeReason.length}/200
+                    </span>
+                                </div>
                             </div>
-                            <div className="mt-4 flex gap-3">
-                                <Button onClick={() => setShowRemakeConfirmation(false)} variant="outline"
-                                        className="flex-1">
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowRemakeConfirmation(false);
+                                        setRemakeReason("");
+                                        setShowSuggestions(true);
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700
+                             rounded-md hover:bg-gray-50 transition-colors"
+                                >
                                     Hủy
-                                </Button>
-                                <Button
-                                    disabled={remakeReason.trim().length === 0}
+                                </button>
+                                <button
                                     onClick={async () => {
                                         if (remakeReason.trim().length === 0) return;
                                         const ok = await onRequestRemake(remakeReason.trim());
@@ -344,14 +426,17 @@ const DishList: React.FC<DishListProps> = ({
                                             toast("Yêu cầu làm lại", {description: "Yêu cầu làm lại đã được gửi đi!"});
                                             setShowRemakeConfirmation(false);
                                             setRemakeReason("");
+                                            setShowSuggestions(true);
                                         } else {
                                             toast("Lỗi yêu cầu làm lại", {description: "Có lỗi xảy ra khi gửi yêu cầu làm lại."});
                                         }
                                     }}
-                                    className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={remakeReason.trim().length === 0}
+                                    className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:opacity-50
+                             disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors"
                                 >
                                     Xác nhận
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -362,3 +447,4 @@ const DishList: React.FC<DishListProps> = ({
 };
 
 export default DishList;
+// export default DishList;
