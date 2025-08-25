@@ -7,10 +7,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
   // Ensure environment variables are available at build time
-  experimental: {
-    // This ensures environment variables are properly handled
-    serverComponentsExternalPackages: [],
-  },
+  serverExternalPackages: [],
 };
 
 export default withFlowbiteReact(nextConfig);
