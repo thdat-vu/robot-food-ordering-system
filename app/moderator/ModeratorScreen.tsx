@@ -250,7 +250,13 @@ const ModeratorScreen: React.FC = () => {
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
                     {Object.entries(data)
-                        .sort(([, a], [, b]) => a.tableName.localeCompare(b.tableName, 'vi'))
+                        .sort(([, a], [, b]) => {
+                            const getNumber = (name: string) => {
+                                const match = name.match(/\d+/); // Lấy số trong chuỗi
+                                return match ? parseInt(match[0], 10) : 0;
+                            };
+                            return getNumber(a.tableName) - getNumber(b.tableName);
+                        })
                         .map(([tableId, tableData]) => {
                             const hasNotification = (tableData.counter || 0) > 0;
                             const hasBell = tablesWithBell[tableId] || hasNotification;
