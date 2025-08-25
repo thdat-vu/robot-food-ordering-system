@@ -362,3 +362,4 @@ const DishList: React.FC<DishListProps> = ({
 };
 
 export default DishList;
+// export default DishList;
