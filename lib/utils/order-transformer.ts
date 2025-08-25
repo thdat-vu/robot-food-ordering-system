@@ -47,7 +47,16 @@ const getCategoryFromProductName = (productName: string): string => {
     return 'Món chính';
   }
   
-  if (lowerName.includes('gỏi') || lowerName.includes('chả') || lowerName.includes('bánh') || lowerName.includes('chè')) {
+  if (
+    lowerName.includes('gỏi') ||
+    lowerName.includes('chả') ||
+    lowerName.includes('bánh') ||
+    lowerName.includes('chè') ||
+    lowerName.includes('rau câu') ||
+    lowerName.includes('rau cau') ||
+    lowerName.includes('thạch') ||
+    lowerName.includes('thach')
+  ) {
     return 'Tráng miệng';
   }
   

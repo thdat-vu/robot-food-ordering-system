@@ -23,8 +23,6 @@ export const GetAllFeedbackHome = async (): Promise<BaseEntityData<Record<string
     }
 }
 
-
-
 export const CheckSS = async (id: string, idfb: string[], content: string): Promise<any> => {
     try {
         const params = new URLSearchParams();

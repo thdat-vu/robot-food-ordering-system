@@ -508,7 +508,7 @@ export function OrdersContent({
           ))}
         </div>
         {/* Bottom sticky CTA to mirror the top bulk actions */}
-        <div className="sticky bottom-0 z-10 bg-white/80 backdrop-blur py-3 mt-6 border-t flex justify-center">
+        <div className="sticky bottom-0 z-10 py-3 mt-6 flex justify-center">
           {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
             <Button 
               onClick={() => onPrepareMultipleOrders(sortedOrders.map(order => ({
