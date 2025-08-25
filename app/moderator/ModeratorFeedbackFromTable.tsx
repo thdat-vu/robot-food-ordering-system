@@ -82,7 +82,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             const defaultResponses = data.reduce((acc, feedback) => {
                 if (!responses[feedback.idFeedback]) {
                     acc[feedback.idFeedback] = "Nhân viên đã tiếp nhận và khắc phục sự cố";
-                }
+                }   
                 return acc;
             }, {} as { [key: string]: string });
 
