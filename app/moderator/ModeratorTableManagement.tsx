@@ -40,7 +40,7 @@ export default function ModeratorTableManagement() {
     const [loadingOrders, setLoadingOrders] = useState<{ [key: string]: boolean }>({});
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>("");
-
+  
     const [pendingStatus, setPendingStatus] = useState<{ [key: string]: number }>({});
 
     // Order Dialog States
@@ -59,10 +59,9 @@ export default function ModeratorTableManagement() {
         totalCount: 0,
         hasNextPage: false,
         hasPreviousPage: false,
-    });
->>>>>>> parent of 5ccdfb8 ( update moderater page)
+      });
 
-    useEffect(() => {
+      useEffect(() => {
         fetch("https://be-robo.zd-dev.xyz/api/table")
             .then((res) => res.json())
             .then((json) => setData(json.items))
@@ -79,7 +78,7 @@ export default function ModeratorTableManagement() {
         setOpen(false);
         setSelectedQr("");
         setSelectedTable(null);
-    };  
+    };
     const handleToggleStatus = (table: TableItem) => {
         const currentStatus = table.status.toString();
         const newStatus = currentStatus === "0" ? "1" : "0";
@@ -120,91 +119,88 @@ export default function ModeratorTableManagement() {
       
     
 
-<<<<<<< HEAD
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'available':
-            case '0':
-=======
+
     // Helper functions
-    const getStatusValue = (status: string | number): number => {
-        const strStatus = status.toString().toLowerCase();
-        switch (strStatus) {
-            case 'available':
-            case '0':
-                return 0;
-            case 'occupied':  
-            case '1':
-                return 1;
-            case 'reserved':
-            case '2':
-                return 2;
-            default:
-                return 0;
-        }
-    };
+const getStatusValue = (status: string | number): number => {
+    const strStatus = status.toString().toLowerCase();
+    switch (strStatus) {
+        case 'available':
+        case '0':
+            return 0;
+        case 'occupied':  
+        case '1':
+            return 1;
+        case 'reserved':
+        case '2':
+            return 2;
+        default:
+            return 0;
+    }
+};
 
-    const getNextStatus = (currentStatus: string | number): number => {
-        const current = getStatusValue(currentStatus);
-        return current === 0 ? 1 : 0;
-    };
+const getNextStatus = (currentStatus: string | number): number => {
+    const current = getStatusValue(currentStatus);
+    // Toggle between Available (0) and Occupied (1)
+    return current === 0 ? 1 : 0;
+};
 
-    const handleToggleStatus = (table: TableItem) => {
-        const currentStatus = table.status;
-        const newStatus = getNextStatus(currentStatus);
+// Update handleToggleStatus
+const handleToggleStatus = (table: TableItem) => {
+    const currentStatus = table.status;
+    const newStatus = getNextStatus(currentStatus);
+    
+    console.log(`Changing status from ${currentStatus} to ${newStatus}`);
+
+    setPendingStatus(prev => ({
+        ...prev,
+        [table.id]: newStatus
+    }));
+
+    setSelectedTableForOrders(table);
+    
+    if (!orderData[table.id]) {
+        fetchOrdersForTable(table.id);
+    }
+    
+    setOrderDialogOpen(true);
+};
+
+const confirmStatusChange = async () => {
+    if (!selectedTableForOrders) return;
+
+    const { id: tableId, name: tableName } = selectedTableForOrders;
+    const newStatus = pendingStatus[tableId];
+    
+    if (newStatus === undefined) {
+        console.error("No pending status found");
+        return;
+    }
+    
+    console.log(`Confirming status change for table: ${tableName} -> ${newStatus}`);
+
+    try {
+        const response = await axios.put(`https://be-robo.zd-dev.xyz/api/Table/${tableId}`, { 
+            status: newStatus 
+        });
         
-        console.log(`Changing status from ${currentStatus} to ${newStatus}`);
+        console.log("API Response:", response.data);
 
-        setPendingStatus(prev => ({
-            ...prev,
-            [table.id]: newStatus
-        }));
+        setData(prev => prev.map(item =>
+            item.id === tableId ? { ...item, status: newStatus.toString() } : item
+        ));
 
-        setSelectedTableForOrders(table);
-        
-        if (!orderData[table.id]) {
-            fetchOrdersForTable(table.id);
-        }
-        
-        setOrderDialogOpen(true);
-    };
-
-    const confirmStatusChange = async () => {
-        if (!selectedTableForOrders) return;
-
-        const { id: tableId, name: tableName } = selectedTableForOrders;
-        const newStatus = pendingStatus[tableId];
-        
-        if (newStatus === undefined) {
-            console.error("No pending status found");
-            return;
-        }
-        
-        console.log(`Confirming status change for table: ${tableName} -> ${newStatus}`);
-
-        try {
-            const response = await axios.put(`https://be-robo.zd-dev.xyz/api/Table/${tableId}`, { 
-                status: newStatus 
-            });
-            
-            console.log("API Response:", response.data);
-
-            setData(prev => prev.map(item =>
-                item.id === tableId ? { ...item, status: newStatus.toString() } : item
-            ));
-
-            console.log(`Status updated successfully for table: ${tableName}`);
-        } catch (err) {
-            console.error("Failed to update table status:", err);
-        } finally {
-            setPendingStatus(prev => {
-                const { [tableId]: _, ...rest } = prev;
-                return rest;
-            });
-            setOrderDialogOpen(false);
-            setSelectedTableForOrders(null);
-        }
-    };
+        console.log(`Status updated successfully for table: ${tableName}`);
+    } catch (err) {
+        console.error("Failed to update table status:", err);
+    } finally {
+        setPendingStatus(prev => {
+            const { [tableId]: _, ...rest } = prev;
+            return rest;
+        });
+        setOrderDialogOpen(false);
+        setSelectedTableForOrders(null);
+    }
+};
 
     const cancelStatusChange = () => {
         if (!selectedTableForOrders) return;
@@ -236,39 +232,36 @@ export default function ModeratorTableManagement() {
                 return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
+    
 
-    const getStatusText = (status: string) => {
-        switch (status.toLowerCase()) {
+    const getStatusText = (status: string | number) => {
+        const strStatus = status.toString().toLowerCase(); // convert sang string và lowercase
+        switch (strStatus) {
             case 'available':
             case '0':
-                return 'Available';
+                return 'Trống';
             case 'occupied':
             case '1':
-                return 'Occupied';
+                return 'Có Khách';
             case 'reserved':
             case '2':
-                return 'Reserved';
+                return 'Đã Đặt';
             default:
-                return status;
+                return strStatus; // trả lại status gốc nếu không match
         }
     };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Table Management</h1>
-                    <p className="text-gray-600">Manage restaurant tables and QR codes</p>
-                </div>
-
-<<<<<<< HEAD
-                {/* Table Card */}
-                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                    <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600">
-                        <h2 className="text-xl font-semibold text-white">Tables Overview</h2>
-=======
-    const handlePageChange = (newPage: number) => {
+    const isAvailableStatus = (status: string | number): boolean => {
+        const statusValue = getStatusValue(status);
+        return statusValue === 0; // Available = 0
+    };
+    
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat("vi-VN", {
+          style: "currency",
+          currency: "VND"
+        }).format(amount);
+      };
+      const handlePageChange = (newPage: number) => {
         setPagination(prev => ({
             ...prev,
             pageNumber: newPage
@@ -508,8 +501,7 @@ export default function ModeratorTableManagement() {
             )}
         </div>
     );
-<<<<<<< HEAD
-=======
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 lg:p-6">
@@ -540,12 +532,12 @@ export default function ModeratorTableManagement() {
                     </div>
                     <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-200">
                         <div className="text-lg sm:text-2xl font-bold text-green-600">
-                            {formatCurrency(
-                                Object.values(orderData)
-                                    .flat()
+                        {formatCurrency(
+                            Object.values(orderData)
+                            .flat()
                                     .filter(order => order.paymentStatus === "Paid")
-                                    .reduce((total, order) => total + order.totalPrice, 0)
-                            )}
+                            .reduce((total, order) => total + order.totalPrice, 0)
+                        )}
                         </div>
                         <div className="text-xs sm:text-sm text-gray-600">Tổng Doanh Thu</div>
                     </div>
@@ -557,37 +549,37 @@ export default function ModeratorTableManagement() {
                     </div>
                 </div>
 
-                {/* Search and Filter Section */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+                  {/* Search and Filter Section */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                     <div className="p-4">
                         <div className="flex flex-col gap-4">
                             {/* Search Input */}
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                <input
-                                    type="text"
-                                    placeholder="Tìm kiếm theo tên bàn..."
-                                    value={searchName}
-                                    onChange={(e) => setSearchName(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
-                                />
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                    <input
+                                        type="text"
+                                        placeholder="Tìm kiếm theo tên bàn..."
+                                        value={searchName}
+                                        onChange={(e) => setSearchName(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+                                    />
                             </div>
 
                             {/* Filter Row */}
                             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                                {/* Status Filter */}
+                            {/* Status Filter */}
                                 <div className="flex-1 sm:max-w-xs">
-                                    <select
-                                        value={status}
-                                        onChange={(e) => setStatus(e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 bg-white"
-                                    >
-                                        <option value="">Tất cả trạng thái</option>
-                                        <option value="0">Trống</option>
-                                        <option value="1">Có Khách</option>
-                                        <option value="2">Đã Đặt</option>
-                                    </select>
-                                </div>
+                                <select
+                                    value={status}
+                                    onChange={(e) => setStatus(e.target.value)}
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 bg-white"
+                                >
+                                    <option value="">Tất cả trạng thái</option>
+                                    <option value="0">Trống</option>
+                                    <option value="1">Có Khách</option>
+                                    <option value="2">Đã Đặt</option>
+                                </select>
+                            </div>
 
                                 {/* View Mode Toggle (Desktop/Tablet only) */}
                                 <div className="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
@@ -613,41 +605,41 @@ export default function ModeratorTableManagement() {
                                     </button>
                                 </div>
 
-                                {/* Clear Filters Button */}
-                                {hasActiveFilters && (
-                                    <button
-                                        onClick={clearFilters}
+                            {/* Clear Filters Button */}
+                            {hasActiveFilters && (
+                                <button
+                                    onClick={clearFilters}
                                         className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
-                                    >
-                                        <X className="w-4 h-4" />
+                                >
+                                    <X className="w-4 h-4" />
                                         <span className="hidden sm:inline">Xóa bộ lọc</span>
                                         <span className="sm:hidden">Xóa</span>
-                                    </button>
-                                )}
-                            </div>
+                                </button>
+                            )}
+                        </div>
 
-                            {/* Active Filters Display */}
-                            {hasActiveFilters && (
+                        {/* Active Filters Display */}
+                        {hasActiveFilters && (
                                 <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
                                     <span className="text-sm text-gray-600">Bộ lọc:</span>
-                                    {searchName && (
-                                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                                            Tên: "{searchName}"
-                                            <button onClick={() => setSearchName("")} className="hover:bg-blue-200 rounded-full p-0.5">
-                                                <X className="w-3 h-3" />
-                                            </button>
-                                        </span>
-                                    )}
-                                    {status && (
-                                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
-                                            Trạng thái: {getStatusText(status)}
-                                            <button onClick={() => setStatus("")} className="hover:bg-green-200 rounded-full p-0.5">
-                                                <X className="w-3 h-3" />
-                                            </button>
-                                        </span>
-                                    )}
-                                </div>
-                            )}
+                                {searchName && (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                                        Tên: "{searchName}"
+                                        <button onClick={() => setSearchName("")} className="hover:bg-blue-200 rounded-full p-0.5">
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </span>
+                                )}
+                                {status && (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                                        Trạng thái: {getStatusText(status)}
+                                        <button onClick={() => setStatus("")} className="hover:bg-green-200 rounded-full p-0.5">
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </span>
+                                )}
+                            </div>
+                        )}
                         </div>
                     </div>
                 </div>
@@ -658,34 +650,34 @@ export default function ModeratorTableManagement() {
                         <h2 className="text-lg sm:text-xl font-semibold text-white">Tổng Quan Các Bàn</h2>
                     </div>
 
-                    {loading ? (
-                        <div className="text-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p className="text-gray-600">Đang tải bàn...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="text-center py-12 px-4">
-                            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-                                <AlertCircle className="w-8 h-8 text-red-500" />
+                        {loading ? (
+                            <div className="text-center py-12">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                <p className="text-gray-600">Đang tải bàn...</p>
                             </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi Tải Bàn</h3>
-                            <p className="text-gray-500 mb-4">{error}</p>
+                        ) : error ? (
+                        <div className="text-center py-12 px-4">
+                                <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                                    <AlertCircle className="w-8 h-8 text-red-500" />
+                                </div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi Tải Bàn</h3>
+                                <p className="text-gray-500 mb-4">{error}</p>
                             <button 
                                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors" 
-                                onClick={fetchTables}
-                            >
-                                Thử Lại
-                            </button>
-                        </div>
-                    ) : data.length === 0 ? (
-                        <div className="text-center py-12 px-4">
-                            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                                <Users className="w-8 h-8 text-gray-400" />
+                                 onClick={fetchTables}
+                                >
+                                    Thử Lại
+                                </button>
                             </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Không Tìm Thấy Bàn</h3>
-                            <p className="text-gray-500">Hiện tại không có bàn nào.</p>
-                        </div>
-                    ) : (
+                        ) : data.length === 0 ? (
+                        <div className="text-center py-12 px-4">
+                                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <Users className="w-8 h-8 text-gray-400" />
+                                </div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">Không Tìm Thấy Bàn</h3>
+                                <p className="text-gray-500">Hiện tại không có bàn nào.</p>
+                            </div>
+                        ) : (
                         <>
                             {/* Mobile/Tablet Grid View */}
                             <div className={`${viewMode === 'table' ? 'hidden md:hidden' : 'block md:hidden'} p-4`}>
@@ -698,95 +690,95 @@ export default function ModeratorTableManagement() {
 
                             {/* Desktop/Large Tablet Table View */}
                             <div className={`${viewMode === 'grid' ? 'hidden md:block' : 'hidden md:block'} overflow-x-auto`}>
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="bg-gray-50 border-b border-gray-200">
-                                            <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                                                Thông Tin Bàn
-                                            </th>
-                                            <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                                                Trạng Thái
-                                            </th>
-                                            <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                                                Mã QR
-                                            </th>
-                                            <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-200">
+                                        <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                                            Thông Tin Bàn
+                                        </th>
+                                        <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                                            Trạng Thái
+                                        </th>
+                                        <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                                            Mã QR
+                                        </th>
+                                        <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
                                                 Thao Tác
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        {data.map((row) => (
-                                            <tr key={row.id} className="hover:bg-gray-50 transition-colors duration-200">
-                                                <td className="py-4 px-6">
-                                                    <div className="flex items-center">
-                                                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                                                            {row.name.charAt(row.name.length - 1)}
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-gray-900 font-medium">{row.name}</span>
-                                                            {orderData[row.id] && orderData[row.id].length > 0 && (
-                                                                <div className="text-sm text-gray-500 flex items-center mt-1">
-                                                                    <Users className="w-3 h-3 mr-1" />
-                                                                    {orderData[row.id].reduce((acc, order) => acc + order.items.length, 0)} món
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {data.map((row) => (
+                                        <tr key={row.id} className="hover:bg-gray-50 transition-colors duration-200">
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center">
+                                                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                                        {row.name.charAt(row.name.length - 1)}
                                                     </div>
-                                                </td>
-                                                <td className="py-4 px-6">
-                                                    <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(row.status)}`}>
-                                                        {getStatusText(row.status)}
-                                                    </span>
-                                                </td>
-                                                <td className="py-4 px-6 text-center">
-                                                    <button
-                                                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
-                                                        onClick={() => handleOpen(row)}
-                                                    >
-                                                        <Eye className="w-4 h-4 mr-2" />
-                                                        Xem QR
-                                                    </button>
-                                                </td>
-                                                <td className="py-4 px-6 text-center">
-                                                    <div className="flex flex-col items-center space-y-2">
-                                                        <label className="inline-flex items-center cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isAvailableStatus(row.status)}
-                                                                onChange={() => handleToggleStatus(row)}
-                                                                className="sr-only peer"
-                                                            />
-                                                            <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 
-                                                                peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 
-                                                                peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                                                peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 
-                                                                after:start-[2px] after:bg-white after:border-gray-300 after:border 
-                                                                after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 
-                                                                peer-checked:bg-green-600 dark:peer-checked:bg-green-600">
+                                                    <div>
+                                                        <span className="text-gray-900 font-medium">{row.name}</span>
+                                                        {orderData[row.id] && orderData[row.id].length > 0 && (
+                                                            <div className="text-sm text-gray-500 flex items-center mt-1">
+                                                                <Users className="w-3 h-3 mr-1" />
+                                                                {orderData[row.id].reduce((acc, order) => acc + order.items.length, 0)} món
                                                             </div>
-                                                        </label>
-                                                        <span className="text-xs text-gray-500">Thay Đổi Trạng Thái</span>
+                                                        )}
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(row.status)}`}>
+                                                    {getStatusText(row.status)}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 px-6 text-center">
+                                                <button
+                                                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
+                                                    onClick={() => handleOpen(row)}
+                                                >
+                                                    <Eye className="w-4 h-4 mr-2" />
+                                                    Xem QR
+                                                </button>
+                                            </td>
+                                            <td className="py-4 px-6 text-center">
+                                                <div className="flex flex-col items-center space-y-2">
+                                                    <label className="inline-flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isAvailableStatus(row.status)}
+                                                            onChange={() => handleToggleStatus(row)}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 
+                                                            peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 
+                                                            peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
+                                                            peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 
+                                                            after:start-[2px] after:bg-white after:border-gray-300 after:border 
+                                                            after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 
+                                                            peer-checked:bg-green-600 dark:peer-checked:bg-green-600">
+                                                        </div>
+                                                    </label>
+                                                    <span className="text-xs text-gray-500">Thay Đổi Trạng Thái</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                             </div>
-
+                            
                             {/* Pagination */}
                             <div className="p-4 border-t border-gray-200">
                                 <Pagination
-                                    pageNumber={pagination.pageNumber}
-                                    totalPages={pagination.totalPages}
-                                    hasNextPage={pagination.hasNextPage}
-                                    hasPreviousPage={pagination.hasPreviousPage}
-                                    onPageChange={(page) =>
-                                        setPagination((prev) => ({ ...prev, pageNumber: page }))
-                                    }
-                                />
-                            </div>
+                            pageNumber={pagination.pageNumber}
+                            totalPages={pagination.totalPages}
+                            hasNextPage={pagination.hasNextPage}
+                            hasPreviousPage={pagination.hasPreviousPage}
+                            onPageChange={(page) =>
+                                setPagination((prev) => ({ ...prev, pageNumber: page }))
+                            }
+                            />
+                    </div>
                         </>
                     )}
                 </div>
@@ -869,5 +861,4 @@ export default function ModeratorTableManagement() {
             />
         </div>
     );
->>>>>>> parent of 5ccdfb8 ( update moderater page)
 }
