@@ -1,5 +1,5 @@
 import React from 'react';
-import { Toast } from '@/hooks/use-toast-moderator';
+import { Toast } from '@/types/kitchen';
 
 interface ToastContainerProps {
   toasts: Toast[];

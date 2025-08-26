@@ -3,7 +3,8 @@ export type OrderStatus =
   | "đang thực hiện"
   | "bắt đầu phục vụ"
   | "yêu cầu làm lại"
-  | "đã phục vụ";
+  | "đã phục vụ"
+  | "đã huỷ";
 
 export interface Order {
   id: number;

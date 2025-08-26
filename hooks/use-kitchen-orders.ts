@@ -98,12 +98,12 @@ export function useKitchenOrders() {
     };
   }, [orders]);
 
-  // Calculate remaining items (not completed and not served)
+  // Calculate remaining items (not completed, not served, not cancelled)
   const remainingItems = useMemo((): RemainingItems => {
     const remaining: RemainingItems = {};
     
     orders.forEach(order => {
-      if (order.status !== "bắt đầu phục vụ" && order.status !== "đã phục vụ") {
+      if (order.status !== "bắt đầu phục vụ" && order.status !== "đã phục vụ" && order.status !== "đã huỷ") {
         remaining[order.itemName] = (remaining[order.itemName] || 0) + 1;
       }
     });
@@ -319,6 +319,37 @@ export function useKitchenOrders() {
     }
   }, [orders]);
 
+  // Cancel an order item from any state that is not already served
+  const handleCancelOrder = useCallback(async (orderId: number, remarkNote?: string): Promise<void> => {
+    try {
+      const order = orders.find(o => o.id === orderId);
+      if (!order) {
+        console.error('Order not found:', orderId);
+        return;
+      }
+
+      // Optimistic update: remove item from local list
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+
+      // Call API to set status to Cancelled (6)
+      const response = await ordersApi.updateOrderItemStatus(
+        order.apiOrderId,
+        order.apiItemId,
+        6,
+        remarkNote
+      );
+
+      if (response.statusCode !== 200) {
+        throw new Error(response.message || 'Failed to cancel order item');
+      }
+    } catch (err) {
+      console.error('Error cancelling order item:', err);
+      // If failed, refetch to restore accurate state
+      await fetchOrders();
+      throw err;
+    }
+  }, [orders, fetchOrders]);
+
   // Refresh orders from API
   const refreshOrders = useCallback((silent: boolean = false) => {
     if (!silent) {
@@ -369,6 +400,7 @@ export function useKitchenOrders() {
     handleServeOrder,
     handleAcceptRedoRequest,
     handleRejectRedoRequest,
+    handleCancelOrder,
     refreshOrders,
     
     // Helpers

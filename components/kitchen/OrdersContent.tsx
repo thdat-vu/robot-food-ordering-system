@@ -18,6 +18,7 @@ interface OrdersContentProps {
   onGroupClick: (itemName: string) => void;
   onPrepareClick: (orderId: number, itemName: string) => void;
   onServeClick: (order: Order) => void;
+  onCancelClick?: (order: Order) => void;
   onAcceptRedoClick?: (orderId: number, itemName: string) => void;
   onRejectRedoClick?: (orderId: number, itemName: string) => void;
   selectedGroup?: { itemName: string; tableNumber: number; id: number }[] | null;
@@ -33,6 +34,7 @@ export function OrdersContent({
   onGroupClick,
   onPrepareClick,
   onServeClick,
+  onCancelClick,
   onAcceptRedoClick,
   onRejectRedoClick,
   selectedGroup,
@@ -104,6 +106,18 @@ export function OrdersContent({
     </Button>
   );
 
+  const renderCancelButton = (order: Order) => (
+    <Button
+      onClick={(e) => { e.stopPropagation(); onCancelClick && onCancelClick(order); }}
+      variant="destructive"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+      Huỷ món
+    </Button>
+  );
+
   // Visual badges for status and time to improve scanning
   const renderStatusBadge = (status: OrderStatus) => {
     const styleMap: Record<OrderStatus, string> = {
@@ -112,6 +126,7 @@ export function OrdersContent({
       'bắt đầu phục vụ': 'bg-green-100 text-green-800',
       'yêu cầu làm lại': 'bg-red-100 text-red-800',
       'đã phục vụ': 'bg-gray-100 text-gray-800',
+      'đã huỷ': 'bg-gray-200 text-gray-700',
     };
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${styleMap[status]}`}>
@@ -298,8 +313,15 @@ export function OrdersContent({
                 </div>
               )}
             </div>
-            {/* Primary CTAs moved to sticky toolbar above */}
-            {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && onRejectRedoClick && (
+            {/* Action buttons */}
+            {onCancelClick && (
+              <CardAction>
+                <div className="flex gap-2">
+                  {renderCancelButton(order)}
+                </div>
+              </CardAction>
+            )}
+            {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && (
               <CardAction>
                 <div className="flex gap-2">
                   <Button 
@@ -308,13 +330,6 @@ export function OrdersContent({
                     size="sm"
                   >
                     Bắt đầu làm lại
-                  </Button>
-                  <Button 
-                    onClick={e => { e.stopPropagation(); onRejectRedoClick(order.id, order.itemName); }}
-                    variant="outline"
-                    size="sm"
-                  >
-                    Từ chối
                   </Button>
                 </div>
               </CardAction>
@@ -483,7 +498,12 @@ export function OrdersContent({
                     </Button>
                   </CardAction>
                 )}
-                {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && onRejectRedoClick && (
+                {onCancelClick && (
+                  <CardAction>
+                    {renderCancelButton(order)}
+                  </CardAction>
+                )}
+                {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && (
                   <CardAction>
                     <div className="flex gap-2">
                       <Button 
@@ -492,13 +512,6 @@ export function OrdersContent({
                         size="sm"
                       >
                         Bắt đầu làm lại
-                      </Button>
-                      <Button 
-                        onClick={e => { e.stopPropagation(); onRejectRedoClick(order.id, order.itemName); }}
-                        variant="outline"
-                        size="sm"
-                      >
-                        Từ chối
                       </Button>
                     </div>
                   </CardAction>

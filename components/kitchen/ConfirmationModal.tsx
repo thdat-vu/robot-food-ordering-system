@@ -2,7 +2,7 @@ import React from 'react';
 import { Order } from '@/types/kitchen';
 import { Button } from '@/components/ui/button'
 
-type ModalAction = 'serve' | 'reject';
+type ModalAction = 'serve' | 'reject' | 'cancel';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -16,6 +16,7 @@ export function ConfirmationModal({ isOpen, selectedOrder, action, onConfirm, on
   if (!isOpen) return null;
 
   const isRejectAction = action === 'reject';
+  const isCancelAction = action === 'cancel';
 
   const getModalContent = () => {
     if (isRejectAction) {
@@ -24,6 +25,15 @@ export function ConfirmationModal({ isOpen, selectedOrder, action, onConfirm, on
         message: `Bếp có chắc chắn muốn từ chối yêu cầu làm lại món này?`,
         confirmText: 'Xác nhận',
         cancelText: 'Hủy',
+        confirmVariant: 'destructive' as const,
+        cancelVariant: 'outline' as const
+      };
+    } else if (isCancelAction) {
+      return {
+        title: 'Xác nhận huỷ món',
+        message: `Bạn có chắc chắn muốn huỷ món ${selectedOrder?.itemName} (Bàn ${selectedOrder?.tableNumber})? Hành động này không thể hoàn tác.`,
+        confirmText: 'Huỷ món',
+        cancelText: 'Không',
         confirmVariant: 'destructive' as const,
         cancelVariant: 'outline' as const
       };
@@ -50,11 +60,11 @@ export function ConfirmationModal({ isOpen, selectedOrder, action, onConfirm, on
       ></div>
       
       {/* Modal */}
-      <div className={`relative w-full max-w-md mx-auto bg-white rounded-lg shadow-lg ${isRejectAction ? 'border-l-4 border-red-500' : ''}`}>
+      <div className={`relative w-full max-w-md mx-auto bg-white rounded-lg shadow-lg ${(isRejectAction || isCancelAction) ? 'border-l-4 border-red-500' : ''}`}>
         <div className="p-6">
           {/* Modal Header */}
           <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${isRejectAction ? 'text-red-900' : 'text-gray-900'}`}>
+            <h3 className={`text-lg font-semibold ${(isRejectAction || isCancelAction) ? 'text-red-900' : 'text-gray-900'}`}>
               {content.title}
             </h3>
             <Button onClick={onCancel} aria-label="Close modal" variant="ghost" size="sm">
