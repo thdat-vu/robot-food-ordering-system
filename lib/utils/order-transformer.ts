@@ -12,8 +12,12 @@ const mapApiStatusToFrontend = (apiStatus: string): OrderStatus => {
       return 'bắt đầu phục vụ';
     case 'served':
       return 'đã phục vụ';
+    case 'remark':
+      return 'yêu cầu làm lại';
     case 'returned':
       return 'yêu cầu làm lại';
+    case 'cancelled':
+      return 'đã huỷ';
     default:
       return 'đang chờ';
   }
