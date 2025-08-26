@@ -1,11 +1,12 @@
+import { Toast } from '@/types/kitchen';
 import { useState } from 'react';
 
-export interface Toast {
-  id: number;
-  type: 'success' | 'error' | 'warning';
-  message: string;
-  isVisible: boolean;
-}
+// export interface Toast {
+//   id: number;
+//   type: 'success' | 'error' | 'warning'| 'System notification';
+//   message: string;
+//   isVisible: boolean;
+// }
 
 const TOAST_AUTO_DISMISS_TIME = 3000;
 const TOAST_ANIMATION_DURATION = 300;

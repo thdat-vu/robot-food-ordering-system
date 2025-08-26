@@ -27,7 +27,8 @@ function ChiefPageContent() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [modalAction, setModalAction] = useState<'serve' | 'reject'>('serve');
+  const [modalAction, setModalAction] = useState<'serve' | 'reject' | 'cancel'>('serve');
+  // Extend action type to include 'cancel'
   const [isPriorityInfoOpen, setIsPriorityInfoOpen] = useState(false);
   const [isDessertPriorityInfoOpen, setIsDessertPriorityInfoOpen] = useState(false);
 
@@ -56,6 +57,7 @@ function ChiefPageContent() {
     handleServeOrder,
     handleAcceptRedoRequest,
     handleRejectRedoRequest,
+    handleCancelOrder,
     refreshOrders,
     shouldShowInSidebar,
     getTabCount,
@@ -198,6 +200,12 @@ function ChiefPageContent() {
     setShowModal(true);
   };
 
+  const handleCancelClick = (order: Order) => {
+    setSelectedOrder(order);
+    setModalAction('cancel');
+    setShowModal(true);
+  };
+
   const handleAcceptRedoClick = async (orderId: number, itemName: string) => {
     try {
       await handleAcceptRedoRequest(orderId);
@@ -251,6 +259,19 @@ function ChiefPageContent() {
         addToast(`Đã từ chối yêu cầu làm lại: ${selectedOrder.itemName}`, 'success');
       } catch (error) {
         addToast(`Lỗi khi từ chối yêu cầu làm lại: ${selectedOrder.itemName}`, 'error');
+      }
+    }
+    setShowModal(false);
+    setSelectedOrder(null);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (selectedOrder) {
+      try {
+        await handleCancelOrder(selectedOrder.id);
+        addToast(`Đã huỷ món: ${selectedOrder.itemName}`, 'success');
+      } catch (error) {
+        addToast(`Lỗi khi huỷ món: ${selectedOrder.itemName}`, 'error');
       }
     }
     setShowModal(false);
@@ -475,7 +496,7 @@ function ChiefPageContent() {
       <ConfirmationModal
         isOpen={showModal}
         selectedOrder={selectedOrder}
-        onConfirm={modalAction === 'serve' ? handleConfirmServe : handleConfirmReject}
+        onConfirm={modalAction === 'serve' ? handleConfirmServe : modalAction === 'cancel' ? handleConfirmCancel : handleConfirmReject}
         onCancel={handleCancelModal}
         action={modalAction}
       />
@@ -607,6 +628,7 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
+                onCancelClick={handleCancelClick}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
@@ -624,6 +646,7 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
+                onCancelClick={handleCancelClick}
                 onServeMultipleOrders={handleServeMultipleOrders}
                 showIndividualCards={true}
                 onAcceptRedoClick={handleAcceptRedoClick}
@@ -643,6 +666,7 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
+                onCancelClick={handleCancelClick}
                 onServeMultipleOrders={handleServeMultipleOrders}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
@@ -679,6 +703,7 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
+                onCancelClick={handleCancelClick}
                 onPrepareMultipleOrders={handlePrepareMultipleOrders}
                 onServeMultipleOrders={handleServeMultipleOrders}
                 showIndividualCards={true}
@@ -714,6 +739,7 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
+                onCancelClick={handleCancelClick}
                 onPrepareMultipleOrders={handlePrepareMultipleOrders}
                 onServeMultipleOrders={handleServeMultipleOrders}
                 showIndividualCards={true}
@@ -734,6 +760,7 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
+                onCancelClick={handleCancelClick}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
