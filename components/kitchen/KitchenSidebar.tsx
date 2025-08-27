@@ -336,9 +336,9 @@ export function KitchenSidebar({
                           className="size-6 border-2 border-gray-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:ring-2 data-[state=checked]:ring-green-300 shadow-sm"
                           aria-label="Chọn nhóm"
                         />
-                        <span className="text-sm font-medium text-gray-700">
+                        {/* <span className="text-sm font-medium text-gray-700">
                           {group.length} món
-                        </span>
+                        </span> */}
                       </div>
                       {group.map(({ itemName, tableNumber, id }) => {
                         const isIndividualSelected =
