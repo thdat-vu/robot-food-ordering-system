@@ -7,8 +7,10 @@ import axios from 'axios';
 import * as signalR from "@microsoft/signalr";
 import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { useSignalR } from "@/hooks/useSignalR";
-import { OrderData, TableItem } from "@/entites/moderator/tableModel";
 import { ToastContainer } from "@/components/kitchen/ToastContainer";
+import { TableItem , OrderData } from '@/entites/moderator/tableModel';
+
+
 
 interface Paginations {
     pageNumber: number;
@@ -20,10 +22,19 @@ interface Paginations {
 }
 
 export default function ModeratorTableManagement() {
+    const { toasts, addToast, removeToast } = useToastModerator();
+    
     const [data, setData] = useState<TableItem[]>([]);
+    // QR Modal States
     const [open, setOpen] = useState<boolean>(false);
     const [selectedQr, setSelectedQr] = useState<string>("");
     const [selectedTable, setSelectedTable] = useState<TableItem | null>(null);
+    
+    // Order & Table States
+    const [orderData, setOrderData] = useState<{ [key: string]: OrderData[] }>({});
+    const [loadingOrders, setLoadingOrders] = useState<{ [key: string]: boolean }>({});
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>("");
 
     const [pendingStatus, setPendingStatus] = useState<{ [key: string]: number }>({});
 
@@ -49,11 +60,102 @@ export default function ModeratorTableManagement() {
     });
 
     useEffect(() => {
-        fetch("https://be-robo.zd-dev.xyz/api/table")
-            .then((res) => res.json())
-            .then((json) => setData(json.items))
-            .catch((err) => console.error(err));
-    }, []);
+        fetchTables();
+    }, [pagination.pageNumber, pagination.pageSize, searchName, status]);
+
+    // Debounce function to limit API calls
+    const debounce = (func: Function, delay: number) => {
+        let timeoutId: NodeJS.Timeout;
+        return (...args: any[]) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                func(...args);
+            }, delay);
+        };
+    };
+
+    // Debounced fetch function
+    const fetchTables = async () => {
+        try {
+            setLoading(true);
+            
+            const url = new URL("https://be-robo.zd-dev.xyz/api/Table");
+            url.searchParams.append("PageNumber", String(pagination.pageNumber));
+            url.searchParams.append("PageSize", String(pagination.pageSize));
+            if (searchName) url.searchParams.append("tableName", searchName);
+            if (status) url.searchParams.append("status", status);
+
+            const response = await fetch(url.toString());
+            console.log(response);
+            
+            if (!response.ok) throw new Error("Failed to fetch tables");
+
+            const json = await response.json();
+            const rawTables = json.items || [];
+            console.log("Raw tables data:", rawTables);
+
+            const transformedData: TableItem[] = rawTables.map((TableItem: any) => ({
+                id: String(TableItem.id),
+                name: TableItem.name || "Unknown",
+                status: String(TableItem.status ?? ""),
+                qrCode: TableItem.qrCode
+                    ? TableItem.qrCode
+                    : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${(TableItem.name || "Unknown")
+                        .toLowerCase()
+                        .replace(/\s+/g, "")}`,
+            }));
+
+            setData(transformedData);
+            console.log("Transformed table data:", transformedData.length, transformedData);
+            setPagination(prev => ({
+                ...prev,
+                pageNumber: json.pageNumber,
+                totalPages: json.totalPages,
+                totalCount: json.totalCount,
+                pageSize: json.pageSize,
+                hasNextPage: json.hasNextPage,
+                hasPreviousPage: json.hasPreviousPage,
+            }));
+        } catch (err) {
+            console.error("Error fetching tables:", err);
+            setError("Failed to load tables");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const debouncedFetchTables = useCallback(debounce(fetchTables, 300), [pagination.pageNumber, pagination.pageSize, searchName, status]);
+
+    // Fetch orders for a specific table
+    const fetchOrdersForTable = async (tableId: string) => {
+        if (loadingOrders[tableId]) return;
+        if (orderData[tableId] && orderData[tableId].length > 0) {
+            console.log(`Orders for table ${tableId} already loaded, skipping fetch.`);
+            return;
+        }
+        try {
+            setLoadingOrders(prev => ({ ...prev, [tableId]: true }));
+            const response = await fetch(`https://be-robo.zd-dev.xyz/api/Order/table/${tableId}`);
+            if (!response.ok) throw new Error('Failed to fetch orders');
+            const orders = await response.json();
+            console.log(`Orders for table ${tableId}:`, orders.data);
+            
+            setOrderData(prev => ({
+                ...prev,
+                [tableId]: orders?.data || []
+            }));
+        } catch (err) {
+            console.error('Error fetching orders:', err);
+            setOrderData(prev => ({
+                ...prev,
+                [tableId]: []
+            }));
+        } finally {
+            setLoadingOrders(prev => ({ ...prev, [tableId]: false }));
+        }
+    };
+
+    const deboundfetchOrdersForTable = useCallback(debounce(fetchOrdersForTable, 300), []);
 
     const handleOpen = (table: TableItem) => {
         setSelectedTable(table);
@@ -65,46 +167,7 @@ export default function ModeratorTableManagement() {
         setOpen(false);
         setSelectedQr("");
         setSelectedTable(null);
-    };  
-    const handleToggleStatus = (table: TableItem) => {
-        const currentStatus = table.status.toString();
-        const newStatus = currentStatus === "0" ? "1" : "0";
-      
-        // UI update trước cho mượt
-        setData((prevData) =>
-          prevData.map((item) =>
-            item.id === table.id ? { ...item, status: newStatus } : item
-          )
-        );
-      
-        // Backend update (chỉ gửi id + status)
-        fetch(`https://be-robo.zd-dev.xyz/api/Table/${table.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: table.id,
-            status: Number(newStatus),
-          }),
-        })
-          .then((res) => {
-            if (!res.ok) throw new Error("Failed to update status");
-            return res.json();
-          })
-          .then((json) => console.log("Status updated:", json))
-          .catch((err) => {
-            console.error("Error updating status:", err);
-            // rollback nếu fail
-            setData((prevData) =>
-              prevData.map((item) =>
-                item.id === table.id ? { ...item, status: currentStatus } : item
-              )
-            );
-          });
-      };
-      
-    
+    };
 
     // Helper functions
     const getStatusValue = (status: string | number): number => {
@@ -227,10 +290,10 @@ export default function ModeratorTableManagement() {
             case 'Available':
             case '0':
                 return 'bg-green-100 text-green-800 border-green-200';
-            case 'occupied':
+            case 'Occupied':
             case '1':
                 return 'bg-red-100 text-red-800 border-red-200';
-            case 'reserved':
+            case 'Reserved':
             case '2':
                 return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             default:
@@ -238,19 +301,20 @@ export default function ModeratorTableManagement() {
         }
     };
 
-    const getStatusText = (status: string) => {
-        switch (status.toLowerCase()) {
+    const getStatusText = (status: string | number) => {
+        const strStatus = status.toString().toLowerCase();
+        switch (strStatus) {
             case 'available':
             case '0':
-                return 'Available';
+                return 'Trống';
             case 'occupied':
             case '1':
-                return 'Occupied';
+                return 'Có Khách';
             case 'reserved':
             case '2':
-                return 'Reserved';
+                return 'Đã Đặt';
             default:
-                return status;
+                return strStatus;
         }
     };
 
@@ -710,7 +774,6 @@ export default function ModeratorTableManagement() {
                                 </button>
                             </div>
                         </div>
-
                     </div>
                 )}
 
