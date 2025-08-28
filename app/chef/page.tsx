@@ -529,6 +529,7 @@ function ChiefPageContent() {
           selectedGroup={selectedGroup}
           onGroupSelection={handleGroupSelection}
           groupedOrders={filteredGroupedOrdersForSearch}
+          orders={orders}
           selectedGroups={selectedGroups}
           onMultipleGroupSelection={handleMultipleGroupSelection}
         />
