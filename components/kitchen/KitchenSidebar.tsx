@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Category, RemainingItems, GroupedOrders } from '@/types/kitchen';
+import { Category, RemainingItems, GroupedOrders, Order, OrderStatus } from '@/types/kitchen';
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { IconList, IconCup, IconSoup, IconIceCream } from '@tabler/icons-react'
@@ -18,6 +18,8 @@ interface KitchenSidebarProps {
   selectedGroups: { itemName: string; tableNumber: number; id: number }[][];
   onMultipleGroupSelection: (groups: { itemName: string; tableNumber: number; id: number }[][]) => void;
   groupedOrders: GroupedOrders;
+  orders: Order[];
+  activeTab: OrderStatus;
   className?: string;
   initialWidth?: number; // in px, default 320
   minWidthPx?: number; // default 260
@@ -38,6 +40,8 @@ export function KitchenSidebar({
   selectedGroups,
   onMultipleGroupSelection,
   groupedOrders,
+  orders,
+  activeTab,
   className,
   initialWidth = 480,
   minWidthPx = 260,
@@ -71,7 +75,7 @@ export function KitchenSidebar({
     };
   }, [isResizing, minWidthPx, maxWidthPx]);
 
-  // Compute counts per category using remainingItems (all pending items)
+  // Compute counts per category based on current tab status
   const categoryCounts = useMemo((): Record<string, number> => {
     const counts: Record<string, number> = {
       'Tất cả': 0,
@@ -79,15 +83,17 @@ export function KitchenSidebar({
       'Món chính': 0,
       'Tráng miệng': 0,
     };
-    Object.entries(remainingItems).forEach(([itemName, count]) => {
-      const categoryName = itemNameToCategory[itemName];
+    const relevantOrders = (orders || []).filter(o => o.status === activeTab);
+    relevantOrders.forEach(order => {
+      const categoryName = order.category;
+      const qty = order.quantity ?? 1;
       if (categoryName && counts.hasOwnProperty(categoryName)) {
-        counts[categoryName] += count;
+        counts[categoryName] += qty;
       }
-      counts['Tất cả'] += count;
+      counts['Tất cả'] += qty;
     });
     return counts;
-  }, [remainingItems, itemNameToCategory]);
+  }, [orders, activeTab]);
   const renderAnimatedButton = (
     itemName: string, 
     index: number, 
@@ -336,9 +342,9 @@ export function KitchenSidebar({
                           className="size-6 border-2 border-gray-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:ring-2 data-[state=checked]:ring-green-300 shadow-sm"
                           aria-label="Chọn nhóm"
                         />
-                        <span className="text-sm font-medium text-gray-700">
+                        {/* <span className="text-sm font-medium text-gray-700">
                           {group.length} món
-                        </span>
+                        </span> */}
                       </div>
                       {group.map(({ itemName, tableNumber, id }) => {
                         const isIndividualSelected =
