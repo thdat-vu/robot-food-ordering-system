@@ -207,10 +207,11 @@ export function usePayment() {
       if (res.statusCode === 200 && res.data?.paymentUrl) {
         setPaymentStatus("redirect");
 
+        // Keep popup reference at function scope; browsers allow opener to close it.
         const popup = window.open(
           res.data.paymentUrl as string,
           "vnpay_checkout",
-          "width=480,height=720,noopener,noreferrer"
+          "width=480,height=720,menubar=0,toolbar=0,location=1,status=0,scrollbars=1,resizable=1"
         );
 
         const startAt = Date.now();
@@ -224,7 +225,19 @@ export function usePayment() {
               const statusStr = String(rawStatus).toLowerCase();
               const isPaid = statusStr === "paid" || rawStatus === 2 || rawStatus === "2" || order.code === "PAID";
               if (isPaid) {
-                if (popup && !popup.closed) popup.close();
+                try {
+                  if (popup && !popup.closed) {
+                    // Attempt multiple ways to ensure closure across browsers
+                    popup.close();
+                    try {
+                      popup.location.href = "about:blank";
+                      popup.close();
+                    } catch {}
+                    setTimeout(() => {
+                      try { popup.close(); } catch {}
+                    }, 200);
+                  }
+                } catch {}
                 setPaymentStatus("success");
                 // Redirect to success page with minimal data
                 const total = typeof order.data?.totalPrice === "number" ? order.data.totalPrice : undefined;

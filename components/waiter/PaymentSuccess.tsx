@@ -21,8 +21,8 @@ export default function Component({ amount, orderId, payDate, message, onBack }:
     <div className="flex flex-col min-h-screen">
       <header className="flex items-center justify-between px-4 py-2 border-b">
         <Link href="/waiter" prefetch={false}>
-          <MountainIcon className="h-6 w-6" />
-          <span className="sr-only">SEB</span>
+          {/* <MountainIcon className="h-6 w-6" /> */}
+          {/* <span className="sr-only">SEB</span> */}
         </Link>
       </header>
       <main className="flex flex-col items-center justify-center flex-grow text-center p-4 md:p-6">
@@ -50,9 +50,9 @@ export default function Component({ amount, orderId, payDate, message, onBack }:
           Quay về trang phục vụ
         </button>
       </main>
-      <footer className="flex items-center justify-center h-14 border-t">
+      {/* <footer className="flex items-center justify-center h-14 border-t">
         <p className="text-sm text-gray-500 dark:text-gray-400">&copy; 2025 SEB. All rights reserved.</p>
-      </footer>
+      </footer> */}
     </div>
   )
 }
@@ -78,21 +78,21 @@ function CircleCheckIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 
-function MountainIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-    </svg>
-  )
-}
+// function MountainIcon(props: SVGProps<SVGSVGElement>) {
+//   return (
+//     <svg
+//       {...props}
+//       xmlns="http://www.w3.org/2000/svg"
+//       width="24"
+//       height="24"
+//       viewBox="0 0 24 24"
+//       fill="none"
+//       stroke="currentColor"
+//       strokeWidth="2"
+//       strokeLinecap="round"
+//       strokeLinejoin="round"
+//     >
+//       <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+//     </svg>
+//   )
+// }
