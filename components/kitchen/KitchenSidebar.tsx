@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Category, RemainingItems, GroupedOrders } from '@/types/kitchen';
+import { Category, RemainingItems, GroupedOrders, Order } from '@/types/kitchen';
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { IconList, IconCup, IconSoup, IconIceCream } from '@tabler/icons-react'
@@ -18,6 +18,7 @@ interface KitchenSidebarProps {
   selectedGroups: { itemName: string; tableNumber: number; id: number }[][];
   onMultipleGroupSelection: (groups: { itemName: string; tableNumber: number; id: number }[][]) => void;
   groupedOrders: GroupedOrders;
+  orders: Order[];
   className?: string;
   initialWidth?: number; // in px, default 320
   minWidthPx?: number; // default 260
@@ -38,6 +39,7 @@ export function KitchenSidebar({
   selectedGroups,
   onMultipleGroupSelection,
   groupedOrders,
+  orders,
   className,
   initialWidth = 480,
   minWidthPx = 260,
@@ -79,12 +81,17 @@ export function KitchenSidebar({
       'Món chính': 0,
       'Tráng miệng': 0,
     };
+    // remainingItems * quantity
     Object.entries(remainingItems).forEach(([itemName, count]) => {
       const categoryName = itemNameToCategory[itemName];
+      // find actual order to get quantity
+      const order = orders?.find(o => o.itemName === itemName);
+      const quantity = order ? order.quantity : 1;
+      
       if (categoryName && counts.hasOwnProperty(categoryName)) {
-        counts[categoryName] += count;
+        counts[categoryName] += count * quantity;
       }
-      counts['Tất cả'] += count;
+      counts['Tất cả'] += count * quantity;
     });
     return counts;
   }, [remainingItems, itemNameToCategory]);
