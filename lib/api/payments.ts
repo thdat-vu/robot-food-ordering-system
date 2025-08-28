@@ -20,6 +20,13 @@ export interface ApiBaseResponse<T> {
   message?: string;
 }
 
+export interface OrderPaymentReturnResponse {
+  orderId: string;
+  paymentStatus: string | number;
+  paymentUrl?: string | null;
+  message?: string | null;
+}
+
 export const paymentsApi = {
   async createVNPayUrl(orderId: string, payload?: PaymentCreateRequest) {
     const body: PaymentCreateRequest = {
@@ -33,6 +40,13 @@ export const paymentsApi = {
       `/Payment/create-url/${orderId}`,
       body
     );
+    return response.data;
+  },
+
+  async handleVnPayReturn(queryString: string) {
+    // queryString should be everything after '?'
+    const url = `/Payment/vnpay-return${queryString ? `?${queryString}` : ''}`;
+    const response = await apiClient.get<ApiBaseResponse<OrderPaymentReturnResponse>>(url);
     return response.data;
   },
 };
