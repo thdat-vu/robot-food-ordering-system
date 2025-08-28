@@ -1,9 +1,18 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import PaymentSuccess from "@/components/waiter/PaymentSuccess";
 
 export default function Page() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <PaymentSuccessContent />
+    </Suspense>
+  );
+}
+
+function PaymentSuccessContent() {
   const params = useSearchParams();
   const router = useRouter();
 
