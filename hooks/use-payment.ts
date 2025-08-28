@@ -196,7 +196,7 @@ export function usePayment() {
     }
   }, []);
 
-  // Create VNPay URL and redirect
+  // Create VNPay URL, open in popup, and poll order status until paid (or timeout)
   const initiateOnlinePayment = useCallback(async (orderId: string) => {
     try {
       setPaymentStatus("processing");
@@ -206,9 +206,53 @@ export function usePayment() {
 
       if (res.statusCode === 200 && res.data?.paymentUrl) {
         setPaymentStatus("redirect");
-        // Redirect browser to VNPay sandbox URL
-        window.location.href = res.data.paymentUrl as string;
-        return { success: true };
+
+        const popup = window.open(
+          res.data.paymentUrl as string,
+          "vnpay_checkout",
+          "width=480,height=720,noopener,noreferrer"
+        );
+
+        const startAt = Date.now();
+        const timeoutMs = 3 * 60 * 1000; // 3 minutes
+
+        return await new Promise<{ success: boolean; message?: string }>((resolve) => {
+          const check = async () => {
+            try {
+              const order = await ordersApi.getOrderById(orderId);
+              const rawStatus: any = order.data?.paymentStatus;
+              const statusStr = String(rawStatus).toLowerCase();
+              const isPaid = statusStr === "paid" || rawStatus === 2 || rawStatus === "2" || order.code === "PAID";
+              if (isPaid) {
+                if (popup && !popup.closed) popup.close();
+                setPaymentStatus("success");
+                // Redirect to success page with minimal data
+                const total = typeof order.data?.totalPrice === "number" ? order.data.totalPrice : undefined;
+                const params = new URLSearchParams({ orderId });
+                if (typeof total === "number") params.set("amount", String(total));
+                params.set("message", "Payment success (VNPay)");
+                // Resolve first, then navigate
+                resolve({ success: true });
+                window.location.replace(`/waiter/payment-success?${params.toString()}`);
+                return;
+              }
+            } catch (e) {
+              // ignore and keep polling
+            }
+
+            if (Date.now() - startAt > timeoutMs) {
+              if (popup && !popup.closed) popup.close();
+              setPaymentStatus("timeout");
+              resolve({ success: false, message: "Payment timeout" });
+              return;
+            }
+
+            // If user closed the popup, still continue polling for a short time
+            setTimeout(check, 2000);
+          };
+
+          check();
+        });
       }
 
       setPaymentStatus("error");
