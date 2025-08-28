@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Category, RemainingItems, GroupedOrders, Order } from '@/types/kitchen';
+import { Category, RemainingItems, GroupedOrders, Order, OrderStatus } from '@/types/kitchen';
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { IconList, IconCup, IconSoup, IconIceCream } from '@tabler/icons-react'
@@ -19,6 +19,7 @@ interface KitchenSidebarProps {
   onMultipleGroupSelection: (groups: { itemName: string; tableNumber: number; id: number }[][]) => void;
   groupedOrders: GroupedOrders;
   orders: Order[];
+  activeTab: OrderStatus;
   className?: string;
   initialWidth?: number; // in px, default 320
   minWidthPx?: number; // default 260
@@ -40,6 +41,7 @@ export function KitchenSidebar({
   onMultipleGroupSelection,
   groupedOrders,
   orders,
+  activeTab,
   className,
   initialWidth = 480,
   minWidthPx = 260,
@@ -73,7 +75,7 @@ export function KitchenSidebar({
     };
   }, [isResizing, minWidthPx, maxWidthPx]);
 
-  // Compute counts per category using remainingItems (all pending items)
+  // Compute counts per category based on current tab status
   const categoryCounts = useMemo((): Record<string, number> => {
     const counts: Record<string, number> = {
       'Tất cả': 0,
@@ -81,20 +83,17 @@ export function KitchenSidebar({
       'Món chính': 0,
       'Tráng miệng': 0,
     };
-    // remainingItems * quantity
-    Object.entries(remainingItems).forEach(([itemName, count]) => {
-      const categoryName = itemNameToCategory[itemName];
-      // find actual order to get quantity
-      const order = orders?.find(o => o.itemName === itemName);
-      const quantity = order ? order.quantity : 1;
-      
+    const relevantOrders = (orders || []).filter(o => o.status === activeTab);
+    relevantOrders.forEach(order => {
+      const categoryName = order.category;
+      const qty = order.quantity ?? 1;
       if (categoryName && counts.hasOwnProperty(categoryName)) {
-        counts[categoryName] += count * quantity;
+        counts[categoryName] += qty;
       }
-      counts['Tất cả'] += count * quantity;
+      counts['Tất cả'] += qty;
     });
     return counts;
-  }, [remainingItems, itemNameToCategory]);
+  }, [orders, activeTab]);
   const renderAnimatedButton = (
     itemName: string, 
     index: number, 

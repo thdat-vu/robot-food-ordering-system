@@ -529,9 +529,10 @@ function ChiefPageContent() {
           selectedGroup={selectedGroup}
           onGroupSelection={handleGroupSelection}
           groupedOrders={filteredGroupedOrdersForSearch}
-          orders={orders}
+          orders={orders} 
           selectedGroups={selectedGroups}
           onMultipleGroupSelection={handleMultipleGroupSelection}
+          activeTab={activeTab as OrderStatus}
         />
       </div>
 
