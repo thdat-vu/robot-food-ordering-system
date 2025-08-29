@@ -4,6 +4,7 @@ import OrderDetailDialog from "./OrderDetailDialog";
 
 import Pagination from "@/lib/utils/Pagination";
 import axios from 'axios';
+import { getApiUrl } from '@/env.config';
 import * as signalR from "@microsoft/signalr";
 import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { useSignalR } from "@/hooks/useSignalR";
@@ -59,8 +60,18 @@ export default function ModeratorTableManagement() {
         hasPreviousPage: false,
     });
 
+    const API_BASE = getApiUrl();
+
     useEffect(() => {
         fetchTables();
+    }, [pagination.pageNumber, pagination.pageSize, searchName, status]);
+
+    // Auto-refresh table status every 2 seconds (silent)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchTablesSilent();
+        }, 2000);
+        return () => clearInterval(interval);
     }, [pagination.pageNumber, pagination.pageSize, searchName, status]);
 
     // Debounce function to limit API calls
@@ -74,26 +85,24 @@ export default function ModeratorTableManagement() {
         };
     };
 
-    // Debounced fetch function
-    const fetchTables = async () => {
+    // Fetch helpers
+    const loadTables = async (silent: boolean) => {
         try {
-            setLoading(true);
-            
-            const url = new URL("https://be-robo.zd-dev.xyz/api/Table");
+            if (!silent) {
+                setLoading(true);
+                setError("");
+            }
+            const url = new URL(`${API_BASE}/Table`);
             url.searchParams.append("PageNumber", String(pagination.pageNumber));
             url.searchParams.append("PageSize", String(pagination.pageSize));
             if (searchName) url.searchParams.append("tableName", searchName);
             if (status) url.searchParams.append("status", status);
 
             const response = await fetch(url.toString());
-            console.log(response);
-            
             if (!response.ok) throw new Error("Failed to fetch tables");
 
             const json = await response.json();
             const rawTables = json.items || [];
-            console.log("Raw tables data:", rawTables);
-
             const transformedData: TableItem[] = rawTables.map((TableItem: any) => ({
                 id: String(TableItem.id),
                 name: TableItem.name || "Unknown",
@@ -106,7 +115,6 @@ export default function ModeratorTableManagement() {
             }));
 
             setData(transformedData);
-            console.log("Transformed table data:", transformedData.length, transformedData);
             setPagination(prev => ({
                 ...prev,
                 pageNumber: json.pageNumber,
@@ -118,11 +126,14 @@ export default function ModeratorTableManagement() {
             }));
         } catch (err) {
             console.error("Error fetching tables:", err);
-            setError("Failed to load tables");
+            if (!silent) setError("Failed to load tables");
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
+
+    const fetchTables = async () => loadTables(false);
+    const fetchTablesSilent = async () => loadTables(true);
 
     const debouncedFetchTables = useCallback(debounce(fetchTables, 300), [pagination.pageNumber, pagination.pageSize, searchName, status]);
 
@@ -135,7 +146,7 @@ export default function ModeratorTableManagement() {
         }
         try {
             setLoadingOrders(prev => ({ ...prev, [tableId]: true }));
-            const response = await fetch(`https://be-robo.zd-dev.xyz/api/Order/table/${tableId}`);
+            const response = await fetch(`${API_BASE}/Order/table/${tableId}`);
             if (!response.ok) throw new Error('Failed to fetch orders');
             const orders = await response.json();
             console.log(`Orders for table ${tableId}:`, orders.data);
@@ -242,7 +253,7 @@ export default function ModeratorTableManagement() {
         console.log(`Confirming status change for table: ${tableName} -> ${newStatus}`);
 
         try {
-            const response = await axios.put(`https://be-robo.zd-dev.xyz/api/Table/${tableId}/status`, { 
+            const response = await axios.put(`${API_BASE}/Table/${tableId}/status`, { 
                 status: newStatus,
                 reason: reason
             
