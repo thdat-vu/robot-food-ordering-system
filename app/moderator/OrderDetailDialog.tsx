@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Clock,
   DollarSign,
@@ -23,6 +23,10 @@ import {
   Sparkles,
   Award
 } from "lucide-react";
+import { InvoiceResponse } from "@/lib/api/invoices";
+import Invoice from "@/components/moderator/InvoiceView";
+import { useInvoice } from "@/hooks/moderator/use-invoice-moderator";
+import InvoiceView from "@/components/moderator/InvoiceView";
 
 // Define interfaces
 interface TableItem {
@@ -91,6 +95,11 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [reason, setReason] = useState<string>("");
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const { selectedInvoice, fetchInvoiceByTableId, isLoading, error } = useInvoice();
+  const [showInvoice, setShowInvoice] = useState(false);
+
+ 
+
 
   // Early return if not open or no table
   if (!isOpen || !table) return null;
@@ -125,13 +134,17 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
   const handleConfirmStatusChange = () => {
     const finalReason = reason.trim() || "Không có lý do cụ thể";
     onConfirmStatusChange(finalReason);
+    // Giả sử đã fetch invoice từ API (hoặc có sẵn trong state)
+      fetchInvoiceByTableId(table.id);
+     setShowInvoice(true);
+
   };
 
   const handleCancelStatusChange = () => {
     setReason("");
     onCancelStatusChange();
   };
-
+  
   const getStatusText = (status: string | number): string => {
     switch (status.toString().toLowerCase()) {
       case "available":
@@ -219,6 +232,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
       case "preparing": return "Đang chuẩn bị món";
       case "ready": return "Sẵn sàng phục vụ";
       case "completed": return "Đã hoàn thành";
+      case "canceled": return "Đã hủy";
       default: return "Không xác định";
     }
   };
@@ -714,6 +728,16 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
                 Xác Nhận Thay Đổi Trạng Thái
               </button>
         </div>
+      {/* Invoice Modal */}
+      {showInvoice && (
+        <InvoiceView 
+          invoice={selectedInvoice}           // Can be null
+          onClose={() => setShowInvoice(false)}
+          isLoading={isLoading}               // Optional
+          error={error}                       // Optional
+        />
+      )}
+     
 
 
       </div>

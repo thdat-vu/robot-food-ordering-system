@@ -86,13 +86,11 @@ export default function ModeratorTableManagement() {
             if (status) url.searchParams.append("status", status);
 
             const response = await fetch(url.toString());
-            console.log(response);
             
             if (!response.ok) throw new Error("Failed to fetch tables");
 
             const json = await response.json();
             const rawTables = json.items || [];
-            console.log("Raw tables data:", rawTables);
 
             const transformedData: TableItem[] = rawTables.map((TableItem: any) => ({
                 id: String(TableItem.id),
