@@ -424,6 +424,8 @@ export function OrdersContent({
     const sortedOrders = [...allOrders].sort(
       (a, b) => categoryPriority(a.category) - categoryPriority(b.category)
     );
+    // Only consider selected orders for bulk actions
+    const selectedSortedOrders = selectedIds ? sortedOrders.filter(order => selectedIds.has(order.id)) : [];
     if (allOrders.length === 0) {
       return (
         <div className="flex-1 p-6 overflow-y-auto">
@@ -522,9 +524,9 @@ export function OrdersContent({
         </div>
         {/* Bottom sticky CTA to mirror the top bulk actions */}
         <div className="sticky bottom-0 z-10 py-3 mt-6 flex justify-center">
-          {activeTab === 'đang chờ' && allOrders.length > 0 && onPrepareMultipleOrders && (
+          {activeTab === 'đang chờ' && selectedSortedOrders.length > 0 && onPrepareMultipleOrders && (
             <Button 
-              onClick={() => onPrepareMultipleOrders(sortedOrders.map(order => ({
+              onClick={() => onPrepareMultipleOrders(selectedSortedOrders.map(order => ({
                 itemName: order.itemName,
                 tableNumber: order.tableNumber,
                 id: order.id
@@ -532,12 +534,12 @@ export function OrdersContent({
               size="lg"
               className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white"
             >
-              Thực hiện ({sortedOrders.length})
+              Thực hiện ({selectedSortedOrders.length})
             </Button>
           )}
-          {activeTab === 'đang thực hiện' && allOrders.length > 0 && onServeMultipleOrders && (
+          {activeTab === 'đang thực hiện' && selectedSortedOrders.length > 0 && onServeMultipleOrders && (
             <Button 
-              onClick={() => onServeMultipleOrders(sortedOrders.map(order => ({
+              onClick={() => onServeMultipleOrders(selectedSortedOrders.map(order => ({
                 itemName: order.itemName,
                 tableNumber: order.tableNumber,
                 id: order.id
@@ -545,7 +547,7 @@ export function OrdersContent({
               size="lg"
               className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-orange-600 hover:bg-orange-700 text-white"
             >
-              Bắt đầu phục vụ ({sortedOrders.length})
+              Bắt đầu phục vụ ({selectedSortedOrders.length})
             </Button>
           )}
         </div>
