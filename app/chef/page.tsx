@@ -135,6 +135,14 @@ function ChiefPageContent() {
     setSelectedOrderKey(null);
   }, [activeTab]);
 
+  // Ensure selections are cleared immediately on tab change (defensive in addition to effect)
+  const handleTabChange = useCallback((tab: OrderStatus) => {
+    setSelectedGroups([]);
+    setSelectedGroup(null);
+    setSelectedOrderKey(null);
+    setActiveTab(tab);
+  }, [setActiveTab]);
+
   // Wrapper function for manual refresh button
   const handleManualRefresh = () => {
     refreshOrders(false); // Use normal refresh for manual button
@@ -529,9 +537,9 @@ function ChiefPageContent() {
           selectedGroup={selectedGroup}
           onGroupSelection={handleGroupSelection}
           groupedOrders={filteredGroupedOrdersForSearch}
-          orders={orders} 
           selectedGroups={selectedGroups}
           onMultipleGroupSelection={handleMultipleGroupSelection}
+          orders={orders}
           activeTab={activeTab as OrderStatus}
         />
       </div>
@@ -541,7 +549,7 @@ function ChiefPageContent() {
         {/* Navigation Tabs */}
         <NavigationTabs
           activeTab={activeTab as OrderStatus}
-          onTabChange={setActiveTab as (tab: OrderStatus) => void}
+          onTabChange={handleTabChange as (tab: OrderStatus) => void}
           getTabCount={getTabCount}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
