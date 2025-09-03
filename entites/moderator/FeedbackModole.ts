@@ -17,7 +17,8 @@ export interface dto {
 export interface TableData {
     tableName: string;
     counter: number;
-    deliveredCount: number;
+    deliveredCount: number; 
+    serveredCount: number;
     totalItems: number;
     paidCount: number;
 
