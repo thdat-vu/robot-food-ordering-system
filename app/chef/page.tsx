@@ -31,6 +31,7 @@ function ChiefPageContent() {
   // Extend action type to include 'cancel'
   const [isPriorityInfoOpen, setIsPriorityInfoOpen] = useState(false);
   const [isDessertPriorityInfoOpen, setIsDessertPriorityInfoOpen] = useState(false);
+  const [lastCheckedGroup, setLastCheckedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -361,6 +362,24 @@ function ChiefPageContent() {
       const flat = groups.flat();
       maybeWarnForMainSelection(flat);
       maybeWarnForDessertSelection(flat);
+      // Track the group that was just checked
+      const findAddedGroup = (): { itemName: string; tableNumber: number; id: number }[] | null => {
+        const areSameGroup = (a: { itemName: string; tableNumber: number; id: number }[], b: { itemName: string; tableNumber: number; id: number }[]) => {
+          if (!a || !b || a.length !== b.length) return false;
+          return a.every((item, index) =>
+            item.itemName === b[index].itemName &&
+            item.tableNumber === b[index].tableNumber &&
+            item.id === b[index].id
+          );
+        };
+        for (const g of groups) {
+          const existed = selectedGroups.some(sg => areSameGroup(sg, g));
+          if (!existed) return g;
+        }
+        return null;
+      };
+      const added = findAddedGroup();
+      if (added) setLastCheckedGroup(added);
     }
     setSelectedGroups(groups);
     setSelectedGroup(null); // Clear single group selection when multiple groups are selected
@@ -514,6 +533,21 @@ function ChiefPageContent() {
         isOpen={isPriorityInfoOpen}
         message="Nên ưu tiên làm Đồ uống trước Món chính."
         onClose={() => setIsPriorityInfoOpen(false)}
+        onCancel={() => {
+          // Uncheck the last checked group, if any
+          if (lastCheckedGroup) {
+            const areSameGroup = (a: { itemName: string; tableNumber: number; id: number }[], b: { itemName: string; tableNumber: number; id: number }[]) => {
+              if (!a || !b || a.length !== b.length) return false;
+              return a.every((item, index) =>
+                item.itemName === b[index].itemName &&
+                item.tableNumber === b[index].tableNumber &&
+                item.id === b[index].id
+              );
+            };
+            setSelectedGroups(prev => prev.filter(g => !areSameGroup(g, lastCheckedGroup)));
+          }
+          setIsPriorityInfoOpen(false);
+        }}
       />
 
       {/* Info Modal: Main before Dessert warning */}
@@ -521,6 +555,20 @@ function ChiefPageContent() {
         isOpen={isDessertPriorityInfoOpen}
         message="Nên ưu tiên làm Món chính trước Tráng miệng."
         onClose={() => setIsDessertPriorityInfoOpen(false)}
+        onCancel={() => {
+          if (lastCheckedGroup) {
+            const areSameGroup = (a: { itemName: string; tableNumber: number; id: number }[], b: { itemName: string; tableNumber: number; id: number }[]) => {
+              if (!a || !b || a.length !== b.length) return false;
+              return a.every((item, index) =>
+                item.itemName === b[index].itemName &&
+                item.tableNumber === b[index].tableNumber &&
+                item.id === b[index].id
+              );
+            };
+            setSelectedGroups(prev => prev.filter(g => !areSameGroup(g, lastCheckedGroup)));
+          }
+          setIsDessertPriorityInfoOpen(false);
+        }}
       />
 
       {/* Kitchen Sidebar */}
