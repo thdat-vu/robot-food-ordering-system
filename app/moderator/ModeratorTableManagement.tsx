@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Clock, DollarSign, Users, Eye, AlertCircle, CheckCircle, ChevronLeft, X, Search, Menu } from 'lucide-react';
-import OrderDetailDialog from "./OrderDetailDialog";
+import OrderDetailDialog from "../../components/moderator/OrderDetailDialog";
 
 import Pagination from "@/lib/utils/Pagination";
 import axios from 'axios';

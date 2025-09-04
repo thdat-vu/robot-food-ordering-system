@@ -1,5 +1,5 @@
 "use client"
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {
     X,
     MessageSquare,
@@ -15,12 +15,18 @@ import {
     XCircle,
     AlertTriangle,
     Send,
-    Lightbulb
+    Lightbulb,
+    ShoppingCart,
+    Eye
 } from "lucide-react";
 import {FeedbackgGetTableId, dto} from "@/entites/moderator/FeedbackModole";
 import {useCheckSS, useGetFeedbackByIdtable} from "@/hooks/moderator/useFeedbackHooks";
 import {useToastModerator} from '@/hooks/use-toast-moderator';
 import {ToastContainer} from '@/components/moderator/ToastContainer';
+import { OrderData } from "@/entites/moderator/tableModel";
+import { getApiUrl } from "@/env.config";
+
+import OrderCard from "../../components/moderator/OrderCard"; // Import OrderCard component
 
 type Prop = {
     idTable: string;
@@ -37,6 +43,8 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                                            }) => {
     const {toasts, addToast, removeToast} = useToastModerator();
     const [data, setData] = useState<FeedbackgGetTableId[]>([]);
+    const [orderData, setOrderData] = useState<{ [key: string]: OrderData[] }>({});
+    const [loadingOrders, setLoadingOrders] = useState<{ [key: string]: boolean }>({});
     const [isLoading, setIsLoading] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'processed'>('all');
@@ -46,9 +54,14 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const [listId, setListId] = useState<string[]>([]);
     const [responses, setResponses] = useState<{ [key: string]: string }>({});
     const [showSuggestions, setShowSuggestions] = useState<{ [key: string]: boolean }>({});
+    
+    // New states for OrderCard integration
+    const [showOrderCard, setShowOrderCard] = useState(false);
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
     const {run} = useGetFeedbackByIdtable();
     const {run: runCheck} = useCheckSS();
+    const API_BASE = getApiUrl();
 
     // Gợi ý phản hồi
     const responseSuggestions = [
@@ -63,14 +76,16 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         "Cảm ơn bạn đã thông báo. Chúng tôi sẽ kiểm tra và cải thiện quy trình phục vụ."
     ];
 
-    useEffect(() => {
-        if (open && idTable) {
-            const timeout = setTimeout(() => {
-                loadFeedbackData();
-            }, 300);
-            return () => clearTimeout(timeout);
-        }
-    }, [idTable, open]);
+    // useEffect(() => {
+    //     if (open && idTable) {
+    //         const timeout = setTimeout(() => {
+    //             loadFeedbackData();
+    //             // Auto fetch orders when dialog opens
+    //             deboundfetchOrdersForTable(idTable);
+    //         }, 300);
+    //         return () => clearTimeout(timeout);
+    //     }
+    // }, [idTable, open]);
 
     useEffect(() => {
         setListId(Array.from(selectedFeedbacks));
@@ -94,6 +109,50 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             }
         }
     }, [open, data]);
+
+    const fetchOrdersForTable = async (tableId: string) => {
+            if (loadingOrders[tableId]) return;
+            if (orderData[tableId] && orderData[tableId].length > 0) {
+                console.log(`Orders for table ${tableId} already loaded, skipping fetch.`);
+                return;
+            }
+            try {
+                setLoadingOrders(prev => ({ ...prev, [tableId]: true }));
+                const response = await fetch(`${API_BASE}/Order/table/${tableId}`);
+                if (!response.ok) throw new Error('Failed to fetch orders');
+                const orders = await response.json();
+                console.log(`Orders for table ${tableId}:`, orders.data);
+                
+                setOrderData(prev => ({
+                    ...prev,
+                    [tableId]: orders?.data || []
+                }));
+            } catch (err) {
+                console.error('Error fetching orders:', err);
+                setOrderData(prev => ({
+                    ...prev,
+                    [tableId]: []
+                }));
+            } finally {
+                setLoadingOrders(prev => ({ ...prev, [tableId]: false }));
+            }
+        };
+    
+        // const deboundfetchOrdersForTable = useCallback(debounce(fetchOrdersForTable, 300), []);
+
+    // Handle OrderCard toggle expand
+    const handleToggleOrderExpand = (orderId: string) => {
+        setExpandedOrderId(prev => prev === orderId ? null : orderId);
+    };
+
+    // Handle show order details
+    const handleShowOrderDetails = async () => {
+        setShowOrderCard(true);
+        // Fetch orders if not already loaded
+        if (!orderData[idTable] || orderData[idTable].length === 0) {
+            await fetchOrdersForTable(idTable);
+        }
+    };
 
     const getStatusInfo = (status: number) => {
         switch (status) {
@@ -352,6 +411,77 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
     if (!open) return null;
 
+    // Render OrderCard Modal
+    if (showOrderCard) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <ToastContainer toasts={toasts} onRemoveToast={removeToast}/>
+                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden border border-gray-200">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 px-8 py-6 text-white relative overflow-hidden">
+                        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+                        <div className="relative z-10">
+                            <button
+                                onClick={() => setShowOrderCard(false)}
+                                className="absolute top-0 right-0 p-3 hover:bg-white/20 rounded-full transition-all duration-200 hover:rotate-90"
+                            >
+                                <X className="w-6 h-6"/>
+                            </button>
+                            <div className="flex items-center space-x-4">
+                                <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-lg">
+                                    <ShoppingCart className="w-8 h-8"/>
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl font-bold mb-1">Chi Tiết Đơn Hàng</h2>
+                                    <p className="text-blue-100">{tableName}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* OrderCard Content */}
+                    <div className="flex-1 overflow-y-auto max-h-[70vh] p-6">
+                        {loadingOrders[idTable] ? (
+                            <div className="flex items-center justify-center p-16">
+                                <div className="text-center">
+                                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-500 mx-auto mb-6"></div>
+                                    <h3 className="text-xl font-semibold text-gray-700 mb-2">Đang tải đơn hàng...</h3>
+                                    <p className="text-gray-500">Vui lòng đợi trong giây lát</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <OrderCard 
+                                orders={orderData[idTable] || []}
+                                onToggleExpand={handleToggleOrderExpand}
+                                expandedOrderId={expandedOrderId}
+                            />
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="bg-white px-8 py-6 border-t-2 border-gray-200">
+                        <div className="flex justify-end space-x-4">
+                            <button
+                                onClick={() => setShowOrderCard(false)}
+                                className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-100 transition-all duration-200 font-semibold"
+                            >
+                                Đóng
+                            </button>
+                            <button
+                                onClick={() => fetchOrdersForTable(idTable)}
+                                disabled={loadingOrders[idTable]}
+                                className="px-8 py-3 bg-blue-500 text-white rounded-2xl hover:bg-blue-600 transition-all duration-200 font-semibold disabled:opacity-50 flex items-center space-x-2"
+                            >
+                                <RefreshCw className={`w-5 h-5 ${loadingOrders[idTable] ? 'animate-spin' : ''}`}/>
+                                <span>Làm mới</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <ToastContainer toasts={toasts} onRemoveToast={removeToast}/>
@@ -379,6 +509,15 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                     <p className="text-blue-100">{tableName}</p>
                                 </div>
                             </div>
+                            
+                            {/* Order Details Button */}
+                            <button
+                                onClick={handleShowOrderDetails}
+                                className="flex items-center space-x-2 px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-2xl transition-all duration-200 backdrop-blur-lg border border-white/30 hover:border-white/50"
+                            >
+                                <Eye className="w-5 h-5" />
+                                <span className="font-semibold">Xem Chi Tiết Đơn Hàng</span>
+                            </button>
                         </div>
 
                         <div className="grid grid-cols-3 gap-4">
@@ -842,4 +981,4 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     );
 };
 
-export default ModeratorFeedbackFromTable
+export default ModeratorFeedbackFromTable;
