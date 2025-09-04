@@ -1,3 +1,5 @@
+import { OrderData } from "./tableModel";
+
 export interface FeedbackgGetTableId {
     idFeedback: string;
     idTable: string;
@@ -17,11 +19,22 @@ export interface dto {
 export interface TableData {
     tableName: string;
     counter: number;
-    deliveredCount: number;
+    deliveredCount: number; 
+    serveredCount: number;
     totalItems: number;
     paidCount: number;
 
 }
+export interface OrderCardProps {
+    orders: OrderData[];
+    onToggleExpand?: (orderId: string) => void;
+    expandedOrderId?: string | null;
+  }
+  export interface OrderCardProps {
+    orders: OrderData[];
+    onToggleExpand?: (orderId: string) => void;
+    expandedOrderId?: string | null;
+  }
 
 export interface ResponseType {
     data: {
@@ -32,3 +45,4 @@ export interface ResponseType {
     statusCode: number;
     code: string;
 }
+

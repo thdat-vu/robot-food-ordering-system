@@ -6,9 +6,10 @@ interface InfoModalProps {
   title?: string;
   message: string;
   onClose: () => void;
+  onCancel?: () => void;
 }
 
-export function InfoModal({ isOpen, title = 'Lưu ý', message, onClose }: InfoModalProps) {
+export function InfoModal({ isOpen, title = 'Lưu ý', message, onClose, onCancel }: InfoModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -42,7 +43,10 @@ export function InfoModal({ isOpen, title = 'Lưu ý', message, onClose }: InfoM
           </div>
 
           {/* Modal Footer */}
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {onCancel && (
+              <Button onClick={onCancel} variant="outline">Huỷ</Button>
+            )}
             <Button onClick={onClose}>OK</Button>
           </div>
         </div>
