@@ -100,8 +100,10 @@ const DishList: React.FC<DishListProps> = ({
         }
     };
 
-    // Count currently selected dishes
-    const selectedCount = dishes.filter(d => d.selected).length;
+    // Count currently selected dishes (remember to multiply by quantity)
+    const selectedCount = dishes
+        .filter(d => d.selected)
+        .reduce((total, dish) => total + (dish.quantity || 1), 0);
 
     // Filter dishes by search query
     const filteredDishes = allDishesToShow.filter((dish) => {
@@ -167,7 +169,8 @@ const DishList: React.FC<DishListProps> = ({
             const unselectedFromTable = dishesFromSameTable.filter(d => !d.selected);
 
             // Check if selecting all dishes from this table would exceed the limit
-            if (selectedCount + unselectedFromTable.length > MAX_SELECTION) {
+            const unselectedQuantity = unselectedFromTable.reduce((total, dish) => total + (dish.quantity || 1), 0);
+            if (selectedCount + unselectedQuantity > MAX_SELECTION) {
                 const remainingSlots = MAX_SELECTION - selectedCount;
                 toast.warning(`Chỉ có thể chọn tối đa ${MAX_SELECTION} món. Còn lại ${remainingSlots} vị trí trống.`);
                 return;
@@ -177,14 +180,14 @@ const DishList: React.FC<DishListProps> = ({
             unselectedFromTable.forEach(dish => {
                 onDishToggle(dish.id);
             });
-            toast.success(`Đã chọn ${unselectedFromTable.length} món từ Bàn ${clickedDish.tableNumber}`);
+            toast.success(`Đã chọn ${unselectedQuantity} món từ Bàn ${clickedDish.tableNumber}`);
         }
     };
 
     const handleIndividualToggle = (dish: WaiterDish, e: React.MouseEvent) => {
         e.stopPropagation();
 
-        if (!dish.selected && selectedCount >= MAX_SELECTION) {
+        if (!dish.selected && selectedCount + (dish.quantity || 1) > MAX_SELECTION) {
             toast.warning(`Chỉ có thể chọn tối đa ${MAX_SELECTION} món!`);
             return;
         }
