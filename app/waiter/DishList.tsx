@@ -196,7 +196,6 @@ const DishList: React.FC<DishListProps> = ({
     };
 
     const getTableSelectionStatus = (tableNumber: number) => {
-        // Only check dishes from the current tab for table status
         const dishesFromTableInTab = dishesForTab.filter(d => d.tableNumber === tableNumber);
         const selectedFromTable = dishesFromTableInTab.filter(d => d.selected);
 
