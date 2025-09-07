@@ -49,6 +49,14 @@ export default function PaymentPanel({
       const tableName = selectedTableName || `Bàn ${selectedTable}`;
       const surchargeAmount = 0; // Phụ phí (đ) – chỉnh tại đây nếu cần
       const grandTotal = total + surchargeAmount;
+      const mapSize = (size?: string | null): string => {
+        if (!size) return "";
+        const v = size.toLowerCase();
+        if (v.startsWith("s")) return "S";
+        if (v.startsWith("m")) return "M";
+        if (v.startsWith("l")) return "L";
+        return size;
+      };
 
       printWindow.document.write(`
       <html>
@@ -86,7 +94,7 @@ export default function PaymentPanel({
             <div class="meta">
               <div class="row">
                 <div>Mã HĐ: ${Date.now()}</div>
-                <div>Bàn: ${tableName}</div>
+                <div>Vị trí: ${tableName}</div>
               </div>
               <div class="row">
                 <div>Ngày: ${new Date().toLocaleDateString("vi-VN")}</div>
@@ -115,7 +123,7 @@ export default function PaymentPanel({
                       const totalItemPrice = itemPrice + toppingsPrice;
                       const nameCell = `
                         <div class="item-name">${item.productName}${
-                        item.sizeName ? ` (${item.sizeName})` : ""
+                        item.sizeName ? ` (${mapSize(item.sizeName)})` : ""
                       }</div>
                         ${
                           item.toppings.length > 0
