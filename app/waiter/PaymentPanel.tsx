@@ -47,167 +47,116 @@ export default function PaymentPanel({
     const printWindow = window.open("", "_blank");
     if (printWindow) {
       const tableName = selectedTableName || `Bàn ${selectedTable}`;
+      const surchargeAmount = 0; // Phụ phí (đ) – chỉnh tại đây nếu cần
+      const grandTotal = total + surchargeAmount;
 
       printWindow.document.write(`
       <html>
         <head>
           <title>Hóa đơn ${tableName}</title>
           <style>
-            body {
-              font-family: 'Segoe UI', Arial, sans-serif;
-              background: #f8fafc;
-              padding: 0;
-              margin: 0;
-            }
-            .bill-container {
-              max-width: 420px;
-              margin: 32px auto;
-              background: #fff;
-              border-radius: 16px;
-              box-shadow: 0 4px 24px #0001;
-              padding: 32px 28px 24px 28px;
-              border: 1.5px solid #e2e8f0;
-            }
-            .bill-header {
-              text-align: center;
-              margin-bottom: 18px;
-            }
-            .bill-logo {
-              width: 54px;
-              margin-bottom: 8px;
-              opacity: 0.95;
-            }
-            .bill-title {
-              font-size: 1.5rem;
-              font-weight: bold;
-              color: #059669;
-              letter-spacing: 1px;
-              margin-bottom: 2px;
-            }
-            .bill-table {
-              font-size: 1.1rem;
-              font-weight: 500;
-              color: #334155;
-              margin-bottom: 8px;
-            }
-            .bill-status {
-              font-size: 0.98rem;
-              color: #64748b;
-              margin-bottom: 12px;
-            }
-            ul.bill-list {
-              list-style: none;
-              padding: 0;
-              margin: 0 0 12px 0;
-              border-top: 1.5px solid #e2e8f0;
-              border-bottom: 1.5px solid #e2e8f0;
-            }
-            ul.bill-list li {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              padding: 10px 0;
-              border-bottom: 1px dashed #e2e8f0;
-              font-size: 1rem;
-            }
-            ul.bill-list li:last-child {
-              border-bottom: none;
-            }
-            .item-info {
-              max-width: 220px;
-            }
-            .item-name {
-              font-weight: 500;
-              color: #0f172a;
-            }
-            .item-detail {
-              font-size: 0.93em;
-              color: #64748b;
-              margin-left: 2px;
-            }
-            .item-topping {
-              font-size: 0.92em;
-              color: #16a34a;
-              margin-left: 2px;
-            }
-            .item-price {
-              font-weight: 600;
-              color: #059669;
-              white-space: nowrap;
-              margin-left: 8px;
-            }
-            .bill-total {
-              font-size: 1.18rem;
-              font-weight: bold;
-              color: #059669;
-              text-align: right;
-              margin-top: 16px;
-              margin-bottom: 8px;
-            }
-            .bill-footer {
-              font-size: 0.98rem;
-              color: #64748b;
-              text-align: center;
-              margin-top: 18px;
-              border-top: 1px solid #e2e8f0;
-              padding-top: 10px;
-            }
+            @page { margin: 10mm; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; background: #ffffff; padding: 0; margin: 0; color: #0f172a; }
+            .bill-container { width: 80mm; margin: 12px auto; background: #fff; border-radius: 6px; padding: 10px 10px 12px 10px; border: 1px solid #e2e8f0; }
+            .center { text-align: center; }
+            .title { font-size: 14px; font-weight: 700; margin: 4px 0 6px; }
+            .meta { font-size: 11px; margin: 4px 0 6px; }
+            .row { display: flex; justify-content: space-between; align-items: center; }
+            .hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 6px 0; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+            th, td { padding: 6px 2px; vertical-align: top; }
+            th { text-align: left; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+            .qty, .price, .amount { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum"; font-feature-settings: "tnum"; }
+            th:nth-child(1), td:nth-child(1) { width: 52%; }
+            th:nth-child(2), td:nth-child(2) { width: 12%; }
+            th:nth-child(3), td:nth-child(3) { width: 18%; }
+            th:nth-child(4), td:nth-child(4) { width: 18%; }
+            .item-name { font-weight: 600; }
+            .sub { font-size: 10px; }
+            .totals { margin-top: 6px; font-size: 12px; }
+            .totals .row { margin: 2px 0; }
+            .grand { font-weight: 800; font-size: 14px; }
+            .footer { text-align: center; font-size: 11px; margin-top: 8px; }
+            @media print { .bill-container { border: 0; } }
           </style>
         </head>
         <body>
           <div class="bill-container">
-            <div class="bill-header">
-              <img class="bill-logo" src="https://cdn-icons-png.flaticon.com/512/3075/3075977.png" alt="Logo" />
-              <div class="bill-title">HÓA ĐƠN THANH TOÁN</div>
-              <div class="bill-table">${tableName}</div>
-              <div class="bill-status">Trạng thái: Đơn hàng đang phục vụ (Delivering)</div>
+            <div class="center title">HÓA ĐƠN THANH TOÁN</div>
+            <div class="meta">
+              <div class="row">
+                <div>Mã HĐ: ${Date.now()}</div>
+                <div>Bàn: ${tableName}</div>
+              </div>
+              <div class="row">
+                <div>Ngày: ${new Date().toLocaleDateString("vi-VN")}</div>
+                <div>Giờ: ${new Date().toLocaleTimeString("vi-VN")}</div>
+              </div>
             </div>
-            <ul class="bill-list">
-              ${tableOrders
-                .flatMap((order) =>
-                  order.items.map((item) => {
-                    const itemPrice = (item.price || 0) * (item.quantity || 1);
-                    const toppingsPrice = item.toppings.reduce(
-                      (sum, t) => sum + (t.price || 0) * (item.quantity || 1),
-                      0
-                    );
-                    const totalItemPrice = itemPrice + toppingsPrice;
-                    return `<li>
-                      <div class="item-info">
-                        <span class="item-name">${item.productName}</span>
-                        ${
-                          item.sizeName
-                            ? `<span class="item-detail">(${item.sizeName})</span>`
-                            : ""
-                        }
-                        ${
-                          item.quantity > 1
-                            ? `<span class="item-detail">x${item.quantity}</span>`
-                            : ""
-                        }
+            <table>
+              <thead>
+                <tr>
+                  <th>Món</th>
+                  <th class="qty">SL</th>
+                  <th class="price">Đơn giá</th>
+                  <th class="amount">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableOrders
+                  .flatMap((order) =>
+                    order.items.map((item) => {
+                      const itemPrice =
+                        (item.price || 0) * (item.quantity || 1);
+                      const toppingsPrice = item.toppings.reduce(
+                        (sum, t) => sum + (t.price || 0) * (item.quantity || 1),
+                        0
+                      );
+                      const totalItemPrice = itemPrice + toppingsPrice;
+                      const nameCell = `
+                        <div class="item-name">${item.productName}${
+                        item.sizeName ? ` (${item.sizeName})` : ""
+                      }</div>
                         ${
                           item.toppings.length > 0
-                            ? `<div class="item-topping">+ ${item.toppings
+                            ? `<div class=\"sub\">+ ${item.toppings
                                 .map((t) => t.name)
                                 .join(", ")}</div>`
                             : ""
                         }
-                      </div>
-                      <span class="item-price">${totalItemPrice.toLocaleString(
-                        "vi-VN"
-                      )}đ</span>
-                    </li>`;
-                  })
-                )
-                .join("")}
-            </ul>
-            <div class="bill-total">Tổng cộng: ${total.toLocaleString(
-              "vi-VN"
-            )}đ</div>
-            <div class="bill-footer">
-              Thời gian: ${new Date().toLocaleString()}<br/>
-              Xin cảm ơn quý khách!<br/>
-              --- SEB Waiter ---
+                      `;
+                      return `
+                        <tr>
+                          <td>${nameCell}</td>
+                          <td class=\"qty\">${item.quantity || 1}</td>
+                          <td class=\"price\">${(
+                            item.price || 0
+                          ).toLocaleString("vi-VN")}đ</td>
+                          <td class=\"amount\">${totalItemPrice.toLocaleString(
+                            "vi-VN"
+                          )}đ</td>
+                        </tr>
+                      `;
+                    })
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+            <hr class="hr"/>
+            <div class="totals">
+              <div class="row"><div>Tạm tính</div><div>${total.toLocaleString(
+                "vi-VN"
+              )}đ</div></div>
+              <div class="row"><div>Phụ phí</div><div>${surchargeAmount.toLocaleString(
+                "vi-VN"
+              )}đ</div></div>
+              <div class="row grand"><div>Tổng cộng</div><div>${grandTotal.toLocaleString(
+                "vi-VN"
+              )}đ</div></div>
+            </div>
+            <hr class="hr"/>
+            <div class="footer">
+              Xin cảm ơn Quý khách! Vui lòng kiểm tra hóa đơn trước khi rời quán.
             </div>
           </div>
           <script>
@@ -522,7 +471,10 @@ export default function PaymentPanel({
                       <Button
                         className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
                         onClick={handleOnlinePayment}
-                        disabled={paymentStatus === "processing" || tableOrders.length === 0}
+                        disabled={
+                          paymentStatus === "processing" ||
+                          tableOrders.length === 0
+                        }
                       >
                         <CreditCard className="w-4 h-4 mr-2" />
                         Thanh toán online (VNPay)
