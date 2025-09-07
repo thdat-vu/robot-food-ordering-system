@@ -107,38 +107,81 @@ export function usePayment() {
         console.log("Orders response (Delivering only):", ordersResponse);
 
         if (ordersResponse.data) {
-          const paymentOrders: PaymentOrder[] = ordersResponse.data.map(
-            (order) => ({
-              id: order.id,
-              tableName: tableName || "Unknown Table", // Use the determined tableName or a fallback
-              status: order.status,
-              paymentStatus: order.paymentStatus,
-              totalPrice: order.totalPrice,
-              items: order.items.map((item) => {
-                console.log("Order item details:", {
-                  id: item.id,
-                  productName: item.productName,
-                  sizeName: item.sizeName,
-                  quantity: item.quantity,
-                  price: item.price,
-                  status: item.status,
-                  toppings: item.toppings,
-                });
-                return {
-                  id: item.id,
-                  productName: item.productName,
-                  sizeName: item.sizeName,
-                  quantity: item.quantity, // Use actual quantity from API (should be 1)
-                  price: item.price, // Use actual price from API (from ProductSize)
-                  status: item.status,
-                  toppings: item.toppings.map((topping) => ({
-                    name: topping.name,
-                    price: topping.price,
-                  })),
-                };
-              }),
-            })
+          // Helper: check if a datetime string is today (supports dd/MM/yyyy HH:mm:ss)
+          const isCreatedToday = (dateStr?: string | null): boolean => {
+            if (!dateStr) return true; // if missing, don't block it
+            const today = new Date();
+            const normalize = (d: Date) => ({
+              y: d.getFullYear(),
+              m: d.getMonth(),
+              d: d.getDate(),
+            });
+            let parsed: Date | null = null;
+
+            // Try format: dd/MM/yyyy HH:mm:ss
+            if (dateStr.includes("/")) {
+              const [datePart, timePart] = dateStr.split(" ");
+              const [dd, mm, yyyy] = datePart
+                .split("/")
+                .map((v) => parseInt(v, 10));
+              const [HH = "0", MM = "0", SS = "0"] = (
+                timePart || "0:0:0"
+              ).split(":");
+              parsed = new Date(
+                yyyy,
+                (mm || 1) - 1,
+                dd || 1,
+                parseInt(HH, 10) || 0,
+                parseInt(MM, 10) || 0,
+                parseInt(SS, 10) || 0
+              );
+            } else {
+              // Fallback: native Date parsing (ISO, etc.)
+              const tmp = new Date(dateStr);
+              parsed = isNaN(tmp.getTime()) ? null : tmp;
+            }
+
+            if (!parsed) return true; // if cannot parse, keep it visible to avoid data loss
+            const a = normalize(parsed);
+            const b = normalize(today);
+            return a.y === b.y && a.m === b.m && a.d === b.d;
+          };
+
+          // Filter to today's orders only
+          const todaysOrders = ordersResponse.data.filter((o) =>
+            isCreatedToday(o.createdTime)
           );
+
+          const paymentOrders: PaymentOrder[] = todaysOrders.map((order) => ({
+            id: order.id,
+            tableName: tableName || "Unknown Table", // Use the determined tableName or a fallback
+            status: order.status,
+            paymentStatus: order.paymentStatus,
+            totalPrice: order.totalPrice,
+            items: order.items.map((item) => {
+              console.log("Order item details:", {
+                id: item.id,
+                productName: item.productName,
+                sizeName: item.sizeName,
+                quantity: item.quantity,
+                price: item.price,
+                status: item.status,
+                toppings: item.toppings,
+              });
+              return {
+                id: item.id,
+                productName: item.productName,
+                sizeName: item.sizeName,
+                quantity: item.quantity, // Use actual quantity from API (should be 1)
+                price: item.price, // Use actual price from API (from ProductSize)
+                status: item.status,
+                toppings: item.toppings.map((topping) => ({
+                  name: topping.name,
+                  price: topping.price,
+                })),
+              };
+            }),
+          }));
           setTableOrders(paymentOrders);
           console.log("Filtered orders (Delivering only):", paymentOrders);
         } else {
