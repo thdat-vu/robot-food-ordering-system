@@ -27,6 +27,7 @@ import { OrderData } from "@/entites/moderator/tableModel";
 import { getApiUrl } from "@/env.config";
 
 import OrderCard from "../../components/moderator/OrderCard"; // Import OrderCard component
+import { log } from "console";
 
 type Prop = {
     idTable: string;
@@ -60,6 +61,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
     const {run} = useGetFeedbackByIdtable();
+    console.log('Feedback component rendered with idTable:', idTable, 'and open:', open , run);
     const {run: runCheck} = useCheckSS();
     const API_BASE = getApiUrl();
 
@@ -76,16 +78,16 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         "Cảm ơn bạn đã thông báo. Chúng tôi sẽ kiểm tra và cải thiện quy trình phục vụ."
     ];
 
-    // useEffect(() => {
-    //     if (open && idTable) {
-    //         const timeout = setTimeout(() => {
-    //             loadFeedbackData();
-    //             // Auto fetch orders when dialog opens
-    //             deboundfetchOrdersForTable(idTable);
-    //         }, 300);
-    //         return () => clearTimeout(timeout);
-    //     }
-    // }, [idTable, open]);
+    useEffect(() => {
+        if (open && idTable) {
+            const timeout = setTimeout(() => {
+                loadFeedbackData();
+                // Auto fetch orders when dialog opens
+                fetchOrdersForTable(idTable);
+            }, 300);
+            return () => clearTimeout(timeout);
+        }
+    }, [idTable, open]);
 
     useEffect(() => {
         setListId(Array.from(selectedFeedbacks));
@@ -94,6 +96,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     // Set default response value when component opens
     useEffect(() => {
         if (open && data.length > 0) {
+           console.log('Setting default responses for feedbacks:', data);
             const defaultResponses = data.reduce((acc, feedback) => {
                 if (!responses[feedback.idFeedback]) {
                     acc[feedback.idFeedback] = "Nhân viên đã tiếp nhận và khắc phục sự cố";
@@ -107,6 +110,8 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                     ...defaultResponses
                 }));
             }
+    
+
         }
     }, [open, data]);
 
@@ -290,6 +295,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         setIsLoading(true);
         try {
             const res = await run(idTable);
+            console.log('Fetched feedback data:', res.data);
            
             const sorted = (res.data as FeedbackgGetTableId[]).sort((a, b) => {
                 return sortOrder === 'newest'
@@ -348,6 +354,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
       
 
     const filteredData = data.filter(item => {
+        console.log('Filtering item:', item);
         const matchesFilter = selectedFilter === 'all' ||
             (selectedFilter === 'pending' && item.isPeeding) ||
             (selectedFilter === 'processed' && !item.isPeeding);

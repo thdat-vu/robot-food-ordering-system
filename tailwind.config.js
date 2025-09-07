@@ -48,6 +48,18 @@ module.exports = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        borderRun: {
+          "0%": { clipPath: "inset(0 100% 100% 0)" },
+          "25%": { clipPath: "inset(0 0 100% 0)" },
+          "50%": { clipPath: "inset(0 0 0 0)" },
+          "75%": { clipPath: "inset(100% 0 0 0)" },
+          "100%": { clipPath: "inset(0 100% 100% 0)" },
+        },
+      },
+      animation: {
+        borderRun: "borderRun 2s linear infinite",
+      },
     },
   },
   plugins: [require("flowbite/plugin")],

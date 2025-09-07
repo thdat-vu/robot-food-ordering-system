@@ -49,6 +49,26 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        borderRun: {
+          "0%": { clipPath: "inset(0 100% 100% 0)" },
+          "25%": { clipPath: "inset(0 0 100% 0)" },
+          "50%": { clipPath: "inset(0 0 0 0)" },
+          "75%": { clipPath: "inset(100% 0 0 0)" },
+          "100%": { clipPath: "inset(0 100% 100% 0)" },
+        },
+        glow: {
+          "0%, 100%": { opacity: "0.3", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.2)" },
+        },
+      },
+    
+      
+      animation: {
+        borderRun: "borderRun 2s linear infinite",
+        glow: "glow 1s ease-in-out infinite",
+      },
+      
     },
   },
   plugins: [require("flowbite/plugin")],
