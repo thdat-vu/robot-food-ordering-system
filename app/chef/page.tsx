@@ -40,6 +40,7 @@ function ChiefPageContent() {
   const [selectedOrderKey, setSelectedOrderKey] = useState<{ itemName: string; tableNumber: number; id: number } | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
   const [selectedGroups, setSelectedGroups] = useState<{ itemName: string; tableNumber: number; id: number }[][]>([]);
+  const [hasManualSelection, setHasManualSelection] = useState(false);
 
   // Custom hooks
   const {
@@ -135,6 +136,7 @@ function ChiefPageContent() {
     setSelectedGroups([]);
     setSelectedGroup(null);
     setSelectedOrderKey(null);
+    setHasManualSelection(false); // Reset manual selection flag on tab change
   }, [activeTab]);
 
 
@@ -143,6 +145,7 @@ function ChiefPageContent() {
     setSelectedGroups([]);
     setSelectedGroup(null);
     setSelectedOrderKey(null);
+    setHasManualSelection(false); // Reset manual selection flag on tab change
     setActiveTab(tab);
   }, [setActiveTab]);
 
@@ -296,6 +299,8 @@ function ChiefPageContent() {
 
   // Sidebar item click handler
   const handleSidebarItemClick = (orderKey: { itemName: string; tableNumber: number; id: number }) => {
+    setHasManualSelection(true); // Mark as manual selection
+    
     // Determine if this action will deselect the current selection
     const willDeselect =
       !!selectedOrderKey &&
@@ -323,6 +328,8 @@ function ChiefPageContent() {
 
   // Group selection handler
   const handleGroupSelection = (group: { itemName: string; tableNumber: number; id: number }[]) => {
+    setHasManualSelection(true); // Mark as manual selection
+    
     // Toggle logic: if the same group is selected, deselect it
     // Warning for main/dessert priorities on the same table(s). Only on selection.
     const isSameAsSelected = (() => {
@@ -355,7 +362,11 @@ function ChiefPageContent() {
   };
 
   // Multiple group selection handler
-  const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][]) => {
+  const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][], isAutomatic = false) => {
+    if (!isAutomatic) {
+      setHasManualSelection(true); // Mark as manual selection only if not automatic
+    }
+    
     // Warn only when adding to the selection; suppress when removing
     const prevLen = selectedGroups.length;
     const newLen = groups.length;
@@ -390,8 +401,8 @@ function ChiefPageContent() {
 
   // Function to automatically select the first group based on category priority
   const autoSelectFirstGroup = useCallback(() => {
-    // Only auto-select for relevant tabs, not for serve tab
-    if (activeTab === 'bắt đầu phục vụ') {
+    // Only auto-select for relevant tabs, not for serve tab, and only if user hasn't made manual selection
+    if (activeTab === 'bắt đầu phục vụ' || hasManualSelection) {
       return;
     }
 
@@ -470,10 +481,10 @@ function ChiefPageContent() {
       });
       
       if (!isAlreadySelected) {
-        handleMultipleGroupSelection([firstGroup]);
+        handleMultipleGroupSelection([firstGroup], true); // Pass true for automatic selection
       }
     }
-  }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection]);
+  }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection]);
 
   // Auto-select first group when page loads or significant data changes
   useEffect(() => {
@@ -643,6 +654,7 @@ function ChiefPageContent() {
         message="Nên ưu tiên làm Đồ uống trước Món chính."
         onClose={() => setIsPriorityInfoOpen(false)}
         onCancel={() => {
+          setHasManualSelection(true); // Mark as manual selection
           // Uncheck the last checked group, if any
           if (lastCheckedGroup) {
             const areSameGroup = (a: { itemName: string; tableNumber: number; id: number }[], b: { itemName: string; tableNumber: number; id: number }[]) => {
@@ -665,6 +677,7 @@ function ChiefPageContent() {
         message="Nên ưu tiên làm Món chính trước Tráng miệng."
         onClose={() => setIsDessertPriorityInfoOpen(false)}
         onCancel={() => {
+          setHasManualSelection(true); // Mark as manual selection
           if (lastCheckedGroup) {
             const areSameGroup = (a: { itemName: string; tableNumber: number; id: number }[], b: { itemName: string; tableNumber: number; id: number }[]) => {
               if (!a || !b || a.length !== b.length) return false;
