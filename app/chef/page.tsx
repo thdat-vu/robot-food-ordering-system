@@ -27,8 +27,7 @@ function ChiefPageContent() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [modalAction, setModalAction] = useState<'serve' | 'reject' | 'cancel'>('serve');
-  // Extend action type to include 'cancel'
+  const [modalAction, setModalAction] = useState<'serve' | 'reject'>('serve');
   const [isPriorityInfoOpen, setIsPriorityInfoOpen] = useState(false);
   const [isDessertPriorityInfoOpen, setIsDessertPriorityInfoOpen] = useState(false);
   const [lastCheckedGroup, setLastCheckedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
@@ -40,6 +39,7 @@ function ChiefPageContent() {
   const [selectedOrderKey, setSelectedOrderKey] = useState<{ itemName: string; tableNumber: number; id: number } | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
   const [selectedGroups, setSelectedGroups] = useState<{ itemName: string; tableNumber: number; id: number }[][]>([]);
+  const [hasManualSelection, setHasManualSelection] = useState(false);
 
   // Custom hooks
   const {
@@ -58,12 +58,12 @@ function ChiefPageContent() {
     handleServeOrder,
     handleAcceptRedoRequest,
     handleRejectRedoRequest,
-    handleCancelOrder,
     refreshOrders,
     shouldShowInSidebar,
     getTabCount,
     itemNameToCategory,
   } = useKitchenOrders();
+
 
   const { toasts, addToast, removeToast } = useToastKitchen();
 
@@ -134,13 +134,16 @@ function ChiefPageContent() {
     setSelectedGroups([]);
     setSelectedGroup(null);
     setSelectedOrderKey(null);
+    setHasManualSelection(false); // Reset manual selection flag on tab change
   }, [activeTab]);
+
 
   // Ensure selections are cleared immediately on tab change (defensive in addition to effect)
   const handleTabChange = useCallback((tab: OrderStatus) => {
     setSelectedGroups([]);
     setSelectedGroup(null);
     setSelectedOrderKey(null);
+    setHasManualSelection(false); // Reset manual selection flag on tab change
     setActiveTab(tab);
   }, [setActiveTab]);
 
@@ -209,11 +212,6 @@ function ChiefPageContent() {
     setShowModal(true);
   };
 
-  const handleCancelClick = (order: Order) => {
-    setSelectedOrder(order);
-    setModalAction('cancel');
-    setShowModal(true);
-  };
 
   const handleAcceptRedoClick = async (orderId: number, itemName: string) => {
     try {
@@ -274,26 +272,28 @@ function ChiefPageContent() {
     setSelectedOrder(null);
   };
 
-  const handleConfirmCancel = async () => {
-    if (selectedOrder) {
-      try {
-        await handleCancelOrder(selectedOrder.id);
-        addToast(`Đã huỷ món: ${selectedOrder.itemName}`, 'success');
-      } catch (error) {
-        addToast(`Lỗi khi huỷ món: ${selectedOrder.itemName}`, 'error');
-      }
-    }
-    setShowModal(false);
-    setSelectedOrder(null);
-  };
+  // const handleConfirmCancel = async () => {
+  //   if (selectedOrder) {
+  //     try {
+  //       await handleCancelOrder(selectedOrder.id);
+  //       addToast(`Đã huỷ món: ${selectedOrder.itemName}`, 'success');
+  //     } catch (error) {
+  //       addToast(`Lỗi khi huỷ món: ${selectedOrder.itemName}`, 'error');
+  //     }
+  //   }
+  //   setShowModal(false);
+  //   setSelectedOrder(null);
+  // };
 
-  const handleCancelModal = () => {
-    setShowModal(false);
-    setSelectedOrder(null);
-  };
+  // const handleCancelModal = () => {
+  //   setShowModal(false);
+  //   setSelectedOrder(null);
+  // };
 
   // Sidebar item click handler
   const handleSidebarItemClick = (orderKey: { itemName: string; tableNumber: number; id: number }) => {
+    setHasManualSelection(true); // Mark as manual selection
+    
     // Determine if this action will deselect the current selection
     const willDeselect =
       !!selectedOrderKey &&
@@ -321,6 +321,8 @@ function ChiefPageContent() {
 
   // Group selection handler
   const handleGroupSelection = (group: { itemName: string; tableNumber: number; id: number }[]) => {
+    setHasManualSelection(true); // Mark as manual selection
+    
     // Toggle logic: if the same group is selected, deselect it
     // Warning for main/dessert priorities on the same table(s). Only on selection.
     const isSameAsSelected = (() => {
@@ -353,7 +355,11 @@ function ChiefPageContent() {
   };
 
   // Multiple group selection handler
-  const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][]) => {
+  const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][], isAutomatic = false) => {
+    if (!isAutomatic) {
+      setHasManualSelection(true); // Mark as manual selection only if not automatic
+    }
+    
     // Warn only when adding to the selection; suppress when removing
     const prevLen = selectedGroups.length;
     const newLen = groups.length;
@@ -385,6 +391,113 @@ function ChiefPageContent() {
     setSelectedGroup(null); // Clear single group selection when multiple groups are selected
     setSelectedOrderKey(null); // Clear individual selection when groups are selected
   };
+
+  // Function to automatically select the first group based on category priority
+  const autoSelectFirstGroup = useCallback(() => {
+    // Only auto-select for relevant tabs, not for serve tab, and only if user hasn't made manual selection
+    if (activeTab === 'bắt đầu phục vụ' || hasManualSelection) {
+      return;
+    }
+
+    // Helper: compute chunk sizes between 3 and 5 to avoid tiny leftovers (same as sidebar)
+    const getChunkSizes = (total: number): number[] => {
+      if (total <= 5) return [total];
+      let numGroups = Math.ceil(total / 5);
+      let base = Math.floor(total / numGroups);
+      while (base < 3 && numGroups > 1) {
+        numGroups -= 1;
+        base = Math.floor(total / numGroups);
+      }
+      const remainder = total % numGroups;
+      const sizes = new Array(numGroups).fill(base);
+      for (let i = 0; i < remainder; i++) sizes[i] += 1;
+      return sizes as number[];
+    };
+
+    // Helper to filter items by selectedCategory (same as sidebar)
+    const filterByCategory = (itemName: string) => {
+      if (selectedCategory === 'Tất cả') return true;
+      return itemNameToCategory[itemName] === selectedCategory;
+    };
+
+    // Build per-itemName groups, respecting category/filter and excluding 'bắt đầu phục vụ' (same as sidebar)
+    const perItemGroups: { items: { itemName: string; tableNumber: number; id: number }[] }[] = [];
+
+    Object.entries(groupedOrders)
+      .filter(([itemName]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
+      .forEach(([itemName, orders]) => {
+        const filtered = orders
+          .filter(order => order.status !== 'bắt đầu phục vụ')
+          .map(order => ({ itemName, tableNumber: order.tableNumber, id: order.id }));
+
+        if (filtered.length === 0) return;
+
+        const sizes = getChunkSizes(filtered.length);
+        let cursor = 0;
+        sizes.forEach(size => {
+          perItemGroups.push({ items: filtered.slice(cursor, cursor + size) });
+          cursor += size;
+        });
+      });
+
+    // Sort groups by category priority: Đồ uống > Món chính > Tráng miệng (same as sidebar)
+    const categoryPriority = (categoryName: string | undefined): number => {
+      switch (categoryName) {
+        case 'Đồ uống':
+          return 0;
+        case 'Món chính':
+          return 1;
+        case 'Tráng miệng':
+          return 2;
+        default:
+          return 3;
+      }
+    };
+
+    perItemGroups.sort((a, b) => {
+      const aCategory = itemNameToCategory[a.items[0]?.itemName];
+      const bCategory = itemNameToCategory[b.items[0]?.itemName];
+      return categoryPriority(aCategory) - categoryPriority(bCategory);
+    });
+
+    // Select the first group if available
+    if (perItemGroups.length > 0) {
+      const firstGroup = perItemGroups[0].items;
+      // Only select if not already selected to avoid unnecessary re-renders
+      const isAlreadySelected = selectedGroups.some(group => {
+        if (group.length !== firstGroup.length) return false;
+        return group.every((item, index) => 
+          item.itemName === firstGroup[index].itemName &&
+          item.tableNumber === firstGroup[index].tableNumber &&
+          item.id === firstGroup[index].id
+        );
+      });
+      
+      if (!isAlreadySelected) {
+        handleMultipleGroupSelection([firstGroup], true); // Pass true for automatic selection
+      }
+    }
+  }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection]);
+
+  // Auto-select first group when page loads or significant data changes
+  useEffect(() => {
+    // Small delay to ensure selections are cleared first
+    const timeoutId = setTimeout(() => {
+      autoSelectFirstGroup();
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [autoSelectFirstGroup, groupedOrders, selectedCategory]);
+
+  // Auto-select first group when switching tabs (after selections are cleared)
+  useEffect(() => {
+    // Delay to ensure the clear selections effect runs first
+    const timeoutId = setTimeout(() => {
+      autoSelectFirstGroup();
+    }, 150);
+    
+    return () => clearTimeout(timeoutId);
+  }, [activeTab, autoSelectFirstGroup]);
 
   // Handle preparing multiple orders at once
   const handlePrepareMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
@@ -523,8 +636,8 @@ function ChiefPageContent() {
       <ConfirmationModal
         isOpen={showModal}
         selectedOrder={selectedOrder}
-        onConfirm={modalAction === 'serve' ? handleConfirmServe : modalAction === 'cancel' ? handleConfirmCancel : handleConfirmReject}
-        onCancel={handleCancelModal}
+        onConfirm={modalAction === 'serve' ? handleConfirmServe : handleConfirmReject}
+        onCancel={() => { setShowModal(false); setSelectedOrder(null); }}
         action={modalAction}
       />
 
@@ -534,6 +647,7 @@ function ChiefPageContent() {
         message="Nên ưu tiên làm Đồ uống trước Món chính."
         onClose={() => setIsPriorityInfoOpen(false)}
         onCancel={() => {
+          setHasManualSelection(true); // Mark as manual selection
           // Uncheck the last checked group, if any
           if (lastCheckedGroup) {
             const areSameGroup = (a: { itemName: string; tableNumber: number; id: number }[], b: { itemName: string; tableNumber: number; id: number }[]) => {
@@ -556,6 +670,7 @@ function ChiefPageContent() {
         message="Nên ưu tiên làm Món chính trước Tráng miệng."
         onClose={() => setIsDessertPriorityInfoOpen(false)}
         onCancel={() => {
+          setHasManualSelection(true); // Mark as manual selection
           if (lastCheckedGroup) {
             const areSameGroup = (a: { itemName: string; tableNumber: number; id: number }[], b: { itemName: string; tableNumber: number; id: number }[]) => {
               if (!a || !b || a.length !== b.length) return false;
@@ -588,7 +703,6 @@ function ChiefPageContent() {
           selectedGroups={selectedGroups}
           onMultipleGroupSelection={handleMultipleGroupSelection}
           orders={orders}
-          activeTab={activeTab as OrderStatus}
         />
       </div>
 
@@ -686,7 +800,6 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
-                onCancelClick={handleCancelClick}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
@@ -704,7 +817,6 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
-                onCancelClick={handleCancelClick}
                 onServeMultipleOrders={handleServeMultipleOrders}
                 showIndividualCards={true}
                 onAcceptRedoClick={handleAcceptRedoClick}
@@ -724,7 +836,6 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
-                onCancelClick={handleCancelClick}
                 onServeMultipleOrders={handleServeMultipleOrders}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
@@ -761,7 +872,6 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
-                onCancelClick={handleCancelClick}
                 onPrepareMultipleOrders={handlePrepareMultipleOrders}
                 onServeMultipleOrders={handleServeMultipleOrders}
                 showIndividualCards={true}
@@ -797,7 +907,6 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
-                onCancelClick={handleCancelClick}
                 onPrepareMultipleOrders={handlePrepareMultipleOrders}
                 onServeMultipleOrders={handleServeMultipleOrders}
                 showIndividualCards={true}
@@ -818,7 +927,6 @@ function ChiefPageContent() {
                 onGroupClick={handleGroupClick}
                 onPrepareClick={handlePrepareClick}
                 onServeClick={handleServeClick}
-                onCancelClick={handleCancelClick}
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}

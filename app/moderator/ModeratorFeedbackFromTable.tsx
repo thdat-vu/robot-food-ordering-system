@@ -17,7 +17,8 @@ import {
     Send,
     Lightbulb,
     ShoppingCart,
-    Eye
+    Eye,
+    History
 } from "lucide-react";
 import {FeedbackgGetTableId, dto} from "@/entites/moderator/FeedbackModole";
 import {useCheckSS, useGetFeedbackByIdtable} from "@/hooks/moderator/useFeedbackHooks";
@@ -27,6 +28,7 @@ import { OrderData } from "@/entites/moderator/tableModel";
 import { getApiUrl } from "@/env.config";
 
 import OrderCard from "../../components/moderator/OrderCard"; // Import OrderCard component
+import { log } from "console";
 
 type Prop = {
     idTable: string;
@@ -34,6 +36,9 @@ type Prop = {
     onClose: () => void;
     tableName: string;
 }
+
+// Define tab type
+type TabType = 'feedback' | 'orderHistory';
 
 export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                                                idTable,
@@ -55,11 +60,12 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const [responses, setResponses] = useState<{ [key: string]: string }>({});
     const [showSuggestions, setShowSuggestions] = useState<{ [key: string]: boolean }>({});
     
-    // New states for OrderCard integration
-    const [showOrderCard, setShowOrderCard] = useState(false);
+    // New states for navigation tabs
+    const [activeTab, setActiveTab] = useState<TabType>('feedback');
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
     const {run} = useGetFeedbackByIdtable();
+    console.log('Feedback component rendered with idTable:', idTable, 'and open:', open , run);
     const {run: runCheck} = useCheckSS();
     const API_BASE = getApiUrl();
 
@@ -76,16 +82,18 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         "Cảm ơn bạn đã thông báo. Chúng tôi sẽ kiểm tra và cải thiện quy trình phục vụ."
     ];
 
-    // useEffect(() => {
-    //     if (open && idTable) {
-    //         const timeout = setTimeout(() => {
-    //             loadFeedbackData();
-    //             // Auto fetch orders when dialog opens
-    //             deboundfetchOrdersForTable(idTable);
-    //         }, 300);
-    //         return () => clearTimeout(timeout);
-    //     }
-    // }, [idTable, open]);
+    useEffect(() => {
+        if (open && idTable) {
+            const timeout = setTimeout(() => {
+                if (activeTab === 'feedback') {
+                    loadFeedbackData();
+                } else if (activeTab === 'orderHistory') {
+                    fetchOrdersForTable(idTable);
+                }
+            }, 300);
+            return () => clearTimeout(timeout);
+        }
+    }, [idTable, open, activeTab]);
 
     useEffect(() => {
         setListId(Array.from(selectedFeedbacks));
@@ -93,7 +101,8 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
     // Set default response value when component opens
     useEffect(() => {
-        if (open && data.length > 0) {
+        if (open && data.length > 0 && activeTab === 'feedback') {
+           console.log('Setting default responses for feedbacks:', data);
             const defaultResponses = data.reduce((acc, feedback) => {
                 if (!responses[feedback.idFeedback]) {
                     acc[feedback.idFeedback] = "Nhân viên đã tiếp nhận và khắc phục sự cố";
@@ -108,49 +117,59 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                 }));
             }
         }
-    }, [open, data]);
+    }, [open, data, activeTab]);
 
     const fetchOrdersForTable = async (tableId: string) => {
-            if (loadingOrders[tableId]) return;
-            if (orderData[tableId] && orderData[tableId].length > 0) {
-                console.log(`Orders for table ${tableId} already loaded, skipping fetch.`);
-                return;
-            }
-            try {
-                setLoadingOrders(prev => ({ ...prev, [tableId]: true }));
-                const response = await fetch(`${API_BASE}/Order/table/${tableId}`);
-                if (!response.ok) throw new Error('Failed to fetch orders');
-                const orders = await response.json();
-                console.log(`Orders for table ${tableId}:`, orders.data);
-                
-                setOrderData(prev => ({
-                    ...prev,
-                    [tableId]: orders?.data || []
-                }));
-            } catch (err) {
-                console.error('Error fetching orders:', err);
-                setOrderData(prev => ({
-                    ...prev,
-                    [tableId]: []
-                }));
-            } finally {
-                setLoadingOrders(prev => ({ ...prev, [tableId]: false }));
-            }
-        };
-    
-        // const deboundfetchOrdersForTable = useCallback(debounce(fetchOrdersForTable, 300), []);
+        if (loadingOrders[tableId]) return;
+        if (orderData[tableId] && orderData[tableId].length > 0) {
+            console.log(`Orders for table ${tableId} already loaded, skipping fetch.`);
+            return;
+        }
+        try {
+            setLoadingOrders(prev => ({ ...prev, [tableId]: true }));
+            const response = await fetch(`${API_BASE}/Order/table/${tableId}`);
+            if (!response.ok) throw new Error('Failed to fetch orders');
+            const orders = await response.json();
+            console.log(`Orders for table ${tableId}:`, orders.data);
+            
+            setOrderData(prev => ({
+                ...prev,
+                [tableId]: orders?.data || []
+            }));
+        } catch (err) {
+            console.error('Error fetching orders:', err);
+            setOrderData(prev => ({
+                ...prev,
+                [tableId]: []
+            }));
+        } finally {
+            setLoadingOrders(prev => ({ ...prev, [tableId]: false }));
+        }
+    };
+
+    // Handle tab change
+    const handleTabChange = (tab: TabType) => {
+        setActiveTab(tab);
+        // Clear search when switching tabs
+        setSearchQuery('');
+        // Load appropriate data for the selected tab
+        if (tab === 'feedback' && data.length === 0) {
+            loadFeedbackData();
+        } else if (tab === 'orderHistory' && (!orderData[idTable] || orderData[idTable].length === 0)) {
+            fetchOrdersForTable(idTable);
+        }
+    };
 
     // Handle OrderCard toggle expand
     const handleToggleOrderExpand = (orderId: string) => {
         setExpandedOrderId(prev => prev === orderId ? null : orderId);
     };
 
-    // Handle show order details
-    const handleShowOrderDetails = async () => {
-        setShowOrderCard(true);
-        // Fetch orders if not already loaded
+    // Reuse existing handleShowOrderDetails functionality for tab navigation
+    const handleShowOrderDetails = () => {
+        setActiveTab('orderHistory');
         if (!orderData[idTable] || orderData[idTable].length === 0) {
-            await fetchOrdersForTable(idTable);
+            fetchOrdersForTable(idTable);
         }
     };
 
@@ -290,6 +309,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         setIsLoading(true);
         try {
             const res = await run(idTable);
+            console.log('Fetched feedback data:', res.data);
            
             const sorted = (res.data as FeedbackgGetTableId[]).sort((a, b) => {
                 return sortOrder === 'newest'
@@ -303,7 +323,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             setData([]);
         } finally {
             setIsLoading(false);
-        }
+        }   
     };
 
     const parseDate = (date: string | Date) => {
@@ -344,10 +364,9 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         if (hours < 24) return `${hours} giờ trước`;
         return `${days} ngày trước`;
       };
-      
-      
 
     const filteredData = data.filter(item => {
+        console.log('Filtering item:', item);
         const matchesFilter = selectedFilter === 'all' ||
             (selectedFilter === 'pending' && item.isPeeding) ||
             (selectedFilter === 'processed' && !item.isPeeding);
@@ -409,78 +428,16 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         return text.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>');
     };
 
+    // Helper function to get appropriate refresh function based on active tab
+    const handleRefresh = () => {
+        if (activeTab === 'feedback') {
+            loadFeedbackData();
+        } else if (activeTab === 'orderHistory') {
+            fetchOrdersForTable(idTable);
+        }
+    };
+
     if (!open) return null;
-
-    // Render OrderCard Modal
-    if (showOrderCard) {
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                <ToastContainer toasts={toasts} onRemoveToast={removeToast}/>
-                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden border border-gray-200">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 px-8 py-6 text-white relative overflow-hidden">
-                        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                        <div className="relative z-10">
-                            <button
-                                onClick={() => setShowOrderCard(false)}
-                                className="absolute top-0 right-0 p-3 hover:bg-white/20 rounded-full transition-all duration-200 hover:rotate-90"
-                            >
-                                <X className="w-6 h-6"/>
-                            </button>
-                            <div className="flex items-center space-x-4">
-                                <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-lg">
-                                    <ShoppingCart className="w-8 h-8"/>
-                                </div>
-                                <div>
-                                    <h2 className="text-3xl font-bold mb-1">Chi Tiết Đơn Hàng</h2>
-                                    <p className="text-blue-100">{tableName}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* OrderCard Content */}
-                    <div className="flex-1 overflow-y-auto max-h-[70vh] p-6">
-                        {loadingOrders[idTable] ? (
-                            <div className="flex items-center justify-center p-16">
-                                <div className="text-center">
-                                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-500 mx-auto mb-6"></div>
-                                    <h3 className="text-xl font-semibold text-gray-700 mb-2">Đang tải đơn hàng...</h3>
-                                    <p className="text-gray-500">Vui lòng đợi trong giây lát</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <OrderCard 
-                                orders={orderData[idTable] || []}
-                                onToggleExpand={handleToggleOrderExpand}
-                                expandedOrderId={expandedOrderId}
-                            />
-                        )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="bg-white px-8 py-6 border-t-2 border-gray-200">
-                        <div className="flex justify-end space-x-4">
-                            <button
-                                onClick={() => setShowOrderCard(false)}
-                                className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-100 transition-all duration-200 font-semibold"
-                            >
-                                Đóng
-                            </button>
-                            <button
-                                onClick={() => fetchOrdersForTable(idTable)}
-                                disabled={loadingOrders[idTable]}
-                                className="px-8 py-3 bg-blue-500 text-white rounded-2xl hover:bg-blue-600 transition-all duration-200 font-semibold disabled:opacity-50 flex items-center space-x-2"
-                            >
-                                <RefreshCw className={`w-5 h-5 ${loadingOrders[idTable] ? 'animate-spin' : ''}`}/>
-                                <span>Làm mới</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -488,6 +445,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
             <div
                 className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden border border-gray-200">
+                {/* Header */}
                 <div
                     className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 px-8 py-6 text-white relative overflow-hidden">
                     <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
@@ -502,459 +460,585 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center space-x-4">
                                 <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-lg">
-                                    <MessageSquare className="w-8 h-8"/>
+                                    {activeTab === 'feedback' ? (
+                                        <MessageSquare className="w-8 h-8"/>
+                                    ) : (
+                                        <History className="w-8 h-8"/>
+                                    )}
                                 </div>
                                 <div>
-                                    <h2 className="text-3xl font-bold mb-1">Quản lý phản hồi khách hàng</h2>
+                                    <h2 className="text-3xl font-bold mb-1">
+                                        {activeTab === 'feedback' ? 'Quản lý phản hồi khách hàng' : 'Lịch sử đơn hàng'}
+                                    </h2>
                                     <p className="text-blue-100">{tableName}</p>
                                 </div>
                             </div>
-                            
-                            {/* Order Details Button */}
+                        </div>
+
+                        {/* Navigation Tabs */}
+                        <div className="flex bg-white/20 backdrop-blur-lg rounded-2xl p-2 mb-6 border border-white/30">
                             <button
-                                onClick={handleShowOrderDetails}
-                                className="flex items-center space-x-2 px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-2xl transition-all duration-200 backdrop-blur-lg border border-white/30 hover:border-white/50"
+                                onClick={() => handleTabChange('feedback')}
+                                className={`flex items-center space-x-3 px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                                    activeTab === 'feedback'
+                                        ? 'bg-white text-blue-600 shadow-lg'
+                                        : 'text-white hover:bg-white/20'
+                                }`}
                             >
-                                <Eye className="w-5 h-5" />
-                                <span className="font-semibold">Xem Chi Tiết Đơn Hàng</span>
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
-                            <div
-                                className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
-                                <div className="flex items-center justify-center space-x-2 mb-1">
-                                    <AlertCircle className="w-5 h-5 text-yellow-300"/>
-                                    <span className="text-2xl font-bold">{pendingCount}</span>
-                                </div>
-                                <span className="text-sm text-blue-100">Chưa xử lý</span>
-                            </div>
-                            <div
-                                className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
-                                <div className="flex items-center justify-center space-x-2 mb-1">
-                                    <CheckCircle className="w-5 h-5 text-green-300"/>
-                                    <span className="text-2xl font-bold">{processedCount}</span>
-                                </div>
-                                <span className="text-sm text-blue-100">Đã xử lý</span>
-                            </div>
-                            <div
-                                className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
-                                <div className="flex items-center justify-center space-x-2 mb-1">
-                                    <MessageSquare className="w-5 h-5 text-blue-300"/>
-                                    <span className="text-2xl font-bold">{filteredData.length}</span>
-                                </div>
-                                <span className="text-sm text-blue-100">Hiển thị</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                    <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-                        <div className="relative flex-1 max-w-2xl">
-                            <div className="relative">
-                                <Search
-                                    className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"/>
-                                <input
-                                    type="text"
-                                    placeholder="Tìm kiếm phản hồi, món ăn hoặc ID..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-12 pr-12 py-4 rounded-2xl border-2 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-medium placeholder-gray-400 bg-white shadow-sm"
-                                />
-                                {searchQuery && (
-                                    <button
-                                        onClick={clearSearch}
-                                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                                    >
-                                        <X className="w-5 h-5"/>
-                                    </button>
-                                )}
-                            </div>
-                            {searchQuery && (
-                                <div className="mt-2 text-sm text-gray-600">
-                                    Tìm thấy <span
-                                    className="font-semibold text-blue-600">{filteredData.length}</span> kết quả cho
-                                    "{searchQuery}"
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <button
-                                onClick={handleSortToggle}
-                                className="flex items-center space-x-2 px-4 py-3 bg-white rounded-2xl border border-gray-300 hover:bg-gray-50 transition-all duration-200 shadow-sm"
-                            >
-                                <ArrowUpDown className="w-5 h-5 text-gray-500"/>
-                                <span className="font-medium text-gray-700">
-                                    {sortOrder === 'newest' ? 'Mới nhất' : 'Cũ nhất'}
+                                <MessageSquare className="w-5 h-5"/>
+                                <span>Phản hồi khách hàng</span>
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                    activeTab === 'feedback'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : 'bg-white/20 text-white'
+                                }`}>
+                                    {data.length}
                                 </span>
                             </button>
-
-                            <div className="flex bg-white rounded-2xl p-1 shadow-sm border-2 border-gray-200">
-                                {[
-                                    {key: 'all', label: 'Tất cả', count: data.length, color: 'blue'},
-                                    {key: 'pending', label: 'Chưa xử lý', count: pendingCount, color: 'amber'},
-                                    {key: 'processed', label: 'Đã xử lý', count: processedCount, color: 'green'}
-                                ].map(filter => (
-                                    <button
-                                        key={filter.key}
-                                        onClick={() => setSelectedFilter(filter.key as any)}
-                                        className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 whitespace-nowrap ${
-                                            selectedFilter === filter.key
-                                                ? `bg-${filter.color}-500 text-black shadow-lg transform scale-105`
-                                                : 'text-gray-600 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        {filter.label}
-                                        <span className={`ml-2 px-2 py-1 rounded-full text-xs  ${
-                                            selectedFilter === filter.key
-                                                ? 'bg-white/20 text-white'
-                                                : 'bg-gray-200 text-gray-600'
-                                        }`}>
-                                            {filter.count}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-
+                            
                             <button
-                                onClick={loadFeedbackData}
-                                disabled={isLoading}
-                                className="p-3 bg-blue-500 text-white rounded-2xl hover:bg-blue-600 transition-all duration-200 shadow-sm disabled:opacity-50"
+                                onClick={() => handleTabChange('orderHistory')}
+                                className={`flex items-center space-x-3 px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                                    activeTab === 'orderHistory'
+                                        ? 'bg-white text-blue-600 shadow-lg'
+                                        : 'text-white hover:bg-white/20'
+                                }`}
                             >
-                                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}/>
+                                <History className="w-5 h-5"/>
+                                <span>Lịch sử đơn hàng</span>
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                    activeTab === 'orderHistory'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : 'bg-white/20 text-white'
+                                }`}>
+                                    {orderData[idTable]?.length || 0}
+                                </span>
                             </button>
                         </div>
-                    </div>
 
-                    {selectedFeedbacks.size > 0 && (
-                        <div className="mt-6 p-4 bg-blue-50 rounded-2xl border-2 border-blue-200 shadow-sm">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <div
-                                        className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                                        {selectedFeedbacks.size}
+                        {/* Tab-specific stats */}
+                        {activeTab === 'feedback' && (
+                            <div className="grid grid-cols-3 gap-4">
+                                <div
+                                    className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
+                                    <div className="flex items-center justify-center space-x-2 mb-1">
+                                        <AlertCircle className="w-5 h-5 text-yellow-300"/>
+                                        <span className="text-2xl font-bold">{pendingCount}</span>
                                     </div>
-                                    <span className="text-blue-800 font-semibold">
-                                        phản hồi đã được chọn
-                                    </span>
+                                    <span className="text-sm text-blue-100">Chưa xử lý</span>
                                 </div>
-                                <div className="flex space-x-3">
-                                    <button
-                                        onClick={handleCheck}
-                                        disabled={isChecking || selectedFeedbacks.size === 0}
-                                        className="px-6 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-200 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {isChecking ? (
-                                            <>
-                                                <RefreshCw className="w-4 h-4 animate-spin"/>
-                                                <span>Đang xử lý...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle className="w-4 h-4"/>
-                                                <span>Đánh dấu đã xử lý</span>
-                                            </>
-                                        )}
-                                    </button>
+                                <div
+                                    className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
+                                    <div className="flex items-center justify-center space-x-2 mb-1">
+                                        <CheckCircle className="w-5 h-5 text-green-300"/>
+                                        <span className="text-2xl font-bold">{processedCount}</span>
+                                    </div>
+                                    <span className="text-sm text-blue-100">Đã xử lý</span>
+                                </div>
+                                <div
+                                    className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
+                                    <div className="flex items-center justify-center space-x-2 mb-1">
+                                        <MessageSquare className="w-5 h-5 text-blue-300"/>
+                                        <span className="text-2xl font-bold">{filteredData.length}</span>
+                                    </div>
+                                    <span className="text-sm text-blue-100">Hiển thị</span>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+
+                        {activeTab === 'orderHistory' && (
+                            <div className="grid grid-cols-4 gap-4">
+                                <div
+                                    className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
+                                    <div className="flex items-center justify-center space-x-2 mb-1">
+                                        <Clock className="w-5 h-5 text-yellow-300"/>
+                                        <span className="text-2xl font-bold">
+                                            {orderData[idTable]?.filter(o => o.status === 'Pending').length || 0}
+                                        </span>
+                                    </div>
+                                    <span className="text-sm text-blue-100">Chờ xử lý</span>
+                                </div>
+                                <div
+                                    className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
+                                    <div className="flex items-center justify-center space-x-2 mb-1">
+                                        <AlertTriangle className="w-5 h-5 text-orange-300"/>
+                                        <span className="text-2xl font-bold">
+                                            {orderData[idTable]?.filter(o => o.status === 'Preparing').length || 0}
+                                        </span>
+                                    </div>
+                                    <span className="text-sm text-blue-100">Đang chuẩn bị</span>
+                                </div>
+                                <div
+                                    className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
+                                    <div className="flex items-center justify-center space-x-2 mb-1">
+                                        <CheckCircle2 className="w-5 h-5 text-green-300"/>
+                                        <span className="text-2xl font-bold">
+                                            {orderData[idTable]?.filter(o => o.status === 'Completed').length || 0}
+                                        </span>
+                                    </div>
+                                    <span className="text-sm text-blue-100">Hoàn thành</span>
+                                </div>
+                                <div
+                                    className="bg-white/20 backdrop-blur-lg rounded-2xl px-4 py-3 text-center border border-white/30">
+                                    <div className="flex items-center justify-center space-x-2 mb-1">
+                                        <XCircle className="w-5 h-5 text-red-300"/>
+                                        <span className="text-2xl font-bold">
+                                            {orderData[idTable]?.filter(o => o.status === 'Cancelled').length || 0}
+                                        </span>
+                                    </div>
+                                    <span className="text-sm text-blue-100">Đã hủy</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto max-h-[55vh] bg-gray-50">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center p-16">
-                            <div className="text-center">
-                                <div
-                                    className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-500 mx-auto mb-6"></div>
-                                <h3 className="text-xl font-semibold text-gray-700 mb-2">Đang tải phản hồi...</h3>
-                                <p className="text-gray-500">Vui lòng đợi trong giây lát</p>
-                            </div>
-                        </div>
-                    ) : filteredData.length === 0 ? (
-                        <div className="flex items-center justify-center p-16">
-                            <div className="text-center">
-                                <MessageSquare className="w-20 h-20 text-gray-300 mx-auto mb-6"/>
-                                <h3 className="text-2xl font-semibold text-gray-600 mb-3">
-                                    {searchQuery ? 'Không tìm thấy kết quả' : 'Không có phản hồi'}
-                                </h3>
-                                <p className="text-gray-500 text-lg">
-                                    {searchQuery
-                                        ? `Không có phản hồi nào chứa "${searchQuery}"`
-                                        : 'Chưa có phản hồi nào cho bàn này'}
-                                </p>
+                {/* Controls Bar - Only show for feedback tab */}
+                {activeTab === 'feedback' && (
+                    <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                            <div className="relative flex-1 max-w-2xl">
+                                <div className="relative">
+                                    <Search
+                                        className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"/>
+                                    <input
+                                        type="text"
+                                        placeholder="Tìm kiếm phản hồi, món ăn hoặc ID..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-12 pr-12 py-4 rounded-2xl border-2 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-medium placeholder-gray-400 bg-white shadow-sm"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={clearSearch}
+                                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                                        >
+                                            <X className="w-5 h-5"/>
+                                        </button>
+                                    )}
+                                </div>
                                 {searchQuery && (
-                                    <button
-                                        onClick={clearSearch}
-                                        className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors duration-200"
-                                    >
-                                        Xóa bộ lọc
-                                    </button>
+                                    <div className="mt-2 text-sm text-gray-600">
+                                        Tìm thấy <span
+                                        className="font-semibold text-blue-600">{filteredData.length}</span> kết quả cho
+                                        "{searchQuery}"
+                                    </div>
                                 )}
                             </div>
-                        </div>
-                    ) : (
-                        <div className="p-6">
-                            {filteredData.some(item => item.isPeeding) && (
-                                <div className="mb-6 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                                    <label className="flex items-center space-x-4 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedFeedbacks.size === filteredData.filter(item => item.isPeeding).length && filteredData.filter(item => item.isPeeding).length > 0}
-                                            onChange={handleSelectAll}
-                                            className="w-6 h-6 text-blue-600 rounded border-2 border-gray-300 focus:ring-blue-500"
-                                        />
-                                        <span className="font-semibold text-gray-700 text-lg">
-                                            Chọn tất cả phản hồi chưa xử lý trong danh sách này
-                                            <span
-                                                className="text-blue-600">({filteredData.filter(item => item.isPeeding).length})</span>
-                                        </span>
-                                    </label>
+
+                            <div className="flex items-center space-x-4">
+                                <button
+                                    onClick={handleSortToggle}
+                                    className="flex items-center space-x-2 px-4 py-3 bg-white rounded-2xl border border-gray-300 hover:bg-gray-50 transition-all duration-200 shadow-sm"
+                                >
+                                    <ArrowUpDown className="w-5 h-5 text-gray-500"/>
+                                    <span className="font-medium text-gray-700">
+                                        {sortOrder === 'newest' ? 'Mới nhất' : 'Cũ nhất'}
+                                    </span>
+                                </button>
+
+                                <div className="flex bg-white rounded-2xl p-1 shadow-sm border-2 border-gray-200">
+                                    {[
+                                        {key: 'all', label: 'Tất cả', count: data.length, color: 'blue'},
+                                        {key: 'pending', label: 'Chưa xử lý', count: pendingCount, color: 'amber'},
+                                        {key: 'processed', label: 'Đã xử lý', count: processedCount, color: 'green'}
+                                    ].map(filter => (
+                                        <button
+                                            key={filter.key}
+                                            onClick={() => setSelectedFilter(filter.key as any)}
+                                            className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 whitespace-nowrap ${
+                                                selectedFilter === filter.key
+                                                    ? `bg-${filter.color}-500 text-black shadow-lg transform scale-105`
+                                                    : 'text-gray-600 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            {filter.label}
+                                            <span className={`ml-2 px-2 py-1 rounded-full text-xs  ${
+                                                selectedFilter === filter.key
+                                                    ? 'bg-white/20 text-white'
+                                                    : 'bg-gray-200 text-gray-600'
+                                            }`}>
+                                                {filter.count}
+                                            </span>
+                                        </button>
+                                    ))}
                                 </div>
-                            )}
 
-                            <div className="space-y-6">
-                                {filteredData.map((feedback, index) => (
-                                    <div
-                                        key={feedback.idFeedback}
-                                        className={`border-2 rounded-3xl p-6 transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 ${
-                                            feedback.isPeeding
-                                                ? 'border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50 hover:border-orange-300'
-                                                : 'border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 hover:border-green-300'
-                                        } ${selectedFeedbacks.has(feedback.idFeedback) ? 'ring-4 ring-blue-400 shadow-lg' : ''}`}
-                                    >
-                                        <div className="flex items-start space-x-6">
-                                            <div className="flex-shrink-0 pt-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedFeedbacks.has(feedback.idFeedback)}
-                                                    onChange={() => handleCheckboxChange(feedback.idFeedback, feedback.isPeeding)}
-                                                    disabled={!feedback.isPeeding || isChecking}
-                                                    className={`w-6 h-6 text-blue-600 rounded-lg border-2 border-gray-300 focus:ring-blue-500 transition-all duration-200 ${
-                                                        !feedback.isPeeding || isChecking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
-                                                    }`}
-                                                />
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="flex items-center space-x-4">
-                                                        <span
-                                                            className="bg-white px-4 py-2 rounded-full text-sm font-bold text-gray-600 shadow-sm">
-                                                            #{index + 1}
-                                                        </span>
-                                                        <div
-                                                            className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-bold shadow-sm ${
-                                                                feedback.isPeeding
-                                                                    ? 'bg-orange-100 text-orange-800 border border-orange-200'
-                                                                    : 'bg-green-100 text-green-800 border border-green-200'
-                                                            }`}>
-                                                            {feedback.isPeeding ? (
-                                                                <AlertCircle className="w-4 h-4"/>
-                                                            ) : (
-                                                                <CheckCircle className="w-4 h-4"/>
-                                                            )}
-                                                            <span>
-                                                                {feedback.isPeeding ? 'Chưa xử lý' : 'Đã xử lý'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex flex-col items-end space-y-1">
-                                                        <div className="flex items-center space-x-2 text-gray-500">
-                                                            <Calendar className="w-4 h-4"/>
-                                                            <span className="text-sm font-medium">
-                                                                {formatDate(feedback.createData)}
-                                                            </span>
-                                                        </div>
-                                                        <span className="text-xs text-gray-400 font-medium">
-                                                            {getRelativeTime(feedback.createData)}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                {feedback.dtos && feedback.dtos.length > 0 && (
-                                                    <div className="mb-4">
-                                                        <div className="flex items-center space-x-2 mb-3">
-                                                            <Package className="w-5 h-5 text-gray-600"/>
-                                                            <h4 className="text-lg font-semibold text-gray-700">
-                                                                Món ăn liên quan ({feedback.dtos.length})
-                                                            </h4>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                            {(() => {
-                                                                // Group items by name and count them
-                                                                const groupedItems = feedback.dtos.reduce((acc: {
-                                                                    [key: string]: { item: dto, count: number }
-                                                                }, item: dto) => {
-                                                                    if (acc[item.orderItemName]) {
-                                                                        acc[item.orderItemName].count++;
-                                                                    } else {
-                                                                        acc[item.orderItemName] = {item, count: 1};
-                                                                    }
-                                                                    return acc;
-                                                                }, {});
-
-                                                                return Object.values(groupedItems).map(({
-                                                                                                            item,
-                                                                                                            count
-                                                                                                        }) => {
-                                                                    const statusInfo = getStatusInfo(item.status);
-                                                                    const StatusIcon = statusInfo.icon;
-
-                                                                    return (
-                                                                        <div
-                                                                            key={item.orderItemId}
-                                                                            className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
-                                                                        >
-                                                                            <div
-                                                                                className="flex items-center space-x-4">
-                                                                                {item.imageUrl && (
-                                                                                    <img
-                                                                                        src={item.imageUrl}
-                                                                                        alt={item.orderItemName}
-                                                                                        className="w-16 h-16 rounded-lg object-cover border-2 border-gray-200"
-                                                                                    />
-                                                                                )}
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <h5 className="font-semibold text-gray-800 mb-2">
-                                                                                        <span
-                                                                                            dangerouslySetInnerHTML={{
-                                                                                                __html: highlightSearchText(item.orderItemName, searchQuery)
-                                                                                            }}
-                                                                                        />
-                                                                                        {count > 1 && (
-                                                                                            <span
-                                                                                                className="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-bold">
-                                                                                                x{count}
-                                                                                            </span>
-                                                                                        )}
-                                                                                    </h5>
-                                                                                    <div
-                                                                                        className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}`}>
-                                                                                        <StatusIcon
-                                                                                            className="w-4 h-4"/>
-                                                                                        <span>{statusInfo.label}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                });
-                                                            })()}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <div
-                                                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-4">
-                                                    <div className="flex items-center space-x-2 mb-3">
-                                                        <MessageSquare className="w-5 h-5 text-gray-600"/>
-                                                        <h4 className="font-semibold text-gray-700">Nội dung phản
-                                                            hồi:</h4>
-                                                    </div>
-                                                    <p
-                                                        className="text-gray-800 leading-relaxed text-lg"
-                                                        dangerouslySetInnerHTML={{
-                                                            __html: highlightSearchText(feedback.feedBack, searchQuery)
-                                                        }}
-                                                    />
-                                                </div>
-
-                                                {/* Response Input Section */}
-                                                <div
-                                                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-4">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <div className="flex items-center space-x-2">
-                                                            <Send className="w-5 h-5 text-gray-600"/>
-                                                            <h4 className="font-semibold text-gray-700">Phản hồi cho
-                                                                khách hàng:</h4>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => toggleSuggestions(feedback.idFeedback)}
-                                                            className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all duration-200 text-sm font-medium"
-                                                        >
-                                                            <Lightbulb className="w-4 h-4"/>
-                                                            <span>Gợi ý</span>
-                                                        </button>
-                                                    </div>
-
-                                                    {showSuggestions[feedback.idFeedback] && (
-                                                        <div
-                                                            className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                                                            <h5 className="font-medium text-blue-800 mb-3 flex items-center space-x-2">
-                                                                <Lightbulb className="w-4 h-4"/>
-                                                                <span>Các gợi ý phản hồi:</span>
-                                                            </h5>
-                                                            <div className="grid grid-cols-1 gap-2">
-                                                                {responseSuggestions.map((suggestion, idx) => (
-                                                                    <button
-                                                                        key={idx}
-                                                                        onClick={() => handleSuggestionClick(feedback.idFeedback, suggestion)}
-                                                                        className="text-left p-3 bg-white hover:bg-blue-50 rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200 text-sm text-gray-700 hover:text-blue-800"
-                                                                    >
-                                                                        {suggestion}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="flex space-x-3">
-                                                        <textarea
-                                                            value={responses[feedback.idFeedback] || ''}
-                                                            onChange={(e) => handleResponseChange(feedback.idFeedback, e.target.value)}
-                                                            placeholder="Nhập phản hồi cho khách hàng..."
-                                                            className="flex-1 p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none h-24 text-sm"
-                                                            rows={3}
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                {feedback.isPeeding && (
-                                                    <div className="flex justify-end">
-                                                        <button
-                                                            onClick={() => handleSingleCheck(feedback.idFeedback)}
-                                                            disabled={isChecking}
-                                                            className="px-6 py-3 bg-green-500 text-white rounded-2xl hover:bg-green-600 transition-all duration-200 flex items-center space-x-3 shadow-sm hover:shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                                        >
-                                                            {isChecking ? (
-                                                                <>
-                                                                    <RefreshCw className="w-5 h-5 animate-spin"/>
-                                                                    <span className="font-semibold">Đang xử lý...</span>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <CheckCircle className="w-5 h-5"/>
-                                                                    <span
-                                                                        className="font-semibold">Đánh dấu đã xử lý</span>
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                <button
+                                    onClick={handleRefresh}
+                                    disabled={isLoading || loadingOrders[idTable]}
+                                    className="p-3 bg-blue-500 text-white rounded-2xl hover:bg-blue-600 transition-all duration-200 shadow-sm disabled:opacity-50"
+                                >
+                                    <RefreshCw className={`w-5 h-5 ${(isLoading || loadingOrders[idTable]) ? 'animate-spin' : ''}`}/>
+                                </button>
                             </div>
                         </div>
+
+                        {selectedFeedbacks.size > 0 && (
+                            <div className="mt-6 p-4 bg-blue-50 rounded-2xl border-2 border-blue-200 shadow-sm">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div
+                                            className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                            {selectedFeedbacks.size}
+                                        </div>
+                                        <span className="text-blue-800 font-semibold">
+                                            phản hồi đã được chọn
+                                        </span>
+                                    </div>
+                                    <div className="flex space-x-3">
+                                        <button
+                                            onClick={handleCheck}
+                                            disabled={isChecking || selectedFeedbacks.size === 0}
+                                            className="px-6 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-200 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isChecking ? (
+                                                <>
+                                                    <RefreshCw className="w-4 h-4 animate-spin"/>
+                                                    <span>Đang xử lý...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle className="w-4 h-4"/>
+                                                    <span>Đánh dấu đã xử lý</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Main Content Area */}
+                <div className="flex-1 overflow-y-auto max-h-[55vh] bg-gray-50">
+                    {activeTab === 'feedback' ? (
+                        // Feedback Tab Content
+                        <>
+                            {isLoading ? (
+                                <div className="flex items-center justify-center p-16">
+                                    <div className="text-center">
+                                        <div
+                                            className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-500 mx-auto mb-6"></div>
+                                        <h3 className="text-xl font-semibold text-gray-700 mb-2">Đang tải phản hồi...</h3>
+                                        <p className="text-gray-500">Vui lòng đợi trong giây lát</p>
+                                    </div>
+                                </div>
+                            ) : filteredData.length === 0 ? (
+                                <div className="flex items-center justify-center p-16">
+                                    <div className="text-center">
+                                        <MessageSquare className="w-20 h-20 text-gray-300 mx-auto mb-6"/>
+                                        <h3 className="text-2xl font-semibold text-gray-600 mb-3">
+                                            {searchQuery ? 'Không tìm thấy kết quả' : 'Không có phản hồi'}
+                                        </h3>
+                                        <p className="text-gray-500 text-lg">
+                                            {searchQuery
+                                                ? `Không có phản hồi nào chứa "${searchQuery}"`
+                                                : 'Chưa có phản hồi nào cho bàn này'}
+                                        </p>
+                                        {searchQuery && (
+                                            <button
+                                                onClick={clearSearch}
+                                                className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors duration-200"
+                                            >
+                                                Xóa bộ lọc
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-6">
+                                    {filteredData.some(item => item.isPeeding) && (
+                                        <div className="mb-6 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                                            <label className="flex items-center space-x-4 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedFeedbacks.size === filteredData.filter(item => item.isPeeding).length && filteredData.filter(item => item.isPeeding).length > 0}
+                                                    onChange={handleSelectAll}
+                                                    className="w-6 h-6 text-blue-600 rounded border-2 border-gray-300 focus:ring-blue-500"
+                                                />
+                                                <span className="font-semibold text-gray-700 text-lg">
+                                                    Chọn tất cả phản hồi chưa xử lý trong danh sách này
+                                                    <span
+                                                        className="text-blue-600">({filteredData.filter(item => item.isPeeding).length})</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-6">
+                                        {filteredData.map((feedback, index) => (
+                                            <div
+                                                key={feedback.idFeedback}
+                                                className={`border-2 rounded-3xl p-6 transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 ${
+                                                    feedback.isPeeding
+                                                        ? 'border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50 hover:border-orange-300'
+                                                        : 'border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 hover:border-green-300'
+                                                } ${selectedFeedbacks.has(feedback.idFeedback) ? 'ring-4 ring-blue-400 shadow-lg' : ''}`}
+                                            >
+                                                <div className="flex items-start space-x-6">
+                                                    <div className="flex-shrink-0 pt-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedFeedbacks.has(feedback.idFeedback)}
+                                                            onChange={() => handleCheckboxChange(feedback.idFeedback, feedback.isPeeding)}
+                                                            disabled={!feedback.isPeeding || isChecking}
+                                                            className={`w-6 h-6 text-blue-600 rounded-lg border-2 border-gray-300 focus:ring-blue-500 transition-all duration-200 ${
+                                                                !feedback.isPeeding || isChecking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
+                                                            }`}
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <div className="flex items-center space-x-4">
+                                                                <span
+                                                                    className="bg-white px-4 py-2 rounded-full text-sm font-bold text-gray-600 shadow-sm">
+                                                                    #{index + 1}
+                                                                </span>
+                                                                <div
+                                                                    className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-bold shadow-sm ${
+                                                                        feedback.isPeeding
+                                                                            ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                                                                            : 'bg-green-100 text-green-800 border border-green-200'
+                                                                    }`}>
+                                                                    {feedback.isPeeding ? (
+                                                                        <AlertCircle className="w-4 h-4"/>
+                                                                    ) : (
+                                                                        <CheckCircle className="w-4 h-4"/>
+                                                                    )}
+                                                                    <span>
+                                                                        {feedback.isPeeding ? 'Chưa xử lý' : 'Đã xử lý'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex flex-col items-end space-y-1">
+                                                                <div className="flex items-center space-x-2 text-gray-500">
+                                                                    <Calendar className="w-4 h-4"/>
+                                                                    <span className="text-sm font-medium">
+                                                                        {formatDate(feedback.createData)}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="text-xs text-gray-400 font-medium">
+                                                                    {getRelativeTime(feedback.createData)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {feedback.dtos && feedback.dtos.length > 0 && (
+                                                            <div className="mb-4">
+                                                                <div className="flex items-center space-x-2 mb-3">
+                                                                    <Package className="w-5 h-5 text-gray-600"/>
+                                                                    <h4 className="text-lg font-semibold text-gray-700">
+                                                                        Món ăn liên quan ({feedback.dtos.length})
+                                                                    </h4>
+                                                                </div>
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                    {(() => {
+                                                                        // Group items by name and count them
+                                                                        const groupedItems = feedback.dtos.reduce((acc: {
+                                                                            [key: string]: { item: dto, count: number }
+                                                                        }, item: dto) => {
+                                                                            if (acc[item.orderItemName]) {
+                                                                                acc[item.orderItemName].count++;
+                                                                            } else {
+                                                                                acc[item.orderItemName] = {item, count: 1};
+                                                                            }
+                                                                            return acc;
+                                                                        }, {});
+
+                                                                        return Object.values(groupedItems).map(({
+                                                                                                                    item,
+                                                                                                                    count
+                                                                                                                }) => {
+                                                                            const statusInfo = getStatusInfo(item.status);
+                                                                            const StatusIcon = statusInfo.icon;
+
+                                                                            return (
+                                                                                <div
+                                                                                    key={item.orderItemId}
+                                                                                    className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
+                                                                                >
+                                                                                    <div
+                                                                                        className="flex items-center space-x-4">
+                                                                                        {item.imageUrl && (
+                                                                                            <img
+                                                                                                src={item.imageUrl}
+                                                                                                alt={item.orderItemName}
+                                                                                                className="w-16 h-16 rounded-lg object-cover border-2 border-gray-200"
+                                                                                            />
+                                                                                        )}
+                                                                                        <div className="flex-1 min-w-0">
+                                                                                            <h5 className="font-semibold text-gray-800 mb-2">
+                                                                                                <span
+                                                                                                    dangerouslySetInnerHTML={{
+                                                                                                        __html: highlightSearchText(item.orderItemName, searchQuery)
+                                                                                                    }}
+                                                                                                />
+                                                                                                {count > 1 && (
+                                                                                                    <span
+                                                                                                        className="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-bold">
+                                                                                                        x{count}
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </h5>
+                                                                                            <div
+                                                                                                className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}`}>
+                                                                                                <StatusIcon
+                                                                                                    className="w-4 h-4"/>
+                                                                                                <span>{statusInfo.label}</span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            );
+                                                                        });
+                                                                    })()}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        <div
+                                                            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-4">
+                                                            <div className="flex items-center space-x-2 mb-3">
+                                                                <MessageSquare className="w-5 h-5 text-gray-600"/>
+                                                                <h4 className="font-semibold text-gray-700">Nội dung phản
+                                                                    hồi:</h4>
+                                                            </div>
+                                                            <p
+                                                                className="text-gray-800 leading-relaxed text-lg"
+                                                                dangerouslySetInnerHTML={{
+                                                                    __html: highlightSearchText(feedback.feedBack, searchQuery)
+                                                                }}
+                                                            />
+                                                        </div>
+
+                                                        {/* Response Input Section */}
+                                                        <div
+                                                            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-4">
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <Send className="w-5 h-5 text-gray-600"/>
+                                                                    <h4 className="font-semibold text-gray-700">Phản hồi cho
+                                                                        khách hàng:</h4>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => toggleSuggestions(feedback.idFeedback)}
+                                                                    className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all duration-200 text-sm font-medium"
+                                                                >
+                                                                    <Lightbulb className="w-4 h-4"/>
+                                                                    <span>Gợi ý</span>
+                                                                </button>
+                                                            </div>
+
+                                                            {showSuggestions[feedback.idFeedback] && (
+                                                                <div
+                                                                    className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                                                    <h5 className="font-medium text-blue-800 mb-3 flex items-center space-x-2">
+                                                                        <Lightbulb className="w-4 h-4"/>
+                                                                        <span>Các gợi ý phản hồi:</span>
+                                                                    </h5>
+                                                                    <div className="grid grid-cols-1 gap-2">
+                                                                        {responseSuggestions.map((suggestion, idx) => (
+                                                                            <button
+                                                                                key={idx}
+                                                                                onClick={() => handleSuggestionClick(feedback.idFeedback, suggestion)}
+                                                                                className="text-left p-3 bg-white hover:bg-blue-50 rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200 text-sm text-gray-700 hover:text-blue-800"
+                                                                            >
+                                                                                {suggestion}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="flex space-x-3">
+                                                                <textarea
+                                                                    value={responses[feedback.idFeedback] || ''}
+                                                                    onChange={(e) => handleResponseChange(feedback.idFeedback, e.target.value)}
+                                                                    placeholder="Nhập phản hồi cho khách hàng..."
+                                                                    className="flex-1 p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none h-24 text-sm"
+                                                                    rows={3}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {feedback.isPeeding && (
+                                                            <div className="flex justify-end">
+                                                                <button
+                                                                    onClick={() => handleSingleCheck(feedback.idFeedback)}
+                                                                    disabled={isChecking}
+                                                                    className="px-6 py-3 bg-green-500 text-white rounded-2xl hover:bg-green-600 transition-all duration-200 flex items-center space-x-3 shadow-sm hover:shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                                                >
+                                                                    {isChecking ? (
+                                                                        <>
+                                                                            <RefreshCw className="w-5 h-5 animate-spin"/>
+                                                                            <span className="font-semibold">Đang xử lý...</span>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <CheckCircle className="w-5 h-5"/>
+                                                                            <span
+                                                                                className="font-semibold">Đánh dấu đã xử lý</span>
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        // Order History Tab Content
+                        <>
+                            {loadingOrders[idTable] ? (
+                                <div className="flex items-center justify-center p-16">
+                                    <div className="text-center">
+                                        <div
+                                            className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-500 mx-auto mb-6"></div>
+                                        <h3 className="text-xl font-semibold text-gray-700 mb-2">Đang tải đơn hàng...</h3>
+                                        <p className="text-gray-500">Vui lòng đợi trong giây lát</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-6">
+                                    <OrderCard 
+                                        orders={orderData[idTable] || []}
+                                        onToggleExpand={handleToggleOrderExpand}
+                                        expandedOrderId={expandedOrderId}
+                                    />
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
+                {/* Footer */}
                 <div className="bg-white px-8 py-6 border-t-2 border-gray-200">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-6">
-                            <p className="text-gray-600 font-medium">
-                                Hiển thị <span className="font-bold text-blue-600">{filteredData.length}</span> / <span
-                                className="font-bold">{data.length}</span> phản hồi
-                            </p>
-                            {searchQuery && (
-                                <p className="text-sm text-gray-500">
-                                    Kết quả tìm kiếm cho: "<span className="font-semibold">{searchQuery}</span>"
+                            {activeTab === 'feedback' ? (
+                                <>
+                                    <p className="text-gray-600 font-medium">
+                                        Hiển thị <span className="font-bold text-blue-600">{filteredData.length}</span> / <span
+                                        className="font-bold">{data.length}</span> phản hồi
+                                    </p>
+                                    {searchQuery && (
+                                        <p className="text-sm text-gray-500">
+                                            Kết quả tìm kiếm cho: "<span className="font-semibold">{searchQuery}</span>"
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-gray-600 font-medium">
+                                    Hiển thị <span className="font-bold text-blue-600">{orderData[idTable]?.length || 0}</span> đơn hàng
                                 </p>
                             )}
                         </div>
@@ -966,11 +1050,11 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                                 Đóng
                             </button>
                             <button
-                                onClick={loadFeedbackData}
-                                disabled={isLoading}
+                                onClick={handleRefresh}
+                                disabled={isLoading || loadingOrders[idTable]}
                                 className="px-8 py-3 bg-blue-500 text-white rounded-2xl hover:bg-blue-600 transition-all duration-200 font-semibold disabled:opacity-50 flex items-center space-x-2"
                             >
-                                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}/>
+                                <RefreshCw className={`w-5 h-5 ${(isLoading || loadingOrders[idTable]) ? 'animate-spin' : ''}`}/>
                                 <span>Làm mới</span>
                             </button>
                         </div>
