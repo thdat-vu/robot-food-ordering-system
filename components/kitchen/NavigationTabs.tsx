@@ -1,7 +1,8 @@
 import React from 'react';
 import { OrderStatus } from '@/types/kitchen';
 import { TAB_DISPLAY_NAMES } from '@/constants/kitchen-data';
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/button';
+import { DynamicSearch } from './DynamicSearch';
 
 interface NavigationTabsProps {
   activeTab: OrderStatus;
@@ -9,6 +10,10 @@ interface NavigationTabsProps {
   getTabCount: (status: OrderStatus) => number;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  searchResults?: string[];
+  showSearchDropdown?: boolean;
+  onProductSelect?: (productName: string) => void;
+  onSearchDropdownClose?: () => void;
   rightAction?: React.ReactNode;
 }
 
@@ -20,6 +25,10 @@ export function NavigationTabs({
   getTabCount, 
   searchQuery = "", 
   onSearchChange,
+  searchResults = [],
+  showSearchDropdown = false,
+  onProductSelect,
+  onSearchDropdownClose,
   rightAction
 }: NavigationTabsProps) {
   const getBadgeColor = (tab: OrderStatus, isActive: boolean): string => {
@@ -58,31 +67,15 @@ export function NavigationTabs({
         {(onSearchChange || rightAction) && (
           <div className="flex items-center gap-3 flex-shrink-0">
             {rightAction}
-            {onSearchChange && (
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm món"
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="w-64 px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg
-                    className="h-4 w-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </div>
-              </div>
+            {onSearchChange && onProductSelect && onSearchDropdownClose && (
+              <DynamicSearch
+                searchQuery={searchQuery}
+                onSearchChange={onSearchChange}
+                searchResults={searchResults}
+                showDropdown={showSearchDropdown}
+                onProductSelect={onProductSelect}
+                onDropdownClose={onSearchDropdownClose}
+              />
             )}
           </div>
         )}

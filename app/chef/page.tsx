@@ -20,6 +20,7 @@ import { NavigationTabs } from '@/components/kitchen/NavigationTabs';
 import { KitchenSidebar } from '@/components/kitchen/KitchenSidebar';
 import { OrdersContent } from '@/components/kitchen/OrdersContent';
 import { InfoModal } from '@/components/kitchen/InfoModal';
+import { SearchResultsModal } from '@/components/kitchen/SearchResultsModal';
 
 function ChiefPageContent() {
   const router = useCustomRouter();
@@ -34,6 +35,10 @@ function ChiefPageContent() {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [selectedSearchProduct, setSelectedSearchProduct] = useState<string | null>(null);
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
   // Sidebar item selection state
   const [selectedOrderKey, setSelectedOrderKey] = useState<{ itemName: string; tableNumber: number; id: number } | null>(null);
@@ -58,6 +63,7 @@ function ChiefPageContent() {
     handleServeOrder,
     handleAcceptRedoRequest,
     handleRejectRedoRequest,
+    handleCancelOrder,
     refreshOrders,
     shouldShowInSidebar,
     getTabCount,
@@ -66,6 +72,76 @@ function ChiefPageContent() {
 
 
   const { toasts, addToast, removeToast } = useToastKitchen();
+
+  // Dynamic search functionality
+  const getSearchableProducts = useCallback(() => {
+    // Get all active orders (exclude completed/cancelled)
+    const activeOrders = orders.filter(order => 
+      order.status !== 'đã phục vụ' && order.status !== 'đã huỷ'
+    );
+    
+    // Get unique product names
+    const uniqueProducts = [...new Set(activeOrders.map(order => order.itemName))];
+    return uniqueProducts;
+  }, [orders]);
+
+  // Update search results when search query changes
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    const allProducts = getSearchableProducts();
+    const filteredProducts = allProducts.filter(product =>
+      product.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    setSearchResults(filteredProducts);
+    setShowSearchDropdown(filteredProducts.length > 0);
+  }, [searchQuery, getSearchableProducts]);
+
+  // Handle product selection from search
+  const handleProductSelect = (productName: string) => {
+    setSelectedSearchProduct(productName);
+    setShowSearchModal(true);
+    setShowSearchDropdown(false);
+    setSearchQuery('');
+  };
+
+  // Get orders for selected product sorted by newest first
+  const getSelectedProductOrders = useCallback(() => {
+    if (!selectedSearchProduct) return [];
+    
+    const productOrders = orders.filter(order => 
+      order.itemName === selectedSearchProduct &&
+      order.status !== 'đã phục vụ' && order.status !== 'đã huỷ'
+    );
+    
+    // Sort by newest first (descending order)
+    return productOrders.sort((a, b) => {
+      // Use createdTime if available, otherwise use orderTime
+      const timeA = a.createdTime || a.orderTime;
+      const timeB = b.createdTime || b.orderTime;
+      return new Date(timeB).getTime() - new Date(timeA).getTime();
+    });
+  }, [selectedSearchProduct, orders]);
+
+  // Handle cancel order for search results (only for 'đang chờ' status)
+  const handleCancelFromSearch = async (order: Order) => {
+    if (order.status !== 'đang chờ') {
+      addToast('Chỉ có thể huỷ món ở trạng thái "đang chờ"', 'error');
+      return;
+    }
+    
+    try {
+      await handleCancelOrder(order.id);
+      addToast(`Đã huỷ món: ${order.itemName}`, 'success');
+    } catch (error) {
+      addToast(`Lỗi khi huỷ món: ${order.itemName}`, 'error');
+    }
+  };
 
   // Build set of currently selected order IDs from all selection modes
   const getCurrentlySelectedIds = useCallback((): Set<number> => {
@@ -686,6 +762,18 @@ function ChiefPageContent() {
         }}
       />
 
+      {/* Search Results Modal */}
+      <SearchResultsModal
+        isOpen={showSearchModal}
+        onClose={() => {
+          setShowSearchModal(false);
+          setSelectedSearchProduct(null);
+        }}
+        productName={selectedSearchProduct}
+        orders={getSelectedProductOrders()}
+        onCancelOrder={handleCancelFromSearch}
+      />
+
       {/* Kitchen Sidebar */}
       <div className={isServeTab ? 'pointer-events-none opacity-50' : ''}>
         <KitchenSidebar
@@ -715,6 +803,10 @@ function ChiefPageContent() {
           getTabCount={getTabCount}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          searchResults={searchResults}
+          showSearchDropdown={showSearchDropdown}
+          onProductSelect={handleProductSelect}
+          onSearchDropdownClose={() => setShowSearchDropdown(false)}
           rightAction={(
             (() => {
               // Build a CTA for top-right based on current context
