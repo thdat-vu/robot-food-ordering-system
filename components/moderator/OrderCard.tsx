@@ -90,8 +90,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
   
         if (response.data.statusCode === 200 && response.data.data) {
           const newOrders = response.data.data as ApiOrderResponse[];
-          console.log("✅ Fetched Orders:", newOrders);
-          console.log("📦 newOrders:", newOrders);
+          
   
           if (onOrdersChange) {
             console.log("📤 calling onOrdersChange...");
