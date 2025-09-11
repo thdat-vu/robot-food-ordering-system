@@ -66,6 +66,7 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
     const {run} = useGetFeedbackByIdtable();
+    console.log('Feedback component rendered with idTable:', idTable, 'and open:', open , run);
     const {run: runCheck} = useCheckSS();
     const API_BASE = getApiUrl();
 

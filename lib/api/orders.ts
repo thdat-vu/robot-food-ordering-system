@@ -3,7 +3,7 @@ import apiClient from '../axios';
 // Types matching the .NET API response
 export interface ApiOrderResponse {
     id: string;
-    tableId?: string;
+    tableId: string;
     tableName: string;
     status: string;
     paymentStatus: string;
@@ -18,12 +18,13 @@ export interface ApiOrderItemResponse {
     productName: string;
     productSizeId: string;
     sizeName: string;
-    note: string | null; // Customer note for the item
+    remarkNote: string; // Staff remark note for the item
+    note: string; // Customer note for the item
     quantity: number;
     price: number; // Add price field for order items
     status: string;
-    imageUrl?: string; // Add imageUrl field from API response
-    createdTime?: string; // Created time from API (e.g., "31/07/2025 00:01:28")
+    imageUrl: string; // Add imageUrl field from API response
+    createdTime?: Date; // Created time from API (e.g., "31/07/2025 00:01:28")
     toppings: ApiToppingResponse[];
 }
 

@@ -75,8 +75,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
         setIsLoading(true);
         setError(null);
   
-        const targetTableId =
-          propOrders.length > 0 ? propOrders[0].tableId : tableId;
+        const targetTableId =tableId || (propOrders.length > 0 ? propOrders[0].tableId : null);
   
         console.log("👉 targetTableId:", targetTableId);
   
@@ -86,11 +85,11 @@ const OrderCard: React.FC<OrderCardProps> = ({
           endDate
         );
   
-        console.log("✅ API Response:", response);
+        
   
         if (response.data.statusCode === 200 && response.data.data) {
           const newOrders = response.data.data as ApiOrderResponse[];
-          
+          console.log("✅ API Response for new:", newOrders);
   
           if (onOrdersChange) {
             console.log("📤 calling onOrdersChange...");
