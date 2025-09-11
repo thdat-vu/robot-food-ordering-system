@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Clock,
   DollarSign,
@@ -10,21 +10,44 @@ import {
   MessageSquare,
   Calendar,
   Star,
-  Award
+  Award,
+  RefreshCw,
+  Truck
 } from "lucide-react";
 import { OrderCardProps } from "@/entites/moderator/FeedbackModole";
-
+import {
+  groupItemsPerOrder,
+  calculateOrdersStatistics,
+  formatVNCurrency,
+  formatVNNumber,
+} from "@/lib/utils/orderGroupingitem";
+import { ApiBaseResponse, ApiOrderResponse, ApiToppingResponse } from "@/lib/api/orders";
+import { useDateFilterUI } from '@/hooks/moderator/useDateFilterUI';
+import { OrderData } from "@/entites/moderator/tableModel";
+import { DateRangeFilter } from "./DateRangeFilter";
+import {ordersApi}  from "@/lib/api/orders";
 
 
 // Props interface for OrderCard
 
-
 const OrderCard: React.FC<OrderCardProps> = ({
-  orders,
+  tableId,
+  orders: propOrders,
   onToggleExpand,
-  expandedOrderId
+  expandedOrderId,
+  fetchOrders,
+  initialOrders = [],
+  showDateFilter = false,
+  onOrdersChange
 }) => {
+  // Local state
   const [localExpandedId, setLocalExpandedId] = useState<string | null>(null);
+  const [filteredOrders, setFilteredOrders] = useState<ApiOrderResponse[]>([]);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+ 
   
   // Use local state if no external control provided
   const currentExpandedId = expandedOrderId !== undefined ? expandedOrderId : localExpandedId;
@@ -36,7 +59,113 @@ const OrderCard: React.FC<OrderCardProps> = ({
       setLocalExpandedId(prev => prev === orderId ? null : orderId);
     }
   };
+  
+  // Convert OrderData to ApiOrderResponse
+  const convertOrderDataToApiOrder = (orderData: OrderData): ApiOrderResponse => {
+    return {
+      id: orderData.id,
+      tableId: orderData.tableId,
+      tableName: orderData.tableName,
+      status: orderData.status,
+      paymentStatus: orderData.paymentStatus,
+      totalPrice: orderData.totalPrice,
+      createdTime: orderData.createdTime ? new Date(orderData.createdTime) : undefined,
+      items: orderData.items.map(item => ({
+        id: item.id,
+        productId: item.productId,
+        productName: item.productName,
+        productSizeId: item.productSizeId,
+        sizeName: item.sizeName,
+        remarkNote: item.remarkNote,
+        note: item.note,
+        quantity: item.quantity,
+        price: item.price,
+        status: item.status,
+        imageUrl: item.imageUrl,
+        createdTime: item.createdTime ? new Date(item.createdTime) : undefined,
+        toppings: item.toppings.map(topping => ({
+          id: topping.id,
+          name: topping.name,
+          price: topping.price
+        }))
+      }))
+    };
+  };
 
+  // Initialize filtered orders
+  useEffect(() => {
+    const ordersToUse = propOrders.map(convertOrderDataToApiOrder);
+    setFilteredOrders(ordersToUse);
+  }, [propOrders, initialOrders]);
+
+  // Handle date filter search
+  const handleDateSearch = useCallback(
+    async (startDate: string | null, endDate: string | null) => {
+      console.log("🔎 handleDateSearch called with", { startDate, endDate, propOrders, tableId });
+  
+      try {
+        setIsLoading(true);
+        setError(null);
+  
+        const targetTableId =tableId || (propOrders.length > 0 ? propOrders[0].tableId : null);
+  
+        console.log("👉 targetTableId:", targetTableId);
+  
+        const response = await ordersApi.getOrdersByTableIdOnly(
+          targetTableId?.toString() || "",
+          startDate,
+          endDate
+        );
+  
+        
+  
+        if (response.data.statusCode === 200 && response.data.data) {
+          const newOrders = response.data.data as ApiOrderResponse[];
+          console.log("✅ API Response for new:", newOrders);
+  
+          if (onOrdersChange) {
+            console.log("📤 calling onOrdersChange...");
+            onOrdersChange(newOrders, targetTableId?.toString() || "");
+          }
+  
+          setFilteredOrders(newOrders);
+        } else {
+          setFilteredOrders([]);
+          setError(response.data.message || "Không lấy được đơn hàng");
+        }
+      } catch (err) {
+        console.error("❌ Error fetching orders:", err);
+        setError("Có lỗi xảy ra khi gọi API");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [ordersApi, propOrders, tableId, onOrdersChange]
+  );
+  
+  
+  // Local filter function
+  const filterOrdersByDate = (ordersToFilter: OrderData[], startDate: string | null, endDate: string | null): OrderData[] => {
+    if (!startDate && !endDate) {
+      return ordersToFilter;
+    }
+
+    return ordersToFilter.filter(order => {
+      const orderDate = new Date(order.createdTime);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+
+      if (start && orderDate < start) return false;
+      if (end && orderDate > end) return false;
+      
+      return true;
+    });
+  };
+
+  // Clear error
+  const handleClearError = () => {
+    setError(null);
+  };
   // Utility functions
   const parseDate = (date: string | Date) => {
     if (date instanceof Date) return date;
@@ -44,18 +173,9 @@ const OrderCard: React.FC<OrderCardProps> = ({
     const [year, time] = yearAndTime.split(" ");
     return new Date(`${year}-${month}-${day}T${time}`);
   };
+
   
-  const formatDate = (date: Date | string) => {
-    const parsedDate = parseDate(date);
-    if (isNaN(parsedDate.getTime())) return "Không xác định";
-    return parsedDate.toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  };
+  
   
   const getRelativeTime = (date: Date | string) => {
     const parsedDate = parseDate(date);
@@ -80,12 +200,19 @@ const OrderCard: React.FC<OrderCardProps> = ({
         return <Utensils className="w-4 h-4 text-orange-500" />;
       case "ready":
         return <PackageCheck className="w-4 h-4 text-emerald-500" />;
+      case "delivering": 
+        return <Truck className="w-4 h-4 text-cyan-500" />;
       case "completed":
         return <CheckCircle className="w-4 h-4 text-blue-500" />;
+      case "cancelled":
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case "redorequested":
+        return <RefreshCw className="w-4 h-4 text-purple-500" />; // 👈 chỉnh màu tím cho nổi bật
       default:
         return <Clock className="w-4 h-4 text-gray-400" />;
     }
   };
+  
 
   const getPaymentStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
@@ -103,7 +230,11 @@ const OrderCard: React.FC<OrderCardProps> = ({
       case "pending": return "Đang chờ xác nhận";
       case "preparing": return "Đang chuẩn bị món";
       case "ready": return "Sẵn sàng phục vụ";
+      case "delivering": return "Đang giao món";
       case "completed": return "Đã hoàn thành";
+      case "cancelled": return "Đã hủy";
+      case "requestcancel": return "Yêu cầu hủy món";
+      case "redorequested": return "Yêu cầu đổi món cho bàn khác";
       default: return "Không xác định";
     }
   };
@@ -120,35 +251,31 @@ const OrderCard: React.FC<OrderCardProps> = ({
     const colors = {
       pending: "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200 shadow-sm",
       preparing: "bg-gradient-to-r from-orange-50 to-red-50 text-orange-700 border border-orange-200 shadow-sm",
+      delivering: "bg-gradient-to-r from-cyan-50 to-teal-50 text-cyan-700 border border-cyan-200 shadow-sm",
       ready: "bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border border-emerald-200 shadow-sm",
       completed: "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200 shadow-sm",
-    };
+      cancelled: "bg-gradient-to-r from-red-50 to-pink-50 text-red-700 border border-red-200 shadow-sm",
+      redorequested: "bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200 shadow-sm",
+      requestcancel: "bg-gradient-to-r from-violet-50 to-purple-50 text-purple-700 border border-purple-200 shadow-sm", // 👈 đổi màu
+      served: "bg-gradient-to-r from-teal-50 to-cyan-50 text-teal-700 border border-teal-200 shadow-sm"
+     };
     return colors[status.toLowerCase() as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
   const OrderItemStatusLabel: Record<string, string> = {
     pending: "Đang chờ xác nhận",
     preparing: "Đang chuẩn bị món",
+    delivering: "Đang giao hàng",
     ready: "Sẵn sàng / Đã xong món",
     served: "Đã phục vụ",
     completed: "Hoàn thành",
     cancelled: "Đã hủy",
+    requestcancel: "Yêu cầu đổi món",
   };
 
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
-  };
 
-  // Calculate statistics
-  const totalPrice = orders.reduce((total, order) => total + order.totalPrice, 0);
-  const totalItems = orders.reduce((acc, order) => acc + order.items.length, 0);
-  const paidOrders = orders.filter(order => order.paymentStatus.toLowerCase() === 'paid').length;
-  const unpaidOrders = orders.length - paidOrders;
-
-  if (orders.length === 0) {
+ 
+  if (propOrders.length === 0) {
     return (
       <div className="bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-2xl p-8 text-center border border-gray-200/50">
         <div className="w-16 h-16 bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -160,22 +287,40 @@ const OrderCard: React.FC<OrderCardProps> = ({
     );
   }
 
+   // Sử dụng utility functions để tính toán statistics
+   const statistics = calculateOrdersStatistics(propOrders);
+
+   // Group items per order để hiển thị trong expanded view
+  const ordersWithGroupedItems = groupItemsPerOrder(propOrders);
+
+  
   return (
     <div className="space-y-6">
-      {/* Enhanced Summary Card */}
+       
+      {/* Enhanced Summary Card với statistics từ utility */}
       <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-200/50 shadow-xl relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/10 to-blue-400/10 rounded-full translate-y-12 -translate-x-12"></div>
+                  
         
         <div className="relative">
+       
+      
+
           {/* Header with icon */}
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-3 shadow-lg">
               <Award className="w-5 h-5 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900">Tổng Quan Hoạt Động</h3>
+            
+          
+            
           </div>
+         
+          
+          
 
           {/* Enhanced Statistics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -185,7 +330,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                   <Clock className="w-6 h-6 text-white" />
                 </div>
                 <div className="text-2xl font-bold text-blue-600">
-                  {orders.length}
+                  {statistics.totalOrders}
                 </div>
               </div>
               <div className="text-sm text-gray-600 font-medium">
@@ -199,7 +344,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                   <DollarSign className="w-6 h-6 text-white" />
                 </div>
                 <div className="text-lg lg:text-xl font-bold text-emerald-600 truncate">
-                  {new Intl.NumberFormat("vi-VN").format(totalPrice)}đ
+                  {formatVNNumber(statistics.totalPrice)}đ
                 </div>
               </div>
               <div className="text-sm text-gray-600 font-medium">
@@ -213,7 +358,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                   <Utensils className="w-6 h-6 text-white" />
                 </div>
                 <div className="text-2xl font-bold text-purple-600">
-                  {totalItems}
+                  {statistics.totalQuantity}
                 </div>
               </div>
               <div className="text-sm text-gray-600 font-medium">
@@ -253,7 +398,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                       Đã Thanh Toán
                     </span>
                   </div>
-                  <div className="text-2xl font-bold text-emerald-600">{paidOrders}</div>
+                  <div className="text-2xl font-bold text-emerald-600">{statistics.paidOrders}</div>
                 </div>
               </div>
 
@@ -267,14 +412,13 @@ const OrderCard: React.FC<OrderCardProps> = ({
                       Chưa Thanh Toán
                     </span>
                   </div>
-                  <div className="text-2xl font-bold text-red-600">{unpaidOrders}</div>
+                  <div className="text-2xl font-bold text-red-600">{statistics.unpaidOrders}</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
       {/* Enhanced Orders List */}
       <div className="space-y-4">
         <div className="flex items-center mb-4">
@@ -284,11 +428,19 @@ const OrderCard: React.FC<OrderCardProps> = ({
           <h3 className="text-xl font-bold text-gray-900">Chi Tiết Đơn Hàng</h3>
         </div>
 
-        {orders.map((order, index) => (
+        {showDateFilter && (
+                <DateRangeFilter
+                  onSearch={handleDateSearch}
+                  isLoading={isLoading}
+                  error={error}
+                  onClearError={handleClearError}
+                />
+              )}
+        {ordersWithGroupedItems.map((orderWithGroups, index) => (
           <div
-            key={order.id}
+            key={orderWithGroups.id}
             className="bg-white rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-[1.02] overflow-hidden"
-            onClick={() => toggleExpand(order.id)}
+            onClick={() => toggleExpand(orderWithGroups.id)}
           >
             {/* Order gradient header */}
             <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600"></div>
@@ -299,7 +451,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                   <div className="relative">
                     <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
                       <span className="text-white font-bold text-lg">
-                        #{order.id.substring(6, 8)}
+                        #{orderWithGroups.id.substring(6, 8)}
                       </span>
                     </div>
                     <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -308,35 +460,37 @@ const OrderCard: React.FC<OrderCardProps> = ({
                   </div>
                   <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-gray-900 text-lg mb-2">
-                      Đơn Hàng #{order.id.substring(0, 8)}...
+                      Đơn Hàng #{orderWithGroups.id.substring(0, 8)}...
                     </h4>
                     <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                      <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(order.status)}`}>
-                        {getOrderStatusIcon(order.status)}
-                        <span>{getOrderStatusLabel(order.status)}</span>
+                      <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(orderWithGroups.status)}`}>
+                        {getOrderStatusIcon(orderWithGroups.status)}
+                        <span>{getOrderStatusLabel(orderWithGroups.status)}</span>
                       </div>
-                      <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(order.paymentStatus === 'paid' ? 'completed' : 'pending')}`}>
-                        {getPaymentStatusIcon(order.paymentStatus)}
-                        <span>{getPaymentStatusLabel(order.paymentStatus)}</span>
+                      <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(orderWithGroups.paymentStatus === 'paid' ? 'completed' : 'pending')}`}>
+                        {getPaymentStatusIcon(orderWithGroups.paymentStatus)}
+                        <span>{getPaymentStatusLabel(orderWithGroups.paymentStatus)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                    {new Intl.NumberFormat("vi-VN").format(order.totalPrice)}đ
+                    {formatVNNumber(orderWithGroups.totalPrice)}đ
                   </div>
                   <div className="flex items-center text-sm text-gray-500 mt-1">
                     <Calendar className="w-4 h-4 mr-1" />
-                    {getRelativeTime(order.createdTime)}
+                    {getRelativeTime(orderWithGroups.createdTime)}
                   </div>
                 </div>
               </div>
 
-              {currentExpandedId === order.id && (
+              {currentExpandedId === orderWithGroups.id && (
                 <div className="mt-6 pt-6 border-t border-gray-100">
                   <div className="space-y-4">
-                    {order.items.map((item, idx) => (
+                    {/* Hiển thị grouped items thay vì items gốc */}
+                    {orderWithGroups.groupedItems.map((item, idx) => (
+
                       <div
                         key={idx}
                         className="bg-gradient-to-r from-gray-50 to-blue-50/30 rounded-2xl p-4 hover:from-gray-100 hover:to-blue-50/50 transition-all duration-300 border border-gray-200/50"
@@ -376,8 +530,8 @@ const OrderCard: React.FC<OrderCardProps> = ({
                               {OrderItemStatusLabel[item.status.toLowerCase()]}
                             </span>
                             <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                              {formatCurrency(
-                                (item.price + item.toppings.reduce((sum, t) => sum + t.price, 0)) * item.quantity
+                              {formatVNCurrency(
+                                (item.price + item.toppings.reduce((sum, t) => sum + t.price, 0)) 
                               )}
                             </span>
                           </div>
@@ -388,7 +542,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                             {item.toppings.map((topping, tIdx) => (
                               <div key={tIdx} className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2 border border-gray-200/50">
                                 <span className="text-sm text-gray-700 font-medium">+ {topping.name}</span>
-                                <span className="text-sm font-semibold text-emerald-600">+{formatCurrency(topping.price)}</span>
+                                <span className="text-sm font-semibold text-emerald-600">+{formatVNCurrency(topping.price)}</span>
                               </div>
                             ))}
                           </div>

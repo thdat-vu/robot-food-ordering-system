@@ -1,3 +1,4 @@
+import { ApiOrderResponse } from "@/lib/api/orders";
 import { OrderData } from "./tableModel";
 
 export interface FeedbackgGetTableId {
@@ -26,15 +27,20 @@ export interface TableData {
 
 }
 export interface OrderCardProps {
+    tableId : string ;
     orders: OrderData[];
     onToggleExpand?: (orderId: string) => void;
     expandedOrderId?: string | null;
-  }
-  export interface OrderCardProps {
-    orders: OrderData[];
-    onToggleExpand?: (orderId: string) => void;
-    expandedOrderId?: string | null;
-  }
+    
+    // New props for filter functionality
+    fetchOrders?: ( startDate: string | null, endDate: string | null) => Promise<OrderData[]>;
+    initialOrders?: OrderData[];
+    showDateFilter?: boolean; // Option to show/hide date filter
+   
+        onOrdersChange?: (orders: ApiOrderResponse[], tableId: string) => void;
+}
+
+ 
 
 export interface ResponseType {
     data: {

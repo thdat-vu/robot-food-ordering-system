@@ -61,7 +61,8 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const [showSuggestions, setShowSuggestions] = useState<{ [key: string]: boolean }>({});
     
     // New states for navigation tabs
-    const [activeTab, setActiveTab] = useState<TabType>('feedback');
+    const [activeTab, setActiveTab] = useState<TabType | null>(null);
+
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
     const {run} = useGetFeedbackByIdtable();
@@ -82,15 +83,22 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         "Cảm ơn bạn đã thông báo. Chúng tôi sẽ kiểm tra và cải thiện quy trình phục vụ."
     ];
 
+    const determineInitialTab = (feedbackData: FeedbackgGetTableId[]): TabType => {
+        return feedbackData.length === 0 ? 'orderHistory' : 'feedback';
+    };
+    
     useEffect(() => {
         if (open && idTable) {
             const timeout = setTimeout(() => {
-                if (activeTab === 'feedback') {
+                // If activeTab is null, we need to load feedback first to determine the tab
+                if (activeTab === null) {
+                    loadFeedbackData();
+                } else if (activeTab === 'feedback') {
                     loadFeedbackData();
                 } else if (activeTab === 'orderHistory') {
                     fetchOrdersForTable(idTable);
                 }
-            }, 300);
+            }, 300);    
             return () => clearTimeout(timeout);
         }
     }, [idTable, open, activeTab]);
@@ -309,22 +317,39 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         setIsLoading(true);
         try {
             const res = await run(idTable);
-            console.log('Fetched feedback data:', res.data);
-           
+          
             const sorted = (res.data as FeedbackgGetTableId[]).sort((a, b) => {
                 return sortOrder === 'newest'
                     ? new Date(b.createData).getTime() - new Date(a.createData).getTime()
                     : new Date(a.createData).getTime() - new Date(b.createData).getTime();
             });
             setData(sorted);
+            
+
+            // Set initial tab if not already set
+            if (activeTab === null) {
+                const initialTab = determineInitialTab(sorted);
+                setActiveTab(initialTab);
+                
+                // If switching to orderHistory, load order data
+                if (initialTab === 'orderHistory') {
+                    fetchOrdersForTable(idTable);
+                }
+            }
         } catch (error) {
             console.error('Error fetching feedback:', error);
-            
             setData([]);
+            
+            // Set initial tab even on error
+            if (activeTab === null) {
+                setActiveTab('orderHistory');
+                fetchOrdersForTable(idTable);
+            }
         } finally {
             setIsLoading(false);
         }   
     };
+
 
     const parseDate = (date: string | Date) => {
         if (date instanceof Date) return date;
@@ -1010,9 +1035,11 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
                             ) : (
                                 <div className="p-6">
                                     <OrderCard 
+                                        tableId={idTable}
                                         orders={orderData[idTable] || []}
                                         onToggleExpand={handleToggleOrderExpand}
                                         expandedOrderId={expandedOrderId}
+                                        showDateFilter={true}   // 👈 thêm cái này
                                     />
                                 </div>
                             )}

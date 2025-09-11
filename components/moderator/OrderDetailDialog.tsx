@@ -144,9 +144,12 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
           <div className="space-y-6">
             {/* Order Card Component */}
             <OrderCard 
+              tableId={table.id}
               orders={orders}
               onToggleExpand={toggleOrderExpand}
               expandedOrderId={expandedOrderId}
+              showDateFilter={false}
+              onOrdersChange={() => {}}
             />
 
             {/* Reason Card Component */}

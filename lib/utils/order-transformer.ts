@@ -122,7 +122,14 @@ export const transformApiOrderItemToOrder = (
       hour: '2-digit', 
       minute: '2-digit' 
     }),
-    createdTime: order.createdTime || orderItem.createdTime, // Use order createdTime or fallback to item createdTime
+    createdTime: (order.createdTime || orderItem.createdTime)?.toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }), // Convert Date to string format
     estimatedTime: getEstimatedTime(orderItem.productName),
     sizeName: orderItem.sizeName, // Add size name from API
     toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API

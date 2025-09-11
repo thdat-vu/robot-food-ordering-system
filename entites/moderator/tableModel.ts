@@ -19,7 +19,7 @@ export interface OrderData {
   status: string;
   paymentStatus: string;
   totalPrice: number;
-  createdTime: Date;
+  createdTime: string;
   items: OrderItem[];
 }
 
