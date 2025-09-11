@@ -8,7 +8,7 @@ export interface ApiOrderResponse {
     status: string;
     paymentStatus: string;
     totalPrice: number;
-    createdTime?: string; // Created time from API (e.g., "31/07/2025 00:01:28")
+    createdTime?: Date; // Created time from API (e.g., "31/07/2025 00:01:28")
     items: ApiOrderItemResponse[];
 }
 
@@ -118,9 +118,15 @@ export const ordersApi = {
     },
 
     // NEW: Get orders by table ID only (for payment)
-    async getOrdersByTableIdOnly(tableId: string) {
-        const response = await apiClient.get<ApiBaseResponse<ApiOrderResponse[]>>(`/Order/table/${tableId}`);
-        return response.data;
+    async getOrdersByTableIdOnly(tableId: string ,startDate?: string | null, endDate?: string | null) {
+        const response = await apiClient.get<ApiBaseResponse<ApiOrderResponse[]>>(`/Order/table/${tableId}`,
+        {
+            params: {
+                startDate,
+                endDate
+            }   
+        });
+        return response;
     },
 
     // NEW: Get orders by table ID with Delivering status (for payment)
