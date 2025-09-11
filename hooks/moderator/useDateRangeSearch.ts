@@ -1,3 +1,6 @@
+import { useState, useEffect, useCallback } from 'react';
+import { OrderData } from '@/entites/moderator/tableModel';
+
 const useDateFilter = (
     initialOrders: OrderData[],
     tableId?: string,
@@ -66,4 +69,5 @@ const useDateFilter = (
       clearError
     };
   };
-  
+
+export default useDateFilter;
