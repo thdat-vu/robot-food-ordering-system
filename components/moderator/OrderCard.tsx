@@ -21,7 +21,7 @@ import {
   formatVNCurrency,
   formatVNNumber,
 } from "@/lib/utils/orderGroupingitem";
-import { ApiBaseResponse, ApiOrderResponse } from "@/lib/api/orders";
+import { ApiBaseResponse, ApiOrderResponse, ApiToppingResponse } from "@/lib/api/orders";
 import { useDateFilterUI } from '@/hooks/moderator/useDateFilterUI';
 import { OrderData } from "@/entites/moderator/tableModel";
 import { DateRangeFilter } from "./DateRangeFilter";
@@ -60,9 +60,41 @@ const OrderCard: React.FC<OrderCardProps> = ({
     }
   };
   
+  // Convert OrderData to ApiOrderResponse
+  const convertOrderDataToApiOrder = (orderData: OrderData): ApiOrderResponse => {
+    return {
+      id: orderData.id,
+      tableId: orderData.tableId,
+      tableName: orderData.tableName,
+      status: orderData.status,
+      paymentStatus: orderData.paymentStatus,
+      totalPrice: orderData.totalPrice,
+      createdTime: orderData.createdTime ? new Date(orderData.createdTime) : undefined,
+      items: orderData.items.map(item => ({
+        id: item.id,
+        productId: item.productId,
+        productName: item.productName,
+        productSizeId: item.productSizeId,
+        sizeName: item.sizeName,
+        remarkNote: item.remarkNote,
+        note: item.note,
+        quantity: item.quantity,
+        price: item.price,
+        status: item.status,
+        imageUrl: item.imageUrl,
+        createdTime: item.createdTime ? new Date(item.createdTime) : undefined,
+        toppings: item.toppings.map(topping => ({
+          id: topping.id,
+          name: topping.name,
+          price: topping.price
+        }))
+      }))
+    };
+  };
+
   // Initialize filtered orders
   useEffect(() => {
-    const ordersToUse = propOrders  as ApiOrderResponse[];
+    const ordersToUse = propOrders.map(convertOrderDataToApiOrder);
     setFilteredOrders(ordersToUse);
   }, [propOrders, initialOrders]);
 
