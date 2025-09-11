@@ -115,7 +115,7 @@ export const transformApiOrderItemToOrder = (
     itemName: orderItem.productName,
     category: getCategoryFromProductName(orderItem.productName),
     tableNumber,
-    quantity: orderItem.quantity,
+    quantity: 1, // Each API item represents 1 individual item (no quantity field in new API)
     status: mapApiStatusToFrontend(orderItem.status),
     image: orderItem.imageUrl || getImageFromProductName(orderItem.productName), 
     orderTime: new Date().toLocaleTimeString('vi-VN', { 

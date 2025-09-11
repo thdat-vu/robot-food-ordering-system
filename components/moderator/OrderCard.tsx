@@ -78,7 +78,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
         sizeName: item.sizeName,
         remarkNote: item.remarkNote,
         note: item.note,
-        quantity: item.quantity,
+        // quantity field removed - each API item is now individual
         price: item.price,
         status: item.status,
         imageUrl: item.imageUrl,

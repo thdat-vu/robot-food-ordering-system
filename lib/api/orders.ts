@@ -20,7 +20,7 @@ export interface ApiOrderItemResponse {
     sizeName: string;
     remarkNote: string; // Staff remark note for the item
     note: string; // Customer note for the item
-    quantity: number;
+    // quantity field removed - each API item is now individual
     price: number; // Add price field for order items
     status: string;
     imageUrl: string; // Add imageUrl field from API response
