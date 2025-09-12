@@ -146,7 +146,7 @@ export function useWaiterOrders() {
                             orderId: order.id,
                             itemId: item.id,
                             tableNumber,
-                            quantity: item.quantity,
+                            quantity: 1, // Each API item is individual, so quantity is always 1
                             status: orderStatus,
                             orderTime: order.createdTime
                                 ? new Date(order.createdTime).toLocaleTimeString("vi-VN", {
