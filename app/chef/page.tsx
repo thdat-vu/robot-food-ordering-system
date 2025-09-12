@@ -129,14 +129,14 @@ function ChiefPageContent() {
   }, [selectedSearchProduct, orders]);
 
   // Handle cancel order for search results (only for 'đang chờ' status)
-  const handleCancelFromSearch = async (order: Order) => {
+  const handleCancelFromSearch = async (order: Order, reason?: string) => {
     if (order.status !== 'đang chờ') {
       addToast('Chỉ có thể huỷ món ở trạng thái "đang chờ"', 'error');
       return;
     }
     
     try {
-      await handleCancelOrder(order.id);
+      await handleCancelOrder(order.id, reason);
       addToast(`Đã huỷ món: ${order.itemName}`, 'success');
     } catch (error) {
       addToast(`Lỗi khi huỷ món: ${order.itemName}`, 'error');
