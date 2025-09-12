@@ -61,7 +61,6 @@ export function useWaiterOrders() {
                 setProductCategoryMap(map);
             }
         } catch (err) {
-            console.error("Error fetching categories:", err);
             // Continue with default categories if API fails
             setCategories([
                 {id: "1", name: "Tráng Miệng"},
@@ -104,8 +103,6 @@ export function useWaiterOrders() {
             setError(null);
 
             const response = await ordersApi.getOrders(1, 100); // Get first 100 orders
-
-            console.log("Fetched orders:", response);
 
             if (response.data && response.data.length > 0) {
                 // Transform API orders to waiter dishes
@@ -167,7 +164,6 @@ export function useWaiterOrders() {
                 setDishes([]);
             }
         } catch (err) {
-            console.error("Error fetching orders:", err);
             setError("Error fetching orders");
             setDishes([]);
         } finally {
@@ -212,7 +208,7 @@ export function useWaiterOrders() {
                             orderId: order.id,
                             itemId: item.id,
                             tableNumber,
-                            quantity: item.quantity,
+                            quantity: 1, // Each API item is individual, so quantity is always 1
                             status: orderStatus,
                             orderTime: order.createdTime
                                 ? new Date(order.createdTime).toLocaleTimeString("vi-VN", {
@@ -233,8 +229,7 @@ export function useWaiterOrders() {
                 setDishes([]);
             }
         } catch (err) {
-            // Silent error: log but do not set error state to avoid UI disruption
-            console.error("Error silently fetching orders:", err);
+            // Silent error: do not set error state to avoid UI disruption
         }
     }, [categories, stableProductCategoryMap, dishes]);
 
@@ -265,7 +260,6 @@ export function useWaiterOrders() {
     // Filter dishes by status
     const getDishesByStatus = useCallback(
         (status: OrderStatus) => {
-            console.log(dishes);
             return dishes.filter((dish) => dish.status === status);
         },
         [dishes]
@@ -313,7 +307,6 @@ export function useWaiterOrders() {
 
             return true;
         } catch (err) {
-            console.error("Error serving dishes:", err);
             return false;
         }
     }, [dishes]);
@@ -341,7 +334,6 @@ export function useWaiterOrders() {
             // Optionally we could persist `reason` here if API supports later
             return true;
         } catch (err) {
-            console.error("Error requesting remake:", err);
             return false;
         }
     }, [dishes]);
