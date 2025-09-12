@@ -129,14 +129,14 @@ function ChiefPageContent() {
   }, [selectedSearchProduct, orders]);
 
   // Handle cancel order for search results (only for 'đang chờ' status)
-  const handleCancelFromSearch = async (order: Order) => {
+  const handleCancelFromSearch = async (order: Order, reason?: string) => {
     if (order.status !== 'đang chờ') {
       addToast('Chỉ có thể huỷ món ở trạng thái "đang chờ"', 'error');
       return;
     }
     
     try {
-      await handleCancelOrder(order.id);
+      await handleCancelOrder(order.id, reason);
       addToast(`Đã huỷ món: ${order.itemName}`, 'success');
     } catch (error) {
       addToast(`Lỗi khi huỷ món: ${order.itemName}`, 'error');
@@ -160,12 +160,12 @@ function ChiefPageContent() {
   const selectedIds = getCurrentlySelectedIds();
 
   // Check if all items of a category in trạng thái "đang chờ" for specific table(s) are already selected
-  const areAllCategorySelectedForTables = useCallback((category: string, tables: number[]): boolean => {
+  const areAllCategorySelectedForTables = useCallback((category: string, tables: number[], proposedSelection?: Set<number>): boolean => {
     const pendingIds = orders
       .filter(o => o.status === 'đang chờ' && o.category === category && tables.includes(o.tableNumber))
       .map(o => o.id);
     if (pendingIds.length === 0) return true; // no pending items on those tables
-    const selectedIdsLocal = getCurrentlySelectedIds();
+    const selectedIdsLocal = proposedSelection || getCurrentlySelectedIds();
     return pendingIds.every(id => selectedIdsLocal.has(id));
   }, [orders, getCurrentlySelectedIds]);
 
@@ -173,24 +173,24 @@ function ChiefPageContent() {
 
   // Show a warning only if selecting/preparing main dishes while NOT all drinks
   // on the SAME table(s) are selected
-  const maybeWarnForMainSelection = (items: SelectionItem[]) => {
+  const maybeWarnForMainSelection = (items: SelectionItem[], proposedSelection?: Set<number>) => {
     if (!items || items.length === 0) return;
     const includesMain = items.some(it => itemNameToCategory[it.itemName] === 'Món chính');
     if (!includesMain) return;
     const tables = Array.from(new Set(items.map(it => it.tableNumber)));
-    if (!areAllCategorySelectedForTables('Đồ uống', tables)) {
+    if (!areAllCategorySelectedForTables('Đồ uống', tables, proposedSelection)) {
       setIsPriorityInfoOpen(true);
     }
   };
 
   // Show a warning if selecting/preparing desserts while NOT all main dishes
   // on the SAME table(s) are selected
-  const maybeWarnForDessertSelection = (items: SelectionItem[]) => {
+  const maybeWarnForDessertSelection = (items: SelectionItem[], proposedSelection?: Set<number>) => {
     if (!items || items.length === 0) return;
     const includesDessert = items.some(it => itemNameToCategory[it.itemName] === 'Tráng miệng');
     if (!includesDessert) return;
     const tables = Array.from(new Set(items.map(it => it.tableNumber)));
-    if (!areAllCategorySelectedForTables('Món chính', tables)) {
+    if (!areAllCategorySelectedForTables('Món chính', tables, proposedSelection)) {
       setIsDessertPriorityInfoOpen(true);
     }
   };
@@ -379,8 +379,10 @@ function ChiefPageContent() {
 
     // Only warn on selection (not on deselection)
     if (!willDeselect) {
-      maybeWarnForMainSelection([orderKey]);
-      maybeWarnForDessertSelection([orderKey]);
+      // Create proposed selection for the single item being selected
+      const proposedSelection = new Set([orderKey.id]);
+      maybeWarnForMainSelection([orderKey], proposedSelection);
+      maybeWarnForDessertSelection([orderKey], proposedSelection);
     }
     setSelectedOrderKey(prev => {
       if (
@@ -410,8 +412,10 @@ function ChiefPageContent() {
       );
     })();
     if (group && group.length > 0 && !isSameAsSelected) {
-      maybeWarnForMainSelection(group);
-      maybeWarnForDessertSelection(group);
+      // Create proposed selection for the group being selected
+      const proposedSelection = new Set(group.map(item => item.id));
+      maybeWarnForMainSelection(group, proposedSelection);
+      maybeWarnForDessertSelection(group, proposedSelection);
     }
     setSelectedGroup(prev => {
       if (prev && prev.length === group.length && 
@@ -442,8 +446,10 @@ function ChiefPageContent() {
     const isAdding = newLen > prevLen;
     if (isAdding) {
       const flat = groups.flat();
-      maybeWarnForMainSelection(flat);
-      maybeWarnForDessertSelection(flat);
+      // Create proposed selection based on the new groups being set (complete replacement)
+      const proposedSelection = new Set(flat.map(item => item.id));
+      maybeWarnForMainSelection(flat, proposedSelection);
+      maybeWarnForDessertSelection(flat, proposedSelection);
       // Track the group that was just checked
       const findAddedGroup = (): { itemName: string; tableNumber: number; id: number }[] | null => {
         const areSameGroup = (a: { itemName: string; tableNumber: number; id: number }[], b: { itemName: string; tableNumber: number; id: number }[]) => {
@@ -468,8 +474,8 @@ function ChiefPageContent() {
     setSelectedOrderKey(null); // Clear individual selection when groups are selected
   };
 
-  // Function to automatically select the first group based on category priority
-  const autoSelectFirstGroup = useCallback(() => {
+  // Function to automatically select the first 3 groups based on category priority
+  const autoSelectFirstGroups = useCallback(() => {
     // Only auto-select for relevant tabs, not for serve tab, and only if user hasn't made manual selection
     if (activeTab === 'bắt đầu phục vụ' || hasManualSelection) {
       return;
@@ -536,21 +542,24 @@ function ChiefPageContent() {
       return categoryPriority(aCategory) - categoryPriority(bCategory);
     });
 
-    // Select the first group if available
+    // Select the first 3 groups if available (instead of just 1)
     if (perItemGroups.length > 0) {
-      const firstGroup = perItemGroups[0].items;
+      const groupsToSelect = perItemGroups.slice(0, 3).map(group => group.items); // Take first 3 groups
+      
       // Only select if not already selected to avoid unnecessary re-renders
-      const isAlreadySelected = selectedGroups.some(group => {
-        if (group.length !== firstGroup.length) return false;
-        return group.every((item, index) => 
-          item.itemName === firstGroup[index].itemName &&
-          item.tableNumber === firstGroup[index].tableNumber &&
-          item.id === firstGroup[index].id
-        );
-      });
+      const isAlreadySelected = selectedGroups.length === groupsToSelect.length && 
+        selectedGroups.every((selectedGroup, index) => {
+          const targetGroup = groupsToSelect[index];
+          if (!targetGroup || selectedGroup.length !== targetGroup.length) return false;
+          return selectedGroup.every((item, itemIndex) => 
+            item.itemName === targetGroup[itemIndex].itemName &&
+            item.tableNumber === targetGroup[itemIndex].tableNumber &&
+            item.id === targetGroup[itemIndex].id
+          );
+        });
       
       if (!isAlreadySelected) {
-        handleMultipleGroupSelection([firstGroup], true); // Pass true for automatic selection
+        handleMultipleGroupSelection(groupsToSelect, true); // Pass true for automatic selection
       }
     }
   }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection]);
@@ -559,21 +568,21 @@ function ChiefPageContent() {
   useEffect(() => {
     // Small delay to ensure selections are cleared first
     const timeoutId = setTimeout(() => {
-      autoSelectFirstGroup();
+      autoSelectFirstGroups();
     }, 100);
     
     return () => clearTimeout(timeoutId);
-  }, [autoSelectFirstGroup, groupedOrders, selectedCategory]);
+  }, [autoSelectFirstGroups, groupedOrders, selectedCategory]);
 
   // Auto-select first group when switching tabs (after selections are cleared)
   useEffect(() => {
     // Delay to ensure the clear selections effect runs first
     const timeoutId = setTimeout(() => {
-      autoSelectFirstGroup();
+      autoSelectFirstGroups();
     }, 150);
     
     return () => clearTimeout(timeoutId);
-  }, [activeTab, autoSelectFirstGroup]);
+  }, [activeTab, autoSelectFirstGroups]);
 
   // Handle preparing multiple orders at once
   const handlePrepareMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {

@@ -87,18 +87,14 @@ export function useKitchenOrders() {
     return grouped;
   }, [filteredOrders]);
 
-  // Calculate order counts by status
+  // Calculate order counts by status (each API item is now individual, so count items directly)
   const orderCounts = useMemo((): OrderCounts => {
     return {
-      all: orders.reduce((sum, order) => sum + order.quantity, 0),
-      toCook: orders.filter(order => order.status === "đang chờ")
-      .reduce((sum, order) => sum + order.quantity, 0),
-      ready: orders.filter(order => order.status === "đang thực hiện")
-      .reduce((sum, order) => sum + order.quantity, 0),
-      completed: orders.filter(order => order.status === "bắt đầu phục vụ")
-      .reduce((sum, order) => sum + order.quantity, 0),
-      redo: orders.filter(order => order.status === "yêu cầu làm lại")
-      .reduce((sum, order) => sum + order.quantity, 0)
+      all: orders.length,
+      toCook: orders.filter(order => order.status === "đang chờ").length,
+      ready: orders.filter(order => order.status === "đang thực hiện").length,
+      completed: orders.filter(order => order.status === "bắt đầu phục vụ").length,
+      redo: orders.filter(order => order.status === "yêu cầu làm lại").length
     };
   }, [orders]);
 
@@ -108,7 +104,7 @@ export function useKitchenOrders() {
     
     orders.forEach(order => {
       if (order.status !== "bắt đầu phục vụ" && order.status !== "đã phục vụ" && order.status !== "đã huỷ") {
-        remaining[order.itemName] = (remaining[order.itemName] || 0) + order.quantity;
+        remaining[order.itemName] = (remaining[order.itemName] || 0) + 1; // Count individual items
       }
     });
     

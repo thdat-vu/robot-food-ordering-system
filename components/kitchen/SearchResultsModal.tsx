@@ -22,7 +22,7 @@ interface SearchResultsModalProps {
   onClose: () => void;
   productName: string | null;
   orders: Order[];
-  onCancelOrder: (order: Order) => void;
+  onCancelOrder: (order: Order, reason?: string) => void;
 }
 
 export function SearchResultsModal({
@@ -40,9 +40,9 @@ export function SearchResultsModal({
     setShowCancelConfirm(true);
   };
 
-  const handleConfirmCancel = () => {
+  const handleConfirmCancel = (reason: string) => {
     if (orderToCancel) {
-      onCancelOrder(orderToCancel);
+      onCancelOrder(orderToCancel, reason);
       setOrderToCancel(null);
     }
     setShowCancelConfirm(false);

@@ -9,9 +9,7 @@ export interface GroupedOrderItem extends OrderItem {
     totalPrice: number;
   }
   
-  /**
-   * Tạo key duy nhất cho việc group items dựa trên các thuộc tính
-   */
+  
   export const createItemGroupKey = (item: OrderItem): string => {
     const toppingKey = item.toppings
       .map(t => t.id)
@@ -22,18 +20,16 @@ export interface GroupedOrderItem extends OrderItem {
   };
   
   /**
-   * Tính tổng giá của 1 item bao gồm toppings
+  
+   * Note: Each API item is now individual (no quantity field), so we calculate for quantity = 1
    */
-  export const calculateItemTotalPrice = (item: OrderItem): number => {
+  export const calculateItemTotalPrice = (item: OrderItem, quantity: number = 1): number => {
     const basePrice = item.price;
     const toppingsPrice = item.toppings.reduce((sum, topping) => sum + topping.price, 0);
-    return (basePrice + toppingsPrice) * item.quantity;
+    return (basePrice + toppingsPrice) * quantity;
   };
   
-  /**
-   * Group tất cả items từ nhiều orders thành 1 danh sách
-   * Sử dụng khi muốn hiển thị tổng hợp tất cả món ăn
-   */
+ 
   export const groupAllItemsFromOrders = (orders: Order[]): GroupedOrderItem[] => {
     // Flatten tất cả items từ tất cả orders
     const allItems = orders.flatMap(order => order.items);
@@ -44,18 +40,15 @@ export interface GroupedOrderItem extends OrderItem {
       if (!acc[key]) {
         acc[key] = {
           ...item,
-          quantity: item.quantity || 1,
-          totalPrice: calculateItemTotalPrice(item)
+          quantity: 1, // Each API item is individual
+          totalPrice: calculateItemTotalPrice(item, 1)
         };
       } else {
-        const newQuantity = acc[key].quantity + (item.quantity || 1);
+        const newQuantity = acc[key].quantity + 1; // Add 1 for each individual item
         acc[key] = {
           ...acc[key],
           quantity: newQuantity,
-          totalPrice: calculateItemTotalPrice({
-            ...acc[key],
-            quantity: newQuantity
-          })
+          totalPrice: calculateItemTotalPrice(acc[key], newQuantity)
         };
       }
       
@@ -65,10 +58,7 @@ export interface GroupedOrderItem extends OrderItem {
     return Object.values(groupedItems);
   };
   
-  /**
-   * Group items trong từng order riêng biệt
-   * Sử dụng khi muốn hiển thị items đã group trong từng order
-   */
+  
   export const groupItemsPerOrder = (orders: Order[]): (Order & { groupedItems: GroupedOrderItem[] })[] => {
     return orders.map(order => {
       const groupedItems = order.items.reduce((acc, item) => {
@@ -77,18 +67,15 @@ export interface GroupedOrderItem extends OrderItem {
         if (!acc[key]) {
           acc[key] = {
             ...item,
-            quantity: item.quantity || 1,
-            totalPrice: calculateItemTotalPrice(item)
+            quantity: 1, // Each API item is individual
+            totalPrice: calculateItemTotalPrice(item, 1)
           };
         } else {
-          const newQuantity = acc[key].quantity + (item.quantity || 1);
+          const newQuantity = acc[key].quantity + 1; // Add 1 for each individual item
           acc[key] = {
             ...acc[key],
             quantity: newQuantity,
-            totalPrice: calculateItemTotalPrice({
-              ...acc[key],
-              quantity: newQuantity
-            })
+            totalPrice: calculateItemTotalPrice(acc[key], newQuantity)
           };
         }
         
@@ -113,18 +100,15 @@ export interface GroupedOrderItem extends OrderItem {
       if (!acc[key]) {
         acc[key] = {
           ...item,
-          quantity: item.quantity || 1,
-          totalPrice: calculateItemTotalPrice(item)
+          quantity: 1, // Each API item is individual
+          totalPrice: calculateItemTotalPrice(item, 1)
         };
       } else {
-        const newQuantity = acc[key].quantity + (item.quantity || 1);
+        const newQuantity = acc[key].quantity + 1; // Add 1 for each individual item
         acc[key] = {
           ...acc[key],
           quantity: newQuantity,
-          totalPrice: calculateItemTotalPrice({
-            ...acc[key],
-            quantity: newQuantity
-          })
+          totalPrice: calculateItemTotalPrice(acc[key], newQuantity)
         };
       }
       
@@ -143,10 +127,8 @@ export interface GroupedOrderItem extends OrderItem {
     const paidOrders = orders.filter(order => order.paymentStatus.toLowerCase() === 'paid').length;
     const unpaidOrders = orders.length - paidOrders;
     
-    // Tính tổng số lượng món (có thể khác với totalItems nếu có quantity > 1)
-    const totalQuantity = orders.reduce((acc, order) => 
-      acc + order.items.reduce((itemAcc, item) => itemAcc + (item.quantity || 1), 0), 0
-    );
+    // Calculate total quantity (each API item is now individual, so totalQuantity = totalItems)
+    const totalQuantity = totalItems;
     
     return {
       totalOrders: orders.length,
