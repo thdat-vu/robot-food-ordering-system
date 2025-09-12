@@ -42,8 +42,6 @@ export function usePayment() {
   const fetchTables = useCallback(async () => {
     try {
       setError(null);
-      console.log("Fetching tables...");
-
       const response = await tablesApi.getTables(1, 50);
 
       // Assume data looks like [{ id: 1, name: 'Bàn 1' }, ...]
@@ -53,10 +51,8 @@ export function usePayment() {
         return getNumber(a.name) - getNumber(b.name);
       });
 
-      console.log("Sorted tables:", sorted);
       setTables(sorted);
     } catch (err) {
-      console.error("Error fetching tables:", err);
       setError("Error fetching tables");
     }
   }, []);
@@ -69,32 +65,24 @@ export function usePayment() {
       try {
         setIsLoading(true);
         setError(null);
-        console.log("Fetching orders for table:", tableId);
 
         // First, get the table information to get the table name
         const tableResponse = await tablesApi.getTableById(tableId);
-        console.log("Table response:", tableResponse);
-        console.log("Table response.data:", tableResponse.data);
-        console.log("Table response.data?.name:", tableResponse.data?.name);
 
         let tableName = null;
 
         if (!tableResponse.data) {
-          console.log("Table not found in API, trying to find in tables list");
           // Fallback: try to find the table in the tables list
           const tableFromList = tables.find((t) => t.id === tableId);
           if (tableFromList) {
             tableName = tableFromList.name;
-            console.log("Found table in list:", tableName);
           } else {
-            console.log("Table not found in list either, setting empty orders");
             setTableOrders([]);
             setSelectedTableName(null);
             return; // Don't throw error, just return empty orders
           }
         } else {
           tableName = tableResponse.data.name;
-          console.log("Setting table name to:", tableName);
         }
 
         // Store the table name
@@ -105,7 +93,6 @@ export function usePayment() {
           tableId,
           "Delivering"
         );
-        console.log("Orders response (Delivering only):", ordersResponse);
 
         if (ordersResponse.data) {
           const paymentOrders: PaymentOrder[] = ordersResponse.data.map(
@@ -116,20 +103,11 @@ export function usePayment() {
               paymentStatus: order.paymentStatus,
               totalPrice: order.totalPrice,
               items: order.items.map((item) => {
-                console.log("Order item details:", {
-                  id: item.id,
-                  productName: item.productName,
-                  sizeName: item.sizeName,
-                  quantity: item.quantity,
-                  price: item.price,
-                  status: item.status,
-                  toppings: item.toppings,
-                });
                 return {
                   id: item.id,
                   productName: item.productName,
                   sizeName: item.sizeName,
-                  quantity: item.quantity, // Use actual quantity from API (should be 1)
+                  quantity: 1, // Each API item is individual, so quantity is always 1
                   price: item.price, // Use actual price from API (from ProductSize)
                   status: item.status,
                   toppings: item.toppings.map((topping) => ({
@@ -141,12 +119,10 @@ export function usePayment() {
             })
           );
           setTableOrders(paymentOrders);
-          console.log("Filtered orders (Delivering only):", paymentOrders);
         } else {
           setTableOrders([]);
         }
       } catch (err) {
-        console.error("Error fetching orders for table:", err);
         // Don't set error for table not found, just set empty orders
         setTableOrders([]);
         setSelectedTableName(null);
@@ -190,7 +166,6 @@ export function usePayment() {
         return { success: false, message: response.message };
       }
     } catch (err) {
-      console.error("Error initiating payment:", err);
       setPaymentStatus("error");
       return { success: false, message: "Error initiating payment" };
     }
@@ -271,7 +246,6 @@ export function usePayment() {
       setPaymentStatus("error");
       return { success: false, message: res.message || "Cannot create payment URL" };
     } catch (error) {
-      console.error("Error creating VNPay URL:", error);
       setPaymentStatus("error");
       return { success: false, message: "Error creating VNPay URL" };
     }
