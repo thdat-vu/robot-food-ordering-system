@@ -315,7 +315,7 @@ const ModeratorScreen: React.FC = () => {
           {/* Search Bar */}
           <div className="flex justify-center mb-6">
           <div className="space-y-4">
-          <div className="flex items-center bg-purple-500/30 backdrop-blur-lg rounded-full px-4 py-2 shadow-lg border border-purple-300/30 min-w-96">
+          <div className="flex items-center bg-purple-500/30 backdrop-blur-lg rounded-full px-4 py-2 shadow-lg border border-purple-300/30 max-w-md">
             <Search className="w-5 h-5 text-purple-100 mr-3" />
             <input
               type="text"
@@ -506,33 +506,39 @@ const ModeratorScreen: React.FC = () => {
                     thông báo
                   </div>
 
-                  {/* Three status indicators arranged vertically */}
-                  <div className="absolute bottom-2 left-2 flex justify-evenly flex-wrap gap-y-4 items-center gap-3">
-                    {/* Served count - NEW */}
+      {/* Status indicators - Responsive positioning and sizing */}
+      <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-2 items-start sm:items-center">
+                    {/* Served count */}
                     <div className="flex items-center gap-1 text-black text-xs font-semibold bg-white/80 rounded px-1">
-                      <ChefHat size={12} />
-                      <span>
-                        {tableData.serveredCount || 0}/
-                        {tableData.totalItems || 0}
+                      <ChefHat size={10} className="sm:w-3 sm:h-3" />
+                      <span className="text-xs">
+                        {tableData.serveredCount || 0}/{tableData.totalItems || 0}
                       </span>
                     </div>
+
                     {/* Delivered count */}
                     <div className="flex items-center gap-1 text-black text-xs font-semibold bg-white/80 rounded px-1">
-                      <UserCheck size={12} />
-                      <span>
-                        {tableData.deliveredCount || 0}/
-                        {tableData.totalItems || 0}
+                      <UserCheck size={10} className="sm:w-3 sm:h-3" />
+                      <span className="text-xs">
+                        {tableData.deliveredCount || 0}/{tableData.totalItems || 0}
                       </span>
                     </div>
 
                     {/* Paid count */}
                     <div className="flex items-center gap-1 text-black text-xs font-semibold bg-white/80 rounded px-1">
-                      <CreditCard size={12} />
-                      <span>
+                      <CreditCard size={10} className="sm:w-3 sm:h-3" />
+                      <span className="text-xs">
                         {tableData.paidCount || 0}/{tableData.totalItems || 0}
                       </span>
                     </div>
                   </div>
+
+                  {/* Notification badge - Responsive sizing */}
+                  {hasNotification && (
+                    <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-white text-red-500 rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center font-bold text-xs sm:text-sm shadow-lg animate-bounce">
+                      {tableData.counter || 0}
+                    </div>
+                  )}
 
                   {hasNotification && (
                     <div className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-lg animate-bounce">
