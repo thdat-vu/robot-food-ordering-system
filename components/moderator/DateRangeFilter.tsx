@@ -134,24 +134,29 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
                 Từ ngày
               </label>
               <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                disabled={isLoading}
-              />
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  max={new Date().toISOString().split("T")[0]} // ✅ đặt max ngoài, không để trong onChange
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg 
+                    focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                  disabled={isLoading}
+                />
+
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Đến ngày
               </label>
               <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                disabled={isLoading}
-              />
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  max={new Date().toISOString().split("T")[0]} // ✅ không cho chọn quá hôm nay
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg 
+                    focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                  disabled={isLoading}
+                />
             </div>
           </div>
 

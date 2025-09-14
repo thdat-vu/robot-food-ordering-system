@@ -122,14 +122,17 @@ export const transformApiOrderItemToOrder = (
       hour: '2-digit', 
       minute: '2-digit' 
     }),
-    createdTime: (order.createdTime || orderItem.createdTime)?.toLocaleString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }), // Convert Date to string format
+    createdTime: (() => {
+      const dateValue = order.createdTime || orderItem.createdTime;
+      return dateValue ? new Date(dateValue).toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }) : undefined;
+    })(), // Convert Date to string format
     estimatedTime: getEstimatedTime(orderItem.productName),
     sizeName: orderItem.sizeName, // Add size name from API
     toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API
