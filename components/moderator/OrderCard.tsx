@@ -21,7 +21,7 @@ import {
   formatVNCurrency,
   formatVNNumber,
 } from "@/lib/utils/orderGroupingitem";
-import { ApiBaseResponse, ApiOrderResponse, ApiToppingResponse } from "@/lib/api/orders";
+import { ApiBaseResponse, ApiOrderResponse } from "@/lib/api/orders";
 import { useDateFilterUI } from '@/hooks/moderator/useDateFilterUI';
 import { OrderData } from "@/entites/moderator/tableModel";
 import { DateRangeFilter } from "./DateRangeFilter";
@@ -42,7 +42,8 @@ const OrderCard: React.FC<OrderCardProps> = ({
 }) => {
   // Local state
   const [localExpandedId, setLocalExpandedId] = useState<string | null>(null);
-  const [filteredOrders, setFilteredOrders] = useState<ApiOrderResponse[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<OrderData[]>([]);
+  const [hasUserClickedSearch, setHasUserClickedSearch] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,107 +61,74 @@ const OrderCard: React.FC<OrderCardProps> = ({
     }
   };
   
-  // Convert OrderData to ApiOrderResponse
-  const convertOrderDataToApiOrder = (orderData: OrderData): ApiOrderResponse => {
-    return {
-      id: orderData.id,
-      tableId: orderData.tableId,
-      tableName: orderData.tableName,
-      status: orderData.status,
-      paymentStatus: orderData.paymentStatus,
-      totalPrice: orderData.totalPrice,
-      createdTime: orderData.createdTime ? new Date(orderData.createdTime) : undefined,
-      items: orderData.items.map(item => ({
-        id: item.id,
-        productId: item.productId,
-        productName: item.productName,
-        productSizeId: item.productSizeId,
-        sizeName: item.sizeName,
-        remarkNote: item.remarkNote,
-        note: item.note,
-        // quantity field removed - each API item is now individual
-        price: item.price,
-        status: item.status,
-        imageUrl: item.imageUrl,
-        createdTime: item.createdTime ? new Date(item.createdTime) : undefined,
-        toppings: item.toppings.map(topping => ({
-          id: topping.id,
-          name: topping.name,
-          price: topping.price
-        }))
-      }))
-    };
-  };
+ // Sync propOrders -> filteredOrders
+useEffect(() => {
+  if (propOrders) {
+    setFilteredOrders(propOrders || []);
 
-  // Initialize filtered orders
-  useEffect(() => {
-    const ordersToUse = propOrders.map(convertOrderDataToApiOrder);
-    setFilteredOrders(ordersToUse);
-  }, [propOrders, initialOrders]);
+    console.log("🔄 Prop orders updated, filteredOrders set.", propOrders);
+  }
+}, [propOrders]);
 
-  // Handle date filter search
-  const handleDateSearch = useCallback(
-    async (startDate: string | null, endDate: string | null) => {
-      console.log("🔎 handleDateSearch called with", { startDate, endDate, propOrders, tableId });
-  
-      try {
-        setIsLoading(true);
-        setError(null);
-  
-        const targetTableId =tableId || (propOrders.length > 0 ? propOrders[0].tableId : null);
-  
-        console.log("👉 targetTableId:", targetTableId);
-  
-        const response = await ordersApi.getOrdersByTableIdOnly(
-          targetTableId?.toString() || "",
-          startDate,
-          endDate
-        );
-  
-        
-  
-        if (response.data.statusCode === 200 && response.data.data) {
-          const newOrders = response.data.data as ApiOrderResponse[];
-          console.log("✅ API Response for new:", newOrders);
-  
-          if (onOrdersChange) {
-            console.log("📤 calling onOrdersChange...");
-            onOrdersChange(newOrders, targetTableId?.toString() || "");
-          }
-  
-          setFilteredOrders(newOrders);
-        } else {
-          setFilteredOrders([]);
-          setError(response.data.message || "Không lấy được đơn hàng");
+const handleDateSearch = useCallback(
+  async (startDate: string | null, endDate: string | null) => {
+    // 🚦 Nếu chưa bấm Search thì không gọi API
+    if (!hasUserClickedSearch) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const targetTableId = tableId;
+      const response = await ordersApi.getOrdersByTableIdOnly(
+        targetTableId.toString(),
+        startDate,
+        endDate
+      );
+
+      if (response.data.statusCode === 200 && response.data.data) {
+        const apiOrders = response.data.data as OrderData[];
+
+        // 🛠️ Map từ ApiOrderResponse → OrderData
+        const newOrders: OrderData[] = apiOrders.map(order => ({
+          ...order,
+          createdTime: order.createdTime ?? "", // fallback để luôn là string
+        }));
+
+        setFilteredOrders(newOrders);
+        if (onOrdersChange) {
+          onOrdersChange(newOrders, targetTableId.toString());
         }
-      } catch (err) {
-        console.error("❌ Error fetching orders:", err);
-        setError("Có lỗi xảy ra khi gọi API");
-      } finally {
-        setIsLoading(false);
+
+       
+        console.log("✅ Orders fetched for date range:", newOrders);
+      }else {
+        setError("Không có đơn hàng trong khoảng thời gian đã chọn");
+        setFilteredOrders([]);
+        if (onOrdersChange) {
+          onOrdersChange([], targetTableId.toString());
+        }
       }
-    },
-    [ordersApi, propOrders, tableId, onOrdersChange]
-  );
-  
-  
-  // Local filter function
-  const filterOrdersByDate = (ordersToFilter: OrderData[], startDate: string | null, endDate: string | null): OrderData[] => {
-    if (!startDate && !endDate) {
-      return ordersToFilter;
+    } catch (err) {
+      console.error("❌ Error fetching orders:", err);
+      setError("Có lỗi xảy ra khi gọi API");
+    } finally {
+      setIsLoading(false);
     }
+  },
+  [propOrders, tableId, onOrdersChange, hasUserClickedSearch]
+);  
 
-    return ordersToFilter.filter(order => {
-      const orderDate = new Date(order.createdTime);
-      const start = startDate ? new Date(startDate) : null;
-      const end = endDate ? new Date(endDate) : null;
-
-      if (start && orderDate < start) return false;
-      if (end && orderDate > end) return false;
-      
-      return true;
-    });
+  // Reset filter
+  const handleReset = () => {
+    setFilteredOrders(propOrders || []);
+    setHasUserClickedSearch(false); // ✅ reset flag
   };
+
+
+  
+  
+
 
   // Clear error
   const handleClearError = () => {
@@ -273,9 +241,14 @@ const OrderCard: React.FC<OrderCardProps> = ({
     requestcancel: "Yêu cầu đổi món",
   };
 
-
+  // Determine which orders to display and their statistics
+  const effectiveOrders = filteredOrders.length > 0 ? filteredOrders : [];
+  const displayOrders = hasUserClickedSearch ? effectiveOrders : propOrders;
+  const ordersWithGroupedItems = groupItemsPerOrder(displayOrders);
+  const statistics = calculateOrdersStatistics(displayOrders);
  
-  if (propOrders.length === 0) {
+  // Handle initial empty state (no orders at all)
+  if (!hasUserClickedSearch && propOrders.length === 0) {
     return (
       <div className="bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-2xl p-8 text-center border border-gray-200/50">
         <div className="w-16 h-16 bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -286,12 +259,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
       </div>
     );
   }
-
-   // Sử dụng utility functions để tính toán statistics
-   const statistics = calculateOrdersStatistics(propOrders);
-
-   // Group items per order để hiển thị trong expanded view
-  const ordersWithGroupedItems = groupItemsPerOrder(propOrders);
+  
 
   
   return (
@@ -429,132 +397,149 @@ const OrderCard: React.FC<OrderCardProps> = ({
         </div>
 
         {showDateFilter && (
-                <DateRangeFilter
-                  onSearch={handleDateSearch}
-                  isLoading={isLoading}
-                  error={error}
-                  onClearError={handleClearError}
-                />
-              )}
-        {ordersWithGroupedItems.map((orderWithGroups, index) => (
-          <div
-            key={orderWithGroups.id}
-            className="bg-white rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-[1.02] overflow-hidden"
-            onClick={() => toggleExpand(orderWithGroups.id)}
-          >
-            {/* Order gradient header */}
-            <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600"></div>
-            
-            <div className="p-4 sm:p-6">
-              <div className="flex justify-between items-start space-x-4">
-                <div className="flex items-center space-x-4 min-w-0 flex-1">
-                  <div className="relative">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                      <span className="text-white font-bold text-lg">
-                        #{orderWithGroups.id.substring(6, 8)}
-                      </span>
-                    </div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                      <Star className="w-3 h-3 text-white" />
-                    </div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-gray-900 text-lg mb-2">
-                      Đơn Hàng #{orderWithGroups.id.substring(0, 8)}...
-                    </h4>
-                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                      <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(orderWithGroups.status)}`}>
-                        {getOrderStatusIcon(orderWithGroups.status)}
-                        <span>{getOrderStatusLabel(orderWithGroups.status)}</span>
-                      </div>
-                      <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(orderWithGroups.paymentStatus === 'paid' ? 'completed' : 'pending')}`}>
-                        {getPaymentStatusIcon(orderWithGroups.paymentStatus)}
-                        <span>{getPaymentStatusLabel(orderWithGroups.paymentStatus)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                    {formatVNNumber(orderWithGroups.totalPrice)}đ
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500 mt-1">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    {getRelativeTime(orderWithGroups.createdTime)}
-                  </div>
-                </div>
-              </div>
+            <DateRangeFilter
+              onSearch={async(startDate, endDate) => {
+                setHasUserClickedSearch(true);   // ✅ đánh dấu user đã bấm search
+                handleDateSearch(startDate, endDate); // ✅ gọi API
+              }}
+              isLoading={isLoading}
+              error={error}
+              onClearError={handleReset}
+            />
+          )}
+          
+          {!isLoading && ordersWithGroupedItems.length === 0 ? (
+          <div className="bg-gradient-to-br from-orange-50 to-yellow-50/30 rounded-2xl p-8 text-center border border-orange-200/50">
+            <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-orange-700 mb-2">
+              Không có đơn hàng trong khoảng thời gian đã chọn
+            </h3>
+            <p className="text-orange-600">
+              Vui lòng thử chọn khoảng thời gian khác hoặc kiểm tra lại bộ lọc.
+            </p>
+          </div>
+        ) : (
+          ordersWithGroupedItems.map((orderWithGroups, index) => (
+                          <div
+                            key={orderWithGroups.id}
+                            className="bg-white rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-[1.02] overflow-hidden"
+                            onClick={() => toggleExpand(orderWithGroups.id)}
+                          >
+                            {/* Order gradient header */}
+                            <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600"></div>
+                            
+                            <div className="p-4 sm:p-6">
+                              <div className="flex justify-between items-start space-x-4">
+                                <div className="flex items-center space-x-4 min-w-0 flex-1">
+                                  <div className="relative">
+                                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                                      <span className="text-white font-bold text-lg">
+                                        #{orderWithGroups.id.substring(6, 8)}
+                                      </span>
+                                    </div>
+                                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                                      <Star className="w-3 h-3 text-white" />
+                                    </div>
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="font-bold text-gray-900 text-lg mb-2">
+                                      Đơn Hàng #{orderWithGroups.id.substring(0, 8)}...
+                                    </h4>
+                                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                                      <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(orderWithGroups.status)}`}>
+                                        {getOrderStatusIcon(orderWithGroups.status)}
+                                        <span>{getOrderStatusLabel(orderWithGroups.status)}</span>
+                                      </div>
+                                      <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(orderWithGroups.paymentStatus === 'paid' ? 'completed' : 'pending')}`}>
+                                        {getPaymentStatusIcon(orderWithGroups.paymentStatus)}
+                                        <span>{getPaymentStatusLabel(orderWithGroups.paymentStatus)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                                    {formatVNNumber(orderWithGroups.totalPrice)}đ
+                                  </div>
+                                  <div className="flex items-center text-sm text-gray-500 mt-1">
+                                    <Calendar className="w-4 h-4 mr-1" />
+                                    {getRelativeTime(orderWithGroups.createdTime?? "")}
+                                  </div>
+                                </div>
+                              </div>
 
-              {currentExpandedId === orderWithGroups.id && (
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                  <div className="space-y-4">
-                    {/* Hiển thị grouped items thay vì items gốc */}
-                    {orderWithGroups.groupedItems.map((item, idx) => (
+                              {currentExpandedId === orderWithGroups.id && (
+                                <div className="mt-6 pt-6 border-t border-gray-100">
+                                  <div className="space-y-4">
+                                    {/* Hiển thị grouped items thay vì items gốc */}
+                                    {orderWithGroups.groupedItems.map((item, idx) => (
 
-                      <div
-                        key={idx}
-                        className="bg-gradient-to-r from-gray-50 to-blue-50/30 rounded-2xl p-4 hover:from-gray-100 hover:to-blue-50/50 transition-all duration-300 border border-gray-200/50"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0">
-                          <div className="flex items-center space-x-4 min-w-0 flex-1">
-                            <div className="relative">
-                              <img
-                                src={item.imageUrl}
-                                alt={item.productName}
-                                className="w-16 h-16 rounded-2xl object-cover shadow-lg border-2 border-white"
-                              />
-                              <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
-                                {item.quantity}
-                              </div>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-gray-900 text-lg mb-1">
-                                {item.productName}
-                              </div>
-                              <div className="text-sm text-gray-600 mb-2">
-                                Size: {item.sizeName} × {item.quantity}
-                              </div>
-                              {item.note && (
-                                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 text-sm text-amber-700">
-                                  <MessageSquare className="w-4 h-4 inline mr-1" />
-                                  {item.note}
+                                      <div
+                                        key={idx}
+                                        className="bg-gradient-to-r from-gray-50 to-blue-50/30 rounded-2xl p-4 hover:from-gray-100 hover:to-blue-50/50 transition-all duration-300 border border-gray-200/50"
+                                      >
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0">
+                                          <div className="flex items-center space-x-4 min-w-0 flex-1">
+                                            <div className="relative">
+                                              <img
+                                                src={item.imageUrl}
+                                                alt={item.productName}
+                                                className="w-16 h-16 rounded-2xl object-cover shadow-lg border-2 border-white"
+                                              />
+                                              <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                                                {item.quantity}
+                                              </div>
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                              <div className="font-bold text-gray-900 text-lg mb-1">
+                                                {item.productName}
+                                              </div>
+                                              <div className="text-sm text-gray-600 mb-2">
+                                                Size: {item.sizeName} × {item.quantity}
+                                              </div>
+                                              {item.note && (
+                                                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 text-sm text-amber-700">
+                                                  <MessageSquare className="w-4 h-4 inline mr-1" />
+                                                  {item.note}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          <div className="flex flex-col sm:items-end space-y-2">
+                                            <span
+                                              className={`px-4 py-2 text-sm font-medium rounded-full ${getOrderStatusColor(item.status)} shadow-sm`}
+                                            >
+                                              {OrderItemStatusLabel[item.status.toLowerCase()]}
+                                            </span>
+                                            <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                                              {formatVNCurrency(
+                                                (item.price + item.toppings.reduce((sum, t) => sum + t.price, 0)) 
+                                              )}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        {item.toppings.length > 0 && (
+                                          <div className="mt-4 pl-20 space-y-2">
+                                            {item.toppings.map((topping, tIdx) => (
+                                              <div key={tIdx} className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2 border border-gray-200/50">
+                                                <span className="text-sm text-gray-700 font-medium">+ {topping.name}</span>
+                                                <span className="text-sm font-semibold text-emerald-600">+{formatVNCurrency(topping.price)}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
                             </div>
                           </div>
-
-                          <div className="flex flex-col sm:items-end space-y-2">
-                            <span
-                              className={`px-4 py-2 text-sm font-medium rounded-full ${getOrderStatusColor(item.status)} shadow-sm`}
-                            >
-                              {OrderItemStatusLabel[item.status.toLowerCase()]}
-                            </span>
-                            <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                              {formatVNCurrency(
-                                (item.price + item.toppings.reduce((sum, t) => sum + t.price, 0)) 
-                              )}
-                            </span>
-                          </div>
-                        </div>
-
-                        {item.toppings.length > 0 && (
-                          <div className="mt-4 pl-20 space-y-2">
-                            {item.toppings.map((topping, tIdx) => (
-                              <div key={tIdx} className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2 border border-gray-200/50">
-                                <span className="text-sm text-gray-700 font-medium">+ {topping.name}</span>
-                                <span className="text-sm font-semibold text-emerald-600">+{formatVNCurrency(topping.price)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+                        )))}
       </div>
     </div>
   );

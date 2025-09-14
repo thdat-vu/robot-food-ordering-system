@@ -8,7 +8,7 @@ export interface ApiOrderResponse {
     status: string;
     paymentStatus: string;
     totalPrice: number;
-    createdTime?: Date; // Created time from API (e.g., "31/07/2025 00:01:28")
+    createdTime?: string; // Created time from API (e.g., "31/07/2025 00:01:28")
     items: ApiOrderItemResponse[];
 }
 
@@ -20,11 +20,11 @@ export interface ApiOrderItemResponse {
     sizeName: string;
     remarkNote: string; // Staff remark note for the item
     note: string; // Customer note for the item
-    // quantity field removed - each API item is now individual
+    quantity: number;
     price: number; // Add price field for order items
     status: string;
     imageUrl: string; // Add imageUrl field from API response
-    createdTime?: Date; // Created time from API (e.g., "31/07/2025 00:01:28")
+    createdTime?: string; // Created time from API (e.g., "31/07/2025 00:01:28")
     toppings: ApiToppingResponse[];
 }
 
@@ -71,6 +71,7 @@ export interface OrderPaymentResponse {
     paymentStatus: string;
     message: string;
 }
+
 
 // API service functions
 export const ordersApi = {

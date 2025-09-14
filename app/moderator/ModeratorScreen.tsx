@@ -36,12 +36,12 @@ const ModeratorScreen: React.FC = () => {
   const { run } = useGetAllFeedbackHome();
   const { toasts, addToast, removeToast } = useToastModerator();
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // useEffect(() => {
+  //   const timer = setInterval(() => {
+  //     setCurrentTime(new Date());
+  //   }, 1000);
+  //   return () => clearInterval(timer);
+  // }, []);
 
   useEffect(() => {
     const loadData = async () => {

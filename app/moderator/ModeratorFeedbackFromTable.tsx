@@ -66,7 +66,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
     const {run} = useGetFeedbackByIdtable();
-    console.log('Feedback component rendered with idTable:', idTable, 'and open:', open , run);
     const {run: runCheck} = useCheckSS();
     const API_BASE = getApiUrl();
 
@@ -87,21 +86,32 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         return feedbackData.length === 0 ? 'orderHistory' : 'feedback';
     };
     
-    useEffect(() => {
-        if (open && idTable) {
-            const timeout = setTimeout(() => {
-                // If activeTab is null, we need to load feedback first to determine the tab
-                if (activeTab === null) {
-                    loadFeedbackData();
-                } else if (activeTab === 'feedback') {
-                    loadFeedbackData();
-                } else if (activeTab === 'orderHistory') {
-                    fetchOrdersForTable(idTable);
-                }
-            }, 300);    
-            return () => clearTimeout(timeout);
+   
+useEffect(() => {
+    if (open && idTable) {
+        const timeout = setTimeout(() => {
+            // Only load data when dialog first opens or idTable changes
+            if (activeTab === null) {
+                loadFeedbackData();
+            } else if (activeTab === 'feedback') {
+                loadFeedbackData();
+            } else if (activeTab === 'orderHistory') {
+                fetchOrdersForTable(idTable);
+            }
+        }, 300);    
+        return () => clearTimeout(timeout);
+    }
+}, [idTable, open]); 
+
+useEffect(() => {
+    if (open && idTable && activeTab !== null) {
+        if (activeTab === 'feedback' && data.length === 0) {
+            loadFeedbackData();
+        } else if (activeTab === 'orderHistory' && (!orderData[idTable] || orderData[idTable].length === 0)) {
+            fetchOrdersForTable(idTable);
         }
-    }, [idTable, open, activeTab]);
+    }
+}, [activeTab]);
 
     useEffect(() => {
         setListId(Array.from(selectedFeedbacks));
@@ -110,7 +120,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     // Set default response value when component opens
     useEffect(() => {
         if (open && data.length > 0 && activeTab === 'feedback') {
-           console.log('Setting default responses for feedbacks:', data);
             const defaultResponses = data.reduce((acc, feedback) => {
                 if (!responses[feedback.idFeedback]) {
                     acc[feedback.idFeedback] = "Nhân viên đã tiếp nhận và khắc phục sự cố";
@@ -130,7 +139,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const fetchOrdersForTable = async (tableId: string) => {
         if (loadingOrders[tableId]) return;
         if (orderData[tableId] && orderData[tableId].length > 0) {
-            console.log(`Orders for table ${tableId} already loaded, skipping fetch.`);
             return;
         }
         try {
@@ -138,7 +146,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
             const response = await fetch(`${API_BASE}/Order/table/${tableId}`);
             if (!response.ok) throw new Error('Failed to fetch orders');
             const orders = await response.json();
-            console.log(`Orders for table ${tableId}:`, orders.data);
             
             setOrderData(prev => ({
                 ...prev,
