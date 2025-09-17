@@ -44,7 +44,7 @@ const ReasonCard: React.FC<ReasonCardProps> = ({
 }) => {
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
 
-  const handleSuggestionClick = (suggestion: string) => {
+ 
     const handleSuggestionClick = (suggestion: string) => {
       const trimmed = reason.trim();
       if (trimmed) {
@@ -55,7 +55,7 @@ const ReasonCard: React.FC<ReasonCardProps> = ({
       }
       setShowSuggestions(false);
     };
-  };
+  
 
   return (
     <div className={`bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 rounded-2xl p-6 border border-amber-200/50 shadow-xl relative overflow-hidden ${className}`}>
