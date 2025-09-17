@@ -45,8 +45,16 @@ const ReasonCard: React.FC<ReasonCardProps> = ({
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
 
   const handleSuggestionClick = (suggestion: string) => {
-    onReasonChange(suggestion);
-    setShowSuggestions(false);
+    const handleSuggestionClick = (suggestion: string) => {
+      const trimmed = reason.trim();
+      if (trimmed) {
+        // Nếu reason đã có nội dung thì nối thêm bằng dấu "; "
+        onReasonChange(`${trimmed}; ${suggestion}`);
+      } else {
+        onReasonChange(suggestion);
+      }
+      setShowSuggestions(false);
+    };
   };
 
   return (
