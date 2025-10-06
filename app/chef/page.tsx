@@ -800,9 +800,9 @@ function ChiefPageContent() {
           selectedGroups={selectedGroups}
           onMultipleGroupSelection={handleMultipleGroupSelection}
           orders={orders}
-          initialWidth={420}
-          minWidthPx={260}
-          maxWidthPx={460}
+          initialWidth={240}
+          minWidthPx={200}
+          maxWidthPx={300}
         />
       </div>
 

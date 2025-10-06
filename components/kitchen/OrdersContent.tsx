@@ -338,7 +338,7 @@ export function OrdersContent({
         </Card>
         {/* Bottom sticky CTA to mirror the top toolbar */}
         <div className="sticky bottom-0 z-10 mt-6 py-3 flex justify-center">
-          {activeTab === 'đang chờ' && (
+          {activeTab === 'đang chờ' && isSelectedSingle && (
             <Button onClick={() => onPrepareClick(order.id, order.itemName)} size="lg" className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white">Thực hiện</Button>
           )}
           {activeTab === 'đang thực hiện' && (
