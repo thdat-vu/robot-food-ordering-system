@@ -13,6 +13,7 @@ interface DynamicSearchProps {
   showDropdown: boolean;
   onProductSelect: (productName: string) => void;
   onDropdownClose: () => void;
+  className?: string; // optional wrapper classes for responsive sizing
 }
 
 export function DynamicSearch({
@@ -21,18 +22,19 @@ export function DynamicSearch({
   searchResults,
   showDropdown,
   onProductSelect,
-  onDropdownClose
+  onDropdownClose,
+  className
 }: DynamicSearchProps) {
   return (
     <Popover open={showDropdown} onOpenChange={(open) => !open && onDropdownClose()}>
       <PopoverTrigger asChild>
-        <div className="relative">
+        <div className={`relative ${className || ''}`}>
           <input
             type="text"
             placeholder="Tìm kiếm món để huỷ"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-64 px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+            className="w-full max-w-[18rem] sm:max-w-[20rem] md:max-w-[16rem] lg:max-w-[18rem] px-3 md:px-4 py-2 pl-9 md:pl-10 pr-3 md:pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg
@@ -53,7 +55,7 @@ export function DynamicSearch({
       </PopoverTrigger>
       
       {showDropdown && searchResults.length > 0 && (
-        <PopoverContent className="w-64 p-0" align="start">
+        <PopoverContent className="w-[18rem] sm:w-[20rem] md:w-[16rem] lg:w-[18rem] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
           <div className="max-h-60 overflow-y-auto">
             {searchResults.map((product, index) => (
               <Button
