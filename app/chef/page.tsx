@@ -21,6 +21,7 @@ import { KitchenSidebar } from '@/components/kitchen/KitchenSidebar';
 import { OrdersContent } from '@/components/kitchen/OrdersContent';
 import { InfoModal } from '@/components/kitchen/InfoModal';
 import { SearchResultsModal } from '@/components/kitchen/SearchResultsModal';
+import { chefService } from '@/service/chef/chefService';
 
 function ChiefPageContent() {
   const router = useCustomRouter();
@@ -75,13 +76,11 @@ function ChiefPageContent() {
 
   // Dynamic search functionality
   const getSearchableProducts = useCallback(() => {
-    // Get all active orders (exclude completed/cancelled)
-    const activeOrders = orders.filter(order => 
-      order.status !== 'đã phục vụ' && order.status !== 'đã huỷ'
-    );
+    // Only search items currently in 'đang chờ'
+    const pendingOrders = orders.filter(order => order.status === 'đang chờ');
     
     // Get unique product names
-    const uniqueProducts = [...new Set(activeOrders.map(order => order.itemName))];
+    const uniqueProducts = [...new Set(pendingOrders.map(order => order.itemName))];
     return uniqueProducts;
   }, [orders]);
 
@@ -136,7 +135,10 @@ function ChiefPageContent() {
     }
     
     try {
-      await handleCancelOrder(order.id, reason);
+      // Explicitly cancel the specific API order item ID to avoid cancelling all items
+      await chefService.setOrderItemCancelled(order.apiOrderId, order.apiItemId, reason);
+      // Refresh to reflect latest state
+      await refreshOrders(false);
       addToast(`Đã huỷ món: ${order.itemName}`, 'success');
     } catch (error) {
       addToast(`Lỗi khi huỷ món: ${order.itemName}`, 'error');
