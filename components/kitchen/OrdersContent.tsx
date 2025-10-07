@@ -338,7 +338,7 @@ export function OrdersContent({
         </Card>
         {/* Bottom sticky CTA to mirror the top toolbar */}
         <div className="sticky bottom-0 z-10 mt-6 py-3 flex justify-center">
-          {activeTab === 'đang chờ' && (
+          {activeTab === 'đang chờ' && isSelectedSingle && (
             <Button onClick={() => onPrepareClick(order.id, order.itemName)} size="lg" className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white">Thực hiện</Button>
           )}
           {activeTab === 'đang thực hiện' && (
@@ -437,90 +437,61 @@ export function OrdersContent({
         </div>
       );
     }
+    // Group by item name so identical dishes collapse into a single card with quantity
+    const groupedByName: { itemName: string; orders: Order[] }[] = (() => {
+      const map = new Map<string, Order[]>();
+      for (const order of sortedOrders) {
+        const current = map.get(order.itemName) || [];
+        current.push(order);
+        map.set(order.itemName, current);
+      }
+      return Array.from(map.entries()).map(([itemName, orders]) => ({ itemName, orders }));
+    })();
+
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         {/* Top bulk actions moved to header; keep bottom sticky button only */}
 
         <div className="space-y-4">
-          {sortedOrders.map((order) => (
-            <Card
-              key={order.id}
-              className={`hover:shadow-md transition-shadow duration-200 ${selectedIds && selectedIds.has(order.id) ? 'bg-gray-100 border border-gray-300' : ''}`}
-            >
-              <CardHeader className="flex flex-row items-center gap-4">
-                {renderOrderImage(order)}
-                <div className="flex-1">
-                  <CardTitle>{order.itemName}</CardTitle>
-                  <CardDescription>
-                    {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
-                    {order.sizeName && (
-                      <span className="ml-2 text-blue-600 font-medium">
-                        • {order.sizeName}
-                      </span>
+          {groupedByName.map(({ itemName, orders }) => {
+            const first = orders[0];
+            const groupSelected = selectedIds ? orders.some(o => selectedIds.has(o.id)) : false;
+            const uniqueTables = Array.from(new Set(orders.map(o => o.tableNumber))).join(', ');
+            return (
+              <Card
+                key={itemName}
+                className={`hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''}`}
+              >
+                <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
+                  {renderOrderImage(first)}
+                  <div className="flex-1">
+                    <CardTitle>{itemName}</CardTitle>
+                    <CardDescription>
+                      x{orders.length} &nbsp;|&nbsp; Bàn: {uniqueTables}
+                      {first.sizeName && (
+                        <span className="ml-2 text-blue-600 font-medium">• {first.sizeName}</span>
+                      )}
+                    </CardDescription>
+                    {first.note && (
+                      <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                        <span className="font-medium">Ghi chú:</span> {first.note}
+                      </div>
                     )}
-                  </CardDescription>
-                  {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                      <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
-                    </div>
-                  )}
-                  {order.note && (
-                    <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                      <span className="font-medium">Ghi chú:</span> {order.note}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                    {renderClockIcon()}
-                    <span className="text-xs opacity-80">{order.estimatedTime}</span>
-                  </div>
-                  {order.createdTime && (
                     <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                      {renderCalendarIcon()}
-                      <span className="text-xs opacity-80">Ngày tạo đơn: {order.createdTime}</span>
+                      {renderClockIcon()}
+                      <span className="text-xs opacity-80">{first.estimatedTime}</span>
                     </div>
-                  )}
-                </div>
-                {activeTab === 'đang chờ' && !showIndividualCards && (
-                  <CardAction>
-                    <Button 
-                      onClick={e => { e.stopPropagation(); onPrepareClick(order.id, order.itemName); }}
-                      variant="default"
-                    >
-                      Thực hiện
-                    </Button>
-                  </CardAction>
-                )}
-                {activeTab === 'đang thực hiện' && !showIndividualCards && (
-                  <CardAction>
-                    <Button 
-                      onClick={e => { e.stopPropagation(); onServeClick(order); }}
-                      variant="default"
-                    >
-                      Bắt đầu phục vụ
-                    </Button>
-                  </CardAction>
-                )}
-                {onCancelClick && (
-                  <CardAction>
-                    {renderCancelButton(order)}
-                  </CardAction>
-                )}
-                {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && (
-                  <CardAction>
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={e => { e.stopPropagation(); onAcceptRedoClick(order.id, order.itemName); }}
-                        variant="default"
-                        size="sm"
-                      >
-                        Bắt đầu làm lại
-                      </Button>
-                    </div>
-                  </CardAction>
-                )}
-              </CardHeader>
-            </Card>
-          ))}
+                    {first.createdTime && (
+                      <div className="flex items-center gap-1 mt-1 text-muted-foreground">
+                        {renderCalendarIcon()}
+                        <span className="text-xs opacity-80">Ngày tạo đơn: {first.createdTime}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+              </Card>
+            );
+          })}
         </div>
         {/* Bottom sticky CTA to mirror the top bulk actions */}
         <div className="sticky bottom-0 z-10 py-3 mt-6 flex justify-center">

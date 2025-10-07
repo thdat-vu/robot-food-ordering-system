@@ -50,6 +50,26 @@ export function KitchenSidebar({
   const [sidebarWidth, setSidebarWidth] = useState<number>(initialWidth);
   const [isResizing, setIsResizing] = useState<boolean>(false);
 
+  // Keep sidebar reasonable on tablets by capping width to a percentage of viewport
+  const getDynamicMaxWidth = (): number => {
+    if (typeof window === 'undefined') return maxWidthPx;
+    const percentCap = Math.round(window.innerWidth * 0.4); // at most 40% of viewport
+    return Math.min(maxWidthPx, Math.max(minWidthPx, percentCap));
+  };
+
+  // On mount and when viewport changes, clamp or set a sensible width
+  useEffect(() => {
+    const applyResponsiveWidth = () => {
+      const dynamicMax = getDynamicMaxWidth();
+      const preferred = Math.min(dynamicMax, Math.max(minWidthPx, sidebarWidth || initialWidth));
+      setSidebarWidth(preferred);
+    };
+    applyResponsiveWidth();
+    window.addEventListener('resize', applyResponsiveWidth);
+    return () => window.removeEventListener('resize', applyResponsiveWidth);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -61,7 +81,8 @@ export function KitchenSidebar({
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
       const nextWidth = e.clientX - rect.left; // distance from left edge
-      const clamped = Math.max(minWidthPx, Math.min(maxWidthPx, nextWidth));
+      const dynamicMax = getDynamicMaxWidth();
+      const clamped = Math.max(minWidthPx, Math.min(dynamicMax, nextWidth));
       setSidebarWidth(clamped);
     };
     const handleMouseUp = () => setIsResizing(false);
@@ -71,7 +92,7 @@ export function KitchenSidebar({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, minWidthPx, maxWidthPx]);
+  }, [isResizing, minWidthPx]);
 
   // Compute counts per category using remainingItems (all pending items)
   const categoryCounts = useMemo((): Record<string, number> => {
@@ -194,13 +215,13 @@ export function KitchenSidebar({
       className={`bg-gray-200 flex flex-col h-screen relative flex-shrink-0 ${className || ''}`}
     >
       {/* Fixed Header */}
-      <div className="flex-shrink-0 p-6 pb-4">
-        <h2 className="text-xl font-bold text-gray-800">Danh mục món ăn</h2>
+      <div className="flex-shrink-0 p-4 md:p-6 pb-3 md:pb-4">
+        <h2 className="text-lg md:text-xl font-bold text-gray-800">Danh mục món ăn</h2>
       </div>
       
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
-        <div className="flex flex-col gap-6">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6">
+        <div className="flex flex-col gap-4 md:gap-6">
           {/* Category Filters */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <h3 className="font-semibold mb-3 text-gray-700">Bộ lọc</h3>
@@ -232,8 +253,8 @@ export function KitchenSidebar({
           </div>
 
           {/* Filtered Items Section - show only items matching selectedCategory */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex flex-col gap-4"> {/* gap between groups */}
+          <div className="bg-white rounded-2xl p-3 md:p-4 shadow-sm">
+            <div className="flex flex-col gap-3 md:gap-4"> {/* gap between groups */}
               {(() => {
                 // Helper: compute chunk sizes between 3 and 5 to avoid tiny leftovers
                 const getChunkSizes = (total: number): number[] => {
@@ -298,7 +319,7 @@ export function KitchenSidebar({
                   return (
                     <div
                       key={`sidebar-group-${groupIdx}`}
-                      className={`bg-gray-100 rounded-xl shadow p-3 flex flex-col gap-2 cursor-pointer transition-all duration-200 ${
+                      className={`bg-gray-100 rounded-xl shadow p-2.5 md:p-3 flex flex-col gap-2 cursor-pointer transition-all duration-200 ${
                         isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
                       }`}
                       onClick={() => {
@@ -340,7 +361,7 @@ export function KitchenSidebar({
                             }
                           }}
                           onClick={(e) => handleCheckboxClick(e, group)}
-                          className="size-6 border-2 border-gray-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:ring-2 data-[state=checked]:ring-green-300 shadow-sm"
+                          className="size-5 md:size-6 border-2 border-gray-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:ring-2 data-[state=checked]:ring-green-300 shadow-sm"
                           aria-label="Chọn nhóm"
                         />
                         {/* <span className="text-sm font-medium text-gray-700">
@@ -364,7 +385,7 @@ export function KitchenSidebar({
                                 onSidebarItemClick({ itemName, tableNumber, id });
                               }}
                               variant="secondary"
-                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left w-full h-auto min-h-[48px] px-3 py-2`}
+                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left w-full h-auto min-h-[44px] md:min-h-[48px] px-3 py-2`}
                             >
                               <div className="flex w-full items-center gap-2">
                                 <span className="block text-sm leading-tight truncate flex-1 min-w-0">

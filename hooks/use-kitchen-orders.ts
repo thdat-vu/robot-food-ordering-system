@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Order, OrderStatus, OrderCounts, GroupedOrders, RemainingItems } from '@/types/kitchen';
 import { MOCK_ORDERS, SIDEBAR_ANIMATION_DURATION } from '@/constants/kitchen-data';
-import { ordersApi } from '@/lib/api/orders';
-import { transformApiOrdersToOrders, mapFrontendStatusToApi } from '@/lib/utils/order-transformer';
+import { chefService } from '@/service/chef/chefService';
 
 export function useKitchenOrders() {
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
@@ -20,12 +19,10 @@ export function useKitchenOrders() {
       setIsLoading(true);
       setError(null);
       
-      const response = await ordersApi.getOrders(1, 100); // Get first 100 orders
-      
-      if (response.statusCode === 200 && response.data && response.data.length > 0) {
-        const transformedOrders = transformApiOrdersToOrders(response.data);
-        setOrders(transformedOrders);
-        setIdMappings([]); // For now, we'll use empty mappings
+      const { orders } = await chefService.fetchOrders(1, 100);
+      if (orders && orders.length > 0) {
+        setOrders(orders);
+        setIdMappings([]);
       } else {
         console.error('Failed to fetch orders: No data received');
         setError('Failed to fetch orders');
@@ -46,12 +43,10 @@ export function useKitchenOrders() {
     try {
       setError(null);
       
-      const response = await ordersApi.getOrders(1, 100); // Get first 100 orders
-      
-      if (response.statusCode === 200 && response.data && response.data.length > 0) {
-        const transformedOrders = transformApiOrdersToOrders(response.data);
-        setOrders(transformedOrders);
-        setIdMappings([]); // For now, we'll use empty mappings
+      const { orders } = await chefService.fetchOrders(1, 100);
+      if (orders && orders.length > 0) {
+        setOrders(orders);
+        setIdMappings([]);
       }
     } catch (err) {
       console.error('Error silently fetching orders:', err);
@@ -138,7 +133,7 @@ export function useKitchenOrders() {
     }
   };
 
-  // Update order status to "đang thực hiện" via API
+  // Update order status to "đang thực hiện" via service
   const handlePrepareOrders = useCallback(async (orderId: number): Promise<void> => {
     try {
       // Find the order to get its API ID
@@ -158,13 +153,8 @@ export function useKitchenOrders() {
       );
       setExpandedGroup(null);
 
-      // Make API call to update order item status to "Preparing" (status 2)
-      const response = await ordersApi.updateOrderItemStatus(
-        order.apiOrderId,
-        order.apiItemId,
-        2 // Preparing status
-      );
-
+      // Update via service: Preparing (2)
+      const response = await chefService.setOrderItemPreparing(order.apiOrderId, order.apiItemId);
       if (response.statusCode !== 200) {
         throw new Error(response.message || 'Failed to update order status');
       }
@@ -185,7 +175,7 @@ export function useKitchenOrders() {
     }
   }, [orders]);
 
-  // Update specific order status to "bắt đầu phục vụ" via API
+  // Update specific order status to "bắt đầu phục vụ" via service
   const handleServeOrder = useCallback(async (orderId: number): Promise<void> => {
     try {
       // Find the order to get its API ID
@@ -204,13 +194,8 @@ export function useKitchenOrders() {
         )
       );
 
-      // Make API call to update order item status to "Ready" (status 3)
-      const response = await ordersApi.updateOrderItemStatus(
-        order.apiOrderId,
-        order.apiItemId,
-        3 // Ready status
-      );
-
+      // Update via service: Ready (3)
+      const response = await chefService.setOrderItemReady(order.apiOrderId, order.apiItemId);
       if (response.statusCode !== 200) {
         throw new Error(response.message || 'Failed to update order status');
       }
@@ -250,13 +235,8 @@ export function useKitchenOrders() {
         )
       );
 
-      // Make API call to update order item status to "Preparing" (status 2)
-      const response = await ordersApi.updateOrderItemStatus(
-        order.apiOrderId,
-        order.apiItemId,
-        2 // Preparing status
-      );
-
+      // Update via service: Preparing (2)
+      const response = await chefService.setOrderItemPreparing(order.apiOrderId, order.apiItemId);
       if (response.statusCode !== 200) {
         throw new Error(response.message || 'Failed to update order status');
       }
@@ -292,13 +272,8 @@ export function useKitchenOrders() {
         prevOrders.filter(order => order.id !== orderId)
       );
 
-      // Make API call to update order item status to "Cancelled" (status 6)
-      const response = await ordersApi.updateOrderItemStatus(
-        order.apiOrderId,
-        order.apiItemId,
-        6 // Cancelled status
-      );
-
+      // Update via service: Cancelled (6)
+      const response = await chefService.setOrderItemCancelled(order.apiOrderId, order.apiItemId);
       if (response.statusCode !== 200) {
         throw new Error(response.message || 'Failed to update order status');
       }
@@ -331,14 +306,8 @@ export function useKitchenOrders() {
       // Optimistic update: remove item from local list
       setOrders(prev => prev.filter(o => o.id !== orderId));
 
-      // Call API to set status to Cancelled (6)
-      const response = await ordersApi.updateOrderItemStatus(
-        order.apiOrderId,
-        order.apiItemId,
-        6,
-        remarkNote
-      );
-
+      // Update via service to Cancelled (6)
+      const response = await chefService.setOrderItemCancelled(order.apiOrderId, order.apiItemId, remarkNote);
       if (response.statusCode !== 200) {
         throw new Error(response.message || 'Failed to cancel order item');
       }

@@ -17,7 +17,9 @@ interface NavigationTabsProps {
   rightAction?: React.ReactNode;
 }
 
-const TAB_ORDER: OrderStatus[] = ["đang chờ", "đang thực hiện", "bắt đầu phục vụ", "yêu cầu làm lại" ];
+// Note: The 'yêu cầu làm lại' tab is intentionally hidden per request.
+// To restore it, add 'yêu cầu làm lại' back to the array below.
+const TAB_ORDER: OrderStatus[] = ["đang chờ", "đang thực hiện", "bắt đầu phục vụ" /*, "yêu cầu làm lại"*/ ];
 
 export function NavigationTabs({ 
   activeTab, 
@@ -36,13 +38,13 @@ export function NavigationTabs({
   };
 
   return (
-    <div className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
+  <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
+      <div className="flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between">
         {/* Left spacer trimmed to remove large gap */}
-        <div className="w-0"></div>
+        <div className="hidden md:block w-0"></div>
 
         {/* Navigation Tabs - Centered, flexible */}
-        <nav className="flex-1 flex justify-center space-x-2 min-w-0">
+        <nav className="order-1 md:order-none flex-1 flex flex-wrap justify-center gap-2 min-w-0">
           {TAB_ORDER.map((tab) => {
             const isActive = activeTab === tab;
             return (
@@ -51,10 +53,11 @@ export function NavigationTabs({
                 onClick={() => onTabChange(tab)}
                 variant={isActive ? 'default' : 'outline'}
                 size="sm"
+                className="px-2.5 py-1.5 md:px-3 md:py-2 text-xs md:text-sm"
               >
                 <span>{TAB_DISPLAY_NAMES[tab]}</span>
                 <span
-                  className={`inline-flex items-center justify-center px-2 py-1 text-xs font-bold rounded-full ml-2 ${getBadgeColor(tab, isActive)}`}
+                  className={`inline-flex items-center justify-center px-1.5 py-0.5 md:px-2 md:py-1 text-[10px] md:text-xs font-bold rounded-full ml-2 ${getBadgeColor(tab, isActive)}`}
                 >
                   {getTabCount(tab)}
                 </span>
@@ -65,7 +68,7 @@ export function NavigationTabs({
 
         {/* Search Bar + Right Action */}
         {(onSearchChange || rightAction) && (
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="order-2 md:order-none flex items-center gap-2 md:gap-3 flex-shrink-0 justify-between md:justify-end w-full md:w-auto">
             {rightAction}
             {onSearchChange && onProductSelect && onSearchDropdownClose && (
               <DynamicSearch
@@ -75,6 +78,7 @@ export function NavigationTabs({
                 showDropdown={showSearchDropdown}
                 onProductSelect={onProductSelect}
                 onDropdownClose={onSearchDropdownClose}
+                className="w-full md:w-auto"
               />
             )}
           </div>
