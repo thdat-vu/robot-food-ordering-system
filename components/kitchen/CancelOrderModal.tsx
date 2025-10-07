@@ -43,7 +43,14 @@ export function CancelOrderModal({
   };
 
   const handleReasonButtonClick = (presetReason: string) => {
-    setReason(presetReason);
+    setReason(prev => {
+      const trimmedPrev = prev.trim();
+      if (!trimmedPrev) return presetReason;
+      // Prevent duplicate reasons; use '; ' separator
+      const parts = trimmedPrev.split(/\s*;\s*/).filter(Boolean);
+      if (parts.includes(presetReason)) return trimmedPrev; 
+      return `${trimmedPrev}; ${presetReason}`;
+    });
   };
 
   const handleConfirm = () => {
@@ -123,7 +130,7 @@ export function CancelOrderModal({
                 <Button
                   key={index}
                   type="button"
-                  variant={reason === presetReason ? "default" : "outline"}
+                  variant={reason.split(/\s*;\s*/).includes(presetReason) ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleReasonButtonClick(presetReason)}
                   className="text-xs"
