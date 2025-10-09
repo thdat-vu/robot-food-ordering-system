@@ -9,7 +9,7 @@ export const ENV_CONFIG = {
   
   // Production environment
   production: {
-    API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://be-robo.zd-dev.xyz/api'
+    API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://be.qrcodeordering.duckdns.org/api'
   },
   
   // Test environment
