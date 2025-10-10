@@ -23,7 +23,7 @@ export default function OrderStatus({ dish }: { dish: any }) {
   };
 
   return (
-    <div className="w-2/3 p-4 space-y-6">
+    <div className="w-full md:w-2/3 p-4 space-y-6">
       {/* Thông tin đơn hàng */}
       <Card>
         <CardHeader>
@@ -45,7 +45,7 @@ export default function OrderStatus({ dish }: { dish: any }) {
       </div>
 
       {/* Sơ đồ phục vụ */}
-      <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden shadow">
+      <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden shadow min-h-[240px] sm:min-h-[320px] md:min-h-[420px] lg:min-h-[520px]">
         <iframe
           src="https://map-doan-nhattruowngs-projects.vercel.app/map/5"
           allowFullScreen

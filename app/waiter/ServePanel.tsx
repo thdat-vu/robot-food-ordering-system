@@ -47,7 +47,7 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
   };
 
   return (
-    <div className="w-full h-full max-h-[800px] md:max-h-[900px] flex flex-col bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
       {/* Header Section */}
       <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
@@ -83,13 +83,11 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
             </div>
           </div>
         )}
-
-      
       </div>
 
       {/* Map Content - Only show when needed */}
       {showMap ? (
-        <div className="flex-1 relative bg-gray-50 min-h-[600px]">
+        <div className="flex-1 relative bg-gray-50 min-h-[280px] sm:min-h-[360px] md:min-h-[480px] lg:min-h-[600px]">
           {mapUrl ? (
             // Show map with selected table numbers
             <div className="relative h-full w-full">
@@ -98,7 +96,7 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
-                className="w-full h-full min-h-[600px]"
+                className="w-full h-full min-h-[280px] sm:min-h-[360px] md:min-h-[480px] lg:min-h-[600px]"
                 title="Map Embed"
                 style={{ border: "none", zIndex: 1 }}
               />
@@ -141,7 +139,6 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Get dishes for current tab
   const dishesForTab = getDishesByStatus(activeTab);
-
 
   console.log(dishesForTab);
 
