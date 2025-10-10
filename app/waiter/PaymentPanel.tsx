@@ -265,7 +265,7 @@ export default function PaymentPanel({
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 w-full h-full overflow-hidden">
+    <div className="theme-light flex flex-col lg:flex-row gap-6 w-full h-full overflow-hidden bg-background text-foreground">
       {/* Table Selection - Left Side */}
       <div className="lg:w-1/3">
         <Card className="h-full">
