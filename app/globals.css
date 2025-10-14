@@ -99,3 +99,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Animation for disappearing order cards */
+@keyframes slideOutRight {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.animating-out {
+  animation: slideOutRight 300ms ease-out forwards;
+}

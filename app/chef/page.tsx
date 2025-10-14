@@ -46,6 +46,9 @@ function ChiefPageContent() {
   const [selectedGroup, setSelectedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
   const [selectedGroups, setSelectedGroups] = useState<{ itemName: string; tableNumber: number; id: number }[][]>([]);
   const [hasManualSelection, setHasManualSelection] = useState(false);
+  
+  // Animation state for disappearing items
+  const [animatingOutIds, setAnimatingOutIds] = useState<Set<number>>(new Set());
 
   // Custom hooks
   const {
@@ -592,16 +595,27 @@ function ChiefPageContent() {
       // Warning for both priority rules on the same table(s)
       maybeWarnForMainSelection(orders);
       maybeWarnForDessertSelection(orders);
-      // Prepare all orders in the group
-      for (const order of orders) {
-        await handlePrepareOrders(order.id);
-      }
+      
+      // Mark all items as animating out
+      const orderIds = orders.map(o => o.id);
+      setAnimatingOutIds(new Set(orderIds));
+      
+      // Wait for animation to complete (300ms for fade-out animation)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Prepare all orders in parallel using Promise.all
+      await Promise.all(orders.map(order => handlePrepareOrders(order.id)));
+      
       addToast(`Đã bắt đầu thực hiện ${orders.length} món cùng lúc`, 'success');
-      // Clear selections after bulk action
+      
+      // Clear animations and selections after bulk action
+      setAnimatingOutIds(new Set());
       setSelectedGroups([]);
       setSelectedGroup(null);
       setSelectedOrderKey(null);
     } catch (error) {
+      // Clear animation state on error
+      setAnimatingOutIds(new Set());
       addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
     }
   };
@@ -609,16 +623,26 @@ function ChiefPageContent() {
   // Handle serving multiple orders at once
   const handleServeMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
     try {
-      // Serve all orders in the group
-      for (const order of orders) {
-        await handleServeOrder(order.id);
-      }
+      // Mark all items as animating out
+      const orderIds = orders.map(o => o.id);
+      setAnimatingOutIds(new Set(orderIds));
+      
+      // Wait for animation to complete (300ms for fade-out animation)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Serve all orders in parallel using Promise.all
+      await Promise.all(orders.map(order => handleServeOrder(order.id)));
+      
       addToast(`Đã bắt đầu phục vụ ${orders.length} món cùng lúc`, 'success');
-      // Clear selections after bulk action
+      
+      // Clear animations and selections after bulk action
+      setAnimatingOutIds(new Set());
       setSelectedGroups([]);
       setSelectedGroup(null);
       setSelectedOrderKey(null);
     } catch (error) {
+      // Clear animation state on error
+      setAnimatingOutIds(new Set());
       addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
     }
   };
@@ -909,6 +933,7 @@ function ChiefPageContent() {
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
+                animatingOutIds={animatingOutIds}
               />
             );
           }
@@ -928,6 +953,7 @@ function ChiefPageContent() {
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
+                animatingOutIds={animatingOutIds}
               />
             );
           }
@@ -947,6 +973,7 @@ function ChiefPageContent() {
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
                 showIndividualCards={true}
+                animatingOutIds={animatingOutIds}
               />
             );
           }
@@ -984,6 +1011,7 @@ function ChiefPageContent() {
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
+                animatingOutIds={animatingOutIds}
               />
             );
           }
@@ -1019,6 +1047,7 @@ function ChiefPageContent() {
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
+                animatingOutIds={animatingOutIds}
               />
             );
           }
@@ -1036,6 +1065,7 @@ function ChiefPageContent() {
                 onAcceptRedoClick={handleAcceptRedoClick}
                 onRejectRedoClick={handleRejectRedoClickWrapper}
                 selectedIds={selectedIds}
+                animatingOutIds={animatingOutIds}
               />
             );
           }
