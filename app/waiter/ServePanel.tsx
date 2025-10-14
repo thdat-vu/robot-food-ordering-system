@@ -92,6 +92,7 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
             // Show map with selected table numbers
             <div className="relative h-full w-full">
               <iframe
+                key={mapUrl} // Force reload when URL changes
                 src={mapUrl}
                 allowFullScreen
                 loading="lazy"
@@ -189,23 +190,64 @@ const ServePanel: React.FC<ServePanelProps> = ({
     (dish) => dish.selected && dish.status === activeTab
   );
 
-  // Get unique table numbers from all selected dishes
-  const selectedTableNumbers = React.useMemo(() => {
-    const uniqueNumbers = Array.from(
-      new Set(allSelectedDishes.map((dish) => dish.tableNumber))
-    );
-    return uniqueNumbers.sort((a, b) => a - b); // Sort for consistency
-  }, [allSelectedDishes]);
+  // Get table numbers by status
+  const tableNumbersByStatus = React.useMemo(() => {
+    // Get tables with orders ready to serve (blue)
+    const readyTables = Array.from(
+      new Set(
+        dishes
+          .filter((dish) => dish.status === "bắt đầu phục vụ")
+          .map((dish) => dish.tableNumber)
+      )
+    ).sort((a, b) => a - b);
 
-  // Generate map URL with all selected table numbers
+    // Get tables with served orders (yellow)
+    const servedTables = Array.from(
+      new Set(
+        dishes
+          .filter((dish) => dish.status === "đã phục vụ")
+          .map((dish) => dish.tableNumber)
+      )
+    ).sort((a, b) => a - b);
+
+    // Get selected tables (red pathways) - multiple tables can be selected
+    const selectedTables = Array.from(
+      new Set(allSelectedDishes.map((dish) => dish.tableNumber))
+    ).sort((a, b) => a - b);
+
+    return {
+      ready: readyTables,
+      served: servedTables,
+      selected: selectedTables,
+    };
+  }, [dishes, allSelectedDishes]);
+
+  // Generate map URL with table statuses
   const mapUrl = React.useMemo(() => {
     const baseUrl = `https://my-app-henna-three.vercel.app/`;
-    if (selectedTableNumbers.length > 0) {
-      return `${baseUrl}?tables=${selectedTableNumbers.join(",")}`;
+    const params = new URLSearchParams();
+
+    // Add ready tables (blue)
+    if (tableNumbersByStatus.ready.length > 0) {
+      params.append("ready", tableNumbersByStatus.ready.join(","));
     }
-    // Fallback to base map when nothing is selected
+
+    // Add served tables (yellow)
+    if (tableNumbersByStatus.served.length > 0) {
+      params.append("served", tableNumbersByStatus.served.join(","));
+    }
+
+    // Add selected tables (red pathways)
+    if (tableNumbersByStatus.selected.length > 0) {
+      params.append("selected", tableNumbersByStatus.selected.join(","));
+    }
+
+    const queryString = params.toString();
+    if (queryString) {
+      return `${baseUrl}?${queryString}`;
+    }
     return baseUrl;
-  }, [selectedTableNumbers]);
+  }, [tableNumbersByStatus]);
 
   // Update selected table when dishes change
   React.useEffect(() => {
