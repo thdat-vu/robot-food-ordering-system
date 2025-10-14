@@ -26,6 +26,7 @@ interface OrdersContentProps {
   onServeMultipleOrders?: (orders: { itemName: string; tableNumber: number; id: number }[]) => void;
   showIndividualCards?: boolean;
   selectedIds?: Set<number>;
+  animatingOutIds?: Set<number>;
 }
 
 export function OrdersContent({
@@ -41,7 +42,8 @@ export function OrdersContent({
   onPrepareMultipleOrders,
   onServeMultipleOrders,
   showIndividualCards,
-  selectedIds
+  selectedIds,
+  animatingOutIds = new Set()
 }: OrdersContentProps) {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const target = e.target as HTMLImageElement;
@@ -203,7 +205,10 @@ export function OrdersContent({
         {/* Individual Item Cards */}
         <div className="space-y-4 mb-6">
           {groupOrders.map((order, index) => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow duration-200">
+            <Card 
+              key={order.id} 
+              className={`hover:shadow-md transition-shadow duration-200 ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
+            >
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
                 <div className="flex-1">
@@ -278,7 +283,7 @@ export function OrdersContent({
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         {/* Top CTA moved to header; keep bottom sticky button only */}
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${isSelectedSingle ? 'bg-gray-100 border border-gray-300' : ''}`}
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${isSelectedSingle ? 'bg-gray-100 border border-gray-300' : ''} ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
         >
           <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
             {renderOrderImage(order)}
@@ -373,7 +378,7 @@ export function OrdersContent({
           {sortedOrders.map((order) => (
             <Card
               key={order.id}
-              className={`hover:shadow-md transition-shadow duration-200 ${selectedIds && selectedIds.has(order.id) ? 'bg-gray-100 border border-gray-300' : ''}`}
+              className={`hover:shadow-md transition-shadow duration-200 ${selectedIds && selectedIds.has(order.id) ? 'bg-gray-100 border border-gray-300' : ''} ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
             >
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
@@ -456,11 +461,12 @@ export function OrdersContent({
           {groupedByName.map(({ itemName, orders }) => {
             const first = orders[0];
             const groupSelected = selectedIds ? orders.some(o => selectedIds.has(o.id)) : false;
+            const anyAnimating = orders.some(o => animatingOutIds.has(o.id));
             const uniqueTables = Array.from(new Set(orders.map(o => o.tableNumber))).join(', ');
             return (
               <Card
                 key={itemName}
-                className={`hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''}`}
+                className={`hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''} ${anyAnimating ? 'animating-out' : ''}`}
               >
                 <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
                   {renderOrderImage(first)}
@@ -531,8 +537,9 @@ export function OrdersContent({
       <div className="space-y-4">
         {Object.entries(groupedOrders).map(([itemName, orderGroup], groupIndex) => {
           const groupSelected = selectedIds ? orderGroup.some(o => selectedIds!.has(o.id)) : false;
+          const anyAnimating = orderGroup.some(o => animatingOutIds.has(o.id));
           return (
-          <Card key={itemName} className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''}`}>
+          <Card key={itemName} className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''} ${anyAnimating ? 'animating-out' : ''}`}>
             <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
               {renderOrderImage(orderGroup[0])}
               <div className="flex-1">
