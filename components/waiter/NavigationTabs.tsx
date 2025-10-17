@@ -35,7 +35,7 @@ export function NavigationTabs({
     <div className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Selected Items Count */}
-        <div className="flex items-center space-x-2">
+        {/* <div className="flex items-center space-x-2">
           {selectedCount > 0 && (
             <div className="flex items-center space-x-2 bg-green-100 text-green-800 px-3 py-1 rounded-full">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -44,7 +44,7 @@ export function NavigationTabs({
               </span>
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* Navigation Tabs - Centered */}
         <nav className="flex space-x-2">
