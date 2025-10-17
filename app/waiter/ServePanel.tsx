@@ -50,6 +50,25 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
     <div className="w-full h-full flex flex-col bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
       {/* Header Section */}
       <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
+        {/* Legend for table colors */}
+        <div className="flex items-center justify-end gap-2 md:gap-3 mb-2">
+          <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-2 py-1 text-[10px] md:text-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+            <span>Sẵn sàng</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-2 py-1 text-[10px] md:text-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            <span>Đang chọn</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-2 py-1 text-[10px] md:text-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+            <span>Đã phục vụ</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-2 py-1 text-[10px] md:text-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+            <span>Không có món</span>
+          </div>
+        </div>
         {/* <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -69,20 +88,22 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
         </div> */}
 
         {/* Map Controls */}
-        {mapUrl && showMap && (
-          <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-sm">
-            <div className="flex items-center space-x-3">
-              {/* <Button
-                onClick={handleResetMap}
-                variant="outline"
-                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-                size="sm"
-              >
-                Ẩn bản đồ
-              </Button> */}
-            </div>
-          </div>
-        )}
+        {mapUrl && showMap 
+        // && (
+        //   <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-sm">
+        //     <div className="flex items-center space-x-3">
+        //       <Button
+        //         onClick={handleResetMap}
+        //         variant="outline"
+        //         className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+        //         size="sm"
+        //       >
+        //         Ẩn bản đồ
+        //       </Button>
+        //     </div>
+        //   </div>
+        // )
+        }
       </div>
 
       {/* Map Content - Only show when needed */}
