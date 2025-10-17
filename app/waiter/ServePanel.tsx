@@ -49,8 +49,8 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
   return (
     <div className="w-full h-full flex flex-col bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
       {/* Header Section */}
-      <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white px-6 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
+        {/* <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
               <Eye className="w-5 h-5" />
@@ -66,20 +66,20 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
             <span className="text-sm font-medium">Trực tuyến</span>
           </div>
-        </div>
+        </div> */}
 
         {/* Map Controls */}
         {mapUrl && showMap && (
           <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-sm">
             <div className="flex items-center space-x-3">
-              <Button
+              {/* <Button
                 onClick={handleResetMap}
                 variant="outline"
                 className="bg-white/20 border-white/30 text-white hover:bg-white/30"
                 size="sm"
               >
                 Ẩn bản đồ
-              </Button>
+              </Button> */}
             </div>
           </div>
         )}
@@ -87,20 +87,22 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
 
       {/* Map Content - Only show when needed */}
       {showMap ? (
-        <div className="flex-1 relative bg-gray-50 min-h-[280px] sm:min-h-[360px] md:min-h-[480px] lg:min-h-[600px]">
+        <div className="flex-1 relative bg-gray-50 min-h-[260px] sm:min-h-[340px] md:min-h-[420px] lg:min-h-[520px]">
           {mapUrl ? (
-            // Show map with selected table numbers
-            <div className="relative h-full w-full">
-              <iframe
-                key={mapUrl} // Force reload when URL changes
-                src={mapUrl}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="strict-origin-when-cross-origin"
-                className="w-full h-full min-h-[280px] sm:min-h-[360px] md:min-h-[480px] lg:min-h-[600px]"
-                title="Map Embed"
-                style={{ border: "none", zIndex: 1 }}
-              />
+            // Show map with selected table numbers (centered & true 960x600 aspect)
+            <div className="relative h-full w-full flex justify-center items-start">
+              <div className="relative w-full max-w-[960px] aspect-[8/5]">
+                <iframe
+                  key={mapUrl} // Force reload when URL changes
+                  src={mapUrl}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className="absolute inset-0 w-full h-full block mx-auto rounded-2xl"
+                  title="Map Embed"
+                  style={{ border: "none", zIndex: 1 }}
+                />
+              </div>
             </div>
           ) : null}
         </div>
@@ -309,15 +311,15 @@ const ServePanel: React.FC<ServePanelProps> = ({
   };
 
   return (
-    <div className="flex-1 px-4 md:px-6 flex flex-col items-center bg-gradient-to-br from-gray-50 to-white">
-      <div className="w-full max-w-4xl">
-        <h2 className="text-2xl md:text-3xl font-bold mb-3 text-gray-800 text-center">
+    <div className="flex-1 px-3 md:px-4 flex flex-col items-center bg-gradient-to-br from-gray-50 to-white">
+      <div className="w-full max-w-3xl md:max-w-4xl">
+        {/* <h2 className="text-2xl md:text-3xl font-bold mb-3 text-gray-800 text-center">
           {getTabTitle()}
-        </h2>
+        </h2> */}
 
-        <p className="text-sm text-gray-600 mb-8 text-center max-w-2xl mx-auto">
+        {/* <p className="text-sm text-gray-600 mb-8 text-center max-w-2xl mx-auto">
           {getTabDescription()}
-        </p>
+        </p> */}
 
         <div className="w-full mb-6">
           {dishesForTab.length > 0 ? (
