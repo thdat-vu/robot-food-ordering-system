@@ -44,16 +44,42 @@ import {
   DollarSign,
   Check,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getPaymentPolicy, updatePaymentPolicy } from "@/lib/api/settings";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"accounts" | "dishes" | "config">(
     "accounts"
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"prepay" | "postpay">(
-    "postpay"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<"prepay" | "postpay">("postpay");
+  const [loadingPolicy, setLoadingPolicy] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoadingPolicy(true);
+        const policy = await getPaymentPolicy();
+        if (!mounted) return;
+        setPaymentMethod(policy === "Prepay" ? "prepay" : "postpay");
+      } finally {
+        setLoadingPolicy(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleSelectPolicy = async (v: "prepay" | "postpay") => {
+    setPaymentMethod(v);
+    try {
+      await updatePaymentPolicy(v === "prepay" ? "Prepay" : "Postpay");
+    } catch (e) {
+      // revert on error
+      setPaymentMethod(v === "prepay" ? "postpay" : "prepay");
+    }
+  };
 
   const [addAccountModal, setAddAccountModal] = useState(false);
   const [addAccountForm, setAddAccountForm] = useState({
@@ -754,7 +780,7 @@ export default function AdminDashboard() {
                                   ? "border-2 border-primary bg-primary/5"
                                   : "border-2 border-transparent hover:border-muted-foreground/20"
                               }`}
-                              onClick={() => setPaymentMethod("prepay")}
+                              onClick={() => handleSelectPolicy("prepay")}
                             >
                               <CardContent className="p-4">
                                 <div className="flex items-start justify-between gap-2">
@@ -783,7 +809,7 @@ export default function AdminDashboard() {
                                   ? "border-2 border-primary bg-primary/5"
                                   : "border-2 border-transparent hover:border-muted-foreground/20"
                               }`}
-                              onClick={() => setPaymentMethod("postpay")}
+                              onClick={() => handleSelectPolicy("postpay")}
                             >
                               <CardContent className="p-4">
                                 <div className="flex items-start justify-between gap-2">
