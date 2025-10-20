@@ -51,7 +51,6 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({idTable}) => {
 
     return (
         <div className="h-full flex flex-col">
-            {/* Header với stats */}
             <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-2xl font-bold text-gray-800">Lịch sử đơn hàng</h2>
@@ -66,51 +65,51 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({idTable}) => {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-4 gap-4">
-                    <div
-                        className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl px-4 py-3 text-center border-2 border-yellow-200 shadow-sm">
-                        <div className="flex items-center justify-center space-x-2 mb-1">
-                            <Clock className="w-5 h-5 text-yellow-600"/>
-                            <span className="text-2xl font-bold text-yellow-700">
-                                {statusCounts.pending}
-                            </span>
-                        </div>
-                        <span className="text-sm text-yellow-700 font-medium">Chờ xử lý</span>
-                    </div>
+                {/*<div className="grid grid-cols-4 gap-4">*/}
+                {/*    <div*/}
+                {/*        className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl px-4 py-3 text-center border-2 border-yellow-200 shadow-sm">*/}
+                {/*        <div className="flex items-center justify-center space-x-2 mb-1">*/}
+                {/*            <Clock className="w-5 h-5 text-yellow-600"/>*/}
+                {/*            <span className="text-2xl font-bold text-yellow-700">*/}
+                {/*                {statusCounts.pending}*/}
+                {/*            </span>*/}
+                {/*        </div>*/}
+                {/*        <span className="text-sm text-yellow-700 font-medium">Chờ xử lý</span>*/}
+                {/*    </div>*/}
 
-                    <div
-                        className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl px-4 py-3 text-center border-2 border-orange-200 shadow-sm">
-                        <div className="flex items-center justify-center space-x-2 mb-1">
-                            <AlertTriangle className="w-5 h-5 text-orange-600"/>
-                            <span className="text-2xl font-bold text-orange-700">
-                                {statusCounts.preparing}
-                            </span>
-                        </div>
-                        <span className="text-sm text-orange-700 font-medium">Đang chuẩn bị</span>
-                    </div>
+                {/*    <div*/}
+                {/*        className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl px-4 py-3 text-center border-2 border-orange-200 shadow-sm">*/}
+                {/*        <div className="flex items-center justify-center space-x-2 mb-1">*/}
+                {/*            <AlertTriangle className="w-5 h-5 text-orange-600"/>*/}
+                {/*            <span className="text-2xl font-bold text-orange-700">*/}
+                {/*                {statusCounts.preparing}*/}
+                {/*            </span>*/}
+                {/*        </div>*/}
+                {/*        <span className="text-sm text-orange-700 font-medium">Đang chuẩn bị</span>*/}
+                {/*    </div>*/}
 
-                    <div
-                        className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl px-4 py-3 text-center border-2 border-green-200 shadow-sm">
-                        <div className="flex items-center justify-center space-x-2 mb-1">
-                            <CheckCircle2 className="w-5 h-5 text-green-600"/>
-                            <span className="text-2xl font-bold text-green-700">
-                                {statusCounts.completed}
-                            </span>
-                        </div>
-                        <span className="text-sm text-green-700 font-medium">Hoàn thành</span>
-                    </div>
+                {/*    <div*/}
+                {/*        className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl px-4 py-3 text-center border-2 border-green-200 shadow-sm">*/}
+                {/*        <div className="flex items-center justify-center space-x-2 mb-1">*/}
+                {/*            <CheckCircle2 className="w-5 h-5 text-green-600"/>*/}
+                {/*            <span className="text-2xl font-bold text-green-700">*/}
+                {/*                {statusCounts.completed}*/}
+                {/*            </span>*/}
+                {/*        </div>*/}
+                {/*        <span className="text-sm text-green-700 font-medium">Hoàn thành</span>*/}
+                {/*    </div>*/}
 
-                    <div
-                        className="bg-gradient-to-br from-red-50 to-red-100 rounded-2xl px-4 py-3 text-center border-2 border-red-200 shadow-sm">
-                        <div className="flex items-center justify-center space-x-2 mb-1">
-                            <XCircle className="w-5 h-5 text-red-600"/>
-                            <span className="text-2xl font-bold text-red-700">
-                                {statusCounts.cancelled}
-                            </span>
-                        </div>
-                        <span className="text-sm text-red-700 font-medium">Đã hủy</span>
-                    </div>
-                </div>
+                {/*    <div*/}
+                {/*        className="bg-gradient-to-br from-red-50 to-red-100 rounded-2xl px-4 py-3 text-center border-2 border-red-200 shadow-sm">*/}
+                {/*        <div className="flex items-center justify-center space-x-2 mb-1">*/}
+                {/*            <XCircle className="w-5 h-5 text-red-600"/>*/}
+                {/*            <span className="text-2xl font-bold text-red-700">*/}
+                {/*                {statusCounts.cancelled}*/}
+                {/*            </span>*/}
+                {/*        </div>*/}
+                {/*        <span className="text-sm text-red-700 font-medium">Đã hủy</span>*/}
+                {/*    </div>*/}
+                {/*</div>*/}
             </div>
 
             {/* Orders List */}
