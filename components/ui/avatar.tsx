@@ -1,0 +1,1 @@
+// Placeholder for Avatar component. Implement avatar styles and logic here. 

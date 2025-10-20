@@ -1,0 +1,1 @@
+// Placeholder for authentication actions (login, logout, etc.) 
