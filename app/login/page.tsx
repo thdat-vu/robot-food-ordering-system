@@ -13,10 +13,11 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         <div className="absolute bottom-12 left-12 text-white">
           <h2 className="text-4xl font-serif font-bold mb-3 text-balance">
-            Experience culinary excellence
+            Trải nghiệm ẩm thực tuyệt hảo
           </h2>
           <p className="text-lg text-white/90 max-w-md leading-relaxed">
-            Join us for an unforgettable dining journey where every dish tells a
+            Tham gia chúng tôi để trải nghiệm một hành trình ăn uống không thể
+            quên nơi mỗi món ăn kể một câu chuyện
             story
           </p>
         </div>
