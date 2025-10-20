@@ -48,9 +48,7 @@ import { useEffect, useState } from "react";
 import { getPaymentPolicy, updatePaymentPolicy } from "@/lib/api/settings";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"accounts" | "dishes" | "config">(
-    "accounts"
-  );
+  const [activeTab, setActiveTab] = useState<"accounts" | "dishes" | "config">("accounts");
   const [searchQuery, setSearchQuery] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"prepay" | "postpay">("postpay");
   const [loadingPolicy, setLoadingPolicy] = useState(false);
@@ -325,8 +323,20 @@ export default function AdminDashboard() {
     });
   };
 
+  const secondaryNav = [
+    { key: "accounts", label: "Tài Khoản", icon: Users },
+    { key: "dishes", label: "Món Ăn", icon: UtensilsCrossed },
+    { key: "config", label: "Cấu Hình", icon: Settings },
+  ];
+
   return (
-    <DashboardLayout role="admin">
+    <DashboardLayout
+      role="admin"
+      secondaryNav={secondaryNav}
+      activeSecondary={activeTab}
+      onSecondaryChange={(k) => setActiveTab(k as any)}
+      hidePrimaryNav
+    >
       <div className="space-y-6 sm:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -422,39 +432,7 @@ export default function AdminDashboard() {
         </div>
 
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
-                <Button
-                  variant={activeTab === "accounts" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setActiveTab("accounts")}
-                  className="gap-2 whitespace-nowrap"
-                >
-                  <Users className="w-4 h-4" />
-                  Tài Khoản
-                </Button>
-                <Button
-                  variant={activeTab === "dishes" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setActiveTab("dishes")}
-                  className="gap-2 whitespace-nowrap"
-                >
-                  <UtensilsCrossed className="w-4 h-4" />
-                  Món Ăn
-                </Button>
-                <Button
-                  variant={activeTab === "config" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setActiveTab("config")}
-                  className="gap-2 whitespace-nowrap"
-                >
-                  <Settings className="w-4 h-4" />
-                  Cấu Hình
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
+          <CardHeader className="pb-3" />
 
           <Separator />
 
