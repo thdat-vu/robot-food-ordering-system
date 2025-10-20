@@ -266,127 +266,128 @@ const handleDateSearch = useCallback(
     <div className="space-y-6">
        
       {/* Enhanced Summary Card với statistics từ utility */}
-      <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-200/50 shadow-xl relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/10 to-blue-400/10 rounded-full translate-y-12 -translate-x-12"></div>
-                  
-        
-        <div className="relative">
-       
-      
+      {/*<div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-200/50 shadow-xl relative overflow-hidden">*/}
+      {/*  /!* Decorative elements *!/*/}
+      {/*  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16"></div>*/}
+      {/*  <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/10 to-blue-400/10 rounded-full translate-y-12 -translate-x-12"></div>*/}
+      {/*            */}
+      {/*  */}
+      {/*  /!*<div className="relative">*!/*/}
 
-          {/* Header with icon */}
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-3 shadow-lg">
-              <Award className="w-5 h-5 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900">Tổng Quan Hoạt Động</h3>
-            
-          
-            
-          </div>
-         
-          
-          
 
-          {/* Enhanced Statistics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Clock className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-2xl font-bold text-blue-600">
-                  {statistics.totalOrders}
-                </div>
-              </div>
-              <div className="text-sm text-gray-600 font-medium">
-                Đơn Hoạt Động
-              </div>
-            </div>
+      {/*  /!*  /!* Header with icon *!/*!/*/}
+      {/*  /!*  <div className="flex items-center mb-6">*!/*/}
+      {/*  /!*    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-3 shadow-lg">*!/*/}
+      {/*  /!*      <Award className="w-5 h-5 text-white" />*!/*/}
+      {/*  /!*    </div>*!/*/}
+      {/*  /!*    <h3 className="text-xl font-bold text-gray-900">Tổng Quan Hoạt Động</h3>*!/*/}
+      {/*  /!*    *!/*/}
+      {/*  /!*  *!/*/}
+      {/*  /!*    *!/*/}
+      {/*  /!*  </div>*!/*/}
+      {/*  /!* *!/*/}
+      {/*  /!*  *!/*/}
+      {/*  /!*  *!/*/}
 
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <DollarSign className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-lg lg:text-xl font-bold text-emerald-600 truncate">
-                  {formatVNNumber(statistics.totalPrice)}đ
-                </div>
-              </div>
-              <div className="text-sm text-gray-600 font-medium">
-                Tổng Giá Trị
-              </div>
-            </div>
+      {/*  /!*  /!* Enhanced Statistics Grid *!/*!/*/}
+      {/*  /!*  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">*!/*/}
+      {/*  /!*    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">*!/*/}
+      {/*  /!*      <div className="flex items-center justify-between mb-3">*!/*/}
+      {/*  /!*        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
+      {/*  /!*          <Clock className="w-6 h-6 text-white" />*!/*/}
+      {/*  /!*        </div>*!/*/}
+      {/*  /!*        <div className="text-2xl font-bold text-blue-600">*!/*/}
+      {/*  /!*          {statistics.totalOrders}*!/*/}
+      {/*  /!*        </div>*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*      <div className="text-sm text-gray-600 font-medium">*!/*/}
+      {/*  /!*        Đơn Hoạt Động*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*    </div>*!/*/}
 
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Utensils className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-2xl font-bold text-purple-600">
-                  {statistics.totalQuantity}
-                </div>
-              </div>
-              <div className="text-sm text-gray-600 font-medium">
-                Tổng Món
-              </div>
-            </div>
+      {/*  /!*    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">*!/*/}
+      {/*  /!*      <div className="flex items-center justify-between mb-3">*!/*/}
+      {/*  /!*        <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
+      {/*  /!*          <DollarSign className="w-6 h-6 text-white" />*!/*/}
+      {/*  /!*        </div>*!/*/}
+      {/*  /!*        <div className="text-lg lg:text-xl font-bold text-emerald-600 truncate">*!/*/}
+      {/*  /!*          {formatVNNumber(statistics.totalPrice)}đ*!/*/}
+      {/*  /!*        </div>*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*      <div className="text-sm text-gray-600 font-medium">*!/*/}
+      {/*  /!*        Tổng Giá Trị*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*    </div>*!/*/}
 
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Award className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-2xl font-bold text-indigo-600">1</div>
-              </div>
-              <div className="text-sm text-gray-600 font-medium">
-                Bàn Phục Vụ
-              </div>
-            </div>
-          </div>
+      {/*  /!*    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">*!/*/}
+      {/*  /!*      <div className="flex items-center justify-between mb-3">*!/*/}
+      {/*  /!*        <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
+      {/*  /!*          <Utensils className="w-6 h-6 text-white" />*!/*/}
+      {/*  /!*        </div>*!/*/}
+      {/*  /!*        <div className="text-2xl font-bold text-purple-600">*!/*/}
+      {/*  /!*          {statistics.totalQuantity}*!/*/}
+      {/*  /!*        </div>*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*      <div className="text-sm text-gray-600 font-medium">*!/*/}
+      {/*  /!*        Tổng Món*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*    </div>*!/*/}
 
-          {/* Enhanced Payment Status */}
-          <div className="border-t border-blue-200/50 pt-6">
-            <div className="flex items-center mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3 shadow-lg">
-                <DollarSign className="w-4 h-4 text-white" />
-              </div>
-              <h4 className="text-lg font-semibold text-gray-800">Trạng Thái Thanh Toán</h4>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-4 shadow-lg border border-emerald-200/50 hover:shadow-xl transition-all duration-300">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <CheckCircle className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="font-medium text-gray-700">
-                      Đã Thanh Toán
-                    </span>
-                  </div>
-                  <div className="text-2xl font-bold text-emerald-600">{statistics.paidOrders}</div>
-                </div>
-              </div>
+      {/*  /!*    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">*!/*/}
+      {/*  /!*      <div className="flex items-center justify-between mb-3">*!/*/}
+      {/*  /!*        <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
+      {/*  /!*          <Award className="w-6 h-6 text-white" />*!/*/}
+      {/*  /!*        </div>*!/*/}
+      {/*  /!*        <div className="text-2xl font-bold text-indigo-600">1</div>*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*      <div className="text-sm text-gray-600 font-medium">*!/*/}
+      {/*  /!*        Bàn Phục Vụ*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*    </div>*!/*/}
+      {/*  /!*  </div>*!/*/}
 
-              <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-4 shadow-lg border border-red-200/50 hover:shadow-xl transition-all duration-300">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <XCircle className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="font-medium text-gray-700">
-                      Chưa Thanh Toán
-                    </span>
-                  </div>
-                  <div className="text-2xl font-bold text-red-600">{statistics.unpaidOrders}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/*  /!*  /!* Enhanced Payment Status *!/*!/*/}
+      {/*  /!*  <div className="border-t border-blue-200/50 pt-6">*!/*/}
+      {/*  /!*    <div className="flex items-center mb-4">*!/*/}
+      {/*  /!*      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3 shadow-lg">*!/*/}
+      {/*  /!*        <DollarSign className="w-4 h-4 text-white" />*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*      <h4 className="text-lg font-semibold text-gray-800">Trạng Thái Thanh Toán</h4>*!/*/}
+      {/*  /!*    </div>*!/*/}
+      {/*  /!*    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">*!/*/}
+      {/*  /!*      <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-4 shadow-lg border border-emerald-200/50 hover:shadow-xl transition-all duration-300">*!/*/}
+      {/*  /!*        <div className="flex items-center justify-between">*!/*/}
+      {/*  /!*          <div className="flex items-center space-x-3">*!/*/}
+      {/*  /!*            <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
+      {/*  /!*              <CheckCircle className="w-5 h-5 text-white" />*!/*/}
+      {/*  /!*            </div>*!/*/}
+      {/*  /!*            <span className="font-medium text-gray-700">*!/*/}
+      {/*  /!*              Đã Thanh Toán*!/*/}
+      {/*  /!*            </span>*!/*/}
+      {/*  /!*          </div>*!/*/}
+      {/*  /!*          <div className="text-2xl font-bold text-emerald-600">{statistics.paidOrders}</div>*!/*/}
+      {/*  /!*        </div>*!/*/}
+      {/*  /!*      </div>*!/*/}
+
+      {/*  /!*      <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-4 shadow-lg border border-red-200/50 hover:shadow-xl transition-all duration-300">*!/*/}
+      {/*  /!*        <div className="flex items-center justify-between">*!/*/}
+      {/*  /!*          <div className="flex items-center space-x-3">*!/*/}
+      {/*  /!*            <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
+      {/*  /!*              <XCircle className="w-5 h-5 text-white" />*!/*/}
+      {/*  /!*            </div>*!/*/}
+      {/*  /!*            <span className="font-medium text-gray-700">*!/*/}
+      {/*  /!*              Chưa Thanh Toán*!/*/}
+      {/*  /!*            </span>*!/*/}
+      {/*  /!*          </div>*!/*/}
+      {/*  /!*          <div className="text-2xl font-bold text-red-600">{statistics.unpaidOrders}</div>*!/*/}
+      {/*  /!*        </div>*!/*/}
+      {/*  /!*      </div>*!/*/}
+      {/*  /!*    </div>*!/*/}
+      {/*  /!*  </div>*!/*/}
+      {/*  /!*</div>*!/*/}
+
+
+      {/*</div>*/}
       {/* Enhanced Orders List */}
       <div className="space-y-4">
         <div className="flex items-center mb-4">

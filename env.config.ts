@@ -4,7 +4,7 @@
 export const ENV_CONFIG = {
   // Development environment
   development: {
-    API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5235/api'
+    API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://be.qrcodeordering.duckdns.org/api'
   },
   
   // Production environment

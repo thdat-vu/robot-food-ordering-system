@@ -1,16 +1,28 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, Clock, DollarSign, Users, Eye, AlertCircle, CheckCircle, ChevronLeft, X, Search, Menu } from 'lucide-react';
+import React, {useCallback, useEffect, useState} from "react";
+import {
+    ChevronDown,
+    ChevronRight,
+    Clock,
+    DollarSign,
+    Users,
+    Eye,
+    AlertCircle,
+    CheckCircle,
+    ChevronLeft,
+    X,
+    Search,
+    Menu
+} from 'lucide-react';
 import OrderDetailDialog from "../../components/moderator/OrderDetailDialog";
 
 import Pagination from "@/lib/utils/Pagination";
 import axios from 'axios';
-import { getApiUrl } from '@/env.config';
+import {getApiUrl} from '@/env.config';
 import * as signalR from "@microsoft/signalr";
-import { useToastModerator } from "@/hooks/use-toast-moderator";
-import { useSignalR } from "@/hooks/useSignalR";
-import { ToastContainer } from "@/components/kitchen/ToastContainer";
-import { TableItem , OrderData } from '@/entites/moderator/tableModel';
-
+import {useToastModerator} from "@/hooks/use-toast-moderator";
+import {useSignalR} from "@/hooks/useSignalR";
+import {ToastContainer} from "@/components/kitchen/ToastContainer";
+import {TableItem, OrderData} from '@/entites/moderator/tableModel';
 
 
 interface Paginations {
@@ -23,14 +35,14 @@ interface Paginations {
 }
 
 export default function ModeratorTableManagement() {
-    const { toasts, addToast, removeToast } = useToastModerator();
-    
+    const {toasts, addToast, removeToast} = useToastModerator();
+
     const [data, setData] = useState<TableItem[]>([]);
     // QR Modal States
     const [open, setOpen] = useState<boolean>(false);
     const [selectedQr, setSelectedQr] = useState<string>("");
     const [selectedTable, setSelectedTable] = useState<TableItem | null>(null);
-    
+
     // Order & Table States
     const [orderData, setOrderData] = useState<{ [key: string]: OrderData[] }>({});
     const [loadingOrders, setLoadingOrders] = useState<{ [key: string]: boolean }>({});
@@ -44,12 +56,12 @@ export default function ModeratorTableManagement() {
     const [selectedTableForOrders, setSelectedTableForOrders] = useState<TableItem | null>(null);
     const [searchName, setSearchName] = useState("");
     const [status, setStatus] = useState("");
-    
+
     // Mobile view state
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
-    const[erro,setErro]= useState<string>("");
-    
+    const [erro, setErro] = useState<string>("");
+
 
     const [pagination, setPagination] = useState<Paginations>({
         pageNumber: 1,
@@ -145,12 +157,12 @@ export default function ModeratorTableManagement() {
             return;
         }
         try {
-            setLoadingOrders(prev => ({ ...prev, [tableId]: true }));
+            setLoadingOrders(prev => ({...prev, [tableId]: true}));
             const response = await fetch(`${API_BASE}/Order/table/${tableId}`);
             if (!response.ok) throw new Error('Failed to fetch orders');
             const orders = await response.json();
             console.log(`Orders for table ${tableId}:`, orders.data);
-            
+
             setOrderData(prev => ({
                 ...prev,
                 [tableId]: orders?.data || []
@@ -162,7 +174,7 @@ export default function ModeratorTableManagement() {
                 [tableId]: []
             }));
         } finally {
-            setLoadingOrders(prev => ({ ...prev, [tableId]: false }));
+            setLoadingOrders(prev => ({...prev, [tableId]: false}));
         }
     };
 
@@ -188,7 +200,7 @@ export default function ModeratorTableManagement() {
             case 'available':
             case '0':
                 return 0;
-            case 'occupied':  
+            case 'occupied':
             case '1':
                 return 1;
             case 'reserved':
@@ -202,79 +214,78 @@ export default function ModeratorTableManagement() {
     enum TableStatus {
         Available = 0,
         Occupied = 1
-      }
+    }
+
     const getNextStatus = (currentStatus: string | number): number => {
         const current = getStatusValue(currentStatus);
         console.log("Current status value:", current);
         if (current === TableStatus.Available) {
             return TableStatus.Occupied;   // Available → Occupied
-          } else (current === TableStatus.Occupied) 
-            return TableStatus.Available;  // Occupied → Available
-          
+        } else (current === TableStatus.Occupied)
+        return TableStatus.Available;  // Occupied → Available
+
     };
 
     const handleToggleStatus = (table: TableItem) => {
         const currentStatus = table.status;
         const newStatus = getNextStatus(currentStatus);
-       
-        
+
+
         console.log(`Changing status from ${currentStatus} to ${newStatus}`);
 
         setPendingStatus(prev => ({
-            ...prev,
-            [table.id]: newStatus
-        }
-    ));
+                ...prev,
+                [table.id]: newStatus
+            }
+        ));
 
-       
 
         setSelectedTableForOrders(table);
-        
+
         if (!orderData[table.id]) {
             fetchOrdersForTable(table.id);
         }
-        
+
         setOrderDialogOpen(true);
     };
 
-    const confirmStatusChange = async (reason? :string) => {
+    const confirmStatusChange = async (reason?: string) => {
         if (!selectedTableForOrders) return;
 
-        const { id: tableId, name: tableName } = selectedTableForOrders;
+        const {id: tableId, name: tableName} = selectedTableForOrders;
         const newStatus = pendingStatus[tableId];
-    
-       
-        
+
+
         if (newStatus === undefined) {
             console.error("No pending status found");
             return;
         }
-        
+
         console.log(`Confirming status change for table: ${tableName} -> ${newStatus}`);
 
         try {
-            const response = await axios.put(`${API_BASE}/Table/${tableId}/status`, { 
+            const response = await axios.put(`${API_BASE}/Table/${tableId}/status`, {
                 status: newStatus,
                 reason: reason
-            
+
             });
-            
+
             console.log("API Response:", response.data);
 
             setData(prev => prev.map(item =>
-                item.id === tableId ? { ...item, status: newStatus.toString() } : item
+                item.id === tableId ? {...item, status: newStatus.toString()} : item
             ));
 
             console.log(`Status updated successfully for table: ${tableName}`);
         } catch (err: any) {
             console.log("Error updating table status:", err.response.data.errorMessage);
-            if(err){
-            // addToast(err.response.data.errorMessage, "error");
-            addToast(err.response.data.errorMessage.toString(),"error")
+            if (err) {
+                // addToast(err.response.data.errorMessage, "error");
+                addToast(err.response.data.errorMessage.toString(), "error")
             }
         } finally {
             setPendingStatus(prev => {
-                const { [tableId]: _, ...rest } = prev;
+                const {[tableId]: _, ...rest} = prev;
                 return rest;
             });
             setOrderDialogOpen(false);
@@ -286,9 +297,9 @@ export default function ModeratorTableManagement() {
         if (!selectedTableForOrders) return;
 
         const tableId = selectedTableForOrders.id;
-        
+
         setPendingStatus(prev => {
-            const { [tableId]: _, ...rest } = prev;
+            const {[tableId]: _, ...rest} = prev;
             return rest;
         });
 
@@ -333,7 +344,7 @@ export default function ModeratorTableManagement() {
         const statusValue = getStatusValue(status);
         return statusValue === 0;
     };
-    
+
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("vi-VN", {
             style: "currency",
@@ -356,16 +367,16 @@ export default function ModeratorTableManagement() {
             pageNumber: 1
         }));
     };
-    
+
 
     const hasActiveFilters = searchName || status;
     const computedStatus = selectedTableForOrders
         ? (pendingStatus[selectedTableForOrders.id] || getNextStatus(selectedTableForOrders.status))
         : "";
 
-        console.log("Selected table for orders:", selectedTableForOrders?.status);
-        console.log("Computed status:", computedStatus);
-      
+    console.log("Selected table for orders:", selectedTableForOrders?.status);
+    console.log("Computed status:", computedStatus);
+
     // SignalR connection
     // useSignalR({
     //     url: "https://be-robo.zd-dev.xyz/orderNotificationHub",
@@ -382,25 +393,28 @@ export default function ModeratorTableManagement() {
     // });
 
     // Mobile Card Component
-    const TableCard = ({ table }: { table: TableItem }) => (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200">
+    const TableCard = ({table}: { table: TableItem }) => (
+        <div
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200">
             {/* Card Header */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                    <div
+                        className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
                         {table.name.charAt(table.name.length - 1)}
                     </div>
                     <div>
                         <h3 className="font-semibold text-gray-900">{table.name}</h3>
                         {orderData[table.id] && orderData[table.id].length > 0 && (
                             <p className="text-sm text-gray-500 flex items-center">
-                                <Users className="w-3 h-3 mr-1" />
+                                <Users className="w-3 h-3 mr-1"/>
                                 {orderData[table.id].reduce((acc, order) => acc + order.items.length, 0)} món
                             </p>
                         )}
                     </div>
                 </div>
-                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(table.status)}`}>
+                <span
+                    className={`inline-flex px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(table.status)}`}>
                     {getStatusText(table.status)}
                 </span>
             </div>
@@ -411,10 +425,10 @@ export default function ModeratorTableManagement() {
                     className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-sm"
                     onClick={() => handleOpen(table)}
                 >
-                    <Eye className="w-4 h-4 mr-2" />
+                    <Eye className="w-4 h-4 mr-2"/>
                     Xem QR
                 </button>
-                
+
                 <div className="flex-1 flex flex-col items-center">
                     <label className="inline-flex items-center cursor-pointer mb-1">
                         <input
@@ -440,8 +454,8 @@ export default function ModeratorTableManagement() {
 
     return (
         <>
-            <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-                
+            <ToastContainer toasts={toasts} onRemoveToast={removeToast}/>
+
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 lg:p-6">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
@@ -453,7 +467,6 @@ export default function ModeratorTableManagement() {
                             Quản lý bàn nhà hàng, mã QR và đơn hàng
                         </p>
                     </div>
-                
 
 
                     {/* Stats Cards */}
@@ -495,7 +508,8 @@ export default function ModeratorTableManagement() {
                             <div className="flex flex-col gap-4">
                                 {/* Search Input */}
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                    <Search
+                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"/>
                                     <input
                                         type="text"
                                         placeholder="Tìm kiếm theo tên bàn..."
@@ -526,8 +540,8 @@ export default function ModeratorTableManagement() {
                                         <button
                                             onClick={() => setViewMode('grid')}
                                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 ${
-                                                viewMode === 'grid' 
-                                                    ? 'bg-white text-gray-900 shadow-sm' 
+                                                viewMode === 'grid'
+                                                    ? 'bg-white text-gray-900 shadow-sm'
                                                     : 'text-gray-600 hover:text-gray-900'
                                             }`}
                                         >
@@ -536,8 +550,8 @@ export default function ModeratorTableManagement() {
                                         <button
                                             onClick={() => setViewMode('table')}
                                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 ${
-                                                viewMode === 'table' 
-                                                    ? 'bg-white text-gray-900 shadow-sm' 
+                                                viewMode === 'table'
+                                                    ? 'bg-white text-gray-900 shadow-sm'
                                                     : 'text-gray-600 hover:text-gray-900'
                                             }`}
                                         >
@@ -551,7 +565,7 @@ export default function ModeratorTableManagement() {
                                             onClick={clearFilters}
                                             className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
                                         >
-                                            <X className="w-4 h-4" />
+                                            <X className="w-4 h-4"/>
                                             <span className="hidden sm:inline">Xóa bộ lọc</span>
                                             <span className="sm:hidden">Xóa</span>
                                         </button>
@@ -563,18 +577,22 @@ export default function ModeratorTableManagement() {
                                     <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
                                         <span className="text-sm text-gray-600">Bộ lọc:</span>
                                         {searchName && (
-                                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                                            <span
+                                                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
                                                 Tên: "{searchName}"
-                                                <button onClick={() => setSearchName("")} className="hover:bg-blue-200 rounded-full p-0.5">
-                                                    <X className="w-3 h-3" />
+                                                <button onClick={() => setSearchName("")}
+                                                        className="hover:bg-blue-200 rounded-full p-0.5">
+                                                    <X className="w-3 h-3"/>
                                                 </button>
                                             </span>
                                         )}
                                         {status && (
-                                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                                            <span
+                                                className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
                                                 Trạng thái: {getStatusText(status)}
-                                                <button onClick={() => setStatus("")} className="hover:bg-green-200 rounded-full p-0.5">
-                                                    <X className="w-3 h-3" />
+                                                <button onClick={() => setStatus("")}
+                                                        className="hover:bg-green-200 rounded-full p-0.5">
+                                                    <X className="w-3 h-3"/>
                                                 </button>
                                             </span>
                                         )}
@@ -592,18 +610,20 @@ export default function ModeratorTableManagement() {
 
                         {loading ? (
                             <div className="text-center py-12">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                <div
+                                    className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                                 <p className="text-gray-600">Đang tải bàn...</p>
                             </div>
                         ) : error ? (
                             <div className="text-center py-12 px-4">
-                                <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-                                    <AlertCircle className="w-8 h-8 text-red-500" />
+                                <div
+                                    className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                                    <AlertCircle className="w-8 h-8 text-red-500"/>
                                 </div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi Tải Bàn</h3>
                                 <p className="text-gray-500 mb-4">{error}</p>
-                                <button 
-                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors" 
+                                <button
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                                     onClick={fetchTables}
                                 >
                                     Thử Lại
@@ -611,8 +631,9 @@ export default function ModeratorTableManagement() {
                             </div>
                         ) : data.length === 0 ? (
                             <div className="text-center py-12 px-4">
-                                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                                    <Users className="w-8 h-8 text-gray-400" />
+                                <div
+                                    className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <Users className="w-8 h-8 text-gray-400"/>
                                 </div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">Không Tìm Thấy Bàn</h3>
                                 <p className="text-gray-500">Hiện tại không có bàn nào.</p>
@@ -623,86 +644,93 @@ export default function ModeratorTableManagement() {
                                 <div className={`${viewMode === 'table' ? 'hidden md:hidden' : 'block md:hidden'} p-4`}>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {data.map((table) => (
-                                            <TableCard key={table.id} table={table} />
+                                            <TableCard key={table.id} table={table}/>
                                         ))}
                                     </div>
                                 </div>
 
                                 {/* Desktop/Large Tablet Table View */}
-                                <div className={`${viewMode === 'grid' ? 'hidden md:block' : 'hidden md:block'} overflow-x-auto`}>
+                                <div
+                                    className={`${viewMode === 'grid' ? 'hidden md:block' : 'hidden md:block'} overflow-x-auto`}>
                                     <table className="w-full">
                                         <thead>
-                                            <tr className="bg-gray-50 border-b border-gray-200">
-                                                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                                                    Thông Tin Bàn
-                                                </th>
-                                                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                                                    Trạng Thái
-                                                </th>
-                                                <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                                                    Mã QR
-                                                </th>
-                                                <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                                                    Thao Tác
-                                                </th>
-                                            </tr>
+                                        <tr className="bg-gray-50 border-b border-gray-200">
+                                            <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                                                Thông Tin Bàn
+                                            </th>
+                                            <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                                                Trạng Thái
+                                            </th>
+                                            <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                                                Mã QR
+                                            </th>
+                                            <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                                                Thao Tác
+                                            </th>
+                                        </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
-                                            {data.map((row) => (
-                                                <tr key={row.id} className="hover:bg-gray-50 transition-colors duration-200">
-                                                    <td className="py-4 px-6">
-                                                        <div className="flex items-center">
-                                                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                                                                {row.name.charAt(row.name.length - 1)}
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-gray-900 font-medium">{row.name}</span>
-                                                                {orderData[row.id] && orderData[row.id].length > 0 && (
-                                                                    <div className="text-sm text-gray-500 flex items-center mt-1">
-                                                                        <Users className="w-3 h-3 mr-1" />
-                                                                        {orderData[row.id].reduce((acc, order) => acc + order.items.length, 0)} món
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                        {data.map((row) => (
+                                            <tr key={row.id}
+                                                className="hover:bg-gray-50 transition-colors duration-200">
+                                                <td className="py-4 px-6">
+                                                    <div className="flex items-center">
+                                                        <div
+                                                            className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                                            {row.name.charAt(row.name.length - 1)}
                                                         </div>
-                                                    </td>
-                                                    <td className="py-4 px-6">
-                                                        <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(row.status)}`}>
+                                                        <div>
+                                                            <span
+                                                                className="text-gray-900 font-medium">{row.name}</span>
+                                                            {orderData[row.id] && orderData[row.id].length > 0 && (
+                                                                <div
+                                                                    className="text-sm text-gray-500 flex items-center mt-1">
+                                                                    <Users className="w-3 h-3 mr-1"/>
+                                                                    {orderData[row.id].reduce((acc, order) => acc + order.items.length, 0)} món
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                        <span
+                                                            className={`inline-flex px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(row.status)}`}>
                                                             {getStatusText(row.status)}
                                                         </span>
-                                                    </td>
-                                                    <td className="py-4 px-6 text-center">
-                                                        <button
-                                                            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
-                                                            onClick={() => handleOpen(row)}
-                                                        >
-                                                            <Eye className="w-4 h-4 mr-2" />
-                                                            Xem QR
-                                                        </button>
-                                                    </td>
-                                                    <td className="py-4 px-6 text-center">
-                                                        <div className="flex flex-col items-center space-y-2">
-                                                            <label className="inline-flex items-center cursor-pointer">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={isAvailableStatus(row.status)}
-                                                                    onChange={() => handleToggleStatus(row)}
-                                                                    className="sr-only peer"
-                                                                />
-                                                                <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 
+                                                </td>
+                                                <td className="py-4 px-6 text-center">
+                                                    <button
+                                                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
+                                                        onClick={() => handleOpen(row)}
+                                                    >
+                                                        <Eye className="w-4 h-4 mr-2"/>
+                                                        Xem QR
+                                                    </button>
+                                                </td>
+                                                <td className="py-4 px-6 text-center">
+                                                    <div className="flex flex-col items-center space-y-2">
+                                                        <label className="inline-flex items-center cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isAvailableStatus(row.status)}
+                                                                onChange={() => handleToggleStatus(row)}
+                                                                className="sr-only peer"
+                                                            />
+                                                            <div className="relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700
                                                                     peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 
                                                                     peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
                                                                     peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 
                                                                     after:start-[2px] after:bg-white after:border-gray-300 after:border 
                                                                     after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 
                                                                     peer-checked:bg-green-600 dark:peer-checked:bg-green-600">
-                                                                </div>
-                                                            </label>
-                                                            <span className="text-xs text-gray-500">Thay Đổi Trạng Thái</span>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                            </div>
+                                                        </label>
+                                                        <span
+                                                            className="text-xs text-gray-500">Thay Đổi Trạng Thái</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
                                         </tbody>
                                     </table>
                                 </div>
@@ -715,7 +743,7 @@ export default function ModeratorTableManagement() {
                                         hasNextPage={pagination.hasNextPage}
                                         hasPreviousPage={pagination.hasPreviousPage}
                                         onPageChange={(page) =>
-                                            setPagination((prev) => ({ ...prev, pageNumber: page }))
+                                            setPagination((prev) => ({...prev, pageNumber: page}))
                                         }
                                     />
                                 </div>
@@ -727,9 +755,11 @@ export default function ModeratorTableManagement() {
                 {/* QR Code Modal - Responsive */}
                 {open && (
                     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl relative w-full max-w-md transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
+                        <div
+                            className="bg-white rounded-2xl shadow-2xl relative w-full max-w-md transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
                             {/* Modal Header */}
-                            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl">
+                            <div
+                                className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl">
                                 <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                                     Mã QR - {selectedTable?.name}
                                 </h2>
@@ -737,7 +767,7 @@ export default function ModeratorTableManagement() {
                                     className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors duration-200 text-gray-500 hover:text-gray-700"
                                     onClick={handleClose}
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X className="w-5 h-5"/>
                                 </button>
                             </div>
 
@@ -755,7 +785,8 @@ export default function ModeratorTableManagement() {
                                         </h3>
                                         <p className="text-gray-600 text-sm mb-2">Quét mã QR để đặt món</p>
                                         <div className="flex items-center justify-center gap-2">
-                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedTable?.status || '')}`}>
+                                            <span
+                                                className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedTable?.status || '')}`}>
                                                 {getStatusText(selectedTable?.status || '')}
                                             </span>
                                         </div>
@@ -767,7 +798,8 @@ export default function ModeratorTableManagement() {
                             </div>
 
                             {/* Modal Footer */}
-                            <div className="flex flex-col sm:flex-row justify-end gap-3 p-4 sm:p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                            <div
+                                className="flex flex-col sm:flex-row justify-end gap-3 p-4 sm:p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
                                 <button
                                     onClick={handleClose}
                                     className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
@@ -779,7 +811,8 @@ export default function ModeratorTableManagement() {
                                     className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                                     </svg>
                                     In QR Code
                                 </button>
@@ -788,17 +821,15 @@ export default function ModeratorTableManagement() {
                     </div>
                 )}
 
-                {/* Order Detail Dialog */}
-                
                 <OrderDetailDialog
-                isOpen={orderDialogOpen}
-                onClose={cancelStatusChange}
-                table={selectedTableForOrders}
-                orders={selectedTableForOrders ? (orderData[selectedTableForOrders.id] || []) : []}
-                loading={selectedTableForOrders ? (loadingOrders[selectedTableForOrders.id] || false) : false}
-                onConfirmStatusChange={(reason?: string) => confirmStatusChange(reason)}
-                onCancelStatusChange={cancelStatusChange}
-                newStatus={computedStatus}
+                    isOpen={orderDialogOpen}
+                    onClose={cancelStatusChange}
+                    table={selectedTableForOrders}
+                    orders={selectedTableForOrders ? (orderData[selectedTableForOrders.id] || []) : []}
+                    loading={selectedTableForOrders ? (loadingOrders[selectedTableForOrders.id] || false) : false}
+                    onConfirmStatusChange={(reason?: string) => confirmStatusChange(reason)}
+                    onCancelStatusChange={cancelStatusChange}
+                    newStatus={computedStatus}
                 />
             </div>
         </>

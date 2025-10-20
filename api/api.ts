@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getApiUrl } from '@/env.config';
+import {getApiUrl} from '@/env.config';
 
 
 const API_BASE_URL = getApiUrl();

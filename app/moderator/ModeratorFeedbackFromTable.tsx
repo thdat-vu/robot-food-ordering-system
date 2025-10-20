@@ -60,7 +60,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
     const [responses, setResponses] = useState<{ [key: string]: string }>({});
     const [showSuggestions, setShowSuggestions] = useState<{ [key: string]: boolean }>({});
     
-    // New states for navigation tabs
     const [activeTab, setActiveTab] = useState<TabType | null>(null);
 
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -90,7 +89,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 useEffect(() => {
     if (open && idTable) {
         const timeout = setTimeout(() => {
-            // Only load data when dialog first opens or idTable changes
             if (activeTab === null) {
                 loadFeedbackData();
             } else if (activeTab === 'feedback') {
@@ -869,7 +867,6 @@ useEffect(() => {
                                                                 </div>
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                                     {(() => {
-                                                                        // Group items by name and count them
                                                                         const groupedItems = feedback.dtos.reduce((acc: {
                                                                             [key: string]: { item: dto, count: number }
                                                                         }, item: dto) => {
