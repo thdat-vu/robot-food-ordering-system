@@ -69,13 +69,30 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  const [resultDialog, setResultDialog] = useState<{open: boolean; success: boolean; message: string}>(
+    { open: false, success: true, message: "" }
+  );
+  const [confirmDialog, setConfirmDialog] = useState<{open: boolean; target: "prepay" | "postpay" | null}>(
+    { open: false, target: null }
+  );
+
   const handleSelectPolicy = async (v: "prepay" | "postpay") => {
+    setConfirmDialog({ open: true, target: v });
+  };
+
+  const confirmChangePolicy = async () => {
+    if (!confirmDialog.target) return;
+    const v = confirmDialog.target;
+    const nextLabel = v === "prepay" ? "Thanh toán trước" : "Thanh toán sau";
+    const prev = paymentMethod;
+    setConfirmDialog({ open: false, target: null });
     setPaymentMethod(v);
     try {
       await updatePaymentPolicy(v === "prepay" ? "Prepay" : "Postpay");
-    } catch (e) {
-      // revert on error
-      setPaymentMethod(v === "prepay" ? "postpay" : "prepay");
+      setResultDialog({ open: true, success: true, message: `Đã chuyển sang "${nextLabel}" thành công.` });
+    } catch (e: any) {
+      setPaymentMethod(prev);
+      setResultDialog({ open: true, success: false, message: `Cập nhật thất bại. Vui lòng thử lại.` });
     }
   };
 
@@ -692,6 +709,73 @@ export default function AdminDashboard() {
 
             {activeTab === "config" && (
               <div className="space-y-6">
+                {/* Payment Policy - move BEFORE financial settings */}
+                <div className="space-y-3">
+                  <div className="font-medium text-foreground">Phương Thức Thanh Toán</div>
+                  <div className="text-sm text-muted-foreground mb-3">
+                    Chọn thời điểm khách hàng thanh toán
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-md ${
+                        paymentMethod === "prepay"
+                          ? "border-2 border-primary bg-primary/5"
+                          : "border-2 border-transparent hover:border-muted-foreground/20"
+                      }`}
+                      onClick={() => handleSelectPolicy("prepay")}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="font-semibold text-foreground">
+                                Thanh toán trước
+                              </div>
+                              {paymentMethod === "prepay" && (
+                                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                  <Check className="w-3 h-3 text-primary-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Khách thanh toán trước khi nhận món
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-md ${
+                        paymentMethod === "postpay"
+                          ? "border-2 border-primary bg-primary/5"
+                          : "border-2 border-transparent hover:border-muted-foreground/20"
+                      }`}
+                      onClick={() => handleSelectPolicy("postpay")}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="font-semibold text-foreground">
+                                Thanh toán sau
+                              </div>
+                              {paymentMethod === "postpay" && (
+                                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                  <Check className="w-3 h-3 text-primary-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Khách thanh toán sau khi dùng xong
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
                 {[
                   { key: "General", label: "Cài Đặt Chung" },
                   { key: "Financial", label: "Cài Đặt Tài Chính" },
@@ -743,75 +827,7 @@ export default function AdminDashboard() {
                             </CardContent>
                           </Card>
                         ))}
-                      {category.key === "Financial" && (
-                        <div className="space-y-3">
-                          <div className="font-medium text-foreground">
-                            Phương Thức Thanh Toán
-                          </div>
-                          <div className="text-sm text-muted-foreground mb-3">
-                            Chọn thời điểm khách hàng thanh toán
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <Card
-                              className={`cursor-pointer transition-all hover:shadow-md ${
-                                paymentMethod === "prepay"
-                                  ? "border-2 border-primary bg-primary/5"
-                                  : "border-2 border-transparent hover:border-muted-foreground/20"
-                              }`}
-                              onClick={() => handleSelectPolicy("prepay")}
-                            >
-                              <CardContent className="p-4">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <div className="font-semibold text-foreground">
-                                        Thanh toán trước
-                                      </div>
-                                      {paymentMethod === "prepay" && (
-                                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                                          <Check className="w-3 h-3 text-primary-foreground" />
-                                        </div>
-                                      )}
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">
-                                      Khách thanh toán trước khi nhận món
-                                    </p>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-
-                            <Card
-                              className={`cursor-pointer transition-all hover:shadow-md ${
-                                paymentMethod === "postpay"
-                                  ? "border-2 border-primary bg-primary/5"
-                                  : "border-2 border-transparent hover:border-muted-foreground/20"
-                              }`}
-                              onClick={() => handleSelectPolicy("postpay")}
-                            >
-                              <CardContent className="p-4">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <div className="font-semibold text-foreground">
-                                        Thanh toán sau
-                                      </div>
-                                      {paymentMethod === "postpay" && (
-                                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                                          <Check className="w-3 h-3 text-primary-foreground" />
-                                        </div>
-                                      )}
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">
-                                      Khách thanh toán sau khi dùng xong
-                                    </p>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </div>
-                      )}
+                      {/* Payment section moved above */}
                     </div>
                   </div>
                 ))}
@@ -820,6 +836,34 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Confirm change payment policy */}
+      <Dialog open={confirmDialog.open} onOpenChange={(v) => setConfirmDialog(prev => ({...prev, open: v}))}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Bạn có chắc muốn thay đổi?</DialogTitle>
+            <DialogDescription>
+              Thao tác này sẽ cập nhật chính sách thanh toán hệ thống.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialog({ open: false, target: null })}>Hủy</Button>
+            <Button onClick={confirmChangePolicy}>Đồng ý</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={resultDialog.open} onOpenChange={(v) => setResultDialog(prev => ({...prev, open: v}))}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>{resultDialog.success ? "Cập nhật thành công" : "Cập nhật thất bại"}</DialogTitle>
+            <DialogDescription>{resultDialog.message}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setResultDialog(prev => ({...prev, open: false}))}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={addAccountModal} onOpenChange={setAddAccountModal}>
         <DialogContent className="sm:max-w-[500px]">
