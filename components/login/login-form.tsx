@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  UserCog,
   UtensilsCrossed,
   Phone,
   Lock,
@@ -19,7 +20,7 @@ import {
   Shield,
 } from "lucide-react";
 
-type UserRole = "chef" | "waiter" | "moderator";
+type UserRole = "chef" | "waiter" | "moderator" | "admin";
 
 export function LoginForm() {
   const router = useRouter();
@@ -37,33 +38,41 @@ export function LoginForm() {
       rememberMe,
     });
 
-    if (selectedRole === "chef") {
+    if (selectedRole === "admin") {
+      router.push("/admin");
+    } else if (selectedRole === "chef") {
       router.push("/chef");
-    } else if (selectedRole === "waiter") {
-      router.push("/waiter");
     } else if (selectedRole === "moderator") {
       router.push("/moderator");
+    } else if (selectedRole === "waiter") {
+      router.push("/waiter");
     }
   };
 
   const roles = [
     {
       value: "chef" as UserRole,
-      label: "Chef",
+      label: "Bếp",
       icon: ChefHat,
-      description: "Kitchen management",
+      description: "Quản lý bếp",
     },
     {
       value: "waiter" as UserRole,
-      label: "Waiter",
+      label: "Phục vụ",
       icon: Users,
-      description: "Restaurant operations",
+      description: "Phục vụ nhà hàng",
     },
     {
       value: "moderator" as UserRole,
-      label: "Moderator",
+      label: "Điều phối",
       icon: Shield,
-      description: "Content moderation",
+      description: "Kiểm duyệt",
+    },
+    {
+      value: "admin" as UserRole,
+      label: "Quản trị viên",
+      icon: UserCog,
+      description: "Quản trị hệ thống",
     },
   ];
 
@@ -77,17 +86,17 @@ export function LoginForm() {
           </div>
         </div>
         <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">
-          Welcome back
+          Chào mừng
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-          Sign in to your account to continue
+          Đăng nhập vào tài khoản của bạn để tiếp tục
         </p>
       </div>
 
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Select your role</Label>
+          <Label className="text-sm font-medium">Chức vụ</Label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {roles.map((role) => {
               const Icon = role.icon;
@@ -133,7 +142,7 @@ export function LoginForm() {
           {/* Phone Field */}
           <div className="space-y-2">
             <Label htmlFor="phone" className="text-sm font-medium">
-              Phone number
+              Số điện thoại
             </Label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -152,14 +161,14 @@ export function LoginForm() {
           {/* Password Field */}
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium">
-              Password
+              Mật khẩu
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
+                placeholder="Nhập mật khẩu"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10 h-11 sm:h-12 bg-card border-input"
@@ -192,14 +201,14 @@ export function LoginForm() {
               htmlFor="remember"
               className="text-sm font-normal cursor-pointer text-foreground"
             >
-              Remember me
+              Ghi nhớ tôi
             </Label>
           </div>
           <a
             href="#"
             className="text-sm font-medium text-primary hover:text-accent transition-colors"
           >
-            Forgot password?
+            Quên mật khẩu?
           </a>
         </div>
 
@@ -208,18 +217,18 @@ export function LoginForm() {
           type="submit"
           className="w-full h-11 sm:h-12 text-base font-medium"
         >
-          Sign in
+          Đăng nhập
         </Button>
       </form>
 
       {/* Sign Up Link */}
       <p className="text-center text-sm text-muted-foreground">
-        {"Don't have an account? "}
+        {"Bạn chưa có tài khoản?"}
         <a
           href="#"
           className="font-medium text-primary hover:text-accent transition-colors"
         >
-          Sign up
+          Đăng ký
         </a>
       </p>
     </div>
