@@ -622,6 +622,7 @@ const ModeratorScreen: React.FC = () => {
                 open={openDialog}
                 onClose={() => setOpenDialog(false)}
                 idTable={idTable}
+                tableName={data[idTable]?.tableName || "Bàn"}
             />
         </div>
     );
