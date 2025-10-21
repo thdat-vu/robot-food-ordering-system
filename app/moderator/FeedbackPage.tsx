@@ -17,6 +17,7 @@ import {FeedbackgGetTableId, dto} from "@/entites/moderator/FeedbackModole";
 import {useCheckSS, useGetFeedbackByIdtable} from "@/hooks/moderator/useFeedbackHooks";
 import {useToastModerator} from '@/hooks/use-toast-moderator';
 import {ToastContainer} from '@/components/moderator/ToastContainer';
+import { error } from "console";
 
 interface FeedbackPageProps {
     idTable: string;
@@ -83,21 +84,43 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
     const loadFeedbackData = async () => {
         setIsLoading(true);
         try {
-            const res = await run(idTable);
-
-            const sorted = (res.data as FeedbackgGetTableId[]).sort((a, b) => {
-                return sortOrder === 'newest'
-                    ? new Date(b.createData).getTime() - new Date(a.createData).getTime()
-                    : new Date(a.createData).getTime() - new Date(b.createData).getTime();
-            });
-            setData(sorted);
-        } catch (error) {
-            console.error('Error fetching feedback:', error);
-            setData([]);
+          const res = await run(idTable); // ví dụ res = { data: [], message: 'Không tìm thấy complain' }
+          console.log('Fetched feedback data:', res);
+      
+          // 👉 Nếu data trống thì hiển thị message
+          if (!res.data || res.data.length === 0) {
+            if (res.message) {
+                addToast(res.message,
+                    `error`
+                );
+             
+            }
+            setData([]); // set rỗng để UI hiển thị "Không có phản hồi"
+            return;
+          }
+      
+          // ✅ Có dữ liệu thì sắp xếp và hiển thị
+          const sorted = (res.data as FeedbackgGetTableId[]).sort((a, b) =>
+            sortOrder === 'newest'
+              ? new Date(b.createData).getTime() - new Date(a.createData).getTime()
+              : new Date(a.createData).getTime() - new Date(b.createData).getTime()
+          );
+          setData(sorted);
+        } catch (error: any) {
+          console.error('Error fetching feedback:', error);
+      
+          const errorMessage =
+            error?.response?.data?.errorMessage ||
+            error?.response?.data?.message ||
+            error?.message ||
+            'Lỗi không xác định khi tải feedback';
+      
+          alert(errorMessage);
+          setData([]);
         } finally {
-            setIsLoading(false);
+          setIsLoading(false);
         }
-    };
+      };
 
     const getStatusInfo = (status: number) => {
         switch (status) {
