@@ -2,10 +2,10 @@ import { ApiOrderResponse } from "@/lib/api/orders";
 import { OrderData } from "./tableModel";
 
 export interface FeedbackgGetTableId {
-    idFeedback: string;
+    complainId: string;
     idTable: string;
     feedBack: string;
-    isPeeding: boolean;
+    isPending: boolean;
     createData: Date;
     dtos: dto[];
 }

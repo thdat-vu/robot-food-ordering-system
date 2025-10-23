@@ -66,8 +66,8 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
     useEffect(() => {
         if (data.length > 0) {
             const defaultResponses = data.reduce((acc, feedback) => {
-                if (!responses[feedback.idFeedback]) {
-                    acc[feedback.idFeedback] = "Nhân viên đã tiếp nhận và khắc phục sự cố";
+                if (!responses[feedback.complainId]) {
+                    acc[feedback.complainId] = "Nhân viên đã tiếp nhận và khắc phục sự cố";
                 }
                 return acc;
             }, {} as { [key: string]: string });
@@ -85,7 +85,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
         setIsLoading(true);
         try {
             const res = await run(idTable); // ví dụ res = { data: [], message: 'Không tìm thấy complain' }
-            console.log('Fetched feedback data:', res);
+            console.log('Fetched feedback data:', res.data.data);
 
             // 👉 Nếu data trống thì hiển thị message
             if (!res.data || res.data.length === 0) {
@@ -175,8 +175,8 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
 
             setData(prevData =>
                 prevData.map(feedback =>
-                    listId.includes(feedback.idFeedback)
-                        ? {...feedback, isPeeding: false}
+                    listId.includes(feedback.complainId)
+                        ? {...feedback, isPending: false}
                         : feedback
                 )
             );
@@ -201,7 +201,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
 
             setData(prevData =>
                 prevData.map(feedback =>
-                    feedback.idFeedback === feedbackId
+                    feedback.complainId === feedbackId
                         ? {...feedback, isPeeding: false}
                         : feedback
                 )
@@ -261,19 +261,21 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
 
     const filteredData = data.filter(item => {
         const matchesFilter = selectedFilter === 'all' ||
-            (selectedFilter === 'pending' && item.isPeeding) ||
-            (selectedFilter === 'processed' && !item.isPeeding);
+            (selectedFilter === 'pending' && item.isPending) ||
+            (selectedFilter === 'processed' && !item.isPending);
+            console.log("================Filtered Data Item complain :======================= ", item.isPending);
 
+          
         const matchesSearch = searchQuery === '' ||
             item.feedBack.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.idFeedback.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.complainId.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.dtos.some(dto => dto.orderItemName.toLowerCase().includes(searchQuery.toLowerCase()));
 
         return matchesFilter && matchesSearch;
     });
 
-    const pendingCount = data.filter(item => item.isPeeding).length;
-    const processedCount = data.filter(item => !item.isPeeding).length;
+    const pendingCount = data.filter(item => item.isPending).length;
+    const processedCount = data.filter(item => !item.isPending).length;
 
     const handleCheckboxChange = (feedbackId: string, isPeeding: boolean) => {
         if (!isPeeding) return;
@@ -290,7 +292,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
     };
 
     const handleSelectAll = () => {
-        const pendingIds = filteredData.filter(item => item.isPeeding).map(item => item.idFeedback);
+        const pendingIds = filteredData.filter(item => item.isPending).map(item => item.complainId);
         if (selectedFeedbacks.size === pendingIds.length && pendingIds.length > 0) {
             setSelectedFeedbacks(new Set());
         } else {
@@ -503,19 +505,19 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {filteredData.some(item => item.isPeeding) && (
+                            {filteredData.some(item => item.isPending) && (
                                 <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                                     <label className="flex items-center space-x-4 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            checked={selectedFeedbacks.size === filteredData.filter(item => item.isPeeding).length && filteredData.filter(item => item.isPeeding).length > 0}
+                                            checked={selectedFeedbacks.size === filteredData.filter(item => item.isPending).length && filteredData.filter(item => item.isPending).length > 0}
                                             onChange={handleSelectAll}
                                             className="w-5 h-5 text-blue-600 rounded border-2 border-gray-300 focus:ring-blue-500"
                                         />
                                         <span className="font-semibold text-gray-700">
                                             Chọn tất cả phản hồi chưa xử lý
                                             <span
-                                                className="text-blue-600"> ({filteredData.filter(item => item.isPeeding).length})</span>
+                                                className="text-blue-600"> ({filteredData.filter(item => item.isPending).length})</span>
                                         </span>
                                     </label>
                                 </div>
@@ -523,22 +525,22 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
 
                             {filteredData.map((feedback, index) => (
                                 <div
-                                    key={feedback.idFeedback}
+                                    key={feedback.complainId}
                                     className={`border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg ${
-                                        feedback.isPeeding
+                                        feedback.isPending
                                             ? 'border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50 hover:border-orange-300'
                                             : 'border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 hover:border-green-300'
-                                    } ${selectedFeedbacks.has(feedback.idFeedback) ? 'ring-4 ring-blue-400 shadow-lg' : ''}`}
+                                    } ${selectedFeedbacks.has(feedback.complainId) ? 'ring-4 ring-blue-400 shadow-lg' : ''}`}
                                 >
                                     <div className="flex items-start space-x-4">
                                         <div className="flex-shrink-0 pt-1">
                                             <input
                                                 type="checkbox"
-                                                checked={selectedFeedbacks.has(feedback.idFeedback)}
-                                                onChange={() => handleCheckboxChange(feedback.idFeedback, feedback.isPeeding)}
-                                                disabled={!feedback.isPeeding || isChecking}
+                                                checked={selectedFeedbacks.has(feedback.complainId)}
+                                                onChange={() => handleCheckboxChange(feedback.complainId, feedback.isPending)}
+                                                disabled={!feedback.isPending || isChecking}
                                                 className={`w-5 h-5 text-blue-600 rounded border-2 border-gray-300 focus:ring-blue-500 transition-all duration-200 ${
-                                                    !feedback.isPeeding || isChecking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
+                                                    !feedback.isPending || isChecking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
                                                 }`}
                                             />
                                         </div>
@@ -552,16 +554,16 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
                                                     </span>
                                                     <div
                                                         className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-bold shadow-sm ${
-                                                            feedback.isPeeding
+                                                            feedback.isPending
                                                                 ? 'bg-orange-100 text-orange-800 border border-orange-200'
                                                                 : 'bg-green-100 text-green-800 border border-green-200'
                                                         }`}>
-                                                        {feedback.isPeeding ? (
+                                                        {feedback.isPending ? (
                                                             <AlertCircle className="w-4 h-4"/>
                                                         ) : (
                                                             <CheckCircle className="w-4 h-4"/>
                                                         )}
-                                                        <span>{feedback.isPeeding ? 'Chưa xử lý' : 'Đã xử lý'}</span>
+                                                        <span>{feedback.isPending ? 'Chưa xử lý' : 'Đã xử lý'}</span>
                                                     </div>
                                                 </div>
 
@@ -670,7 +672,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
                                                             khách hàng:</h4>
                                                     </div>
                                                     <button
-                                                        onClick={() => toggleSuggestions(feedback.idFeedback)}
+                                                        onClick={() => toggleSuggestions(feedback.complainId)}
                                                         className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all duration-200 text-sm font-medium"
                                                     >
                                                         <Lightbulb className="w-4 h-4"/>
@@ -678,7 +680,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
                                                     </button>
                                                 </div>
 
-                                                {showSuggestions[feedback.idFeedback] && (
+                                                {showSuggestions[feedback.complainId] && (
                                                     <div
                                                         className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                                                         <h5 className="font-medium text-blue-800 mb-2 flex items-center space-x-2 text-sm">
@@ -688,8 +690,8 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
                                                         <div className="grid grid-cols-1 gap-2">
                                                             {responseSuggestions.map((suggestion, idx) => (
                                                                 <button
-                                                                    key={`${feedback.idFeedback}-${idx}`}
-                                                                    onClick={() => handleSuggestionClick(feedback.idFeedback, suggestion)}
+                                                                    key={`${feedback.complainId}-${idx}`}
+                                                                    onClick={() => handleSuggestionClick(feedback.complainId, suggestion)}
                                                                     className="text-left p-2 bg-white hover:bg-blue-50 rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200 text-sm text-gray-700 hover:text-blue-800"
                                                                 >
                                                                     {suggestion}
@@ -700,8 +702,8 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
                                                 )}
 
                                                 <textarea
-                                                    value={responses[feedback.idFeedback] || ''}
-                                                    onChange={(e) => handleResponseChange(feedback.idFeedback, e.target.value)}
+                                                    value={responses[feedback.complainId] || ''}
+                                                    onChange={(e) => handleResponseChange(feedback.complainId, e.target.value)}
                                                     placeholder="Nhập phản hồi cho khách hàng..."
                                                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none text-sm"
                                                     rows={3}
@@ -709,10 +711,10 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({idTable}) => {
                                             </div>
 
                                             {/* Mark as Processed Button */}
-                                            {feedback.isPeeding && (
+                                            {feedback.isPending && (
                                                 <div className="flex justify-end">
                                                     <button
-                                                        onClick={() => handleSingleCheck(feedback.idFeedback)}
+                                                        onClick={() => handleSingleCheck(feedback.complainId)}
                                                         disabled={isChecking}
                                                         className="px-5 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-200 flex items-center space-x-2 shadow-sm hover:shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                                     >
