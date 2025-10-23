@@ -7,6 +7,7 @@ export const GetFeedbackByIdtable = async (id: string): Promise<BaseEntityData<F
     try {
         const res = await api.get(`${API_FEEDBACK}/${id}`)
         // 👇 Nếu res.data bị null hoặc không phải mảng
+        console.log("==================== res  compalain ================ : ", res);
         if (!res.data || !Array.isArray(res.data.data)) {
             console.warn(`[GetFeedbackByIdtable] API trả về null hoặc sai định dạng.`);
             return {data: [], message: 'Không có dữ liệu phản hồi.'} as any;

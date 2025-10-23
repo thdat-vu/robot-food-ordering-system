@@ -99,16 +99,17 @@ const ModeratorScreen: React.FC = () => {
     };
 
     // ✅ NEW: Determine table status based on counter values
+    // ✅ NEW: Determine table status based on counter values
     const getTableStatus = (tableData: TableData): FilterStatus => {
         const {totalItems, serveredCount, deliveredCount, paidCount, tableStatus} = tableData;
 
-        if (tableStatus == 1) {
-            return "occupied";
+        if (tableStatus == 0) {
+            return "empty";
         }
 
         // Bàn trống - tất cả = 0
-        if (totalItems === 0) {
-            return "empty";
+        if (tableStatus === 1 && totalItems === 0) {
+            return "occupied";
         }
 
         // Đã thanh toán hết
@@ -132,8 +133,6 @@ const ModeratorScreen: React.FC = () => {
         if (totalItems > 0) {
             return "ordered";
         }
-
-
         return "empty";
     };
 

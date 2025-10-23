@@ -16,7 +16,7 @@ export interface GroupedOrderItem extends OrderItem {
       .sort()
       .join(",");
     
-    return `${item.productId}-${item.productSizeId}-${item.note || ''}-${item.remarkNote || ''}-${toppingKey}`;
+    return `${item.productId}-${item.productSizeId}-${item.note || ''}-${item.remarkNote || ''}-${toppingKey}-${item.status}`;
   };
   
   /**
