@@ -24,7 +24,8 @@ export interface TableData {
     serveredCount: number;
     totalItems: number;
     paidCount: number;
-
+    tableStatus:number; // 0 la Trong, 1 cokhach 2dactruoc
+    paymentStatus:number; //  1 chua 2 roi 3 that bai 4 hoantien
 }
 export interface OrderCardProps {
     tableId : string ;

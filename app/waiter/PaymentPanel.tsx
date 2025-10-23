@@ -47,7 +47,7 @@ export default function PaymentPanel({
     const printWindow = window.open("", "_blank");
     if (printWindow) {
       const tableName = selectedTableName || `Bàn ${selectedTable}`;
-      const surchargeAmount = 0; // Phụ phí (đ) – chỉnh tại đây nếu cần
+      const surchargeAmount = 0;
       const grandTotal = total + surchargeAmount;
       const mapSize = (size?: string | null): string => {
         if (!size) return "";
@@ -531,6 +531,7 @@ export default function PaymentPanel({
           </Card>
         )}
       </div>
+
     </div>
   );
 }

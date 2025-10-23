@@ -6,28 +6,28 @@ import {API_FEEDBACK} from "@/api-endpoint-env";
 export const GetFeedbackByIdtable = async (id: string): Promise<BaseEntityData<FeedbackgGetTableId[]>> => {
     try {
         const res = await api.get(`${API_FEEDBACK}/${id}`)
-         // 👇 Nếu res.data bị null hoặc không phải mảng
-    if (!res.data || !Array.isArray(res.data.data)) {
-        console.warn(`[GetFeedbackByIdtable] API trả về null hoặc sai định dạng.`);
-        return { data: [], message: 'Không có dữ liệu phản hồi.' } as any;
-      }
+        // 👇 Nếu res.data bị null hoặc không phải mảng
+        if (!res.data || !Array.isArray(res.data.data)) {
+            console.warn(`[GetFeedbackByIdtable] API trả về null hoặc sai định dạng.`);
+            return {data: [], message: 'Không có dữ liệu phản hồi.'} as any;
+        }
         return res.data;
     } catch (error: any) {
         const statusCode = error?.response?.status ?? 500;
         const backendMsg =
-          error?.response?.data?.errorMessage ||
-          error?.response?.data?.message ||
-          'Không thể tải dữ liệu feedback.';
-          return { data: [], message: backendMsg } as any;
-      }
-    };
-
+            error?.response?.data?.errorMessage ||
+            error?.response?.data?.message ||
+            'Không thể tải dữ liệu feedback.';
+        return {data: [], message: backendMsg} as any;
+    }
+};
 
 
 export const GetAllFeedbackHome = async (): Promise<BaseEntityData<Record<string, TableData[]>>
 > => {
     try {
         const res = await api.get(`${API_FEEDBACK}`);
+        console.log(res)
         return res.data;
     } catch (e) {
         throw e;
