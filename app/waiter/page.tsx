@@ -93,56 +93,56 @@ function WaiterPageContent() {
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
-            {isSidebarOpen && (
-                <div className="flex flex-col gap-4 items-center mr-4 p-4">
-                    <button
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                            panel === "control"
-                                ? "bg-blue-500 text-white"
-                                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                        }`}
-                        onClick={() => setPanel("control")}
-                    >
-                        Điều khiển
-                    </button>
-                    <button
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                            panel === "payment"
-                                ? "bg-blue-500 text-white"
-                                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                        }`}
-                        onClick={() => setPanel("payment")}
-                    >
-                        Thanh toán
-                    </button>
-                </div>
-            )}
+            {/*{isSidebarOpen && (*/}
+            {/*    <div className="flex flex-col gap-4 items-center mr-4 p-4">*/}
+            {/*        <button*/}
+            {/*            className={`px-4 py-2 rounded-lg font-medium transition-colors ${*/}
+            {/*                panel === "control"*/}
+            {/*                    ? "bg-blue-500 text-white"*/}
+            {/*                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"*/}
+            {/*            }`}*/}
+            {/*            onClick={() => setPanel("control")}*/}
+            {/*        >*/}
+            {/*            Điều khiển*/}
+            {/*        </button>*/}
+            {/*        <button*/}
+            {/*            className={`px-4 py-2 rounded-lg font-medium transition-colors ${*/}
+            {/*                panel === "payment"*/}
+            {/*                    ? "bg-blue-500 text-white"*/}
+            {/*                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"*/}
+            {/*            }`}*/}
+            {/*            onClick={() => setPanel("payment")}*/}
+            {/*        >*/}
+            {/*            Thanh toán*/}
+            {/*        </button>*/}
+            {/*    </div>*/}
+            {/*)}*/}
 
             <div className="flex-1 flex flex-col">
                 {panel === "control" ? (
                     <>
                         <div className="flex items-center justify-between pr-4">
-                            <div className="pl-2 py-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setIsSidebarOpen((v) => !v)}
-                                    className="gap-2"
-                                    aria-label="Toggle left panel"
-                                >
-                                    {isSidebarOpen ? (
-                                        <>
-                                            <PanelLeftClose className="w-4 h-4"/>
-                                            Ẩn thanh bên trái
-                                        </>
-                                    ) : (
-                                        <>
-                                            <PanelLeftOpen className="w-4 h-4"/>
-                                            Hiện thanh bên trái
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
+                            {/*<div className="pl-2 py-2">*/}
+                            {/*    <Button*/}
+                            {/*        variant="outline"*/}
+                            {/*        size="sm"*/}
+                            {/*        onClick={() => setIsSidebarOpen((v) => !v)}*/}
+                            {/*        className="gap-2"*/}
+                            {/*        aria-label="Toggle left panel"*/}
+                            {/*    >*/}
+                            {/*        {isSidebarOpen ? (*/}
+                            {/*            <>*/}
+                            {/*                <PanelLeftClose className="w-4 h-4"/>*/}
+                            {/*                Ẩn thanh bên trái*/}
+                            {/*            </>*/}
+                            {/*        ) : (*/}
+                            {/*            <>*/}
+                            {/*                <PanelLeftOpen className="w-4 h-4"/>*/}
+                            {/*                Hiện thanh bên trái*/}
+                            {/*            </>*/}
+                            {/*        )}*/}
+                            {/*    </Button>*/}
+                            {/*</div>*/}
                             <div className="flex-1">
                                 <NavigationTabs
                                     activeTab={activeTab}
