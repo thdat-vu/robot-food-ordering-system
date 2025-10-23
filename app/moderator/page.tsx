@@ -2,7 +2,6 @@
 import {useState, useEffect, Suspense} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import ModeratorScreen from './ModeratorScreen';
-import ModeratorSidebar from "@/components/moderator/ModeratorSideBar";
 import ModeratorTableManagement from './ModeratorTableManagement';
 
 function ModeratorPageContent() {

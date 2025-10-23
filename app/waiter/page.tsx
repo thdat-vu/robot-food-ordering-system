@@ -28,10 +28,9 @@ function WaiterPageContent() {
         handleRequestRemake,
         refreshOrders,
         getTabCount,
-        getDishesByStatus, // Add this to the destructured values
+        getDishesByStatus,
     } = useWaiterOrders();
 
-    // Default: hide left panel on iPad Air (<= 1180px width)
     useEffect(() => {
         if (typeof window === "undefined") return;
         const IPAD_AIR_WIDTH = 1180;
@@ -40,7 +39,6 @@ function WaiterPageContent() {
         }
     }, []);
 
-    // Auto-refresh orders every 1 second without triggering loading state
     useEffect(() => {
         const interval = setInterval(() => {
             refreshOrders(true);
@@ -48,10 +46,8 @@ function WaiterPageContent() {
         return () => clearInterval(interval);
     }, [refreshOrders]);
 
-    // Clear all selections when switching tabs
     const handleTabChange = (newTab: OrderStatus) => {
         if (newTab !== activeTab) {
-            // Clear all selections when switching tabs
             dishes.forEach(dish => {
                 if (dish.selected) {
                     toggleDish(dish.id);
@@ -97,7 +93,6 @@ function WaiterPageContent() {
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
-            {/* Leftmost control column (collapsible) */}
             {isSidebarOpen && (
                 <div className="flex flex-col gap-4 items-center mr-4 p-4">
                     <button
@@ -123,11 +118,9 @@ function WaiterPageContent() {
                 </div>
             )}
 
-            {/* Main Content */}
             <div className="flex-1 flex flex-col">
                 {panel === "control" ? (
                     <>
-                        {/* Header with Sidebar Toggle and Navigation Tabs */}
                         <div className="flex items-center justify-between pr-4">
                             <div className="pl-2 py-2">
                                 <Button
@@ -162,9 +155,7 @@ function WaiterPageContent() {
                             </div>
                         </div>
 
-                        {/* Content based on active tab */}
                         <div className="flex-1 flex overflow-hidden">
-                            {/* Dish List Sidebar (narrower to give map more space) */}
                             <div className="w-52 md:w-60 lg:w-64 bg-white border-r border-gray-200 flex flex-col">
                                 <div className="flex-1 overflow-y-auto">
                                     <DishList
@@ -178,7 +169,6 @@ function WaiterPageContent() {
                                 </div>
                             </div>
 
-                            {/* Serve Panel */}
                             <div className="flex-1 overflow-y-auto">
                                 <ServePanel
                                     activeTab={activeTab}

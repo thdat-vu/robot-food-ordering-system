@@ -2,7 +2,9 @@ import React, {useState} from "react";
 import {FeedbackPage} from "@/app/moderator/FeedbackPage";
 import {HistoryPage} from "@/app/moderator/HistoryPage";
 import {Home} from "@/app/moderator/Home";
+import {MdPayments} from "react-icons/md";
 import {X, MessageSquare, History as HistoryIcon, Home as HomeIcon} from "lucide-react";
+import {PaymentPage} from "@/app/moderator/PaymentPage";
 
 interface DialogModeratorMainPageProps {
     open: boolean;
@@ -23,6 +25,7 @@ export const DialogModeratorMainPage: React.FC<DialogModeratorMainPageProps> = (
 
     const tabs = [
         {id: "home", label: "Trang chủ", icon: HomeIcon},
+        {id: "payment", label: "Thanh toán", icon: MdPayments},
         {id: "feedback", label: "Phản hồi", icon: MessageSquare},
         {id: "history", label: "Lịch sử", icon: HistoryIcon},
     ];
@@ -73,6 +76,7 @@ export const DialogModeratorMainPage: React.FC<DialogModeratorMainPageProps> = (
                     {tab === "home" && <Home idTable={idTable}/>}
                     {tab === "feedback" && <FeedbackPage idTable={idTable}/>}
                     {tab === "history" && <HistoryPage idTable={idTable}/>}
+                    {tab === "payment" && <PaymentPage idTable={idTable}/>}
                 </main>
             </div>
         </div>
