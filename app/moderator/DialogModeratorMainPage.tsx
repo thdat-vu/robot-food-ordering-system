@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {FeedbackPage} from "@/app/moderator/FeedbackPage";
 import {HistoryPage} from "@/app/moderator/HistoryPage";
 import {Home} from "@/app/moderator/Home";
@@ -11,15 +11,26 @@ interface DialogModeratorMainPageProps {
     onClose: () => void;
     idTable: string;
     tableName?: string;
+    initialTab?: string; // Thêm prop mới
+
 }
 
 export const DialogModeratorMainPage: React.FC<DialogModeratorMainPageProps> = ({
                                                                                     idTable,
                                                                                     open,
                                                                                     onClose,
-                                                                                    tableName = "Bàn"
+                                                                                    tableName = "Bàn",
+                                                                                    initialTab = "home" // Thêm prop mới
+                                                                                    
                                                                                 }) => {
-    const [tab, setTab] = useState("home");
+    const [tab, setTab] = useState(initialTab);
+
+    // Cập nhật tab khi initialTab thay đổi
+    useEffect(() => {
+        if (open) {
+            setTab(initialTab);
+        }
+    }, [open, initialTab]);
 
     if (!open) return null;
 

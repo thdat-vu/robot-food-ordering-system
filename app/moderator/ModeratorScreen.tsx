@@ -45,6 +45,8 @@ const ModeratorScreen: React.FC = () => {
     const {run} = useGetAllFeedbackHome();
     const {toasts, addToast, removeToast} = useToastModerator();
 
+    const [initialTab, setInitialTab] = useState("home");
+
     // Update clock every second
     useEffect(() => {
         const timer = setInterval(() => {
@@ -588,21 +590,29 @@ const ModeratorScreen: React.FC = () => {
                                     `}
                                     onClick={() => handle(tableId)}
                                 >
-                                    {tableData.counter > 0 && (
-                                        <div className="absolute -top-3 -right-3">
-                                            <div className="relative scale-105">
-                                                <MessageSquareWarning
-                                                    size={22}
-                                                    className="text-red-500 drop-shadow-[0_0_6px_rgba(255,0,0,0.6)]"
-                                                />
-                                                <span
-                                                    className="absolute -top-1 -right-1 bg-red-600 text-white text-[7px] font-bold rounded-full px-1 py-0.5 shadow-md">
-                                                  {tableData.counter}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-
+{tableData.counter > 0 && (
+    <div 
+        className="absolute top-2 right-2 z-[100] cursor-pointer hover:scale-110 transition-transform bg-white/10 rounded-full p-1"
+        onClick={(e) => {
+            e.stopPropagation();
+            console.log("Counter clicked!");
+            setInitialTab("feedback");
+            setIdTable(tableId);
+            setOpenDialog(true);
+        }}
+    >
+        <div className="relative">
+            <MessageSquareWarning
+                size={22}
+                className="text-orange-500 drop-shadow-[0_0_6px_rgba(255,165,0,0.8)]"
+                strokeWidth={2.5}
+            />
+            <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[8px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center shadow-lg border border-white">
+                {tableData.counter}
+            </span>
+        </div>
+    </div>
+)}
                                     {/* Table Name */}
                                     <div
                                         className={`text-xl md:text-2xl lg:text-3xl font-bold mb-2 text-center ${textColor}`}
@@ -734,9 +744,13 @@ const ModeratorScreen: React.FC = () => {
 
             <DialogModeratorMainPage
                 open={openDialog}
-                onClose={() => setOpenDialog(false)}
+                onClose={() => {
+                    setOpenDialog(false);
+                    setInitialTab("home"); // Reset về home khi đóng
+                }}
                 idTable={idTable}
                 tableName={data[idTable]?.tableName || "Bàn"}
+                initialTab={initialTab} // Truyền tab ban đầu
             />
         </div>
     );
