@@ -25,50 +25,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
-    try {
-      // 🔹 Call backend
-      const res = await authsApi.SignIn(username, password);
-      console.log("Sign-in result:", res);
-
-      if (!res.success || !res.data?.accessToken) {
-        setError(res.message || "Đăng nhập thất bại");
-        setLoading(false);
-        return;
-      }
-
-      // 🔹 Decode JWT token
-      const token = res.data.data.accessToken;
-      console.log ("Access Token:", token);
-      const decoded: DecodedToken = jwtDecode(token);
-
-      // 🔹 Save token locally (already done in authsApi)
-      // localStorage.setItem("accessToken", token);
-
-      // 🔹 Role-based redirect
-      switch (decoded.role) {
-        case "Admin":
-          router.push("/admin");
-          break;
-        case "Moderator":
-          router.push("/moderator");
-          break;
-        case "Chef":
-          router.push("/chef");
-          break;
-        case "Waiter":
-          router.push("/waiter");
-          break;
-        default:
-          router.push("/");
-          break;
-      }
-    } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message || "Có lỗi xảy ra khi đăng nhập");
-    } finally {
-      setLoading(false);
-    }
   };
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">

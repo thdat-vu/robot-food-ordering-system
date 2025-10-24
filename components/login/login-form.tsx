@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-// import { useRouter } from "next/navigation";
-import {jwtDecode} from "jwt-decode"; // ✅ use real library
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,8 +16,9 @@ import {
   Users,
   Shield,
 } from "lucide-react";
-import { authsApi } from "@/lib/api/auths";
 import { useRouter } from "next/navigation";
+import useAuth from "@/service/authen/authenticationService";
+import { error } from 'console';
 
 type UserRole = "chef" | "waiter" | "moderator" | "admin";
 
@@ -33,67 +32,18 @@ interface DecodedToken {
 export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>();
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { handleLogin, loading, error } = useAuth(); // ✅ đúng
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-  // ✅ Mark handleSubmit as async
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      // 🔹 Call backend
-      const res = await authsApi.SignIn(username, password);
-
-      var response = res.data?.accessToken;
-      if (!res.success || !res.data?.accessToken) {
-        setError(res.message || "Đăng nhập thất bại");
-        setLoading(false);
-        return;
-      }
-
-      // 🔹 Decode JWT token
-      const token = response;
-      const decoded: DecodedToken = jwtDecode(token);
-      console.log("Decoded token:", decoded);
-
-    
-      // 🔹 Store access token & role
-      localStorage.setItem("accessToken", token);
-      localStorage.setItem("userRole",( decoded.role)  || ""); 
-
-      // 🔹 Auto redirect based on token role (preferred)
-      const role = (decoded.role || selectedRole)?.toLowerCase();
-
-      switch (role) {
-        case "admin":
-          router.push("/admin");
-          break;
-        case "chef":
-          router.push("/chef");
-          break;
-        case "moderator":
-          router.push("/moderator");
-          break;
-        case "waiter":
-          router.push("/waiter");
-          break;
-        default:
-          router.push("/");
-          break;
-      }
-    } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message || "Có lỗi xảy ra khi đăng nhập");
-    } finally {
-      setLoading(false);
-    }
+    await handleLogin(username, password);
   };
+
+   
 
   const roles = [
     {

@@ -47,9 +47,12 @@ import {
 import { useEffect, useState } from "react";
 import { getPaymentPolicy, updatePaymentPolicy } from "@/lib/api/settings";
 
+
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"accounts" | "dishes" | "config">("accounts");
   const [searchQuery, setSearchQuery] = useState("");
+  const [user , setUser] = useState<DecodedToken | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"prepay" | "postpay">("postpay");
   const [loadingPolicy, setLoadingPolicy] = useState(false);
   useEffect(() => {
@@ -58,6 +61,11 @@ export default function AdminDashboard() {
       try {
         setLoadingPolicy(true);
         const policy = await getPaymentPolicy();
+        const stored = localStorage.getItem("userInfo");
+        if(stored){
+          setUser( JSON.parse(stored) as DecodedToken);
+        }
+        console.log("user info from local storage:", );
         if (!mounted) return;
         setPaymentMethod(policy === "Prepay" ? "prepay" : "postpay");
       } finally {
@@ -348,7 +356,6 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout
-      role="admin"
       secondaryNav={secondaryNav}
       activeSecondary={activeTab}
       onSecondaryChange={(k) => setActiveTab(k as any)}
