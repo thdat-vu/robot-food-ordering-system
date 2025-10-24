@@ -110,6 +110,19 @@ export const transformApiOrderItemToOrder = (
 ): Order => {
   const tableNumber = parseInt(order.tableName.replace(/\D/g, '')) || 1;
   
+  // Parse date in formats like "dd/MM/yyyy HH:mm:ss" or ISO
+  const parseVnDateTime = (input?: string): Date | null => {
+    if (!input) return null;
+    // dd/MM/yyyy HH:mm:ss
+    const m = input.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/);
+    if (m) {
+      const [, d, mo, y, hh, mm, ss] = m;
+      return new Date(Number(y), Number(mo) - 1, Number(d), Number(hh), Number(mm), Number(ss));
+    }
+    const ts = Date.parse(input);
+    return Number.isNaN(ts) ? null : new Date(ts);
+  };
+
   return {
     id: orderIndex + 1, // Frontend uses number IDs
     itemName: orderItem.productName,
@@ -123,15 +136,18 @@ export const transformApiOrderItemToOrder = (
       minute: '2-digit' 
     }),
     createdTime: (() => {
-      const dateValue = order.createdTime || orderItem.createdTime;
-      return dateValue ? new Date(dateValue).toLocaleString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit', 
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      }) : undefined;
+      const dateValue = orderItem.createdTime || order.createdTime;
+      const dt = parseVnDateTime(dateValue);
+      return dt
+        ? dt.toLocaleString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+        : undefined;
     })(), // Convert Date to string format
     estimatedTime: getEstimatedTime(orderItem.productName),
     sizeName: orderItem.sizeName, // Add size name from API

@@ -145,12 +145,8 @@ export function useWaiterOrders() {
                             tableNumber,
                             quantity: 1, // Each API item is individual, so quantity is always 1
                             status: orderStatus,
-                            orderTime: order.createdTime
-                                ? new Date(order.createdTime).toLocaleTimeString("vi-VN", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                })
-                                : undefined,
+                            // Use item-level createdTime from API (already formatted dd/MM/yyyy HH:mm:ss)
+                            orderTime: item.createdTime || order.createdTime || undefined,
                             estimatedTime: "10 phút", // Default estimated time since API doesn't provide it
                             note: item.note || undefined,
                             sizeName: item.sizeName,
@@ -210,12 +206,8 @@ export function useWaiterOrders() {
                             tableNumber,
                             quantity: 1, // Each API item is individual, so quantity is always 1
                             status: orderStatus,
-                            orderTime: order.createdTime
-                                ? new Date(order.createdTime).toLocaleTimeString("vi-VN", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                })
-                                : undefined,
+                            // Use item-level createdTime from API (already formatted dd/MM/yyyy HH:mm:ss)
+                            orderTime: item.createdTime || order.createdTime || undefined,
                             estimatedTime: "10 phút",
                             note: item.note || undefined,
                             sizeName: item.sizeName,
