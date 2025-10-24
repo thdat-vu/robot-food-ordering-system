@@ -76,7 +76,27 @@ export default function AdminDashboard() {
     { open: false, target: null }
   );
 
+  // Restriction dialog: prevent switching from "prepay" to "postpay" until next midnight
+  const [restrictionDialog, setRestrictionDialog] = useState<{ open: boolean; availableAt: Date | null }>({ open: false, availableAt: null });
+
+  const getNextMidnight = () => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  };
+
+  const formatVnDate = (d: Date | null) => {
+    if (!d) return "";
+    const dateStr = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return `00:00 ngày ${dateStr}`;
+  };
+
   const handleSelectPolicy = async (v: "prepay" | "postpay") => {
+    // If currently "prepay" and user wants to switch to "postpay", block until next midnight
+    if (paymentMethod === "prepay" && v === "postpay") {
+      const nextMidnight = getNextMidnight();
+      setRestrictionDialog({ open: true, availableAt: nextMidnight });
+      return;
+    }
     setConfirmDialog({ open: true, target: v });
   };
 
@@ -849,6 +869,21 @@ export default function AdminDashboard() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDialog({ open: false, target: null })}>Hủy</Button>
             <Button onClick={confirmChangePolicy}>Đồng ý</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Restriction dialog for switching to postpay */}
+      <Dialog open={restrictionDialog.open} onOpenChange={(v) => setRestrictionDialog(prev => ({...prev, open: v}))}>
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle>Không thể đổi ngay</DialogTitle>
+            <DialogDescription>
+              Hệ thống đang ở chế độ "Thanh toán trước". Bạn chỉ có thể đổi sang "Thanh toán sau" từ {formatVnDate(restrictionDialog.availableAt)}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setRestrictionDialog({ open: false, availableAt: null })}>Đã hiểu</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
