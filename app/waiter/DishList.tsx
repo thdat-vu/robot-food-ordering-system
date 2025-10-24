@@ -1,11 +1,13 @@
 "use client";
 
-import React, {useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {Checkbox} from "@/components/ui/checkbox";
 import {OrderStatus} from "@/types/kitchen";
 import {WaiterDish} from "@/hooks/use-waiter-orders";
 import {Button} from "@/components/ui/button";
 import {toast} from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface DishListProps {
     activeTab: OrderStatus;
@@ -77,6 +79,36 @@ const DishList: React.FC<DishListProps> = ({
 
     const [showSuggestions, setShowSuggestions] = useState(true);
 
+    // Toggle: Auto-select up to MAX_SELECTION items
+    // Always start as OFF on page load/reload (ignore previous persisted value)
+    const [autoSuggestEnabled, setAutoSuggestEnabled] = useState<boolean>(false);
+
+    // Track whether we already auto-suggested for a given tab to avoid overriding user choices
+    const autoSuggestedTabsRef = useRef<Record<string, boolean>>({});
+    // Track previous value to run the clear-on-disable logic only once when toggled off
+    const prevAutoSuggestRef = useRef<boolean>(autoSuggestEnabled);
+    // Track when we have just cleared selections to avoid first-click race
+    const lastClearTimestampRef = useRef<number>(0);
+    // Track first mount to avoid running clear logic on initial render/reload
+    const hasMountedRef = useRef<boolean>(false);
+
+    // Ensure first manual toggle after clearing happens after the clear operations
+    const safeToggle = (id: string) => {
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        const recentlyCleared = !autoSuggestEnabled && now - lastClearTimestampRef.current < 300;
+        if (recentlyCleared) {
+            setTimeout(() => onDishToggle(id), 0);
+        } else {
+            onDishToggle(id);
+        }
+    };
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem('waiter_auto_suggest', String(autoSuggestEnabled));
+        }
+    }, [autoSuggestEnabled]);
+
     const handleSuggestionClick = (suggestion: string) => {
         setRemakeReason(suggestion);
         setShowSuggestions(false);
@@ -104,6 +136,87 @@ const DishList: React.FC<DishListProps> = ({
     const selectedCount = dishes
         .filter(d => d.selected)
         .reduce((total, dish) => total + (dish.quantity || 1), 0);
+
+    // Auto-select logic: run once per tab when enabled; do not fight user deselection
+    useEffect(() => {
+        if (!autoSuggestEnabled) return;
+        if (activeTab !== "bắt đầu phục vụ") return;
+
+        // Prevent repeated auto-filling for the same tab session
+        if (autoSuggestedTabsRef.current[activeTab]) return;
+
+        const remaining = MAX_SELECTION - selectedCount;
+        if (remaining <= 0) {
+            autoSuggestedTabsRef.current[activeTab] = true;
+            return;
+        }
+
+        const unselected = dishesForTab.filter(d => !d.selected);
+        if (unselected.length === 0) {
+            autoSuggestedTabsRef.current[activeTab] = true;
+            return;
+        }
+
+        const tableToItems = new Map<number, WaiterDish[]>();
+        unselected.forEach(d => {
+            const list = tableToItems.get(d.tableNumber) || [];
+            list.push(d);
+            tableToItems.set(d.tableNumber, list);
+        });
+
+        const tableGroups = Array.from(tableToItems.entries())
+            .sort((a, b) => {
+                const lenDiff = b[1].length - a[1].length;
+                if (lenDiff !== 0) return lenDiff;
+                return a[0] - b[0];
+            })
+            .map(([_, items]) => items);
+
+        let toFill = remaining;
+        for (const group of tableGroups) {
+            for (const dish of group) {
+                if (toFill <= 0) break;
+                if (!dish.selected) {
+                    onDishToggle(dish.id);
+                    toFill -= (dish.quantity || 1);
+                }
+            }
+            if (toFill <= 0) break;
+        }
+
+        // Mark as done to avoid re-running for this tab until toggled or tab changes
+        autoSuggestedTabsRef.current[activeTab] = true;
+    // We intentionally exclude onDishToggle from deps to avoid re-running on its identity changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoSuggestEnabled, activeTab, dishesForTab, selectedCount]);
+
+    // When toggling OFF auto-suggest, clear selections ONCE; allow normal manual selection afterwards
+    useEffect(() => {
+        const prev = prevAutoSuggestRef.current;
+
+        // Skip clear/reset logic on first mount to prevent unintended deselection after reload
+        if (!hasMountedRef.current) {
+            hasMountedRef.current = true;
+            prevAutoSuggestRef.current = autoSuggestEnabled;
+            return;
+        }
+
+        if (prev && !autoSuggestEnabled) {
+            const selectedInTab = dishesForTab.filter(d => d.selected);
+            if (selectedInTab.length > 0) {
+                selectedInTab.forEach(d => onDishToggle(d.id));
+                toast.info("Đã tắt gợi ý và bỏ chọn các món trong tab hiện tại.");
+            }
+            lastClearTimestampRef.current = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        }
+
+        if (!prev && autoSuggestEnabled) {
+            autoSuggestedTabsRef.current = {};
+        }
+
+        prevAutoSuggestRef.current = autoSuggestEnabled;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoSuggestEnabled]);
 
     // Filter dishes by search query
     const filteredDishes = allDishesToShow.filter((dish) => {
@@ -161,7 +274,7 @@ const DishList: React.FC<DishListProps> = ({
             // If any dish from this table is selected, deselect all from this table
             const selectedFromThisTable = dishesFromSameTable.filter(d => d.selected);
             selectedFromThisTable.forEach(dish => {
-                onDishToggle(dish.id);
+                safeToggle(dish.id);
             });
             toast.info(`Đã bỏ chọn ${selectedFromThisTable.length} món từ Bàn ${clickedDish.tableNumber}`);
         } else {
@@ -178,7 +291,7 @@ const DishList: React.FC<DishListProps> = ({
 
             // Select all dishes from this table
             unselectedFromTable.forEach(dish => {
-                onDishToggle(dish.id);
+                safeToggle(dish.id);
             });
             toast.success(`Đã chọn ${unselectedQuantity} món từ Bàn ${clickedDish.tableNumber}`);
         }
@@ -192,7 +305,7 @@ const DishList: React.FC<DishListProps> = ({
             return;
         }
 
-        onDishToggle(dish.id);
+        safeToggle(dish.id);
     };
 
     const getTableSelectionStatus = (tableNumber: number) => {
@@ -207,6 +320,23 @@ const DishList: React.FC<DishListProps> = ({
 
     return (
         <div className="p-4 space-y-6">
+            {/* Auto Suggest Toggle */}
+            <div className="flex items-center justify-between bg-white border rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium">Gợi ý chọn món phục vụ</div>
+                    {/* <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-700 text-[10px] cursor-help">i</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                Tự động chọn món (không vượt quá 6)
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider> */}
+                </div>
+                <Switch checked={autoSuggestEnabled} onCheckedChange={setAutoSuggestEnabled} />
+            </div>
             {/* Selection Counter */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div className="flex items-center justify-between">
