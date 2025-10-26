@@ -24,6 +24,7 @@ import {
   UserCog,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useEffect } from "react";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -59,7 +60,6 @@ const roleConfig = {
 
 export function DashboardLayout({
   children,
-  role = "manager",
   secondaryNav,
   activeSecondary,
   onSecondaryChange,
@@ -67,9 +67,22 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState("Tổng Quan");
+  const [user , setUserInfo] = useState<DecodedToken | null >(null);
 
-  const currentRole = roleConfig[role];
-
+  
+  useEffect(() => {
+    const stored = localStorage.getItem("userInfo");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setUserInfo(parsed);
+      } catch (err) {
+        console.error("Lỗi đọc userInfo từ localStorage:", err);
+      }
+    }
+  }, []);
+  const currentRole = roleConfig[user?.Role.toLowerCase() as keyof typeof roleConfig] || {label: "Người Dùng", initials: "ND" };
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
@@ -158,7 +171,7 @@ export function DashboardLayout({
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  John Doe
+                 {user?.Name || "Người Dùng"}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
                   {currentRole.label}

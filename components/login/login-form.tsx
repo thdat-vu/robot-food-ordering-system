@@ -1,9 +1,6 @@
 "use client";
 
-import type React from "react";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,35 +16,34 @@ import {
   Users,
   Shield,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import useAuth from "@/service/authen/authenticationService";
+import { error } from 'console';
 
 type UserRole = "chef" | "waiter" | "moderator" | "admin";
+
+interface DecodedToken {
+  sub: string;
+  email?: string;
+  role?: string;
+  exp?: number;
+}
 
 export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>("chef");
+  const [selectedRole, setSelectedRole] = useState<UserRole>();
+  const { handleLogin, loading, error } = useAuth(); // ✅ đúng
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("[v0] Login attempt:", {
-      phone,
-      role: selectedRole,
-      rememberMe,
-    });
-
-    if (selectedRole === "admin") {
-      router.push("/admin");
-    } else if (selectedRole === "chef") {
-      router.push("/chef");
-    } else if (selectedRole === "moderator") {
-      router.push("/moderator");
-    } else if (selectedRole === "waiter") {
-      router.push("/waiter");
-    }
+    await handleLogin(username, password);
   };
+
+   
 
   const roles = [
     {
@@ -95,6 +91,7 @@ export function LoginForm() {
 
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+        {/* Role Selection */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Chức vụ</Label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -138,59 +135,53 @@ export function LoginForm() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {/* Phone Field */}
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="text-sm font-medium">
-              Số điện thoại
-            </Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+84 123 456 789"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="pl-10 h-11 sm:h-12 bg-card border-input"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Password Field */}
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium">
-              Mật khẩu
-            </Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Nhập mật khẩu"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 h-11 sm:h-12 bg-card border-input"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
-              </button>
-            </div>
+        {/* Username Field */}
+        <div className="space-y-2">
+          <Label htmlFor="username" className="text-sm font-medium">
+            Tên đăng nhập
+          </Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              id="username"
+              type="text"
+              placeholder="vd: admin"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="pl-10 h-11 sm:h-12 bg-card border-input"
+              required
+            />
           </div>
         </div>
 
-        {/* Remember Me & Forgot Password */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+        {/* Password Field */}
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-sm font-medium">
+            Mật khẩu
+          </Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Nhập mật khẩu"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pl-10 pr-10 h-11 sm:h-12 bg-card border-input"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Remember Me */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Checkbox
               id="remember"
@@ -216,14 +207,21 @@ export function LoginForm() {
         <Button
           type="submit"
           className="w-full h-11 sm:h-12 text-base font-medium"
+          disabled={loading}
         >
-          Đăng nhập
+          {loading ? "Đang đăng nhập..." : "Đăng nhập"}
         </Button>
+
+        {error && (
+          <p className="text-center text-red-600 text-sm font-medium mt-2">
+            {error}
+          </p>
+        )}
       </form>
 
       {/* Sign Up Link */}
       <p className="text-center text-sm text-muted-foreground">
-        {"Bạn chưa có tài khoản?"}
+        {"Bạn chưa có tài khoản? "}
         <a
           href="#"
           className="font-medium text-primary hover:text-accent transition-colors"

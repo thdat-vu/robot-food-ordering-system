@@ -1,6 +1,31 @@
+"use client"
+
 import { LoginForm } from "@/components/login/login-form";
+import { authsApi } from "@/lib/api/auths";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+// const res = await authsApi.SignIn("admin", "123456");
+interface DecodedToken {
+  sub: string;
+  email?: string;
+  role?: string;
+  exp?: number;
+}
+
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+  };
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left side - Image */}
@@ -32,3 +57,7 @@ export default function LoginPage() {
     </div>
   );
 }
+function jwtDecode(token: any): DecodedToken {
+  throw new Error("Function not implemented.");
+}
+
