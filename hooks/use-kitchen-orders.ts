@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Order, OrderStatus, OrderCounts, GroupedOrders, RemainingItems } from '@/types/kitchen';
 import { MOCK_ORDERS, SIDEBAR_ANIMATION_DURATION } from '@/constants/kitchen-data';
 import { chefService } from '@/service/chef/chefService';
+import { useOrderItemHub } from './useOrderItemHub';
 
 export function useKitchenOrders() {
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
@@ -12,6 +13,8 @@ export function useKitchenOrders() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [idMappings, setIdMappings] = useState<any[]>([]);
+   // signal R
+   const { latestItem } = useOrderItemHub();
 
   // Fetch orders from API
   const fetchOrders = useCallback(async () => {
@@ -22,6 +25,7 @@ export function useKitchenOrders() {
       const { orders } = await chefService.fetchOrders(1, 100);
       if (orders && orders.length > 0) {
         setOrders(orders);
+
         setIdMappings([]);
       } else {
         console.error('Failed to fetch orders: No data received');
@@ -59,6 +63,18 @@ export function useKitchenOrders() {
     fetchOrders();
   }, [fetchOrders]);
 
+  // 👉 THÊM PHẦN NÀY NGAY DƯỚI ĐÂY
+  useEffect(() => {
+    if (!latestItem) return;
+  
+    setOrders((prev) => {
+      const exist = prev.find((o) => o.id === latestItem.id);
+  
+      if (!exist) return [...prev, latestItem];
+      return prev.map((o) => (o.id === latestItem.id ? { ...o, ...latestItem } : o));
+    });
+  }, [latestItem]);
+  
   // Filter orders by status and category
   const filteredOrders = useMemo((): Order[] => {
     return orders.filter(order => {
