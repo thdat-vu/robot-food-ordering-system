@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { OrderStatus } from "@/types/kitchen";
 import { WaiterDish } from "@/hooks/use-waiter-orders";
 import { toast } from "sonner";
+import { useQuickServe } from "@/hooks/use-quick-serve";
 
 interface ServePanelProps {
   activeTab: OrderStatus;
@@ -205,6 +206,15 @@ const ServePanel: React.FC<ServePanelProps> = ({
     });
     return groups;
   }, [sortedDishesForTab]);
+
+  // Quick-serve requests
+  const { requests, loading, fetchQuickRequestsForActiveTables, serveQuickRequest } = useQuickServe();
+  React.useEffect(() => {
+    // refresh quick requests periodically
+    fetchQuickRequestsForActiveTables();
+    const id = setInterval(fetchQuickRequestsForActiveTables, 5000);
+    return () => clearInterval(id);
+  }, [fetchQuickRequestsForActiveTables]);
   // Get ALL selected dishes (not just from current tab)
   const allSelectedDishes = dishes.filter((dish) => dish.selected);
 
@@ -343,6 +353,40 @@ const ServePanel: React.FC<ServePanelProps> = ({
         </p> */}
 
         <div className="w-full mb-6">
+          {/* Quick Serve Requests Panel */}
+          {requests.length > 0 && (
+            <div className="w-full mb-4 bg-white rounded-2xl shadow-lg border-2 border-blue-200 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-base text-blue-800">Yêu cầu nhanh</h3>
+                {loading && <span className="text-xs text-blue-600">Đang tải...</span>}
+              </div>
+              <ul className="space-y-2">
+                {requests.map((r) => (
+                  <li key={r.complainId} className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                    <div className="text-sm text-blue-900 truncate">
+                      {r.tableName}: {r.productName}
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={async () => {
+                        try {
+                          await serveQuickRequest(r);
+                          toast("Đã thêm món phục vụ nhanh", { description: `${r.tableName} - ${r.productName}` });
+                          fetchQuickRequestsForActiveTables();
+                        } catch (e) {
+                          toast("Lỗi", { description: "Không thể phục vụ nhanh. Vui lòng thử lại." });
+                        }
+                      }}
+                    >
+                      Phục vụ ngay
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
               // For "đã phục vụ" tab, don't show map, just show the list
