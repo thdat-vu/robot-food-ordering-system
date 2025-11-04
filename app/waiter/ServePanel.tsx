@@ -139,7 +139,7 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
             </h3>
             <p className="text-gray-600 leading-relaxed text-base">
               {mapUrl
-                ? `Bản đồ sẽ hiển thị 6 bàn với hướng dẫn đến bàn ${getTableNumbersFromUrl()}`
+                ? `Bản đồ sẽ hiển thị các bàn đã chọn với hướng dẫn đến bàn ${getTableNumbersFromUrl()}`
                 : "Chọn món để xem bản đồ với hướng dẫn đến bàn tương ứng"}
             </p>
           </div>

@@ -57,7 +57,7 @@ const REMAKE_SUGGESTIONS: string[] = [
     "Chất lượng không đạt"
 ];
 
-const MAX_SELECTION = 6;
+const MAX_SELECTION = Infinity;
 
 const DishList: React.FC<DishListProps> = ({
                                                activeTab,
@@ -341,20 +341,9 @@ const DishList: React.FC<DishListProps> = ({
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-blue-800">
-                        Đã chọn: {selectedCount}/{MAX_SELECTION} món
+                        Đã chọn: {selectedCount} món
                     </span>
-                    <div className="w-32 bg-blue-200 rounded-full h-2">
-                        <div
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                            style={{width: `${(selectedCount / MAX_SELECTION) * 100}%`}}
-                        ></div>
-                    </div>
                 </div>
-                {selectedCount >= MAX_SELECTION && (
-                    <p className="text-xs text-blue-700 mt-1">
-                        Đã đạt giới hạn tối đa. Bỏ chọn món khác để chọn thêm.
-                    </p>
-                )}
             </div>
 
             {Object.entries(groupedDishes).map(([categoryName, items]) => {
