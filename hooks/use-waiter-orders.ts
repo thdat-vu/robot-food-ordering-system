@@ -106,9 +106,9 @@ export function useWaiterOrders() {
 
             if (response.data && response.data.length > 0) {
                 // Transform API orders to waiter dishes
-                const waiterDishes: WaiterDish[] = [];
+                const rawDishes: Omit<WaiterDish, "selected">[] = [];
 
-                // Create a unique key for each dish to preserve selection state
+                // Create a unique key for each dish
                 const createDishKey = (orderId: string, itemId: string) =>
                     `${orderId}-${itemId}`;
 
@@ -117,45 +117,43 @@ export function useWaiterOrders() {
                         const tableNumber =
                             parseInt(order.tableName.replace(/\D/g, "")) || 1;
 
-                        // Get category from product-category mapping
                         const categoryName =
                             stableProductCategoryMap.get(item.productName.toLowerCase()) ||
                             "Khác";
                         const category = categories.find((c) => c.name === categoryName);
 
-                        // Map API status to OrderStatus
                         const orderStatus = mapApiStatusToOrderStatus(item.status);
 
-                        // Create unique key for this dish
                         const dishKey = createDishKey(order.id, item.id);
 
-                        // Check if this dish was previously selected using the consistent ID
-                        const previouslySelected =
-                            dishes.find((d) => d.id === dishKey)?.selected || false;
-
-                        waiterDishes.push({
-                            id: dishKey, // Use the generated key as the ID
+                        rawDishes.push({
+                            id: dishKey as any, // will set selected later
                             name: item.productName,
                             categoryId: category?.id || "unknown",
                             categoryName: categoryName,
-                            selected: previouslySelected, // Preserve selection state
                             served: orderStatus === "đã phục vụ",
                             orderId: order.id,
                             itemId: item.id,
                             tableNumber,
-                            quantity: 1, // Each API item is individual, so quantity is always 1
+                            quantity: 1,
                             status: orderStatus,
-                            // Use item-level createdTime from API (already formatted dd/MM/yyyy HH:mm:ss)
                             orderTime: item.createdTime || order.createdTime || undefined,
-                            estimatedTime: "10 phút", // Default estimated time since API doesn't provide it
+                            estimatedTime: "10 phút",
                             note: item.note || undefined,
                             sizeName: item.sizeName,
                             toppings: item.toppings?.map((topping) => topping.name) || [],
-                        });
+                        } as any);
                     });
                 });
 
-                setDishes(waiterDishes);
+                // Preserve selection using latest state in functional update to avoid stale closures
+                setDishes((prev) => {
+                    const selectedIds = new Set(prev.filter(d => d.selected).map(d => d.id));
+                    return rawDishes.map((d) => ({
+                        ...(d as WaiterDish),
+                        selected: selectedIds.has((d as WaiterDish).id),
+                    }));
+                });
             } else {
                 setDishes([]);
             }
@@ -173,7 +171,7 @@ export function useWaiterOrders() {
             const response = await ordersApi.getOrders(1, 100);
 
             if (response.data && response.data.length > 0) {
-                const waiterDishes: WaiterDish[] = [];
+                const rawDishes: Omit<WaiterDish, "selected">[] = [];
 
                 const createDishKey = (orderId: string, itemId: string) =>
                     `${orderId}-${itemId}`;
@@ -191,39 +189,41 @@ export function useWaiterOrders() {
 
                         const dishKey = createDishKey(order.id, item.id);
 
-                        const previouslySelected =
-                            dishes.find((d) => d.id === dishKey)?.selected || false;
-
-                        waiterDishes.push({
-                            id: dishKey,
+                        rawDishes.push({
+                            id: dishKey as any,
                             name: item.productName,
                             categoryId: category?.id || "unknown",
                             categoryName: categoryName,
-                            selected: previouslySelected,
                             served: orderStatus === "đã phục vụ",
                             orderId: order.id,
                             itemId: item.id,
                             tableNumber,
-                            quantity: 1, // Each API item is individual, so quantity is always 1
+                            quantity: 1,
                             status: orderStatus,
-                            // Use item-level createdTime from API (already formatted dd/MM/yyyy HH:mm:ss)
                             orderTime: item.createdTime || order.createdTime || undefined,
                             estimatedTime: "10 phút",
                             note: item.note || undefined,
                             sizeName: item.sizeName,
                             toppings: item.toppings?.map((topping) => topping.name) || [],
-                        });
+                        } as any);
                     });
                 });
 
-                setDishes(waiterDishes);
+                // Preserve latest selection using functional update
+                setDishes((prev) => {
+                    const selectedIds = new Set(prev.filter(d => d.selected).map(d => d.id));
+                    return rawDishes.map((d) => ({
+                        ...(d as WaiterDish),
+                        selected: selectedIds.has((d as WaiterDish).id),
+                    }));
+                });
             } else {
                 setDishes([]);
             }
         } catch (err) {
             // Silent error: do not set error state to avoid UI disruption
         }
-    }, [categories, stableProductCategoryMap, dishes]);
+    }, [categories, stableProductCategoryMap]);
 
     // Load categories first, then orders
     useEffect(() => {

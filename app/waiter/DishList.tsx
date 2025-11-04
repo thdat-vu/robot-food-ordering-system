@@ -57,7 +57,7 @@ const REMAKE_SUGGESTIONS: string[] = [
     "Chất lượng không đạt"
 ];
 
-const MAX_SELECTION = 6;
+const MAX_SELECTION = Infinity;
 
 const DishList: React.FC<DishListProps> = ({
                                                activeTab,
@@ -79,9 +79,9 @@ const DishList: React.FC<DishListProps> = ({
 
     const [showSuggestions, setShowSuggestions] = useState(true);
 
-    // Toggle: Auto-select up to MAX_SELECTION items
-    // Always start as OFF on page load/reload (ignore previous persisted value)
-    const [autoSuggestEnabled, setAutoSuggestEnabled] = useState<boolean>(false);
+    // Toggle: Auto-select items
+    // Always start as ON on page load/reload
+    const [autoSuggestEnabled, setAutoSuggestEnabled] = useState<boolean>(true);
 
     // Track whether we already auto-suggested for a given tab to avoid overriding user choices
     const autoSuggestedTabsRef = useRef<Record<string, boolean>>({});
@@ -153,7 +153,7 @@ const DishList: React.FC<DishListProps> = ({
 
         const unselected = dishesForTab.filter(d => !d.selected);
         if (unselected.length === 0) {
-            autoSuggestedTabsRef.current[activeTab] = true;
+            // Đợi dữ liệu/polling: không đánh dấu đã gợi ý để khi món xuất hiện sẽ tự chọn
             return;
         }
 
@@ -341,20 +341,9 @@ const DishList: React.FC<DishListProps> = ({
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-blue-800">
-                        Đã chọn: {selectedCount}/{MAX_SELECTION} món
+                        Đã chọn: {selectedCount} món
                     </span>
-                    <div className="w-32 bg-blue-200 rounded-full h-2">
-                        <div
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                            style={{width: `${(selectedCount / MAX_SELECTION) * 100}%`}}
-                        ></div>
-                    </div>
                 </div>
-                {selectedCount >= MAX_SELECTION && (
-                    <p className="text-xs text-blue-700 mt-1">
-                        Đã đạt giới hạn tối đa. Bỏ chọn món khác để chọn thêm.
-                    </p>
-                )}
             </div>
 
             {Object.entries(groupedDishes).map(([categoryName, items]) => {
