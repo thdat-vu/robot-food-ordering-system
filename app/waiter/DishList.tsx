@@ -79,9 +79,9 @@ const DishList: React.FC<DishListProps> = ({
 
     const [showSuggestions, setShowSuggestions] = useState(true);
 
-    // Toggle: Auto-select up to MAX_SELECTION items
-    // Always start as OFF on page load/reload (ignore previous persisted value)
-    const [autoSuggestEnabled, setAutoSuggestEnabled] = useState<boolean>(false);
+    // Toggle: Auto-select items
+    // Always start as ON on page load/reload
+    const [autoSuggestEnabled, setAutoSuggestEnabled] = useState<boolean>(true);
 
     // Track whether we already auto-suggested for a given tab to avoid overriding user choices
     const autoSuggestedTabsRef = useRef<Record<string, boolean>>({});
@@ -153,7 +153,7 @@ const DishList: React.FC<DishListProps> = ({
 
         const unselected = dishesForTab.filter(d => !d.selected);
         if (unselected.length === 0) {
-            autoSuggestedTabsRef.current[activeTab] = true;
+            // Đợi dữ liệu/polling: không đánh dấu đã gợi ý để khi món xuất hiện sẽ tự chọn
             return;
         }
 
