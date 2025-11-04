@@ -14,6 +14,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { FeedbackgGetTableId, dto } from "@/entites/moderator/FeedbackModole";
+import { CreateComplain, CheckSS } from "@/api/moderator/FeedbackApi";
 import {
   useCheckSS,
   useGetFeedbackByIdtable,
@@ -862,8 +863,39 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                       </div>
 
                       {/* Mark as Processed Button */}
-                      {feedback.isPending && (
-                        <div className="flex justify-end">
+                      {feedback.isPending 
+                      && 
+                      (
+                        <div className="flex justify-end gap-3">
+                          {/* Send quick-serve request to waiter */}
+                          {(() => {
+                            const text = (feedback.feedBack || "").toLowerCase();
+                            const isQuick = text.includes("nước mắm") || text.includes("nuoc mam") || text.includes("nước tương") || text.includes("nuoc tuong");
+                            if (!isQuick) return null;
+                            return (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    // Update complain IN-PLACE: keep pending, but mark as quick-serve in content
+                                    await CheckSS(
+                                      idTable,
+                                      [feedback.complainId],
+                                      `Yêu cầu nhanh: ${feedback.feedBack}`,
+                                      true // keep isPending = true
+                                    );
+                                    addToast("Đã gửi yêu cầu nhanh", "success");
+                                    // Refresh list to reflect updated content/state
+                                    await loadFeedbackData();
+                                  } catch (e) {
+                                    addToast("Không thể gửi yêu cầu nhanh", "error");
+                                  }
+                                }}
+                                className="px-5 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all duration-200 shadow-sm"
+                              >
+                                Gửi yêu cầu nhanh
+                              </button>
+                            );
+                          })()}
                           <button
                             onClick={() =>
                               handleSingleCheck(feedback.complainId)
@@ -888,7 +920,8 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                             )}
                           </button>
                         </div>
-                      )}
+                      )
+                      }
                     </div>
                   </div>
                 </div>

@@ -89,6 +89,29 @@ export const ordersApi = {
         };
     },
 
+    // Create or append items to an order for a table (server decides create vs update)
+    async handleOrder(request: {
+        tableId: string;
+        deviceToken: string;
+        items: Array<{ productId: string; productSizeId: string; toppingIds: string[]; note?: string }>;
+    }) {
+        const payload = {
+            tableId: request.tableId,
+            deviceToken: request.deviceToken,
+            items: request.items.map((i) => ({
+                productId: i.productId,
+                productSizeId: i.productSizeId,
+                toppingIds: i.toppingIds ?? [],
+                note: i.note ?? "",
+            })),
+        };
+        const response = await apiClient.post<ApiBaseResponse<ApiOrderResponse>>(
+            `/Order/handle`,
+            payload
+        );
+        return response.data;
+    },
+
     // Get order by ID
     async getOrderById(orderId: string) {
         const response = await apiClient.get<ApiBaseResponse<ApiOrderResponse>>(`/Order/${orderId}`);
