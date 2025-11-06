@@ -927,7 +927,8 @@ function ChiefPageContent() {
             showSearchDropdown={showSearchDropdown}
             onProductSelect={handleProductSelect}
             onSearchDropdownClose={() => setShowSearchDropdown(false)}
-            rightAction={(
+            rightAction={
+              /*
               (() => {
                 if (activeTab === 'đang chờ') {
                   const selectedOrders = selectedGroups.length > 0
@@ -979,7 +980,9 @@ function ChiefPageContent() {
                 }
                 return null;
               })()
-            )}
+              */
+              null
+            }
           />
 
           <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">

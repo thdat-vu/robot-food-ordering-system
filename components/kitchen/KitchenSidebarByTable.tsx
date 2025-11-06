@@ -219,7 +219,7 @@ export function KitchenSidebarByTable({
                         handleTableCheckboxChange(tableNumber, value);
                       }}
                       onClick={event => event.stopPropagation()}
-                      className="size-5 md:size-6 border-2 border-gray-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                      className="size-5 md:size-6 border-2 border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white"
                       aria-label={`Chọn toàn bộ món bàn ${tableNumber}`}
                     />
                     <div className="flex flex-col">
@@ -265,7 +265,7 @@ export function KitchenSidebarByTable({
                               const value = checked === true;
                               handleItemCheckboxChange(order, value);
                             }}
-                            className="mt-0.5 size-5 border-2 border-gray-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                            className="mt-0.5 size-5 border-2 border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white"
                             aria-label={`Chọn món ${order.itemName}`}
                           />
                           <Button

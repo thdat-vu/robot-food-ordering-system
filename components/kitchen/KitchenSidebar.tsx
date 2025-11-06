@@ -366,7 +366,7 @@ export function KitchenSidebar({
                             }
                           }}
                           onClick={(e) => handleCheckboxClick(e, group)}
-                          className="size-5 md:size-6 border-2 border-gray-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:ring-2 data-[state=checked]:ring-green-300 shadow-sm"
+                          className="size-5 md:size-6 border-2 border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:ring-2 data-[state=checked]:ring-blue-200 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm"
                           aria-label="Chọn nhóm"
                         />
                         {/* <span className="text-sm font-medium text-gray-700">
