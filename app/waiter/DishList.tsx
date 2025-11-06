@@ -18,30 +18,46 @@ interface DishListProps {
     onRequestRemake: (reason?: string) => Promise<boolean>;
 }
 
-const categoryStyle: Record<
-    string,
-    { label: string; bg: string; border: string; icon?: React.ReactNode }
-> = {
-    "Tráng Miệng": {
-        label: "Tráng Miệng",
-        bg: "bg-orange-50",
-        border: "border-orange-200",
-    },
-    "Món Chính": {
-        label: "Món Chính",
-        bg: "bg-green-50",
-        border: "border-green-200",
-    },
-    "Đồ Uống": {
-        label: "Đồ Uống",
+const normalizeCategoryName = (name: string): string =>
+    (name || "").normalize("NFC").toLowerCase();
+
+const CATEGORY_PRIORITY: Record<string, number> = {
+    "đồ uống": 0,
+    "món chính": 1,
+    "tráng miệng": 2,
+};
+
+const CATEGORY_STYLES: Record<string, { label: string; bg: string; border: string }> = {
+    "đồ uống": {
+        label: "Đồ uống",
         bg: "bg-blue-50",
         border: "border-blue-200",
     },
-    Khác: {
+    "món chính": {
+        label: "Món chính",
+        bg: "bg-green-50",
+        border: "border-green-200",
+    },
+    "tráng miệng": {
+        label: "Tráng miệng",
+        bg: "bg-orange-50",
+        border: "border-orange-200",
+    },
+    default: {
         label: "Khác",
         bg: "bg-gray-50",
         border: "border-gray-200",
     },
+};
+
+const getCategoryStyle = (name: string) => {
+    const normalized = normalizeCategoryName(name);
+    return CATEGORY_STYLES[normalized] || CATEGORY_STYLES.default;
+};
+
+const getCategoryPriority = (name: string) => {
+    const normalized = normalizeCategoryName(name);
+    return CATEGORY_PRIORITY[normalized] ?? 3;
 };
 
 const REMAKE_SUGGESTIONS: string[] = [
@@ -240,12 +256,19 @@ const DishList: React.FC<DishListProps> = ({
     // Group dishes by category
     const groupedDishes = filteredDishes.reduce<Record<string, WaiterDish[]>>(
         (acc, dish) => {
-            if (!acc[dish.categoryName]) acc[dish.categoryName] = [];
-            acc[dish.categoryName].push(dish);
+            const key = dish.categoryName || "Khác";
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(dish);
             return acc;
         },
         {}
     );
+
+    const sortedCategoryEntries = Object.entries(groupedDishes).sort((a, b) => {
+        const priorityDiff = getCategoryPriority(a[0]) - getCategoryPriority(b[0]);
+        if (priorityDiff !== 0) return priorityDiff;
+        return a[0].localeCompare(b[0], "vi", { sensitivity: "accent" });
+    });
 
     if (filteredDishes.length === 0) {
         return (
@@ -346,8 +369,8 @@ const DishList: React.FC<DishListProps> = ({
                 </div>
             </div>
 
-            {Object.entries(groupedDishes).map(([categoryName, items]) => {
-                const style = categoryStyle[categoryName] || categoryStyle["Khác"];
+            {sortedCategoryEntries.map(([categoryName, items]) => {
+                const style = getCategoryStyle(categoryName);
 
                 return (
                     <div key={categoryName} className="w-full">

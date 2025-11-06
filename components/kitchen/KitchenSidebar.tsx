@@ -23,6 +23,7 @@ interface KitchenSidebarProps {
   initialWidth?: number; // in px, default 320
   minWidthPx?: number; // default 260
   maxWidthPx?: number; // default 480
+  fluid?: boolean;
 }
 
 export function KitchenSidebar({ 
@@ -43,7 +44,8 @@ export function KitchenSidebar({
   className,
   initialWidth = 480,
   minWidthPx = 260,
-  maxWidthPx = 480
+  maxWidthPx = 480,
+  fluid = false
 }: KitchenSidebarProps) {
   // Resizable width state
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -59,6 +61,8 @@ export function KitchenSidebar({
 
   // On mount and when viewport changes, clamp or set a sensible width
   useEffect(() => {
+    if (fluid) return;
+
     const applyResponsiveWidth = () => {
       const dynamicMax = getDynamicMaxWidth();
       const preferred = Math.min(dynamicMax, Math.max(minWidthPx, sidebarWidth || initialWidth));
@@ -68,15 +72,16 @@ export function KitchenSidebar({
     window.addEventListener('resize', applyResponsiveWidth);
     return () => window.removeEventListener('resize', applyResponsiveWidth);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fluid]);
 
   const onResizeMouseDown = (e: React.MouseEvent) => {
+    if (fluid) return;
     e.preventDefault();
     setIsResizing(true);
   };
 
   useEffect(() => {
-    if (!isResizing) return;
+    if (!isResizing || fluid) return;
     const handleMouseMove = (e: MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -92,7 +97,7 @@ export function KitchenSidebar({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, minWidthPx]);
+  }, [isResizing, minWidthPx, fluid]);
 
   // Compute counts per category using remainingItems (all pending items)
   const categoryCounts = useMemo((): Record<string, number> => {
@@ -211,7 +216,7 @@ export function KitchenSidebar({
   return (
     <div
       ref={containerRef}
-      style={{ width: sidebarWidth }}
+      style={fluid ? { width: '100%' } : { width: sidebarWidth }}
       className={`bg-gray-200 flex flex-col h-screen relative flex-shrink-0 ${className || ''}`}
     >
       {/* Fixed Header */}
@@ -361,7 +366,7 @@ export function KitchenSidebar({
                             }
                           }}
                           onClick={(e) => handleCheckboxClick(e, group)}
-                          className="size-5 md:size-6 border-2 border-gray-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:ring-2 data-[state=checked]:ring-green-300 shadow-sm"
+                          className="size-5 md:size-6 border-2 border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:ring-2 data-[state=checked]:ring-blue-200 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm"
                           aria-label="Chọn nhóm"
                         />
                         {/* <span className="text-sm font-medium text-gray-700">
@@ -412,11 +417,13 @@ export function KitchenSidebar({
       </div>
 
       {/* Right-edge resize handle */}
-      <div
-        onMouseDown={onResizeMouseDown}
-        className="absolute top-0 right-0 h-full w-2 cursor-col-resize bg-transparent hover:bg-gray-300/60"
-        aria-label="Kéo để thay đổi độ rộng thanh bên"
-      />
+      {!fluid && (
+        <div
+          onMouseDown={onResizeMouseDown}
+          className="absolute top-0 right-0 h-full w-2 cursor-col-resize bg-transparent hover:bg-gray-300/60"
+          aria-label="Kéo để thay đổi độ rộng thanh bên"
+        />
+      )}
     </div>
   );
 } 

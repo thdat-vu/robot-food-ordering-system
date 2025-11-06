@@ -18,6 +18,7 @@ import { ToastContainer } from '@/components/kitchen/ToastContainer';
 import { ConfirmationModal } from '@/components/kitchen/ConfirmationModal';
 import { NavigationTabs } from '@/components/kitchen/NavigationTabs';
 import { KitchenSidebar } from '@/components/kitchen/KitchenSidebar';
+import { KitchenSidebarByTable } from '@/components/kitchen/KitchenSidebarByTable';
 import { OrdersContent } from '@/components/kitchen/OrdersContent';
 import { InfoModal } from '@/components/kitchen/InfoModal';
 import { SearchResultsModal } from '@/components/kitchen/SearchResultsModal';
@@ -46,6 +47,7 @@ function ChiefPageContent() {
   const [selectedGroup, setSelectedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
   const [selectedGroups, setSelectedGroups] = useState<{ itemName: string; tableNumber: number; id: number }[][]>([]);
   const [hasManualSelection, setHasManualSelection] = useState(false);
+  const [leftPanelTab, setLeftPanelTab] = useState<LeftPanelTab>('byDish');
   
   // Animation state for disappearing items
   const [animatingOutIds, setAnimatingOutIds] = useState<Set<number>>(new Set());
@@ -164,6 +166,14 @@ function ChiefPageContent() {
   }, [selectedGroups, selectedGroup, selectedOrderKey]);
   const selectedIds = getCurrentlySelectedIds();
 
+  const leftPanelTabs = useMemo(
+    () => ([
+      { key: 'byDish' as LeftPanelTab, label: 'Theo món' },
+      { key: 'byTable' as LeftPanelTab, label: 'Theo bàn' },
+    ]),
+    []
+  );
+
   // Check if all items of a category in trạng thái "đang chờ" for specific table(s) are already selected
   const areAllCategorySelectedForTables = useCallback((category: string, tables: number[], proposedSelection?: Set<number>): boolean => {
     const pendingIds = orders
@@ -175,6 +185,7 @@ function ChiefPageContent() {
   }, [orders, getCurrentlySelectedIds]);
 
   type SelectionItem = { itemName: string; tableNumber: number; id: number };
+  type LeftPanelTab = 'byDish' | 'byTable';
 
   // Show a warning only if selecting/preparing main dishes while NOT all drinks
   // on the SAME table(s) are selected
@@ -227,6 +238,15 @@ function ChiefPageContent() {
     setHasManualSelection(false); // Reset manual selection flag on tab change
     setActiveTab(tab);
   }, [setActiveTab]);
+
+  useEffect(() => {
+    if (leftPanelTab !== 'byDish') {
+      setSelectedGroups([]);
+      setSelectedGroup(null);
+      setSelectedOrderKey(null);
+    }
+    setHasManualSelection(false);
+  }, [leftPanelTab]);
 
   // Wrapper function for manual refresh button
   const handleManualRefresh = () => {
@@ -482,7 +502,7 @@ function ChiefPageContent() {
   // Function to automatically select the first 3 groups based on category priority
   const autoSelectFirstGroups = useCallback(() => {
     // Only auto-select for relevant tabs, not for serve tab, and only if user hasn't made manual selection
-    if (activeTab === 'bắt đầu phục vụ' || hasManualSelection) {
+    if (activeTab === 'bắt đầu phục vụ' || hasManualSelection || leftPanelTab !== 'byDish') {
       return;
     }
 
@@ -567,7 +587,7 @@ function ChiefPageContent() {
         handleMultipleGroupSelection(groupsToSelect, true); // Pass true for automatic selection
       }
     }
-  }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection]);
+  }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection, leftPanelTab]);
 
   // Auto-select first group when page loads or significant data changes
   useEffect(() => {
@@ -681,6 +701,26 @@ function ChiefPageContent() {
   const filteredServeTabGroupedOrders = filterOrdersBySearch(serveTabGroupedOrders);
   const filteredInProgressGroupedOrders = filteredGroupedOrdersForSearch;
 
+  const tablesByNumber = useMemo(() => {
+    const tableMap = new Map<number, Order[]>();
+
+    Object.values(filteredGroupedOrdersForSearch).forEach(orderList => {
+      orderList.forEach(order => {
+        if (!tableMap.has(order.tableNumber)) {
+          tableMap.set(order.tableNumber, []);
+        }
+        tableMap.get(order.tableNumber)!.push(order);
+      });
+    });
+
+    return Array.from(tableMap.entries())
+      .map(([tableNumber, tableOrders]) => ({
+        tableNumber,
+        orders: [...tableOrders].sort((a, b) => a.id - b.id),
+      }))
+      .sort((a, b) => a.tableNumber - b.tableNumber);
+  }, [filteredGroupedOrdersForSearch]);
+
   // Helper: sort grouped orders by category priority: Đồ uống > Món chính > Tráng miệng
   const sortGroupedByCategoryPriority = (input: Record<string, Order[]>): Record<string, Order[]> => {
     const categoryPriority = (categoryName: string | undefined): number => {
@@ -759,7 +799,6 @@ function ChiefPageContent() {
         onClose={() => setIsPriorityInfoOpen(false)}
         onCancel={() => {
           setHasManualSelection(true); // Mark as manual selection
-          // Uncheck the last checked group, if any
           if (lastCheckedGroup) {
             const areSameGroup = (a: { itemName: string; tableNumber: number; id: number }[], b: { itemName: string; tableNumber: number; id: number }[]) => {
               if (!a || !b || a.length !== b.length) return false;
@@ -809,274 +848,301 @@ function ChiefPageContent() {
         onCancelOrder={handleCancelFromSearch}
       />
 
-      {/* Kitchen Sidebar */}
-      <div className={`${isServeTab ? 'pointer-events-none opacity-50' : ''} max-w-[45vw] md:max-w-none`}> 
-        <KitchenSidebar
-          categories={CATEGORIES}
-          selectedCategory={selectedCategory}
-          onCategorySelect={setSelectedCategory}
-          remainingItems={remainingItems}
-          shouldShowInSidebar={shouldShowInSidebar}
-          itemNameToCategory={itemNameToCategory}
-          selectedOrderKey={selectedOrderKey}
-          onSidebarItemClick={handleSidebarItemClick}
-          selectedGroup={selectedGroup}
-          onGroupSelection={handleGroupSelection}
-          groupedOrders={filteredGroupedOrdersForSearch}
-          selectedGroups={selectedGroups}
-          onMultipleGroupSelection={handleMultipleGroupSelection}
-          orders={orders}
-          initialWidth={240}
-          minWidthPx={200}
-          maxWidthPx={300}
-        />
-      </div>
+      <div className="flex flex-1 min-h-0">
+        <div
+          className={`flex w-1/2 min-h-0 flex-col border-r border-gray-200 bg-white ${isServeTab ? 'pointer-events-none opacity-50' : ''}`}
+        >
+          {/* <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800">Chờ chế biến</h2>
+          </div> */}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Navigation Tabs */}
-        <NavigationTabs
-          activeTab={activeTab as OrderStatus}
-          onTabChange={handleTabChange as (tab: OrderStatus) => void}
-          getTabCount={getTabCount}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          searchResults={searchResults}
-          showSearchDropdown={showSearchDropdown}
-          onProductSelect={handleProductSelect}
-          onSearchDropdownClose={() => setShowSearchDropdown(false)}
-          rightAction={(
-            (() => {
-              // Build a CTA for top-right based on current context
-              // Use selected groups if available, else selected single order, else nothing
-              if (activeTab === 'đang chờ') {
-                const selectedOrders = selectedGroups.length > 0
-                  ? selectedGroups.flat()
-                  : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
-                if (selectedOrders.length > 0) {
-                  return (
-                    <button
-                      onClick={() => {
-                        if (selectedGroups.length > 0) {
-                          handlePrepareMultipleOrders(selectedOrders);
-                        } else if (selectedGroup) {
-                          handlePrepareMultipleOrders(selectedGroup);
-                        } else if (selectedOrderKey) {
-                          handlePrepareClick(selectedOrderKey.id, selectedOrderKey.itemName);
-                        }
-                      }}
-                      className="font-medium text-sm px-4 py-2 rounded-full shadow bg-green-600 hover:bg-green-700 text-white whitespace-nowrap"
-                    >
-                      {`Thực hiện${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
-                    </button>
-                  );
-                }
-              }
-              if (activeTab === 'đang thực hiện') {
-                const selectedOrders = selectedGroups.length > 0
-                  ? selectedGroups.flat()
-                  : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
-                if (selectedOrders.length > 0) {
-                  return (
-                    <button
-                      onClick={() => {
-                        if (selectedGroups.length > 0) {
-                          handleServeMultipleOrders(selectedOrders);
-                        } else if (selectedGroup) {
-                          handleServeMultipleOrders(selectedGroup);
-                        } else if (selectedOrderKey) {
-                          const all = Object.values(groupedOrders as Record<string, Order[]>).flat();
-                          const found = all.find(o => o.id === selectedOrderKey!.id);
-                          if (found) handleServeClick(found);
-                        }
-                      }}
-                      className="font-medium text-sm px-4 py-2 rounded-full shadow bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
-                    >
-                      {`Bắt đầu phục vụ${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
-                    </button>
-                  );
-                }
-              }
-              return null;
-            })()
-          )}
-        />
+          <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-200 bg-gray-50">
+            {leftPanelTabs.map(tab => {
+              const isActive = leftPanelTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setLeftPanelTab(tab.key)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    isActive ? 'bg-blue-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-        {/* Orders Content or Placeholder */}
-        {(() => {
-          // Check if we have any selection
-          const hasSelection = selectedGroups.length > 0 || selectedGroup || selectedOrderKey;
-          
-          // If no selection and not serve/in-progress tab with orders, show placeholder
-          // if (
-          //   !hasSelection &&
-          //   !(isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) &&
-          //   !(isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0)
-          // ) {
-          //   return (
-          //     <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
-          //       Chọn một món ăn để xem chi tiết
-          //     </div>
-          //   );
-          // }
+          <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">
+            {leftPanelTab === 'byDish' && (
+              <div className="h-full">
+                <KitchenSidebar
+                  categories={CATEGORIES}
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={setSelectedCategory}
+                  remainingItems={remainingItems}
+                  shouldShowInSidebar={shouldShowInSidebar}
+                  itemNameToCategory={itemNameToCategory}
+                  selectedOrderKey={selectedOrderKey}
+                  onSidebarItemClick={handleSidebarItemClick}
+                  selectedGroup={selectedGroup}
+                  onGroupSelection={handleGroupSelection}
+                  groupedOrders={filteredGroupedOrdersForSearch}
+                  selectedGroups={selectedGroups}
+                  onMultipleGroupSelection={handleMultipleGroupSelection}
+                  orders={orders}
+                  className="bg-transparent h-full"
+                  fluid
+                />
+              </div>
+            )}
 
-          // Serve tab with orders
-          if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
-            const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
-            return (
-              <OrdersContent
-                groupedOrders={sortedForServe}
-                activeTab={activeTab}
-                onGroupClick={handleGroupClick}
-                onPrepareClick={handlePrepareClick}
-                onServeClick={handleServeClick}
-                onAcceptRedoClick={handleAcceptRedoClick}
-                onRejectRedoClick={handleRejectRedoClickWrapper}
-                selectedIds={selectedIds}
-                animatingOutIds={animatingOutIds}
+            {leftPanelTab === 'byTable' && (
+              <KitchenSidebarByTable
+                tables={tablesByNumber}
+                selectedOrderKey={selectedOrderKey}
+                onSidebarItemClick={handleSidebarItemClick}
+                selectedGroup={selectedGroup}
+                onGroupSelection={handleGroupSelection}
+                selectedGroups={selectedGroups}
+                onMultipleGroupSelection={handleMultipleGroupSelection}
+                className="bg-transparent h-full"
               />
-            );
-          }
+            )}
+          </div>
+        </div>
 
-          // In-progress tab with orders
-          if (isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0) {
-            const sortedInProgress = sortGroupedByCategoryPriority(filteredInProgressGroupedOrders);
-            return (
-              <OrdersContent
-                groupedOrders={sortedInProgress}
-                activeTab={activeTab}
-                onGroupClick={handleGroupClick}
-                onPrepareClick={handlePrepareClick}
-                onServeClick={handleServeClick}
-                onServeMultipleOrders={handleServeMultipleOrders}
-                showIndividualCards={true}
-                onAcceptRedoClick={handleAcceptRedoClick}
-                onRejectRedoClick={handleRejectRedoClickWrapper}
-                selectedIds={selectedIds}
-                animatingOutIds={animatingOutIds}
-              />
-            );
-          }
+        <div className="flex w-1/2 min-h-0 flex-col bg-white">
+          {/* <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800">Đã xong / Chờ cung ứng</h2>
+          </div> */}
 
-          // No selection: show the full list for the current tab as individual cards
-          if (!hasSelection) {
-            const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
-            return (
-              <OrdersContent
-                groupedOrders={sortedDefault}
-                activeTab={activeTab}
-                onGroupClick={handleGroupClick}
-                onPrepareClick={handlePrepareClick}
-                onServeClick={handleServeClick}
-                onServeMultipleOrders={handleServeMultipleOrders}
-                onAcceptRedoClick={handleAcceptRedoClick}
-                onRejectRedoClick={handleRejectRedoClickWrapper}
-                selectedIds={selectedIds}
-                showIndividualCards={true}
-                animatingOutIds={animatingOutIds}
-              />
-            );
-          }
-
-          // Selected groups
-          if (selectedGroups.length > 0) {
-            const filtered = (() => {
-              const filtered: Record<string, Order[]> = {};
-              selectedGroups.forEach(group => {
-                group.forEach(({ itemName, tableNumber, id }) => {
-                  const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
-                  const foundOrder = orderList.find(
-                    o => o.tableNumber === tableNumber && o.id === id
-                  );
-                  if (foundOrder) {
-                    if (!filtered[itemName]) filtered[itemName] = [];
-                    filtered[itemName].push(foundOrder);
+          <NavigationTabs
+            activeTab={activeTab as OrderStatus}
+            onTabChange={handleTabChange as (tab: OrderStatus) => void}
+            getTabCount={getTabCount}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchResults={searchResults}
+            showSearchDropdown={showSearchDropdown}
+            onProductSelect={handleProductSelect}
+            onSearchDropdownClose={() => setShowSearchDropdown(false)}
+            rightAction={
+              /*
+              (() => {
+                if (activeTab === 'đang chờ') {
+                  const selectedOrders = selectedGroups.length > 0
+                    ? selectedGroups.flat()
+                    : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
+                  if (selectedOrders.length > 0) {
+                    return (
+                      <button
+                        onClick={() => {
+                          if (selectedGroups.length > 0) {
+                            handlePrepareMultipleOrders(selectedOrders);
+                          } else if (selectedGroup) {
+                            handlePrepareMultipleOrders(selectedGroup);
+                          } else if (selectedOrderKey) {
+                            handlePrepareClick(selectedOrderKey.id, selectedOrderKey.itemName);
+                          }
+                        }}
+                        className="font-medium text-sm px-4 py-2 rounded-full shadow bg-green-600 hover:bg-green-700 text-white whitespace-nowrap"
+                      >
+                        {`Thực hiện${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
+                      </button>
+                    );
                   }
-                });
-              });
-              return filtered;
-            })();
-
-            const sortedSelectedGroups = sortGroupedByCategoryPriority(filtered);
-            return (
-              <OrdersContent
-                groupedOrders={sortedSelectedGroups}
-                activeTab={activeTab}
-                onGroupClick={handleGroupClick}
-                onPrepareClick={handlePrepareClick}
-                onServeClick={handleServeClick}
-                onPrepareMultipleOrders={handlePrepareMultipleOrders}
-                onServeMultipleOrders={handleServeMultipleOrders}
-                showIndividualCards={true}
-                onAcceptRedoClick={handleAcceptRedoClick}
-                onRejectRedoClick={handleRejectRedoClickWrapper}
-                selectedIds={selectedIds}
-                animatingOutIds={animatingOutIds}
-              />
-            );
-          }
-
-          // Selected group
-          if (selectedGroup) {
-            const filtered = (() => {
-              const filtered: Record<string, Order[]> = {};
-              selectedGroup.forEach(({ itemName, tableNumber, id }) => {
-                const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
-                const foundOrder = orderList.find(
-                  o => o.tableNumber === tableNumber && o.id === id
-                );
-                if (foundOrder) {
-                  if (!filtered[itemName]) filtered[itemName] = [];
-                  filtered[itemName].push(foundOrder);
                 }
-              });
-              return filtered;
-            })();
+                if (activeTab === 'đang thực hiện') {
+                  const selectedOrders = selectedGroups.length > 0
+                    ? selectedGroups.flat()
+                    : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
+                  if (selectedOrders.length > 0) {
+                    return (
+                      <button
+                        onClick={() => {
+                          if (selectedGroups.length > 0) {
+                            handleServeMultipleOrders(selectedOrders);
+                          } else if (selectedGroup) {
+                            handleServeMultipleOrders(selectedGroup);
+                          } else if (selectedOrderKey) {
+                            const all = Object.values(groupedOrders as Record<string, Order[]>).flat();
+                            const found = all.find(o => o.id === selectedOrderKey!.id);
+                            if (found) handleServeClick(found);
+                          }
+                        }}
+                        className="font-medium text-sm px-4 py-2 rounded-full shadow bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
+                      >
+                        {`Bắt đầu phục vụ${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
+                      </button>
+                    );
+                  }
+                }
+                return null;
+              })()
+              */
+              null
+            }
+          />
 
-            const sortedSelectedGroup = sortGroupedByCategoryPriority(filtered);
-            return (
-              <OrdersContent
-                groupedOrders={sortedSelectedGroup}
-                activeTab={activeTab}
-                onGroupClick={handleGroupClick}
-                onPrepareClick={handlePrepareClick}
-                onServeClick={handleServeClick}
-                onPrepareMultipleOrders={handlePrepareMultipleOrders}
-                onServeMultipleOrders={handleServeMultipleOrders}
-                showIndividualCards={true}
-                onAcceptRedoClick={handleAcceptRedoClick}
-                onRejectRedoClick={handleRejectRedoClickWrapper}
-                selectedIds={selectedIds}
-                animatingOutIds={animatingOutIds}
-              />
-            );
-          }
+          <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">
+            <div className="h-full overflow-y-auto">
+              {(() => {
+                const hasSelection = selectedGroups.length > 0 || selectedGroup || selectedOrderKey;
 
-          // Selected order key
-          if (selectedOrderKey) {
-            const sortedSelectedOrder = sortGroupedByCategoryPriority(filteredGroupedOrders);
-            return (
-              <OrdersContent
-                groupedOrders={sortedSelectedOrder}
-                activeTab={activeTab}
-                onGroupClick={handleGroupClick}
-                onPrepareClick={handlePrepareClick}
-                onServeClick={handleServeClick}
-                onAcceptRedoClick={handleAcceptRedoClick}
-                onRejectRedoClick={handleRejectRedoClickWrapper}
-                selectedIds={selectedIds}
-                animatingOutIds={animatingOutIds}
-              />
-            );
-          }
+                if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
+                  const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
+                  return (
+                    <OrdersContent
+                      groupedOrders={sortedForServe}
+                      activeTab={activeTab}
+                      onGroupClick={handleGroupClick}
+                      onPrepareClick={handlePrepareClick}
+                      onServeClick={handleServeClick}
+                      onAcceptRedoClick={handleAcceptRedoClick}
+                      onRejectRedoClick={handleRejectRedoClickWrapper}
+                      selectedIds={selectedIds}
+                      animatingOutIds={animatingOutIds}
+                    />
+                  );
+                }
 
-          // Fallback placeholder
-          return (
-            <div className="flex-1 flex items-center justify-center text-gray-400 text-xl">
-              Chọn một món ăn để xem chi tiết
+                if (isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0) {
+                  const sortedInProgress = sortGroupedByCategoryPriority(filteredInProgressGroupedOrders);
+                  return (
+                    <OrdersContent
+                      groupedOrders={sortedInProgress}
+                      activeTab={activeTab}
+                      onGroupClick={handleGroupClick}
+                      onPrepareClick={handlePrepareClick}
+                      onServeClick={handleServeClick}
+                      onServeMultipleOrders={handleServeMultipleOrders}
+                      showIndividualCards={true}
+                      onAcceptRedoClick={handleAcceptRedoClick}
+                      onRejectRedoClick={handleRejectRedoClickWrapper}
+                      selectedIds={selectedIds}
+                      animatingOutIds={animatingOutIds}
+                    />
+                  );
+                }
+
+                if (!hasSelection) {
+                  const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
+                  return (
+                    <OrdersContent
+                      groupedOrders={sortedDefault}
+                      activeTab={activeTab}
+                      onGroupClick={handleGroupClick}
+                      onPrepareClick={handlePrepareClick}
+                      onServeClick={handleServeClick}
+                      onServeMultipleOrders={handleServeMultipleOrders}
+                      onAcceptRedoClick={handleAcceptRedoClick}
+                      onRejectRedoClick={handleRejectRedoClickWrapper}
+                      selectedIds={selectedIds}
+                      showIndividualCards={true}
+                      animatingOutIds={animatingOutIds}
+                    />
+                  );
+                }
+
+                if (selectedGroups.length > 0) {
+                  const filtered = (() => {
+                    const filtered: Record<string, Order[]> = {};
+                    selectedGroups.forEach(group => {
+                      group.forEach(({ itemName, tableNumber, id }) => {
+                        const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
+                        const foundOrder = orderList.find(
+                          o => o.tableNumber === tableNumber && o.id === id
+                        );
+                        if (foundOrder) {
+                          if (!filtered[itemName]) filtered[itemName] = [];
+                          filtered[itemName].push(foundOrder);
+                        }
+                      });
+                    });
+                    return filtered;
+                  })();
+
+                  const sortedSelectedGroups = sortGroupedByCategoryPriority(filtered);
+                  return (
+                    <OrdersContent
+                      groupedOrders={sortedSelectedGroups}
+                      activeTab={activeTab}
+                      onGroupClick={handleGroupClick}
+                      onPrepareClick={handlePrepareClick}
+                      onServeClick={handleServeClick}
+                      onPrepareMultipleOrders={handlePrepareMultipleOrders}
+                      onServeMultipleOrders={handleServeMultipleOrders}
+                      showIndividualCards={true}
+                      onAcceptRedoClick={handleAcceptRedoClick}
+                      onRejectRedoClick={handleRejectRedoClickWrapper}
+                      selectedIds={selectedIds}
+                      animatingOutIds={animatingOutIds}
+                    />
+                  );
+                }
+
+                if (selectedGroup) {
+                  const filtered = (() => {
+                    const filtered: Record<string, Order[]> = {};
+                    selectedGroup.forEach(({ itemName, tableNumber, id }) => {
+                      const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
+                      const foundOrder = orderList.find(
+                        o => o.tableNumber === tableNumber && o.id === id
+                      );
+                      if (foundOrder) {
+                        if (!filtered[itemName]) filtered[itemName] = [];
+                        filtered[itemName].push(foundOrder);
+                      }
+                    });
+                    return filtered;
+                  })();
+
+                  const sortedSelectedGroup = sortGroupedByCategoryPriority(filtered);
+                  return (
+                    <OrdersContent
+                      groupedOrders={sortedSelectedGroup}
+                      activeTab={activeTab}
+                      onGroupClick={handleGroupClick}
+                      onPrepareClick={handlePrepareClick}
+                      onServeClick={handleServeClick}
+                      onPrepareMultipleOrders={handlePrepareMultipleOrders}
+                      onServeMultipleOrders={handleServeMultipleOrders}
+                      showIndividualCards={true}
+                      onAcceptRedoClick={handleAcceptRedoClick}
+                      onRejectRedoClick={handleRejectRedoClickWrapper}
+                      selectedIds={selectedIds}
+                      animatingOutIds={animatingOutIds}
+                    />
+                  );
+                }
+
+                if (selectedOrderKey) {
+                  const sortedSelectedOrder = sortGroupedByCategoryPriority(filteredGroupedOrders);
+                  return (
+                    <OrdersContent
+                      groupedOrders={sortedSelectedOrder}
+                      activeTab={activeTab}
+                      onGroupClick={handleGroupClick}
+                      onPrepareClick={handlePrepareClick}
+                      onServeClick={handleServeClick}
+                      onAcceptRedoClick={handleAcceptRedoClick}
+                      onRejectRedoClick={handleRejectRedoClickWrapper}
+                      selectedIds={selectedIds}
+                      animatingOutIds={animatingOutIds}
+                    />
+                  );
+                }
+
+                return (
+                  <div className="flex h-full items-center justify-center text-gray-400 text-xl">
+                    Chọn một món ăn để xem chi tiết
+                  </div>
+                );
+              })()}
             </div>
-          );
-        })()}
+          </div>
+        </div>
       </div>
     </div>
   );
