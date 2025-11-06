@@ -18,6 +18,7 @@ import { ToastContainer } from '@/components/kitchen/ToastContainer';
 import { ConfirmationModal } from '@/components/kitchen/ConfirmationModal';
 import { NavigationTabs } from '@/components/kitchen/NavigationTabs';
 import { KitchenSidebar } from '@/components/kitchen/KitchenSidebar';
+import { KitchenSidebarByTable } from '@/components/kitchen/KitchenSidebarByTable';
 import { OrdersContent } from '@/components/kitchen/OrdersContent';
 import { InfoModal } from '@/components/kitchen/InfoModal';
 import { SearchResultsModal } from '@/components/kitchen/SearchResultsModal';
@@ -184,7 +185,7 @@ function ChiefPageContent() {
   }, [orders, getCurrentlySelectedIds]);
 
   type SelectionItem = { itemName: string; tableNumber: number; id: number };
-  type LeftPanelTab = 'priority' | 'byDish' | 'byTable';
+  type LeftPanelTab = 'byDish' | 'byTable';
 
   // Show a warning only if selecting/preparing main dishes while NOT all drinks
   // on the SAME table(s) are selected
@@ -700,6 +701,26 @@ function ChiefPageContent() {
   const filteredServeTabGroupedOrders = filterOrdersBySearch(serveTabGroupedOrders);
   const filteredInProgressGroupedOrders = filteredGroupedOrdersForSearch;
 
+  const tablesByNumber = useMemo(() => {
+    const tableMap = new Map<number, Order[]>();
+
+    Object.values(filteredGroupedOrdersForSearch).forEach(orderList => {
+      orderList.forEach(order => {
+        if (!tableMap.has(order.tableNumber)) {
+          tableMap.set(order.tableNumber, []);
+        }
+        tableMap.get(order.tableNumber)!.push(order);
+      });
+    });
+
+    return Array.from(tableMap.entries())
+      .map(([tableNumber, tableOrders]) => ({
+        tableNumber,
+        orders: [...tableOrders].sort((a, b) => a.id - b.id),
+      }))
+      .sort((a, b) => a.tableNumber - b.tableNumber);
+  }, [filteredGroupedOrdersForSearch]);
+
   // Helper: sort grouped orders by category priority: Đồ uống > Món chính > Tráng miệng
   const sortGroupedByCategoryPriority = (input: Record<string, Order[]>): Record<string, Order[]> => {
     const categoryPriority = (categoryName: string | undefined): number => {
@@ -870,23 +891,23 @@ function ChiefPageContent() {
                   selectedGroups={selectedGroups}
                   onMultipleGroupSelection={handleMultipleGroupSelection}
                   orders={orders}
-                  layoutMode="fluid"
-                  showHeader={false}
                   className="bg-transparent h-full"
+                  fluid
                 />
               </div>
             )}
 
             {leftPanelTab === 'byTable' && (
-              <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-400">
-                Tính năng theo phòng/bàn sẽ được cập nhật trong các phiên bản sau.
-              </div>
-            )}
-
-            {leftPanelTab === 'priority' && (
-              <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-400">
-                Chế độ ưu tiên đang được nghiên cứu, vui lòng quay lại sau.
-              </div>
+              <KitchenSidebarByTable
+                tables={tablesByNumber}
+                selectedOrderKey={selectedOrderKey}
+                onSidebarItemClick={handleSidebarItemClick}
+                selectedGroup={selectedGroup}
+                onGroupSelection={handleGroupSelection}
+                selectedGroups={selectedGroups}
+                onMultipleGroupSelection={handleMultipleGroupSelection}
+                className="bg-transparent h-full"
+              />
             )}
           </div>
         </div>
