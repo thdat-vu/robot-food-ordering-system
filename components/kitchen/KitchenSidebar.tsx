@@ -23,6 +23,8 @@ interface KitchenSidebarProps {
   initialWidth?: number; // in px, default 320
   minWidthPx?: number; // default 260
   maxWidthPx?: number; // default 480
+  layoutMode?: 'resizable' | 'fluid';
+  showHeader?: boolean;
 }
 
 export function KitchenSidebar({ 
@@ -43,12 +45,15 @@ export function KitchenSidebar({
   className,
   initialWidth = 480,
   minWidthPx = 260,
-  maxWidthPx = 480
+  maxWidthPx = 480,
+  layoutMode = 'resizable',
+  showHeader = true
 }: KitchenSidebarProps) {
   // Resizable width state
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState<number>(initialWidth);
   const [isResizing, setIsResizing] = useState<boolean>(false);
+  const isFluidLayout = layoutMode === 'fluid';
 
   // Keep sidebar reasonable on tablets by capping width to a percentage of viewport
   const getDynamicMaxWidth = (): number => {
@@ -59,6 +64,7 @@ export function KitchenSidebar({
 
   // On mount and when viewport changes, clamp or set a sensible width
   useEffect(() => {
+    if (isFluidLayout) return;
     const applyResponsiveWidth = () => {
       const dynamicMax = getDynamicMaxWidth();
       const preferred = Math.min(dynamicMax, Math.max(minWidthPx, sidebarWidth || initialWidth));
@@ -68,15 +74,16 @@ export function KitchenSidebar({
     window.addEventListener('resize', applyResponsiveWidth);
     return () => window.removeEventListener('resize', applyResponsiveWidth);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isFluidLayout]);
 
   const onResizeMouseDown = (e: React.MouseEvent) => {
+    if (isFluidLayout) return;
     e.preventDefault();
     setIsResizing(true);
   };
 
   useEffect(() => {
-    if (!isResizing) return;
+    if (!isResizing || isFluidLayout) return;
     const handleMouseMove = (e: MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -92,7 +99,7 @@ export function KitchenSidebar({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, minWidthPx]);
+  }, [isResizing, minWidthPx, isFluidLayout]);
 
   // Compute counts per category using remainingItems (all pending items)
   const categoryCounts = useMemo((): Record<string, number> => {
@@ -211,13 +218,15 @@ export function KitchenSidebar({
   return (
     <div
       ref={containerRef}
-      style={{ width: sidebarWidth }}
-      className={`bg-gray-200 flex flex-col h-screen relative flex-shrink-0 ${className || ''}`}
+      style={isFluidLayout ? undefined : { width: sidebarWidth }}
+      className={`bg-gray-200 flex flex-col h-full relative ${isFluidLayout ? '' : 'flex-shrink-0'} ${className || ''}`}
     >
       {/* Fixed Header */}
-      <div className="flex-shrink-0 p-4 md:p-6 pb-3 md:pb-4">
-        <h2 className="text-lg md:text-xl font-bold text-gray-800">Danh mục món ăn</h2>
-      </div>
+      {showHeader && (
+        <div className="flex-shrink-0 p-4 md:p-6 pb-3 md:pb-4">
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">Danh mục món ăn</h2>
+        </div>
+      )}
       
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6">
@@ -412,11 +421,13 @@ export function KitchenSidebar({
       </div>
 
       {/* Right-edge resize handle */}
-      <div
-        onMouseDown={onResizeMouseDown}
-        className="absolute top-0 right-0 h-full w-2 cursor-col-resize bg-transparent hover:bg-gray-300/60"
-        aria-label="Kéo để thay đổi độ rộng thanh bên"
-      />
+      {!isFluidLayout && (
+        <div
+          onMouseDown={onResizeMouseDown}
+          className="absolute top-0 right-0 h-full w-2 cursor-col-resize bg-transparent hover:bg-gray-300/60"
+          aria-label="Kéo để thay đổi độ rộng thanh bên"
+        />
+      )}
     </div>
   );
 } 
