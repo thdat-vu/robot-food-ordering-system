@@ -309,17 +309,38 @@ export function useWaiterOrders() {
         if (selectedDishes.length === 0) return false;
 
         try {
-            // Update each selected dish status to Returned (7)
-            const updatePromises = selectedDishes.map((dish) =>
-                ordersApi.updateOrderItemStatus(dish.orderId, dish.itemId, 7, reason)
-            );
+            const remarkNote = reason?.trim() || "Yêu cầu làm lại";
+
+            // Step 1: Mark the selected items as Remark so only those specific items are affected
+            const updatePromises = selectedDishes.map(async (dish) => {
+                await ordersApi.updateOrderItemStatus(
+                    dish.orderId,
+                    dish.itemId,
+                    7,
+                    remarkNote
+                );
+
+                // Step 2: Immediately move the same item back to Processing status
+                await ordersApi.updateOrderItemStatus(
+                    dish.orderId,
+                    dish.itemId,
+                    2
+                );
+            });
 
             await Promise.all(updatePromises);
 
             // Update local state
             setDishes((prev) =>
                 prev.map((d) =>
-                    d.selected ? {...d, selected: false, status: "yêu cầu làm lại"} : d
+                    d.selected
+                        ? {
+                              ...d,
+                              selected: false,
+                              status: "đang thực hiện",
+                              served: false,
+                          }
+                        : d
                 )
             );
 
