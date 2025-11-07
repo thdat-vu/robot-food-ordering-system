@@ -500,7 +500,7 @@ const DishList: React.FC<DishListProps> = ({
 
                             <p className="text-gray-600 mb-6">
                                 Bạn có chắc chắn muốn yêu cầu làm lại các món đã chọn? Hành động này sẽ chuyển các món
-                                sang trạng thái "Yêu cầu làm lại".
+                                sang trạng thái "Đang thực hiện".
                             </p>
 
                             <div className="mb-6">
@@ -568,7 +568,9 @@ const DishList: React.FC<DishListProps> = ({
                                         if (remakeReason.trim().length === 0) return;
                                         const ok = await onRequestRemake(remakeReason.trim());
                                         if (ok) {
-                                            toast("Yêu cầu làm lại", {description: "Yêu cầu làm lại đã được gửi đi!"});
+                                            toast("Yêu cầu làm lại", {
+                                                description: "Yêu cầu đã được gửi và món đã chuyển về trạng thái đang thực hiện.",
+                                            });
                                             setShowRemakeConfirmation(false);
                                             setRemakeReason("");
                                             setShowSuggestions(true);
