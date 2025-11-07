@@ -152,6 +152,25 @@ export function OrdersContent({
     );
   };
 
+  const normalizeNoteKey = (note: string | null | undefined) => {
+    const trimmed = note?.trim();
+    if (!trimmed) return '__NO_NOTE__';
+    return trimmed.toLowerCase();
+  };
+
+  const groupOrdersByNote = (orders: Order[]) => {
+    const map = new Map<string, { key: string; displayNote: string | null; orders: Order[] }>();
+    orders.forEach(order => {
+      const key = normalizeNoteKey(order.note);
+      const displayNote = order.note?.trim() || null;
+      if (!map.has(key)) {
+        map.set(key, { key, displayNote, orders: [] });
+      }
+      map.get(key)!.orders.push(order);
+    });
+    return Array.from(map.values());
+  };
+
   // Category priority: Drinks > Main > Dessert
   const categoryPriority = (categoryName?: string): number => {
     switch (categoryName) {
@@ -443,14 +462,22 @@ export function OrdersContent({
       );
     }
     // Group by item name so identical dishes collapse into a single card with quantity
-    const groupedByName: { itemName: string; orders: Order[] }[] = (() => {
-      const map = new Map<string, Order[]>();
+    const groupedByName: { itemName: string; noteKey: string; displayNote: string | null; orders: Order[] }[] = (() => {
+      const map = new Map<string, { itemName: string; noteKey: string; displayNote: string | null; orders: Order[] }>();
       for (const order of sortedOrders) {
-        const current = map.get(order.itemName) || [];
-        current.push(order);
-        map.set(order.itemName, current);
+        const noteKey = normalizeNoteKey(order.note);
+        const key = `${order.itemName}::${noteKey}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            itemName: order.itemName,
+            noteKey,
+            displayNote: order.note?.trim() || null,
+            orders: [],
+          });
+        }
+        map.get(key)!.orders.push(order);
       }
-      return Array.from(map.entries()).map(([itemName, orders]) => ({ itemName, orders }));
+      return Array.from(map.values());
     })();
 
     return (
@@ -458,14 +485,14 @@ export function OrdersContent({
         {/* Top bulk actions moved to header; keep bottom sticky button only */}
 
         <div className="space-y-4">
-          {groupedByName.map(({ itemName, orders }) => {
+          {groupedByName.map(({ itemName, orders, displayNote, noteKey }) => {
             const first = orders[0];
             const groupSelected = selectedIds ? orders.some(o => selectedIds.has(o.id)) : false;
             const anyAnimating = orders.some(o => animatingOutIds.has(o.id));
             const uniqueTables = Array.from(new Set(orders.map(o => o.tableNumber))).join(', ');
             return (
               <Card
-                key={itemName}
+                key={`${itemName}-${noteKey}`}
                 className={`hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''} ${anyAnimating ? 'animating-out' : ''}`}
               >
                 <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
@@ -478,9 +505,9 @@ export function OrdersContent({
                         <span className="ml-2 text-blue-600 font-medium">• {first.sizeName}</span>
                       )}
                     </CardDescription>
-                    {first.note && (
+                    {displayNote && (
                       <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                        <span className="font-medium">Ghi chú:</span> {first.note}
+                        <span className="font-medium">Ghi chú:</span> {displayNote}
                       </div>
                     )}
                     <div className="flex items-center gap-1 mt-1 text-muted-foreground">
@@ -535,87 +562,73 @@ export function OrdersContent({
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       <div className="space-y-4">
-        {Object.entries(groupedOrders).map(([itemName, orderGroup], groupIndex) => {
-          const groupSelected = selectedIds ? orderGroup.some(o => selectedIds!.has(o.id)) : false;
-          const anyAnimating = orderGroup.some(o => animatingOutIds.has(o.id));
-          return (
-          <Card key={itemName} className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''} ${anyAnimating ? 'animating-out' : ''}`}>
-            <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
-              {renderOrderImage(orderGroup[0])}
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <CardTitle>{itemName}</CardTitle>
-                  {renderStatusBadge(activeTab)}
-                </div>
-                <CardDescription>
-                  x{orderGroup.length} &nbsp;|&nbsp; Bàn: {orderGroup.map(order => order.tableNumber).join(', ')}
-                  {orderGroup[0].sizeName && (
-                    <span className="ml-2 text-blue-600 font-medium">
-                      • Size: {orderGroup[0].sizeName}  
-                    </span>
+        {Object.entries(groupedOrders).flatMap(([itemName, orderGroup]) => {
+          const noteGroups = groupOrdersByNote(orderGroup);
+          return noteGroups.map(({ key: noteKey, displayNote, orders }) => {
+            const groupSelected = selectedIds ? orders.some(o => selectedIds!.has(o.id)) : false;
+            const anyAnimating = orders.some(o => animatingOutIds.has(o.id));
+            const representative = orders[0];
+            return (
+              <Card key={`${itemName}-${noteKey}`} className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''} ${anyAnimating ? 'animating-out' : ''}`}>
+                <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
+                  {renderOrderImage(representative)}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle>{itemName}</CardTitle>
+                      {renderStatusBadge(activeTab)}
+                    </div>
+                    <CardDescription>
+                      x{orders.length} &nbsp;|&nbsp; Bàn: {orders.map(order => order.tableNumber).join(', ')}
+                      {representative.sizeName && (
+                        <span className="ml-2 text-blue-600 font-medium">
+                          • Size: {representative.sizeName}  
+                        </span>
+                      )}
+                    </CardDescription>
+                    {representative.toppings && representative.toppings.length > 0 && (
+                      <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                        <span className="font-medium">Toppings:</span> {representative.toppings.join(', ')}
+                      </div>
+                    )}
+                    {displayNote && (
+                      <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                        <span className="font-medium">Ghi chú:</span> {displayNote}
+                      </div>
+                    )}
+                    <div className="mt-1">{renderTimeBadge(getGroupEstimatedTime(orders))}</div>
+                    {representative.createdTime && (
+                      <div className="flex items-center gap-1 mt-1 text-muted-foreground">
+                        {renderCalendarIcon()}
+                        <span className="text-xs opacity-80">Ngày tạo đơn: {representative.createdTime}</span>
+                      </div>
+                    )}
+                  </div>
+                  {activeTab === 'đang chờ' && (
+                    <CardAction>
+                      <Button 
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (onPrepareMultipleOrders) {
+                            onPrepareMultipleOrders(
+                              orders.map(o => ({ itemName: o.itemName, tableNumber: o.tableNumber, id: o.id }))
+                            );
+                          } else {
+                            for (const o of orders) {
+                              onPrepareClick(o.id, o.itemName);
+                            }
+                          }
+                        }}
+                        variant="default"
+                      >
+                        Thực hiện
+                      </Button>
+                    </CardAction>
                   )}
-                </CardDescription>
-                {orderGroup[0].toppings && orderGroup[0].toppings.length > 0 && (
-                  <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                    <span className="font-medium">Toppings:</span> {orderGroup[0].toppings.join(', ')}
-                  </div>
-                )}
-                {(() => {
-                  // Show note if any order in the group has a note
-                  const notesWithContent = orderGroup.filter(order => order.note && order.note.trim() !== '');
-                  if (notesWithContent.length > 0) {
-                    const uniqueNotes = [...new Set(notesWithContent.map(order => order.note))];
-                    if (uniqueNotes.length === 1) {
-                      // All orders have the same note
-                      return (
-                        <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                          <span className="font-medium">Ghi chú:</span> {uniqueNotes[0]}
-                        </div>
-                      );
-                    } else {
-                      // Different notes in the group
-                      return (
-                        <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                          <span className="font-medium">Ghi chú:</span> Có {notesWithContent.length} ghi chú khác nhau
-                        </div>
-                      );
-                    }
-                  }
-                  return null;
-                })()}
-                <div className="mt-1">{renderTimeBadge(getGroupEstimatedTime(orderGroup))}</div>
-                {orderGroup[0].createdTime && (
-                  <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                    {renderCalendarIcon()}
-                    <span className="text-xs opacity-80">Ngày tạo đơn: {orderGroup[0].createdTime}</span>
-                  </div>
-                )}
-              </div>
-              {activeTab === 'đang chờ' && (
-                <CardAction>
-                  <Button 
-                    onClick={e => {
-                      e.stopPropagation();
-                      if (onPrepareMultipleOrders) {
-                        onPrepareMultipleOrders(
-                          orderGroup.map(o => ({ itemName: o.itemName, tableNumber: o.tableNumber, id: o.id }))
-                        );
-                      } else {
-                        // Fallback: iterate to prepare each item in the group
-                        for (const o of orderGroup) {
-                          onPrepareClick(o.id, o.itemName);
-                        }
-                      }
-                    }}
-                    variant="default"
-                  >
-                    Thực hiện
-                  </Button>
-                </CardAction>
-              )}
-            </CardHeader>
-          </Card>
-        )})}
+                </CardHeader>
+              </Card>
+            );
+          });
+        })}
       </div>
     </div>
   );
