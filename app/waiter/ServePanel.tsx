@@ -387,7 +387,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
             </div>
           )}
 
-          {dishesForTab.length > 0 ? (
+          {activeTab === "bắt đầu phục vụ" ? (
+            <MapPanel mapUrl={mapUrl} />
+          ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
               // For "đã phục vụ" tab, don't show map, just show the list
               <div className="w-full bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-6">
