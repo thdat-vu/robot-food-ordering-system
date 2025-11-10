@@ -24,6 +24,17 @@ import { InfoModal } from '@/components/kitchen/InfoModal';
 import { SearchResultsModal } from '@/components/kitchen/SearchResultsModal';
 import { chefService } from '@/service/chef/chefService';
 
+const formatCurrentDateTime = (date: Date): string => {
+  const weekdayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  const weekday = weekdayNames[date.getDay()] ?? '';
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${weekday} - ${day}/${month}/${year} - ${hours}:${minutes}`;
+};
+
 function ChiefPageContent() {
   const router = useCustomRouter();
   
@@ -34,6 +45,7 @@ function ChiefPageContent() {
   const [isPriorityInfoOpen, setIsPriorityInfoOpen] = useState(false);
   const [isDessertPriorityInfoOpen, setIsDessertPriorityInfoOpen] = useState(false);
   const [lastCheckedGroup, setLastCheckedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
+  const [currentDateTime, setCurrentDateTime] = useState<string>(() => formatCurrentDateTime(new Date()));
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,6 +177,13 @@ function ChiefPageContent() {
     return ids;
   }, [selectedGroups, selectedGroup, selectedOrderKey]);
   const selectedIds = getCurrentlySelectedIds();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDateTime(formatCurrentDateTime(new Date()));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const leftPanelTabs = useMemo(
     () => ([
@@ -913,9 +932,16 @@ function ChiefPageContent() {
         </div>
 
         <div className="flex w-1/2 min-h-0 flex-col bg-white">
-          {/* <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800">Đã xong / Chờ cung ứng</h2>
-          </div> */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-white">
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-semibold text-gray-800">
+                Chào mừng bếp trưởng trở lại
+              </h1>
+              <span className="mt-1 text-sm text-gray-500">
+                {currentDateTime}
+              </span>
+            </div>
+          </div>
 
           <NavigationTabs
             activeTab={activeTab as OrderStatus}
