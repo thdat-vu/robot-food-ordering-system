@@ -7,14 +7,25 @@ import DishList from "./DishList";
 import ServePanel from "./ServePanel";
 import PaymentPanel from "./PaymentPanel";
 import {toast} from "sonner";
-import {Button} from "@/components/ui/button";
 import {PanelLeftClose, PanelLeftOpen} from "lucide-react";
+
+const formatCurrentDateTime = (date: Date): string => {
+    const weekdayNames = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+    const weekday = weekdayNames[date.getDay()] ?? "";
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    return `${weekday} - ${day}/${month}/${year} - ${hours}:${minutes}`;
+};
 
 function WaiterPageContent() {
     const [activeTab, setActiveTab] = useState<OrderStatus>("bắt đầu phục vụ");
     const [searchQuery, setSearchQuery] = useState("");
     const [panel, setPanel] = useState<"control" | "payment">("control");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [currentDateTime, setCurrentDateTime] = useState<string>(() => formatCurrentDateTime(new Date()));
 
     const {
         dishes,
@@ -45,6 +56,13 @@ function WaiterPageContent() {
         }, 1000);
         return () => clearInterval(interval);
     }, [refreshOrders]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentDateTime(formatCurrentDateTime(new Date()));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleTabChange = (newTab: OrderStatus) => {
         if (newTab !== activeTab) {
@@ -119,6 +137,16 @@ function WaiterPageContent() {
             {/*)}*/}
 
             <div className="flex-1 flex flex-col">
+                <div className="px-6 py-4 border-b border-gray-200 bg-white">
+                    <div className="flex flex-col">
+                        <h1 className="text-2xl font-semibold text-gray-800">
+                            Chào mừng phục vụ trưởng trở lại
+                        </h1>
+                        <span className="mt-1 text-sm text-gray-500">
+                            {currentDateTime}
+                        </span>
+                    </div>
+                </div>
                 {panel === "control" ? (
                     <>
                         <div className="flex items-center justify-between pr-4">

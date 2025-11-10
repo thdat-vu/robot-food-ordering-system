@@ -36,6 +36,57 @@ const areSameGroup = (a: SelectionItem[], b: SelectionItem[]): boolean => {
   return a.every((item, index) => item.id === b[index].id);
 };
 
+const normalizeNoteKey = (note: string | null | undefined) => {
+  const trimmed = note?.trim();
+  if (!trimmed) return '__NO_NOTE__';
+  return trimmed.toLowerCase();
+};
+
+type DisplayOrderGroup = {
+  key: string;
+  itemName: string;
+  sizeName?: string;
+  note: string | null;
+  orders: Order[];
+  quantity: number;
+};
+
+const groupOrdersForDisplay = (orders: Order[]): DisplayOrderGroup[] => {
+  const map = new Map<string, DisplayOrderGroup>();
+
+  orders.forEach(order => {
+    const noteKey = normalizeNoteKey(order.note);
+    const sizeKey = order.sizeName?.trim().toLowerCase() || '__NO_SIZE__';
+    const key = `${order.itemName}__${sizeKey}__${noteKey}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        itemName: order.itemName,
+        sizeName: order.sizeName,
+        note: order.note?.trim() || null,
+        orders: [],
+        quantity: 0,
+      });
+    }
+
+    const group = map.get(key)!;
+    group.orders.push(order);
+
+    const qty = order.quantity && order.quantity > 0 ? order.quantity : 1;
+    group.quantity += qty;
+  });
+
+  return Array.from(map.values()).sort((a, b) => {
+    const firstA = a.orders[0]?.id ?? 0;
+    const firstB = b.orders[0]?.id ?? 0;
+    return firstA - firstB;
+  });
+};
+
+const toSelectionItems = (orders: Order[]): SelectionItem[] =>
+  sortGroup(orders.map(toSelectionItem));
+
 export function KitchenSidebarByTable({
   tables,
   selectedOrderKey,
@@ -51,6 +102,14 @@ export function KitchenSidebarByTable({
     tables.forEach(({ tableNumber, orders }) => {
       const selectionItems = sortGroup(orders.map(toSelectionItem));
       map.set(tableNumber, selectionItems);
+    });
+    return map;
+  }, [tables]);
+
+  const groupedTableMap = useMemo(() => {
+    const map = new Map<number, DisplayOrderGroup[]>();
+    tables.forEach(({ tableNumber, orders }) => {
+      map.set(tableNumber, groupOrdersForDisplay(orders));
     });
     return map;
   }, [tables]);
@@ -110,44 +169,29 @@ export function KitchenSidebarByTable({
     }
   };
 
-  const handleItemCheckboxChange = (order: Order, shouldSelect: boolean) => {
-    const tableItems = tableSelectionMap.get(order.tableNumber) || [];
-    const tableIds = new Set(tableItems.map(item => item.id));
-    const targetItem = toSelectionItem(order);
+  const handleOrdersGroupCheckboxChange = (orders: Order[], shouldSelect: boolean) => {
+    if (orders.length === 0) return;
 
-    const remainingGroups: SelectionItem[][] = [];
-    let itemWasPresent = false;
+    const targetItems = toSelectionItems(orders);
+    const targetIds = new Set(targetItems.map(item => item.id));
+
+    const nextGroups: SelectionItem[][] = [];
 
     selectedGroups.forEach(group => {
-      const groupIds = group.map(item => item.id);
-      const isSubsetOfTable = groupIds.every(id => tableIds.has(id));
-      if (!isSubsetOfTable) {
-        remainingGroups.push(group);
-        return;
-      }
-
-      if (group.some(item => item.id === targetItem.id)) {
-        itemWasPresent = true;
-        if (shouldSelect) {
-          remainingGroups.push(group);
-        } else {
-          const remaining = group.filter(item => item.id !== targetItem.id);
-          if (remaining.length > 0) {
-            remainingGroups.push(sortGroup(remaining));
-          }
-        }
-      } else {
-        remainingGroups.push(group);
+      const filtered = group.filter(item => !targetIds.has(item.id));
+      if (filtered.length > 0) {
+        nextGroups.push(sortGroup(filtered));
       }
     });
 
     if (shouldSelect) {
-      if (!itemWasPresent) {
-        onMultipleGroupSelection([...remainingGroups, [targetItem]]);
+      const alreadyExists = nextGroups.some(group => areSameGroup(group, targetItems));
+      if (!alreadyExists) {
+        nextGroups.push(targetItems);
       }
-    } else if (itemWasPresent) {
-      onMultipleGroupSelection(remainingGroups);
     }
+
+    onMultipleGroupSelection(nextGroups);
   };
 
   const isItemSelected = (orderId: number): boolean => {
@@ -199,6 +243,7 @@ export function KitchenSidebarByTable({
             const isExpanded = expandedTables[tableNumber] ?? true;
             const isSelected = isTablePrimarySelected(tableNumber);
             const isMultiSelected = isTableGroupSelected(tableNumber);
+            const groupedOrders = groupedTableMap.get(tableNumber) || [];
 
             return (
               <div
@@ -245,54 +290,81 @@ export function KitchenSidebarByTable({
 
                 {isExpanded && (
                   <div className="px-4 pb-4 flex flex-col gap-2">
-                    {orders.map(order => {
-                      const itemSelected = isItemSelected(order.id);
+                    {groupedOrders.map(group => {
+                      const selectionItems = toSelectionItems(group.orders);
+                      const selectedCount = group.orders.filter(order => isItemSelected(order.id)).length;
+                      const checkboxState =
+                        selectedCount === group.orders.length
+                          ? true
+                          : selectedCount > 0
+                            ? 'indeterminate'
+                            : false;
+                      const anySelected = selectedCount > 0;
+                      const isGroupPrimarySelected =
+                        selectedGroup && areSameGroup(sortGroup(selectedGroup), selectionItems);
+                      const isGroupMultiSelected = selectedGroups.some(selected =>
+                        areSameGroup(sortGroup(selected), selectionItems)
+                      );
                       const isIndividuallySelected =
                         selectedOrderKey &&
-                        selectedOrderKey.id === order.id &&
-                        selectedOrderKey.tableNumber === order.tableNumber;
+                        group.orders.some(
+                          order =>
+                            selectedOrderKey.id === order.id &&
+                            selectedOrderKey.tableNumber === order.tableNumber
+                        );
+                      const isHighlighted =
+                        anySelected || isGroupPrimarySelected || isGroupMultiSelected || !!isIndividuallySelected;
+                      const representativeOrder = group.orders[0];
+                      const totalQuantity =
+                        group.quantity > 0 ? group.quantity : group.orders.length;
 
                       return (
                         <div
-                          key={order.id}
+                          key={group.key}
                           className={`flex items-start gap-3 rounded-xl border p-3 transition-colors ${
-                            itemSelected || isIndividuallySelected ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                            isHighlighted ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'
                           }`}
                         >
                           <Checkbox
-                            checked={itemSelected}
+                            checked={checkboxState}
                             onCheckedChange={checked => {
                               const value = checked === true;
-                              handleItemCheckboxChange(order, value);
+                              handleOrdersGroupCheckboxChange(group.orders, value);
                             }}
                             className="mt-0.5 size-5 border-2 border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white"
-                            aria-label={`Chọn món ${order.itemName}`}
+                            aria-label={`Chọn món ${group.itemName}`}
                           />
                           <Button
                             type="button"
                             variant="ghost"
                             className="flex-1 justify-start text-left h-auto bg-transparent hover:bg-white"
-                            onClick={() => onSidebarItemClick(toSelectionItem(order))}
+                            onClick={() => {
+                              if (representativeOrder) {
+                                onSidebarItemClick(toSelectionItem(representativeOrder));
+                                onGroupSelection(selectionItems);
+                              }
+                            }}
                           >
                             <div className="w-full rounded-lg bg-white px-3 py-2 shadow-sm">
                               <div className="flex items-start justify-between gap-3">
                                 <p className="text-sm font-semibold text-gray-800 leading-tight break-words">
-                                  {order.itemName}
+                                  {group.itemName}
                                 </p>
                                 <span className="flex items-center justify-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
-                                  x{order.quantity}
+                                  x{totalQuantity}
                                 </span>
                               </div>
                               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
-                                {order.sizeName && <span>Size: {order.sizeName}</span>}
-                                {order.note && (
-                                  <span className="truncate" title={order.note}>
-                                    Ghi chú: {order.note}
+                                {group.sizeName && <span>Size: {group.sizeName}</span>}
+                                {group.note && (
+                                  <span className="truncate" title={group.note}>
+                                    Ghi chú: {group.note}
                                   </span>
                                 )}
                               </div>
                               {(() => {
-                                const timestamp = formatOrderDateTime(order);
+                                if (!representativeOrder) return null;
+                                const timestamp = formatOrderDateTime(representativeOrder);
                                 if (!timestamp) return null;
                                 return (
                                   <div className="mt-1 text-xs font-medium text-gray-400">
