@@ -4,6 +4,7 @@ import { ApiPaginatedResponse, ApiBaseResponse } from './orders';
 export interface ApiTableResponse {
   id: string;
   name: string;
+  TableSessionId: string | null;
   status: string;
   capacity: number;
 }

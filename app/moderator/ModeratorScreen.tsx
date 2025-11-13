@@ -732,11 +732,12 @@ const ModeratorScreen: React.FC = () => {
         open={openDialog}
         onClose={() => {
           setOpenDialog(false);
-          setInitialTab("home"); // Reset về home khi đóng
+          setInitialTab("home");
         }}
         idTable={idTable}
-        tableName={data[idTable]?.tableName || "Bàn"}
-        initialTab={initialTab} // Truyền tab ban đầu
+        tableSessionId={data?.[idTable]?.sessionId}
+        tableName={data?.[idTable]?.tableName ?? "Bàn"} // ✅
+        initialTab={initialTab}
       />
     </div>
   );
