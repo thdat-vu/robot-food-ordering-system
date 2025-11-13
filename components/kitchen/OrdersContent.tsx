@@ -231,35 +231,42 @@ export function OrdersContent({
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
                 <div className="flex-1">
-                  <CardTitle>{order.itemName}</CardTitle>
-                  <CardDescription>
-                    {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
+                  {/* Primary Info: Title + Size + Quantity + Table on same line */}
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
+                    {order.itemName}
                     {order.sizeName && (
-                      <span className="ml-2 text-blue-600 font-medium">
-                        • {order.sizeName}
+                      <span className="text-blue-600">
+                        {' '}({order.sizeName.charAt(0).toUpperCase()})
                       </span>
                     )}
-                  </CardDescription>
-                  {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                      <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
-                    </div>
-                  )}
+                    {' '}x{order.quantity > 0 ? order.quantity : 1} - Bàn {order.tableNumber}
+                  </h3>
+                  
+                  {/* Secondary Info: Note & Toppings - More prominent */}
                   {order.note && (
-                    <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                      <span className="font-medium">Ghi chú:</span> {order.note}
+                    <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
+                      <span className="font-semibold">Ghi chú:</span> {order.note}
                     </div>
                   )}
-                  <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                    {renderClockIcon()}
-                    <span className="text-xs opacity-80">{order.estimatedTime}</span>
+                  {order.toppings && order.toppings.length > 0 && (
+                    <div className="mt-2 text-sm text-green-700 bg-green-100 px-3 py-2 rounded-md border-l-4 border-green-500">
+                      <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
+                    </div>
+                  )}
+                  
+                  {/* Tertiary Info: Time & Date - Subtle */}
+                  <div className="flex items-center gap-3 mt-2.5">
+                    <div className="flex items-center gap-1 text-gray-500">
+                      {renderClockIcon()}
+                      <span className="text-xs">{order.estimatedTime}</span>
+                    </div>
+                    {order.createdTime && (
+                      <div className="flex items-center gap-1 text-gray-400">
+                        {renderCalendarIcon()}
+                        <span className="text-xs">{order.createdTime}</span>
+                      </div>
+                    )}
                   </div>
-                  {order.createdTime && (
-                    <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                      {renderCalendarIcon()}
-                      <span className="text-xs opacity-80">Ngày tạo đơn: {order.createdTime}</span>
-                    </div>
-                  )}
                 </div>
                 {/* Item number badge */}
                 <div className="bg-blue-100 text-blue-800 font-bold rounded-lg px-3 py-1 text-sm">
@@ -307,35 +314,39 @@ export function OrdersContent({
           <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
             {renderOrderImage(order)}
             <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <CardTitle>{order.itemName}</CardTitle>
-                {renderStatusBadge(activeTab)}
-              </div>
-              <CardDescription>
-                {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
+              {/* Primary Info: Title + Size + Quantity + Table on same line */}
+              <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
+                {order.itemName}
                 {order.sizeName && (
-                  <span className="ml-2 text-blue-600 font-medium">
-                    • {order.sizeName}
+                  <span className="text-blue-600">
+                    {' '}({order.sizeName.charAt(0).toUpperCase()})
                   </span>
                 )}
-              </CardDescription>
-              {order.toppings && order.toppings.length > 0 && (
-                <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                  <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
-                </div>
-              )}
+                {' '}x{order.quantity > 0 ? order.quantity : 1} - Bàn {order.tableNumber}
+              </h3>
+              
+              {/* Secondary Info: Note & Toppings - More prominent */}
               {order.note && (
-                <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                  <span className="font-medium">Ghi chú:</span> {order.note}
+                <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
+                  <span className="font-semibold">Ghi chú:</span> {order.note}
                 </div>
               )}
-              <div className="mt-1">{renderTimeBadge(order.estimatedTime)}</div>
-              {order.createdTime && (
-                <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                  {renderCalendarIcon()}
-                  <span className="text-xs opacity-80">Ngày tạo đơn: {order.createdTime}</span>
+              {order.toppings && order.toppings.length > 0 && (
+                <div className="mt-2 text-sm text-green-700 bg-green-100 px-3 py-2 rounded-md border-l-4 border-green-500">
+                  <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
                 </div>
               )}
+              
+              {/* Tertiary Info: Time & Date - Subtle */}
+              <div className="flex items-center gap-3 mt-2.5">
+                {renderTimeBadge(order.estimatedTime)}
+                {order.createdTime && (
+                  <div className="flex items-center gap-1 text-gray-400">
+                    {renderCalendarIcon()}
+                    <span className="text-xs"> {order.createdTime}</span>
+                  </div>
+                )}
+              </div>
             </div>
             {/* Action buttons */}
             {onCancelClick && (
@@ -402,36 +413,42 @@ export function OrdersContent({
               <CardHeader className="flex flex-row items-center gap-4">
                 {renderOrderImage(order)}
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <CardTitle>{order.itemName}</CardTitle>
-                    {renderStatusBadge('bắt đầu phục vụ')}
-                  </div>
-                  <CardDescription>
-                    {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
+                  {/* Primary Info: Title + Size + Quantity + Table on same line */}
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
+                    {order.itemName}
                     {order.sizeName && (
-                      <span className="ml-2 text-blue-600 font-medium">
-                        • {order.sizeName}
+                      <span className="text-blue-600">
+                        {' '}({order.sizeName.charAt(0).toUpperCase()})
                       </span>
                     )}
-                  </CardDescription>
-                  {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                      <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
-                    </div>
-                  )}
+                    {' '}x{order.quantity > 0 ? order.quantity : 1} - Bàn {order.tableNumber}
+                  </h3>
+                  
+                  {/* Secondary Info: Note & Toppings - More prominent */}
                   {order.note && (
-                    <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                      <span className="font-medium">Ghi chú:</span> {order.note}
+                    <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
+                      <span className="font-semibold">Ghi chú:</span> {order.note}
                     </div>
                   )}
-                  <div className="text-xs opacity-60">{order.orderTime}</div>
-                  <div className="mt-1">{renderTimeBadge(order.estimatedTime)}</div>
-                  {order.createdTime && (
-                    <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                      {renderCalendarIcon()}
-                      <span className="text-xs opacity-80">Ngày tạo đơn: {order.createdTime}</span>
+                  {order.toppings && order.toppings.length > 0 && (
+                    <div className="mt-2 text-sm text-green-700 bg-green-100 px-3 py-2 rounded-md border-l-4 border-green-500">
+                      <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
                     </div>
                   )}
+                  
+                  {/* Tertiary Info: Time & Date - Subtle */}
+                  <div className="flex items-center gap-3 mt-2.5">
+                    <div className="flex items-center gap-1 text-gray-500">
+                      {renderClockIcon()}
+                      <span className="text-xs">{order.estimatedTime}</span>
+                    </div>
+                    {order.createdTime && (
+                      <div className="flex items-center gap-1 text-gray-400">
+                        {renderCalendarIcon()}
+                        <span className="text-xs">{order.createdTime}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
             </Card>
@@ -498,28 +515,37 @@ export function OrdersContent({
                 <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
                   {renderOrderImage(first)}
                   <div className="flex-1">
-                    <CardTitle>{itemName}</CardTitle>
-                    <CardDescription>
-                      x{orders.length} &nbsp;|&nbsp; Bàn: {uniqueTables}
+                    {/* Primary Info: Title + Size + Quantity + Tables */}
+                    <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
+                      {itemName}
                       {first.sizeName && (
-                        <span className="ml-2 text-blue-600 font-medium">• {first.sizeName}</span>
+                        <span className="text-blue-600">
+                          {' '}({first.sizeName.charAt(0).toUpperCase()})
+                        </span>
                       )}
-                    </CardDescription>
+                      {' '}x{orders.length} - Bàn: {uniqueTables}
+                    </h3>
+                    
+                    {/* Secondary Info: Note & Toppings - More prominent */}
                     {displayNote && (
-                      <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                        <span className="font-medium">Ghi chú:</span> {displayNote}
+                      <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
+                        <span className="font-semibold">Ghi chú:</span> {displayNote}
                       </div>
                     )}
-                    <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                      {renderClockIcon()}
-                      <span className="text-xs opacity-80">{first.estimatedTime}</span>
+                    
+                    {/* Tertiary Info: Time & Date - Subtle */}
+                    <div className="flex items-center gap-3 mt-2.5">
+                      <div className="flex items-center gap-1 text-gray-500">
+                        {renderClockIcon()}
+                        <span className="text-xs">{first.estimatedTime}</span>
+                      </div>
+                      {first.createdTime && (
+                        <div className="flex items-center gap-1 text-gray-400">
+                          {renderCalendarIcon()}
+                          <span className="text-xs">{first.createdTime}</span>
+                        </div>
+                      )}
                     </div>
-                    {first.createdTime && (
-                      <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                        {renderCalendarIcon()}
-                        <span className="text-xs opacity-80">Ngày tạo đơn: {first.createdTime}</span>
-                      </div>
-                    )}
                   </div>
                 </CardHeader>
               </Card>
@@ -573,35 +599,39 @@ export function OrdersContent({
                 <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
                   {renderOrderImage(representative)}
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle>{itemName}</CardTitle>
-                      {renderStatusBadge(activeTab)}
-                    </div>
-                    <CardDescription>
-                      x{orders.length} &nbsp;|&nbsp; Bàn: {orders.map(order => order.tableNumber).join(', ')}
+                    {/* Primary Info: Title + Size + Quantity + Tables */}
+                    <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
+                      {itemName}
                       {representative.sizeName && (
-                        <span className="ml-2 text-blue-600 font-medium">
-                          • Size: {representative.sizeName}  
+                        <span className="text-blue-600">
+                          {' '}({representative.sizeName.charAt(0).toUpperCase()})
                         </span>
                       )}
-                    </CardDescription>
-                    {representative.toppings && representative.toppings.length > 0 && (
-                      <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                        <span className="font-medium">Toppings:</span> {representative.toppings.join(', ')}
-                      </div>
-                    )}
+                      {' '}x{orders.length} - Bàn: {orders.map(order => order.tableNumber).join(', ')}
+                    </h3>
+                    
+                    {/* Secondary Info: Note & Toppings - More prominent */}
                     {displayNote && (
-                      <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                        <span className="font-medium">Ghi chú:</span> {displayNote}
+                      <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
+                        <span className="font-semibold">Ghi chú:</span> {displayNote}
                       </div>
                     )}
-                    <div className="mt-1">{renderTimeBadge(getGroupEstimatedTime(orders))}</div>
-                    {representative.createdTime && (
-                      <div className="flex items-center gap-1 mt-1 text-muted-foreground">
-                        {renderCalendarIcon()}
-                        <span className="text-xs opacity-80">Ngày tạo đơn: {representative.createdTime}</span>
+                    {representative.toppings && representative.toppings.length > 0 && (
+                      <div className="mt-2 text-sm text-green-700 bg-green-100 px-3 py-2 rounded-md border-l-4 border-green-500">
+                        <span className="font-semibold">Toppings:</span> {representative.toppings.join(', ')}
                       </div>
                     )}
+                    
+                    {/* Tertiary Info: Time & Date - Subtle */}
+                    <div className="flex items-center gap-3 mt-2.5">
+                      {renderTimeBadge(getGroupEstimatedTime(orders))}
+                      {representative.createdTime && (
+                        <div className="flex items-center gap-1 text-gray-400">
+                          {renderCalendarIcon()}
+                          <span className="text-xs">{representative.createdTime}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {activeTab === 'đang chờ' && (
                     <CardAction>

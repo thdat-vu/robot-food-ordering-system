@@ -128,29 +128,34 @@ export function SearchResultsModal({
                 <CardHeader className="flex flex-row items-center gap-4">
                   {renderOrderImage(order)}
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CardTitle className="text-lg">{order.itemName}</CardTitle>
+                    {/* Primary Info: Title + Size + Quantity + Table on same line */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                        {order.itemName}
+                        {order.sizeName && (
+                          <span className="text-blue-600">
+                            {' '}({order.sizeName.charAt(0).toUpperCase()})
+                          </span>
+                        )}
+                        {' '}x{order.quantity > 0 ? order.quantity : 1} - Bàn {order.tableNumber}
+                      </h3>
                       {renderStatusBadge(order.status)}
                     </div>
-                    <CardDescription>
-                      {order.quantity > 0 ? `x${order.quantity}` : ''} &nbsp;Bàn: {order.tableNumber}
-                      {order.sizeName && (
-                        <span className="ml-2 text-blue-600 font-medium">
-                          • {order.sizeName}
-                        </span>
-                      )}
-                    </CardDescription>
-                    {order.toppings && order.toppings.length > 0 && (
-                      <div className="mt-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                        <span className="font-medium">Toppings:</span> {order.toppings.join(', ')}
-                      </div>
-                    )}
+                    
+                    {/* Secondary Info: Note & Toppings - More prominent */}
                     {order.note && (
-                      <div className="mt-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                        <span className="font-medium">Ghi chú:</span> {order.note}
+                      <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
+                        <span className="font-semibold">Ghi chú:</span> {order.note}
                       </div>
                     )}
-                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                    {order.toppings && order.toppings.length > 0 && (
+                      <div className="mt-2 text-sm text-green-700 bg-green-100 px-3 py-2 rounded-md border-l-4 border-green-500">
+                        <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
+                      </div>
+                    )}
+                    
+                    {/* Tertiary Info: Time & Date - Subtle */}
+                    <div className="flex items-center gap-4 mt-2.5 text-xs text-gray-400">
                       <div className="flex items-center gap-1">
                         {renderCalendarIcon()}
                         <span>Đặt lúc: {order.orderTime}</span>
