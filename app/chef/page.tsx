@@ -525,48 +525,13 @@ function ChiefPageContent() {
       return;
     }
 
-    // Helper: compute chunk sizes between 3 and 5 to avoid tiny leftovers (same as sidebar)
-    const getChunkSizes = (total: number): number[] => {
-      if (total <= 5) return [total];
-      let numGroups = Math.ceil(total / 5);
-      let base = Math.floor(total / numGroups);
-      while (base < 3 && numGroups > 1) {
-        numGroups -= 1;
-        base = Math.floor(total / numGroups);
-      }
-      const remainder = total % numGroups;
-      const sizes = new Array(numGroups).fill(base);
-      for (let i = 0; i < remainder; i++) sizes[i] += 1;
-      return sizes as number[];
-    };
-
-    // Helper to filter items by selectedCategory (same as sidebar)
+    // Helper to filter items by selectedCategory
     const filterByCategory = (itemName: string) => {
       if (selectedCategory === 'Tất cả') return true;
       return itemNameToCategory[itemName] === selectedCategory;
     };
 
-    // Build per-itemName groups, respecting category/filter and excluding 'bắt đầu phục vụ' (same as sidebar)
-    const perItemGroups: { items: { itemName: string; tableNumber: number; id: number }[] }[] = [];
-
-    Object.entries(groupedOrders)
-      .filter(([itemName]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
-      .forEach(([itemName, orders]) => {
-        const filtered = orders
-          .filter(order => order.status !== 'bắt đầu phục vụ')
-          .map(order => ({ itemName, tableNumber: order.tableNumber, id: order.id }));
-
-        if (filtered.length === 0) return;
-
-        const sizes = getChunkSizes(filtered.length);
-        let cursor = 0;
-        sizes.forEach(size => {
-          perItemGroups.push({ items: filtered.slice(cursor, cursor + size) });
-          cursor += size;
-        });
-      });
-
-    // Sort groups by category priority: Đồ uống > Món chính > Tráng miệng (same as sidebar)
+    // Sort groups by category priority: Đồ uống > Món chính > Tráng miệng
     const categoryPriority = (categoryName: string | undefined): number => {
       switch (categoryName) {
         case 'Đồ uống':
@@ -580,15 +545,39 @@ function ChiefPageContent() {
       }
     };
 
-    perItemGroups.sort((a, b) => {
-      const aCategory = itemNameToCategory[a.items[0]?.itemName];
-      const bCategory = itemNameToCategory[b.items[0]?.itemName];
-      return categoryPriority(aCategory) - categoryPriority(bCategory);
-    });
+    // Process grouped orders - each group is already grouped by itemName+size+note+toppings
+    const displayGroups = Object.entries(groupedOrders)
+      .map(([groupKey, ordersInGroup]) => {
+        const representative = ordersInGroup[0];
+        if (!representative) return null;
+        
+        const filtered = ordersInGroup.filter(order => order.status !== 'bắt đầu phục vụ');
+        if (filtered.length === 0) return null;
 
-    // Select the first 3 groups if available (instead of just 1)
-    if (perItemGroups.length > 0) {
-      const groupsToSelect = perItemGroups.slice(0, 3).map(group => group.items); // Take first 3 groups
+        return {
+          itemName: representative.itemName,
+          category: representative.category,
+          selectionItems: filtered.map(order => ({ 
+            itemName: order.itemName, 
+            tableNumber: order.tableNumber, 
+            id: order.id 
+          }))
+        };
+      })
+      .filter((group): group is NonNullable<typeof group> => 
+        group !== null && 
+        shouldShowInSidebar(group.itemName) && 
+        filterByCategory(group.itemName)
+      )
+      .sort((a, b) => {
+        const aCat = itemNameToCategory[a.itemName];
+        const bCat = itemNameToCategory[b.itemName];
+        return categoryPriority(aCat) - categoryPriority(bCat);
+      });
+
+    // Select the first 3 groups if available
+    if (displayGroups.length > 0) {
+      const groupsToSelect = displayGroups.slice(0, 3).map(group => group.selectionItems);
       
       // Only select if not already selected to avoid unnecessary re-renders
       const isAlreadySelected = selectedGroups.length === groupsToSelect.length && 
@@ -689,14 +678,14 @@ function ChiefPageContent() {
   // Filter groupedOrders for selected order
   let filteredGroupedOrders: Record<string, Order[]> = {};
   if (selectedOrderKey) {
-    const { itemName, tableNumber, id } = selectedOrderKey;
-    const orderList = (groupedOrders as Record<string, Order[]>)[itemName] || [];
-    const foundOrder = orderList.find(
-      o => o.tableNumber === tableNumber && o.id === id
-    );
-    if (foundOrder) {
-      filteredGroupedOrders = { [itemName]: [foundOrder] };
-    }
+    const { id } = selectedOrderKey;
+    // Find the order by id across all groups
+    Object.entries(groupedOrders as Record<string, Order[]>).forEach(([groupKey, orderList]) => {
+      const foundOrder = orderList.find(o => o.id === id);
+      if (foundOrder) {
+        filteredGroupedOrders = { [groupKey]: [foundOrder] };
+      }
+    });
   }
 
   // Get all orders in 'bắt đầu phục vụ' state for the right panel
@@ -704,15 +693,13 @@ function ChiefPageContent() {
   const isInProgressTab = activeTab === 'đang thực hiện';
   let serveTabGroupedOrders: Record<string, Order[]> = {};
   if (isServeTab) {
-    // Flatten all groupedOrders into a single array of orders in 'bắt đầu phục vụ' state
-    const allOrders = Object.values(groupedOrders as Record<string, Order[]>).flat();
-    const serveOrders = allOrders.filter(order => order.status === 'bắt đầu phục vụ');
-    // Group by itemName for OrdersContent
-    serveTabGroupedOrders = serveOrders.reduce((acc: Record<string, Order[]>, order: Order) => {
-      if (!acc[order.itemName]) acc[order.itemName] = [];
-      acc[order.itemName].push(order);
-      return acc;
-    }, {} as Record<string, Order[]>);
+    // Filter groupedOrders to only include 'bắt đầu phục vụ' status while maintaining grouping
+    Object.entries(groupedOrders as Record<string, Order[]>).forEach(([groupKey, orderList]) => {
+      const serveOrders = orderList.filter(order => order.status === 'bắt đầu phục vụ');
+      if (serveOrders.length > 0) {
+        serveTabGroupedOrders[groupKey] = serveOrders;
+      }
+    });
   }
 
   // Apply search filter to all order data
@@ -1074,18 +1061,18 @@ function ChiefPageContent() {
                 if (selectedGroups.length > 0) {
                   const filtered = (() => {
                     const filtered: Record<string, Order[]> = {};
-                    selectedGroups.forEach(group => {
-                      group.forEach(({ itemName, tableNumber, id }) => {
-                        const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
-                        const foundOrder = orderList.find(
-                          o => o.tableNumber === tableNumber && o.id === id
-                        );
-                        if (foundOrder) {
-                          if (!filtered[itemName]) filtered[itemName] = [];
-                          filtered[itemName].push(foundOrder);
+                    const selectedIds = new Set(selectedGroups.flat().map(item => item.id));
+                    
+                    // Iterate through all grouped orders and find matching ones by id
+                    Object.entries(filteredGroupedOrdersForSearch as Record<string, Order[]>).forEach(([groupKey, orderList]) => {
+                      orderList.forEach(order => {
+                        if (selectedIds.has(order.id)) {
+                          if (!filtered[groupKey]) filtered[groupKey] = [];
+                          filtered[groupKey].push(order);
                         }
                       });
                     });
+                    
                     return filtered;
                   })();
 
@@ -1111,16 +1098,18 @@ function ChiefPageContent() {
                 if (selectedGroup) {
                   const filtered = (() => {
                     const filtered: Record<string, Order[]> = {};
-                    selectedGroup.forEach(({ itemName, tableNumber, id }) => {
-                      const orderList = (filteredGroupedOrdersForSearch as Record<string, Order[]>)[itemName] || [];
-                      const foundOrder = orderList.find(
-                        o => o.tableNumber === tableNumber && o.id === id
-                      );
-                      if (foundOrder) {
-                        if (!filtered[itemName]) filtered[itemName] = [];
-                        filtered[itemName].push(foundOrder);
-                      }
+                    const selectedIdsSet = new Set(selectedGroup.map(item => item.id));
+                    
+                    // Iterate through all grouped orders and find matching ones by id
+                    Object.entries(filteredGroupedOrdersForSearch as Record<string, Order[]>).forEach(([groupKey, orderList]) => {
+                      orderList.forEach(order => {
+                        if (selectedIdsSet.has(order.id)) {
+                          if (!filtered[groupKey]) filtered[groupKey] = [];
+                          filtered[groupKey].push(order);
+                        }
+                      });
                     });
+                    
                     return filtered;
                   })();
 

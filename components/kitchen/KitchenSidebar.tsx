@@ -261,41 +261,6 @@ export function KitchenSidebar({
           <div className="bg-white rounded-2xl p-3 md:p-4 shadow-sm">
             <div className="flex flex-col gap-3 md:gap-4"> {/* gap between groups */}
               {(() => {
-                // Helper: compute chunk sizes between 3 and 5 to avoid tiny leftovers
-                const getChunkSizes = (total: number): number[] => {
-                  if (total <= 5) return [total];
-                  let numGroups = Math.ceil(total / 5);
-                  let base = Math.floor(total / numGroups);
-                  while (base < 3 && numGroups > 1) {
-                    numGroups -= 1;
-                    base = Math.floor(total / numGroups);
-                  }
-                  const remainder = total % numGroups;
-                  const sizes = new Array(numGroups).fill(base);
-                  for (let i = 0; i < remainder; i++) sizes[i] += 1;
-                  return sizes as number[];
-                };
-
-                // Build per-itemName groups, respecting category/filter and excluding 'bắt đầu phục vụ'
-                const perItemGroups: { items: { itemName: string; tableNumber: number; id: number }[] }[] = [];
-
-                Object.entries(groupedOrders)
-                  .filter(([itemName]) => shouldShowInSidebar(itemName) && filterByCategory(itemName))
-                  .forEach(([itemName, orders]) => {
-                    const filtered = orders
-                      .filter(order => order.status !== 'bắt đầu phục vụ')
-                      .map(order => ({ itemName, tableNumber: order.tableNumber, id: order.id }));
-
-                    if (filtered.length === 0) return;
-
-                    const sizes = getChunkSizes(filtered.length);
-                    let cursor = 0;
-                    sizes.forEach(size => {
-                      perItemGroups.push({ items: filtered.slice(cursor, cursor + size) });
-                      cursor += size;
-                    });
-                  });
-
                 // Sort groups by category priority: Đồ uống > Món chính > Tráng miệng
                 const categoryPriority = (categoryName: string | undefined): number => {
                   switch (categoryName) {
@@ -310,100 +275,122 @@ export function KitchenSidebar({
                   }
                 };
 
-                perItemGroups.sort((a, b) => {
-                  const aCategory = itemNameToCategory[a.items[0]?.itemName];
-                  const bCategory = itemNameToCategory[b.items[0]?.itemName];
-                  return categoryPriority(aCategory) - categoryPriority(bCategory);
-                });
+                // Process grouped orders - each group is already grouped by itemName+size only
+                const displayGroups = Object.entries(groupedOrders)
+                  .map(([groupKey, ordersInGroup]) => {
+                    // Extract first order as representative
+                    const representative = ordersInGroup[0];
+                    if (!representative) return null;
+                    
+                    // Filter out "bắt đầu phục vụ" orders
+                    const filtered = ordersInGroup.filter(order => order.status !== 'bắt đầu phục vụ');
+                    if (filtered.length === 0) return null;
 
-                // Present groups after sorting by category priority
-                return perItemGroups.map((groupObj, groupIdx) => {
-                  const group = groupObj.items;
-                  const isSelected = isGroupSelected(group);
-                  const isInMultipleSelection = isGroupInMultipleSelection(group);
+                    // Detect if any item has note or toppings
+                    const hasVariations = filtered.some(order => 
+                      (order.note && order.note.trim().length > 0) || 
+                      (order.toppings && order.toppings.length > 0)
+                    );
+
+                    return {
+                      groupKey,
+                      itemName: representative.itemName,
+                      sizeName: representative.sizeName,
+                      category: representative.category,
+                      orders: filtered,
+                      hasVariations,
+                      selectionItems: filtered.map(order => ({ 
+                        itemName: order.itemName, 
+                        tableNumber: order.tableNumber, 
+                        id: order.id 
+                      }))
+                    };
+                  })
+                  .filter((group): group is NonNullable<typeof group> => 
+                    group !== null && 
+                    shouldShowInSidebar(group.itemName) && 
+                    filterByCategory(group.itemName)
+                  )
+                  .sort((a, b) => {
+                    const aCat = itemNameToCategory[a.itemName];
+                    const bCat = itemNameToCategory[b.itemName];
+                    return categoryPriority(aCat) - categoryPriority(bCat);
+                  });
+
+                // Render each group
+                return displayGroups.map((group, groupIdx) => {
+                  const isSelected = isGroupSelected(group.selectionItems);
+                  const isInMultipleSelection = isGroupInMultipleSelection(group.selectionItems);
+                  const totalQuantity = group.orders.length;
+
                   return (
                     <div
-                      key={`sidebar-group-${groupIdx}`}
-                      className={`bg-gray-100 rounded-xl shadow p-2.5 md:p-3 flex flex-col gap-2 cursor-pointer transition-all duration-200 ${
+                      key={`sidebar-group-${group.groupKey}-${groupIdx}`}
+                      className={`bg-gray-100 rounded-xl shadow p-2.5 md:p-3 cursor-pointer transition-all duration-200 ${
                         isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
                       }`}
                       onClick={() => {
-                        onGroupSelection(group);
+                        onGroupSelection(group.selectionItems);
                         // Toggle the checkbox for multiple selection
                         if (isInMultipleSelection) {
-                          // Uncheck: remove from multiple selection
                           const newSelectedGroups = (selectedGroups || []).filter(selectedGroup => {
-                            if (selectedGroup.length !== group.length) return true;
+                            if (selectedGroup.length !== group.selectionItems.length) return true;
                             return !selectedGroup.every((item, index) => 
-                              item.itemName === group[index].itemName &&
-                              item.tableNumber === group[index].tableNumber &&
-                              item.id === group[index].id
+                              item.itemName === group.selectionItems[index].itemName &&
+                              item.tableNumber === group.selectionItems[index].tableNumber &&
+                              item.id === group.selectionItems[index].id
                             );
                           });
                           onMultipleGroupSelection(newSelectedGroups);
                         } else {
-                          // Check: add to multiple selection
-                          onMultipleGroupSelection([...(selectedGroups || []), group]);
+                          onMultipleGroupSelection([...(selectedGroups || []), group.selectionItems]);
                         }
                       }}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
                         <Checkbox
                           checked={isInMultipleSelection}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              onMultipleGroupSelection([...(selectedGroups || []), group]);
+                              onMultipleGroupSelection([...(selectedGroups || []), group.selectionItems]);
                             } else {
                               const newSelectedGroups = (selectedGroups || []).filter(selectedGroup => {
-                                if (selectedGroup.length !== group.length) return true;
+                                if (selectedGroup.length !== group.selectionItems.length) return true;
                                 return !selectedGroup.every((item, index) => 
-                                  item.itemName === group[index].itemName &&
-                                  item.tableNumber === group[index].tableNumber &&
-                                  item.id === group[index].id
+                                  item.itemName === group.selectionItems[index].itemName &&
+                                  item.tableNumber === group.selectionItems[index].tableNumber &&
+                                  item.id === group.selectionItems[index].id
                                 );
                               });
                               onMultipleGroupSelection(newSelectedGroups);
                             }
                           }}
-                          onClick={(e) => handleCheckboxClick(e, group)}
+                          onClick={(e) => handleCheckboxClick(e, group.selectionItems)}
                           className="size-5 md:size-6 border-2 border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:ring-2 data-[state=checked]:ring-blue-200 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm"
                           aria-label="Chọn nhóm"
                         />
-                        {/* <span className="text-sm font-medium text-gray-700">
-                          {group.length} món
-                        </span> */}
+                        <div className="flex-1 bg-white rounded-lg px-3 py-2 shadow-sm">
+                          <p className="text-sm font-semibold text-gray-800 leading-tight">
+                            {group.itemName}
+                            {group.sizeName && (
+                              <span className="text-blue-600 ml-1">
+                                ({group.sizeName.charAt(0).toUpperCase()})
+                              </span>
+                            )}
+                            <span className="ml-2 text-gray-600 font-medium">
+                              x{totalQuantity}
+                            </span>
+                            {group.hasVariations && (
+                              <span className="ml-2 inline-flex items-center gap-1 text-xs text-orange-600 font-medium">
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                                </svg>
+                                Có ghi chú
+                              </span>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                      {group.map(({ itemName, tableNumber, id }) => {
-                        const isIndividualSelected =
-                          selectedOrderKey &&
-                          selectedOrderKey.itemName === itemName &&
-                          selectedOrderKey.tableNumber === tableNumber &&
-                          selectedOrderKey.id === id;
-                        return (
-                          <div
-                            key={`${itemName}-table-${tableNumber}-${id}`}
-                            className="transition-all duration-500 ease-in-out transform opacity-100 translate-y-0 scale-100 w-full"
-                          >
-                            <Button
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent group selection when clicking individual item
-                                onSidebarItemClick({ itemName, tableNumber, id });
-                              }}
-                              variant="secondary"
-                              className={`hover:bg-gray-200 ${isIndividualSelected ? 'bg-gray-300' : ''} text-left w-full h-auto min-h-[44px] md:min-h-[48px] px-3 py-2`}
-                            >
-                              <div className="flex w-full items-center gap-2">
-                                <span className="block text-sm leading-tight truncate flex-1 min-w-0">
-                                  {itemName}
-                                </span>
-                                <span className="text-sm leading-tight font-semibold flex-shrink-0 bg-gray-200 text-gray-900 rounded px-2 py-0.5">
-                                  Bàn {tableNumber}
-                                </span>
-                              </div>
-                            </Button>
-                          </div>
-                        );
-                      })}
                     </div>
                   );
                 });

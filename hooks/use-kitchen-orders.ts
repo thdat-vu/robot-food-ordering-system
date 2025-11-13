@@ -68,15 +68,18 @@ export function useKitchenOrders() {
     });
   }, [orders, activeTab, selectedCategory]);
 
-  // Group filtered orders by item name
+  // Group filtered orders by item name + size only
   const groupedOrders = useMemo((): GroupedOrders => {
     const grouped: GroupedOrders = {};
     
     filteredOrders.forEach(order => {
-      if (!grouped[order.itemName]) {
-        grouped[order.itemName] = [];
+      const sizeKey = order.sizeName?.trim().toLowerCase() || '__NO_SIZE__';
+      const groupKey = `${order.itemName}__${sizeKey}`;
+      
+      if (!grouped[groupKey]) {
+        grouped[groupKey] = [];
       }
-      grouped[order.itemName].push(order);
+      grouped[groupKey].push(order);
     });
     
     return grouped;

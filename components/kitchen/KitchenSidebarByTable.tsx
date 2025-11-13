@@ -36,37 +36,30 @@ const areSameGroup = (a: SelectionItem[], b: SelectionItem[]): boolean => {
   return a.every((item, index) => item.id === b[index].id);
 };
 
-const normalizeNoteKey = (note: string | null | undefined) => {
-  const trimmed = note?.trim();
-  if (!trimmed) return '__NO_NOTE__';
-  return trimmed.toLowerCase();
-};
-
 type DisplayOrderGroup = {
   key: string;
   itemName: string;
   sizeName?: string;
-  note: string | null;
   orders: Order[];
   quantity: number;
+  hasVariations: boolean; // Indicator for note/toppings variations
 };
 
 const groupOrdersForDisplay = (orders: Order[]): DisplayOrderGroup[] => {
   const map = new Map<string, DisplayOrderGroup>();
 
   orders.forEach(order => {
-    const noteKey = normalizeNoteKey(order.note);
     const sizeKey = order.sizeName?.trim().toLowerCase() || '__NO_SIZE__';
-    const key = `${order.itemName}__${sizeKey}__${noteKey}`;
+    const key = `${order.itemName}__${sizeKey}`;
 
     if (!map.has(key)) {
       map.set(key, {
         key,
         itemName: order.itemName,
         sizeName: order.sizeName,
-        note: order.note?.trim() || null,
         orders: [],
         quantity: 0,
+        hasVariations: false,
       });
     }
 
@@ -75,6 +68,14 @@ const groupOrdersForDisplay = (orders: Order[]): DisplayOrderGroup[] => {
 
     const qty = order.quantity && order.quantity > 0 ? order.quantity : 1;
     group.quantity += qty;
+  });
+
+  // Detect if any item has note or toppings
+  map.forEach((group) => {
+    group.hasVariations = group.orders.some(order => 
+      (order.note && order.note.trim().length > 0) || 
+      (order.toppings && order.toppings.length > 0)
+    );
   });
 
   return Array.from(map.values()).sort((a, b) => {
@@ -346,22 +347,25 @@ export function KitchenSidebarByTable({
                             }}
                           >
                             <div className="w-full rounded-lg bg-white px-3 py-2 shadow-sm">
-                              <div className="flex items-start justify-between gap-3">
-                                <p className="text-sm font-semibold text-gray-800 leading-tight break-words">
-                                  {group.itemName}
-                                </p>
-                                <span className="flex items-center justify-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
-                                  x{totalQuantity}
-                                </span>
-                              </div>
-                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
-                                {group.sizeName && <span>Size: {group.sizeName}</span>}
-                                {group.note && (
-                                  <span className="truncate" title={group.note}>
-                                    Ghi chú: {group.note}
+                              <p className="text-sm font-semibold text-gray-800 leading-tight break-words">
+                                {group.itemName}
+                                {group.sizeName && (
+                                  <span className="text-blue-600 ml-1">
+                                    ({group.sizeName.charAt(0).toUpperCase()})
                                   </span>
                                 )}
-                              </div>
+                                <span className="ml-2 text-gray-600 font-medium">
+                                  x{totalQuantity}
+                                </span>
+                                {group.hasVariations && (
+                                  <span className="ml-2 inline-flex items-center gap-1 text-xs text-orange-600 font-medium">
+                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                                    </svg>
+                                    Có ghi chú
+                                  </span>
+                                )}
+                              </p>
                               {(() => {
                                 if (!representativeOrder) return null;
                                 const timestamp = formatOrderDateTime(representativeOrder);
