@@ -18,6 +18,7 @@ export interface dto {
 }
 
 export interface TableData {
+    sessionId: string | null;
     tableName: string;
     counter: number;
     deliveredCount: number; 
