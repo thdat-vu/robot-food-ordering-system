@@ -786,11 +786,31 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
 
                       {/* Feedback Content */}
                       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <MessageSquare className="w-4 h-4 text-gray-600" />
-                          <h4 className="font-semibold text-gray-700 text-sm">
-                            Nội dung phản hồi:
-                          </h4>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <MessageSquare className="w-4 h-4 text-gray-600" />
+                            <h4 className="font-semibold text-gray-700 text-sm">
+                              Nội dung phản hồi:
+                            </h4>
+                          </div>
+                          {/* Quick-serve status indicator */}
+                          {(() => {
+                            const text = (feedback.feedBack || "").toLowerCase();
+                            const isQuickServeEligible = text.includes("nước mắm") || text.includes("nuoc mam") || text.includes("nước tương") || text.includes("nuoc tuong");
+                            const alreadySent = (feedback.resolutionNote || "").includes("Yêu cầu nhanh:");
+                            
+                            if (isQuickServeEligible && alreadySent) {
+                              return (
+                                <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <Send className="w-3.5 h-3.5 text-blue-600" />
+                                  <span className="text-xs font-semibold text-blue-700">
+                                    Đã gửi phục vụ nhanh
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                         <p
                           className="text-gray-800 leading-relaxed text-base"
@@ -871,10 +891,14 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                           {(() => {
                             const text = (feedback.feedBack || "").toLowerCase();
                             const isQuick = text.includes("nước mắm") || text.includes("nuoc mam") || text.includes("nước tương") || text.includes("nuoc tuong");
+                            const alreadySent = (feedback.resolutionNote || "").includes("Yêu cầu nhanh:");
+                            
                             if (!isQuick) return null;
+                            
                             return (
                               <button
                                 onClick={async () => {
+                                  if (alreadySent) return; // Prevent re-sending
                                   try {
                                     // Update complain IN-PLACE: keep pending, but mark as quick-serve in content
                                     await CheckSS(
@@ -883,16 +907,31 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                                       `Yêu cầu nhanh: ${feedback.feedBack}`,
                                       true // keep isPending = true
                                     );
-                                    addToast("Đã gửi yêu cầu nhanh", "success");
+                                    addToast("Đã gửi yêu cầu nhanh đến phục vụ", "success");
                                     // Refresh list to reflect updated content/state
                                     await loadFeedbackData();
                                   } catch (e) {
                                     addToast("Không thể gửi yêu cầu nhanh", "error");
                                   }
                                 }}
-                                className="px-5 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all duration-200 shadow-sm"
+                                disabled={alreadySent}
+                                className={`px-5 py-2.5 rounded-xl transition-all duration-200 shadow-sm flex items-center space-x-2 font-semibold text-sm
+                                  ${alreadySent 
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                    : 'bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md transform hover:scale-105'
+                                  }`}
                               >
-                                Gửi yêu cầu nhanh
+                                {alreadySent ? (
+                                  <>
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span>Đã gửi phục vụ nhanh</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send className="w-4 h-4" />
+                                    <span>Gửi yêu cầu nhanh</span>
+                                  </>
+                                )}
                               </button>
                             );
                           })()}

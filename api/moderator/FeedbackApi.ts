@@ -5,11 +5,12 @@ import {API_FEEDBACK} from "@/api-endpoint-env";
 
 export const GetFeedbackByIdtable = async (id: string): Promise<BaseEntityData<FeedbackgGetTableId[]>> => {
     try {
+        console.log(`[FeedbackApi] Calling GET ${API_FEEDBACK}/${id}`);
         const res = await api.get(`${API_FEEDBACK}/${id}`)
+        console.log(`[FeedbackApi] Success response for table ${id}:`, res.data);
         // 👇 Nếu res.data bị null hoặc không phải mảng
-        console.log("==================== res  compalain ================ : ", res);
         if (!res.data || !Array.isArray(res.data.data)) {
-            console.warn(`[GetFeedbackByIdtable] API trả về null hoặc sai định dạng.`);
+            console.warn(`[GetFeedbackByIdtable] API trả về null hoặc sai định dạng cho table ${id}`);
             return {data: [], message: 'Không có dữ liệu phản hồi.'} as any;
         }
         return res.data;
@@ -19,6 +20,8 @@ export const GetFeedbackByIdtable = async (id: string): Promise<BaseEntityData<F
             error?.response?.data?.errorMessage ||
             error?.response?.data?.message ||
             'Không thể tải dữ liệu feedback.';
+        console.error(`[FeedbackApi] Error ${statusCode} for table ${id}:`, backendMsg);
+        // Return empty array instead of throwing - this allows processing to continue
         return {data: [], message: backendMsg} as any;
     }
 };
