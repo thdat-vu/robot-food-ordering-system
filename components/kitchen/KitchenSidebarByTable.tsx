@@ -19,6 +19,7 @@ interface KitchenSidebarByTableProps {
   onGroupSelection: (group: SelectionItem[]) => void;
   selectedGroups: SelectionItem[][];
   onMultipleGroupSelection: (groups: SelectionItem[][]) => void;
+  itemNameToCategory?: Record<string, string>; // For context-aware sorting
   className?: string;
 }
 
@@ -45,7 +46,19 @@ type DisplayOrderGroup = {
   hasVariations: boolean; // Indicator for note/toppings variations
 };
 
-const groupOrdersForDisplay = (orders: Order[]): DisplayOrderGroup[] => {
+// ============================================================================
+// CONTEXT-AWARE SORTING FOR TABLE VIEW
+// ============================================================================
+// Sort orders within each table by priority: Đồ uống > Món chính > Tráng miệng
+// BOOST dessert to main priority if table only has desserts
+// ============================================================================
+
+const groupOrdersForDisplay = (
+  orders: Order[], 
+  tableNumber: number,
+  itemNameToCategory?: Record<string, string>,
+  allOrders?: Order[] // All pending orders for context analysis
+): DisplayOrderGroup[] => {
   const map = new Map<string, DisplayOrderGroup>();
 
   orders.forEach(order => {
@@ -78,7 +91,95 @@ const groupOrdersForDisplay = (orders: Order[]): DisplayOrderGroup[] => {
     );
   });
 
+  // ============================================================================
+  // Context-Aware Priority Sorting
+  // ============================================================================
+  
+  // Build table context if we have the necessary data
+  const getTableCategoryContext = (): Map<number, Set<string>> => {
+    const tableContext = new Map<number, Set<string>>();
+    
+    if (!allOrders || !itemNameToCategory) return tableContext;
+    
+    allOrders.filter(order => order.status === 'đang chờ').forEach(order => {
+      if (!tableContext.has(order.tableNumber)) {
+        tableContext.set(order.tableNumber, new Set());
+      }
+      const category = itemNameToCategory[order.itemName] || order.category;
+      if (category) {
+        tableContext.get(order.tableNumber)!.add(category);
+      }
+    });
+    
+    return tableContext;
+  };
+
+  const tableContext = getTableCategoryContext();
+
+  const getContextualPriority = (itemName: string): number => {
+    if (!itemNameToCategory) {
+      // Fallback: sort by ID if no category mapping
+      return 999;
+    }
+
+    const category = itemNameToCategory[itemName];
+    
+    // Base priority
+    const basePriority = (() => {
+      switch (category) {
+        case 'Đồ uống':
+          return 0;
+        case 'Món chính':
+          return 1;
+        case 'Tráng miệng':
+          return 2;
+        default:
+          return 3;
+      }
+    })();
+    
+    // If not dessert, return base priority
+    if (category !== 'Tráng miệng') {
+      return basePriority;
+    }
+    
+    // Check table context
+    const tableCategories = tableContext.get(tableNumber);
+    if (!tableCategories || tableCategories.size === 0) {
+      return basePriority;
+    }
+    
+    // BOOST PRIORITY: If table only has dessert (no drinks and no main dishes), 
+    // treat dessert as main dish priority
+    const hasOnlyDessert = tableCategories.has('Tráng miệng') && 
+                          !tableCategories.has('Đồ uống') && 
+                          !tableCategories.has('Món chính');
+    
+    if (hasOnlyDessert) {
+      return 1; // Boost to main dish priority
+    }
+    
+    return basePriority;
+  };
+
+  // OLD SORTING (commented out for reference):
+  // return Array.from(map.values()).sort((a, b) => {
+  //   const firstA = a.orders[0]?.id ?? 0;
+  //   const firstB = b.orders[0]?.id ?? 0;
+  //   return firstA - firstB;
+  // });
+
+  // NEW SORTING: Context-aware priority
   return Array.from(map.values()).sort((a, b) => {
+    const priorityA = getContextualPriority(a.itemName);
+    const priorityB = getContextualPriority(b.itemName);
+    
+    // Sort by priority first
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    
+    // If same priority, sort by ID (time order)
     const firstA = a.orders[0]?.id ?? 0;
     const firstB = b.orders[0]?.id ?? 0;
     return firstA - firstB;
@@ -96,8 +197,14 @@ export function KitchenSidebarByTable({
   onGroupSelection,
   selectedGroups,
   onMultipleGroupSelection,
+  itemNameToCategory,
   className,
 }: KitchenSidebarByTableProps) {
+  // Collect all orders from all tables for context analysis
+  const allOrders = useMemo(() => {
+    return tables.flatMap(({ orders }) => orders);
+  }, [tables]);
+
   const tableSelectionMap = useMemo(() => {
     const map = new Map<number, SelectionItem[]>();
     tables.forEach(({ tableNumber, orders }) => {
@@ -110,10 +217,11 @@ export function KitchenSidebarByTable({
   const groupedTableMap = useMemo(() => {
     const map = new Map<number, DisplayOrderGroup[]>();
     tables.forEach(({ tableNumber, orders }) => {
-      map.set(tableNumber, groupOrdersForDisplay(orders));
+      // Pass tableNumber, itemNameToCategory, and allOrders for context-aware sorting
+      map.set(tableNumber, groupOrdersForDisplay(orders, tableNumber, itemNameToCategory, allOrders));
     });
     return map;
-  }, [tables]);
+  }, [tables, itemNameToCategory, allOrders]);
 
   const [expandedTables, setExpandedTables] = useState<Record<number, boolean>>({});
 

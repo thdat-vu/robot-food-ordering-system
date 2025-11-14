@@ -1093,6 +1093,7 @@ function ChiefPageContent() {
                 onGroupSelection={handleGroupSelection}
                 selectedGroups={selectedGroups}
                 onMultipleGroupSelection={handleMultipleGroupSelection}
+                itemNameToCategory={itemNameToCategory} // For context-aware sorting
                 className="bg-transparent h-full"
               />
             )}
