@@ -206,27 +206,88 @@ function ChiefPageContent() {
   type SelectionItem = { itemName: string; tableNumber: number; id: number };
   type LeftPanelTab = 'byDish' | 'byTable';
 
+  // ============================================================================
+  // TABLE-AWARE WARNING LOGIC (Updated for Context-Aware Priority)
+  // ============================================================================
+  // Check each table INDIVIDUALLY instead of all tables together.
+  // If a table only has desserts (boosted priority), SKIP the check.
+  // ============================================================================
+
   // Show a warning only if selecting/preparing main dishes while NOT all drinks
-  // on the SAME table(s) are selected
+  // on the SAME table are selected (check PER TABLE, not all tables)
   const maybeWarnForMainSelection = (items: SelectionItem[], proposedSelection?: Set<number>) => {
     if (!items || items.length === 0) return;
-    const includesMain = items.some(it => itemNameToCategory[it.itemName] === 'Món chính');
-    if (!includesMain) return;
-    const tables = Array.from(new Set(items.map(it => it.tableNumber)));
-    if (!areAllCategorySelectedForTables('Đồ uống', tables, proposedSelection)) {
-      setIsPriorityInfoOpen(true);
+    
+    // Group items by table
+    const tableGroups = new Map<number, SelectionItem[]>();
+    items.forEach(item => {
+      if (!tableGroups.has(item.tableNumber)) {
+        tableGroups.set(item.tableNumber, []);
+      }
+      tableGroups.get(item.tableNumber)!.push(item);
+    });
+
+    // Check each table individually
+    for (const [tableNumber, tableItems] of tableGroups) {
+      const hasMain = tableItems.some(it => itemNameToCategory[it.itemName] === 'Món chính');
+      if (!hasMain) continue; // Skip if this table has no main dishes in selection
+
+      // Check table context: Does this table have drinks in the entire order?
+      const tableCategories = getTableCategoryContext.get(tableNumber);
+      if (!tableCategories) continue;
+
+      // If table only has desserts (no drinks, no mains), SKIP check
+      const hasOnlyDessert = tableCategories.has('Tráng miệng') && 
+                            !tableCategories.has('Đồ uống') && 
+                            !tableCategories.has('Món chính');
+      if (hasOnlyDessert) continue;
+
+      // If table has drinks, check if all drinks are selected
+      if (tableCategories.has('Đồ uống')) {
+        if (!areAllCategorySelectedForTables('Đồ uống', [tableNumber], proposedSelection)) {
+          setIsPriorityInfoOpen(true);
+          return; // Show warning and exit
+        }
+      }
     }
   };
 
   // Show a warning if selecting/preparing desserts while NOT all main dishes
-  // on the SAME table(s) are selected
+  // on the SAME table are selected (check PER TABLE, not all tables)
   const maybeWarnForDessertSelection = (items: SelectionItem[], proposedSelection?: Set<number>) => {
     if (!items || items.length === 0) return;
-    const includesDessert = items.some(it => itemNameToCategory[it.itemName] === 'Tráng miệng');
-    if (!includesDessert) return;
-    const tables = Array.from(new Set(items.map(it => it.tableNumber)));
-    if (!areAllCategorySelectedForTables('Món chính', tables, proposedSelection)) {
-      setIsDessertPriorityInfoOpen(true);
+    
+    // Group items by table
+    const tableGroups = new Map<number, SelectionItem[]>();
+    items.forEach(item => {
+      if (!tableGroups.has(item.tableNumber)) {
+        tableGroups.set(item.tableNumber, []);
+      }
+      tableGroups.get(item.tableNumber)!.push(item);
+    });
+
+    // Check each table individually
+    for (const [tableNumber, tableItems] of tableGroups) {
+      const hasDessert = tableItems.some(it => itemNameToCategory[it.itemName] === 'Tráng miệng');
+      if (!hasDessert) continue; // Skip if this table has no desserts in selection
+
+      // Check table context: Does this table have main dishes in the entire order?
+      const tableCategories = getTableCategoryContext.get(tableNumber);
+      if (!tableCategories) continue;
+
+      // If table only has desserts (no drinks, no mains), SKIP check (boosted priority case)
+      const hasOnlyDessert = tableCategories.has('Tráng miệng') && 
+                            !tableCategories.has('Đồ uống') && 
+                            !tableCategories.has('Món chính');
+      if (hasOnlyDessert) continue;
+
+      // If table has main dishes, check if all main dishes are selected
+      if (tableCategories.has('Món chính')) {
+        if (!areAllCategorySelectedForTables('Món chính', [tableNumber], proposedSelection)) {
+          setIsDessertPriorityInfoOpen(true);
+          return; // Show warning and exit
+        }
+      }
     }
   };
 
