@@ -8,6 +8,7 @@ export interface FeedbackgGetTableId {
     isPending: boolean;
     createData: Date;
     dtos: dto[];
+    resolutionNote?: string; // Note from moderator, includes "Yêu cầu nhanh:" prefix when quick-serve is sent
 }
 
 export interface dto {

@@ -20,6 +20,7 @@ export function useQuickServe() {
   const [productMap, setProductMap] = useState<Record<string, string>>({}); // name -> productId
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<QuickRequest[]>([]);
+  const [productMapReady, setProductMapReady] = useState(false); // Track if product map is loaded
 
   // Build product name -> id map for category "Phục vụ nhanh"
   useEffect(() => {
@@ -32,9 +33,12 @@ export function useQuickServe() {
             map[p.productName.toLowerCase()] = p.productId;
           }
         });
+        console.log('[QuickServe] Product map loaded:', map);
         setProductMap(map);
-      } catch {
-        // ignore
+        setProductMapReady(true); // Mark as ready
+      } catch (e) {
+        console.error('[QuickServe] Failed to load product map:', e);
+        setProductMapReady(true); // Still mark as ready even on error, to avoid infinite waiting
       }
     };
     load();
@@ -47,18 +51,40 @@ export function useQuickServe() {
       const tables = tablesRes.data;
 
       const results: QuickRequest[] = [];
+      console.log('[QuickServe] ========== STARTING FETCH ==========');
+      console.log('[QuickServe] Product map ready:', productMapReady);
+      console.log('[QuickServe] Product map has', Object.keys(productMap).length, 'items:', Object.keys(productMap));
+      console.log('[QuickServe] Fetching from', tables.length, 'tables');
+      
       // Fetch complains per table
       for (const t of tables) {
         try {
+          console.log(`[QuickServe] Fetching complaints for table: ${t.name} (ID: ${t.id})`);
           const fb = await GetFeedbackByIdtable(t.id);
+          console.log(`[QuickServe] Response for ${t.name}:`, fb);
           const list: FeedbackgGetTableId[] = (fb as any).data || [];
+          console.log(`[QuickServe] ${t.name} has ${list.length} complaints, ${list.filter(x => x.isPending).length} pending`);
           const pending = list.filter((x) => x.isPending);
+          
           pending.forEach((c) => {
-            const text = (c.feedBack || "").toLowerCase();
-            // Only accept requests explicitly marked as quick-serve by moderator
-            if (!text.includes("yêu cầu nhanh")) return;
-            const matched = Object.keys(productMap).find((name) => text.includes(name));
+            // Check resolutionNote for quick-serve marker (set by moderator)
+            const resolutionNote = (c.resolutionNote || "").toLowerCase();
+            console.log('[QuickServe] Table', t.name, '- Checking complaint:', {
+              feedBack: c.feedBack,
+              resolutionNote: c.resolutionNote,
+              isPending: c.isPending
+            });
+            
+            if (!resolutionNote.includes("yêu cầu nhanh")) return;
+            
+            console.log('[QuickServe] Found quick-serve request in', t.name);
+            
+            // Extract product name from original feedBack
+            const feedBackText = (c.feedBack || "").toLowerCase();
+            const matched = Object.keys(productMap).find((name) => feedBackText.includes(name));
+            
             if (matched) {
+              console.log('[QuickServe] Matched product:', matched, 'for table', t.name);
               results.push({
                 complainId: c.complainId,
                 tableId: t.id,
@@ -66,17 +92,20 @@ export function useQuickServe() {
                 productId: productMap[matched],
                 productName: matched,
               });
+            } else {
+              console.warn('[QuickServe] No product match found for feedback:', c.feedBack);
             }
           });
-        } catch {
-          // ignore per table
+        } catch (e) {
+          console.error('[QuickServe] Error fetching complaints for table', t.name, ':', e);
         }
       }
+      console.log('[QuickServe] Total requests found:', results.length, results);
       setRequests(results);
     } finally {
       setLoading(false);
     }
-  }, [productMap]);
+  }, [productMap, productMapReady]);
 
   const serveQuickRequest = useCallback(async (req: QuickRequest) => {
     // 1. Get product size (small or first)
@@ -123,6 +152,7 @@ export function useQuickServe() {
 
   return {
     productMap,
+    productMapReady,
     loading,
     requests,
     fetchQuickRequestsForActiveTables,
