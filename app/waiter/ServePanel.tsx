@@ -19,6 +19,9 @@ interface ServePanelProps {
   hasSelected: boolean;
   dishes: WaiterDish[]; // Add dishes prop
   getDishesByStatus: (status: OrderStatus) => WaiterDish[];
+  useRobotDelivery: boolean; // Robot delivery mode
+  robotTrayLimit: number; // Max dishes for robot (3 trays)
+  onToggleRobotMode: (enabled: boolean) => void; // Toggle robot mode
 }
 
 const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
@@ -157,6 +160,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
   hasSelected,
   dishes, // Destructure dishes prop
   getDishesByStatus, // Destructure getDishesByStatus prop
+  useRobotDelivery,
+  robotTrayLimit,
+  onToggleRobotMode,
 }) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   // Remake action is now handled in the left sidebar (DishList)
@@ -387,6 +393,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
             </div>
           )}
 
+          {/* Robot delivery mode UI has been moved to DishList (left sidebar) */}
+          
           {activeTab === "bắt đầu phục vụ" ? (
             <MapPanel mapUrl={mapUrl} />
           ) : dishesForTab.length > 0 ? (
@@ -483,7 +491,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
               onClick={handleServeClick}
               className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
-              🚀 Phục vụ
+              {useRobotDelivery ? '🤖 Phục vụ bằng Robot' : '🚀 Phục vụ'}
             </Button>
             {/* <Button
               onClick={() => setShowRemakeConfirmation(true)}
