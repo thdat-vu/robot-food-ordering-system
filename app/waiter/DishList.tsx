@@ -16,6 +16,9 @@ interface DishListProps {
     dishes: WaiterDish[];
     getDishesByStatus: (status: OrderStatus) => WaiterDish[];
     onRequestRemake: (reason?: string) => Promise<boolean>;
+    useRobotDelivery: boolean; // Robot delivery mode
+    robotTrayLimit: number; // Max dishes for robot (3 trays)
+    onToggleRobotMode: (enabled: boolean) => void; // Toggle robot mode handler
 }
 
 const normalizeCategoryName = (name: string): string =>
@@ -82,6 +85,9 @@ const DishList: React.FC<DishListProps> = ({
                                                dishes,
                                                getDishesByStatus,
                                                onRequestRemake,
+                                               useRobotDelivery,
+                                               robotTrayLimit,
+                                               onToggleRobotMode,
                                            }) => {
 
     console.log(activeTab)
@@ -289,6 +295,15 @@ const DishList: React.FC<DishListProps> = ({
             return;
         }
 
+        // BUG FIX: In robot mode, only toggle individual dish to avoid selecting multiple dishes unintentionally
+        // OLD BEHAVIOR: Click on dish card would select ALL dishes from the same table
+        // NEW BEHAVIOR: In robot mode, always toggle only the clicked dish
+        if (useRobotDelivery && activeTab === "bắt đầu phục vụ") {
+            // In robot mode, treat card click same as checkbox click (individual toggle)
+            onDishToggle(clickedDish.id);
+            return;
+        }
+
         // Get all dishes from the same table that are in the current tab
         const dishesFromSameTable = dishesForTab.filter(d => d.tableNumber === clickedDish.tableNumber);
         const isAnyFromTableSelected = dishesFromSameTable.some(d => d.selected);
@@ -341,8 +356,93 @@ const DishList: React.FC<DishListProps> = ({
         return "partial";
     };
 
+    // ============================================================================
+    // ROBOT MODE HANDLER - Auto-disable suggest and select first 3
+    // ============================================================================
+    const handleRobotModeToggle = (enabled: boolean) => {
+        if (enabled) {
+            // Step 1: Disable auto-suggest
+            if (autoSuggestEnabled) {
+                setAutoSuggestEnabled(false);
+                toast.info("Đã tắt gợi ý tự động khi bật chế độ robot");
+            }
+            
+            // Step 2: Clear any current selections in this tab
+            const selectedInTab = dishesForTab.filter(d => d.selected);
+            selectedInTab.forEach(d => onDishToggle(d.id));
+            
+            // Step 3: Select dishes until total quantity reaches robotTrayLimit (3)
+            // BUG FIX: Must count by quantity, not just number of dishes
+            // OLD CODE (BUGGY): const dishesToSelect = unselectedDishes.slice(0, robotTrayLimit);
+            // NEW CODE: Select dishes while tracking cumulative quantity
+            const unselectedDishes = dishesForTab.filter(d => !d.selected);
+            const dishesToSelect: typeof unselectedDishes = [];
+            let totalQuantity = 0;
+            
+            for (const dish of unselectedDishes) {
+                const dishQuantity = dish.quantity || 1;
+                // Only add dish if it won't exceed the robot tray limit
+                if (totalQuantity + dishQuantity <= robotTrayLimit) {
+                    dishesToSelect.push(dish);
+                    totalQuantity += dishQuantity;
+                }
+                // Stop when we reach the limit
+                if (totalQuantity >= robotTrayLimit) {
+                    break;
+                }
+            }
+            
+            // Use setTimeout to ensure previous toggles complete first
+            setTimeout(() => {
+                dishesToSelect.forEach(dish => onDishToggle(dish.id));
+                onToggleRobotMode(true);
+                toast.success(
+                    `🤖 Đã bật chế độ robot và tự động chọn ${totalQuantity} món (${dishesToSelect.length} món ăn)`,
+                    { duration: 3000 }
+                );
+            }, 50);
+        } else {
+            // When disabling robot mode
+            onToggleRobotMode(false);
+            toast.info("Đã tắt chế độ robot");
+        }
+    };
+
     return (
         <div className="p-4 space-y-6">
+            {/* ============================================================================ */}
+            {/* ROBOT DELIVERY MODE - Only show for "bắt đầu phục vụ" tab */}
+            {/* ============================================================================ */}
+            {activeTab === "bắt đầu phục vụ" && (
+                <div className="w-full">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-3">
+                                <Checkbox
+                                    id="robot-mode-sidebar"
+                                    checked={useRobotDelivery}
+                                    onCheckedChange={(checked) => handleRobotModeToggle(checked === true)}
+                                    className="size-5 border-2 border-blue-600 data-[state=checked]:bg-blue-600"
+                                />
+                                <label
+                                    htmlFor="robot-mode-sidebar"
+                                    className="text-sm font-bold text-gray-800 cursor-pointer select-none flex items-center gap-1.5"
+                                >
+                                    <span className="text-lg">🤖</span>
+                                    <span>Đề nghị chuyển sang robot</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        {useRobotDelivery && (
+                            <div className="text-xs text-blue-800 bg-blue-100 rounded-lg px-3 py-2 border border-blue-200">
+                                💡 Robot chỉ có {robotTrayLimit} khay, mỗi khay 1 món.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+            
             {/* Auto Suggest Toggle */}
             <div className="flex items-center justify-between bg-white border rounded-lg p-3">
                 <div className="flex items-center gap-2">
@@ -358,14 +458,33 @@ const DishList: React.FC<DishListProps> = ({
                         </Tooltip>
                     </TooltipProvider> */}
                 </div>
-                <Switch checked={autoSuggestEnabled} onCheckedChange={setAutoSuggestEnabled} />
+                <Switch 
+                    checked={autoSuggestEnabled} 
+                    onCheckedChange={setAutoSuggestEnabled}
+                    disabled={useRobotDelivery && activeTab === "bắt đầu phục vụ"}
+                />
             </div>
-            {/* Selection Counter */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            {/* Selection Counter with Robot Mode Indicator */}
+            <div className={`border rounded-lg p-3 ${
+                useRobotDelivery 
+                    ? 'bg-blue-100 border-blue-300' 
+                    : 'bg-blue-50 border-blue-200'
+            }`}>
                 <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-blue-800">
-                        Đã chọn: {selectedCount} món
+                    <span className={`text-sm font-medium ${
+                        useRobotDelivery ? 'text-blue-900' : 'text-blue-800'
+                    }`}>
+                        {useRobotDelivery ? (
+                            <span>🤖 Đã chọn: {selectedCount}/{robotTrayLimit} món</span>
+                        ) : (
+                            <span>Đã chọn: {selectedCount} món</span>
+                        )}
                     </span>
+                    {useRobotDelivery && selectedCount >= robotTrayLimit && (
+                        <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                            Đã đạt giới hạn
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -382,6 +501,14 @@ const DishList: React.FC<DishListProps> = ({
                                 const tableStatus = getTableSelectionStatus(dish.tableNumber);
                                 const isTablePartiallySelected = tableStatus === "partial";
                                 const isTableFullySelected = tableStatus === "all";
+                                
+                                // ============================================================================
+                                // ROBOT MODE: Check if dish can be selected
+                                // ============================================================================
+                                const isRobotLimitReached = useRobotDelivery && 
+                                                           activeTab === "bắt đầu phục vụ" && 
+                                                           selectedCount >= robotTrayLimit;
+                                const cannotSelectDish = !dish.selected && isRobotLimitReached;
 
                                 return (
                                     <li key={dish.id}>
@@ -390,30 +517,45 @@ const DishList: React.FC<DishListProps> = ({
                                                 style.bg
                                             } ${
                                                 style.border
-                                            } cursor-pointer transition-all hover:bg-accent ${
+                                            } ${
+                                                cannotSelectDish 
+                                                    ? 'opacity-50 cursor-not-allowed' 
+                                                    : 'cursor-pointer transition-all hover:bg-accent'
+                                            } ${
                                                 dish.selected
                                                     ? "ring-2 ring-green-500 ring-offset-2 bg-green-50 border-green-300"
                                                     : isTablePartiallySelected
                                                         ? "ring-1 ring-yellow-400 ring-offset-1 bg-yellow-50 border-yellow-200"
-                                                        : ""
+                                                        : cannotSelectDish
+                                                            ? "bg-gray-100 border-gray-300"
+                                                            : ""
                                             }`}
-                                            onClick={() => handleDishClick(dish)}
+                                            onClick={() => !cannotSelectDish && handleDishClick(dish)}
+                                            title={cannotSelectDish ? "🤖 Đã đạt giới hạn robot (3 món)" : undefined}
                                         >
                                             <div
-                                                className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center cursor-pointer transition-colors ${
+                                                className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${
+                                                    cannotSelectDish 
+                                                        ? 'cursor-not-allowed bg-gray-200 border-gray-400' 
+                                                        : 'cursor-pointer'
+                                                } transition-colors ${
                                                     dish.selected
                                                         ? 'bg-green-500 border-green-700'
                                                         : isTablePartiallySelected
                                                             ? 'bg-yellow-200 border-yellow-400'
-                                                            : 'bg-white border-gray-300 hover:border-gray-400'
+                                                            : cannotSelectDish
+                                                                ? 'bg-gray-200 border-gray-400'
+                                                                : 'bg-white border-gray-300 hover:border-gray-400'
                                                 }`}
-                                                onClick={(e) => handleIndividualToggle(dish, e)}
+                                                onClick={(e) => !cannotSelectDish && handleIndividualToggle(dish, e)}
                                                 title={
-                                                    dish.selected
-                                                        ? "Đã chọn - Click để bỏ chọn"
-                                                        : isTablePartiallySelected
-                                                            ? "Bàn này có món khác đã được chọn"
-                                                            : "Chưa chọn - Click để chọn"
+                                                    cannotSelectDish
+                                                        ? "🤖 Đã đạt giới hạn robot (3 món)"
+                                                        : dish.selected
+                                                            ? "Đã chọn - Click để bỏ chọn"
+                                                            : isTablePartiallySelected
+                                                                ? "Bàn này có món khác đã được chọn"
+                                                                : "Chưa chọn - Click để chọn"
                                                 }
                                             >
                                                 {dish.selected && (

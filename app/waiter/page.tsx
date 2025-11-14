@@ -26,6 +26,14 @@ function WaiterPageContent() {
     const [panel, setPanel] = useState<"control" | "payment">("control");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [currentDateTime, setCurrentDateTime] = useState<string>(() => formatCurrentDateTime(new Date()));
+    
+    // ============================================================================
+    // ROBOT DELIVERY MODE STATE
+    // ============================================================================
+    // When enabled, limits selection to 3 dishes max (robot has 3 trays)
+    // ============================================================================
+    const [useRobotDelivery, setUseRobotDelivery] = useState(false);
+    const ROBOT_TRAY_LIMIT = 3;
 
     const {
         dishes,
@@ -71,9 +79,44 @@ function WaiterPageContent() {
                     toggleDish(dish.id);
                 }
             });
+            // Reset robot delivery mode when switching tabs
+            setUseRobotDelivery(false);
             toast.info("Đã xóa tất cả các món đã chọn.");
         }
         setActiveTab(newTab);
+    };
+
+    // ============================================================================
+    // ROBOT DELIVERY MODE HANDLERS
+    // ============================================================================
+    // Note: Main robot mode logic is now handled in DishList component
+    // This handler is kept for compatibility with ServePanel if needed
+    const handleToggleRobotMode = (enabled: boolean) => {
+        setUseRobotDelivery(enabled);
+    };
+
+    // Enhanced toggle dish with robot limit check
+    const handleDishToggle = (dishId: string) => {
+        const dish = dishes.find(d => d.id === dishId);
+        if (!dish) return;
+
+        // If selecting (not deselecting) and robot mode is ON
+        if (!dish.selected && useRobotDelivery && activeTab === "bắt đầu phục vụ") {
+            const currentSelectedCount = dishes.filter(d => 
+                d.selected && d.status === activeTab
+            ).length;
+            
+            if (currentSelectedCount >= ROBOT_TRAY_LIMIT) {
+                toast.error(
+                    `🤖 Chế độ robot chỉ cho phép chọn tối đa ${ROBOT_TRAY_LIMIT} món/lượt. ` +
+                    `Vui lòng bỏ chọn món khác hoặc tắt chế độ robot.`,
+                    { duration: 4000 }
+                );
+                return;
+            }
+        }
+
+        toggleDish(dishId);
     };
 
     const handlePaymentComplete = () => {
@@ -189,10 +232,13 @@ function WaiterPageContent() {
                                     <DishList
                                         activeTab={activeTab}
                                         searchQuery={searchQuery}
-                                        onDishToggle={toggleDish}
+                                        onDishToggle={handleDishToggle}
                                         dishes={dishes}
                                         getDishesByStatus={getDishesByStatus}
                                         onRequestRemake={handleRequestRemake}
+                                        useRobotDelivery={useRobotDelivery}
+                                        robotTrayLimit={ROBOT_TRAY_LIMIT}
+                                        onToggleRobotMode={setUseRobotDelivery}
                                     />
                                 </div>
                             </div>
@@ -205,6 +251,9 @@ function WaiterPageContent() {
                                     hasSelected={hasSelected}
                                     dishes={dishes}
                                     getDishesByStatus={getDishesByStatus}
+                                    useRobotDelivery={useRobotDelivery}
+                                    robotTrayLimit={ROBOT_TRAY_LIMIT}
+                                    onToggleRobotMode={handleToggleRobotMode}
                                 />
                             </div>
                         </div>

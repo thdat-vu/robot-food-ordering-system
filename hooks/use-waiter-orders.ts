@@ -147,11 +147,16 @@ export function useWaiterOrders() {
                 });
 
                 // Preserve selection using latest state in functional update to avoid stale closures
+                // BUG FIX: Only preserve selection for dishes in "bắt đầu phục vụ" status
+                // This prevents served dishes from remaining selected
                 setDishes((prev) => {
-                    const selectedIds = new Set(prev.filter(d => d.selected).map(d => d.id));
+                    const selectedIds = new Set(
+                        prev.filter(d => d.selected && d.status === "bắt đầu phục vụ").map(d => d.id)
+                    );
                     return rawDishes.map((d) => ({
                         ...(d as WaiterDish),
-                        selected: selectedIds.has((d as WaiterDish).id),
+                        selected: selectedIds.has((d as WaiterDish).id) &&
+                                 (d as WaiterDish).status === "bắt đầu phục vụ",
                     }));
                 });
             } else {
@@ -210,11 +215,19 @@ export function useWaiterOrders() {
                 });
 
                 // Preserve latest selection using functional update
+                // BUG FIX: Only preserve selection for dishes that are still in "bắt đầu phục vụ" status
+                // OLD CODE (BUGGY): preserved selection for ALL dishes regardless of status
+                // This caused served dishes to remain selected, leading to accidental re-serving
                 setDishes((prev) => {
-                    const selectedIds = new Set(prev.filter(d => d.selected).map(d => d.id));
+                    // Only preserve selection for dishes in "bắt đầu phục vụ" status
+                    const selectedIds = new Set(
+                        prev.filter(d => d.selected && d.status === "bắt đầu phục vụ").map(d => d.id)
+                    );
                     return rawDishes.map((d) => ({
                         ...(d as WaiterDish),
-                        selected: selectedIds.has((d as WaiterDish).id),
+                        // Only set selected=true if: 1) was selected before, AND 2) still in "bắt đầu phục vụ" status
+                        selected: selectedIds.has((d as WaiterDish).id) && 
+                                 (d as WaiterDish).status === "bắt đầu phục vụ",
                     }));
                 });
             } else {
@@ -277,7 +290,12 @@ export function useWaiterOrders() {
 
     // Handle serving dishes
     const handleServe = useCallback(async () => {
-        const selectedDishes = dishes.filter((dish) => dish.selected);
+        // BUG FIX: Only serve dishes that are selected AND in "bắt đầu phục vụ" status
+        // OLD CODE (BUGGY): const selectedDishes = dishes.filter((dish) => dish.selected);
+        // This was serving ALL selected dishes regardless of their status/tab
+        const selectedDishes = dishes.filter(
+            (dish) => dish.selected && dish.status === "bắt đầu phục vụ"
+        );
         if (selectedDishes.length === 0) return false;
 
         try {
@@ -288,10 +306,10 @@ export function useWaiterOrders() {
 
             await Promise.all(updatePromises);
 
-            // Update local state
+            // Update local state - also add status check for safety
             setDishes((prev) =>
                 prev.map((d) =>
-                    d.selected && !d.served
+                    d.selected && !d.served && d.status === "bắt đầu phục vụ"
                         ? {...d, served: true, selected: false, status: "đã phục vụ"}
                         : d
                 )
