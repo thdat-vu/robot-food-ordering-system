@@ -261,18 +261,58 @@ export function KitchenSidebar({
           <div className="bg-white rounded-2xl p-3 md:p-4 shadow-sm">
             <div className="flex flex-col gap-3 md:gap-4"> {/* gap between groups */}
               {(() => {
-                // Sort groups by category priority: Đồ uống > Món chính > Tráng miệng
-                const categoryPriority = (categoryName: string | undefined): number => {
-                  switch (categoryName) {
-                    case 'Đồ uống':
-                      return 0;
-                    case 'Món chính':
-                      return 1;
-                    case 'Tráng miệng':
-                      return 2;
-                    default:
-                      return 3;
+                // Build table context for context-aware priority
+                const tableContext = new Map<number, Set<string>>();
+                orders.filter(order => order.status === 'đang chờ').forEach(order => {
+                  if (!tableContext.has(order.tableNumber)) {
+                    tableContext.set(order.tableNumber, new Set());
                   }
+                  const category = itemNameToCategory[order.itemName] || order.category;
+                  if (category) {
+                    tableContext.get(order.tableNumber)!.add(category);
+                  }
+                });
+
+                // Context-aware priority: boost dessert to main priority if table only has dessert
+                const getContextualPriority = (itemName: string, tableNumber?: number): number => {
+                  const category = itemNameToCategory[itemName];
+                  
+                  // Base priority
+                  const basePriority = (() => {
+                    switch (category) {
+                      case 'Đồ uống':
+                        return 0;
+                      case 'Món chính':
+                        return 1;
+                      case 'Tráng miệng':
+                        return 2;
+                      default:
+                        return 3;
+                    }
+                  })();
+                  
+                  // If no table context or not dessert, return base priority
+                  if (!tableNumber || category !== 'Tráng miệng') {
+                    return basePriority;
+                  }
+                  
+                  // Check table context
+                  const tableCategories = tableContext.get(tableNumber);
+                  if (!tableCategories || tableCategories.size === 0) {
+                    return basePriority;
+                  }
+                  
+                  // BOOST PRIORITY: If table only has dessert (no drinks and no main dishes), 
+                  // treat dessert as main dish priority
+                  const hasOnlyDessert = tableCategories.has('Tráng miệng') && 
+                                        !tableCategories.has('Đồ uống') && 
+                                        !tableCategories.has('Món chính');
+                  
+                  if (hasOnlyDessert) {
+                    return 1; // Boost to main dish priority
+                  }
+                  
+                  return basePriority;
                 };
 
                 // Process grouped orders - each group is already grouped by itemName+size only
@@ -297,6 +337,7 @@ export function KitchenSidebar({
                       itemName: representative.itemName,
                       sizeName: representative.sizeName,
                       category: representative.category,
+                      tableNumber: representative.tableNumber, // For context-aware priority
                       orders: filtered,
                       hasVariations,
                       selectionItems: filtered.map(order => ({ 
@@ -312,9 +353,10 @@ export function KitchenSidebar({
                     filterByCategory(group.itemName)
                   )
                   .sort((a, b) => {
-                    const aCat = itemNameToCategory[a.itemName];
-                    const bCat = itemNameToCategory[b.itemName];
-                    return categoryPriority(aCat) - categoryPriority(bCat);
+                    // Use context-aware priority instead of simple category priority
+                    const priorityA = getContextualPriority(a.itemName, a.tableNumber);
+                    const priorityB = getContextualPriority(b.itemName, b.tableNumber);
+                    return priorityA - priorityB;
                   });
 
                 // Render each group

@@ -478,6 +478,76 @@ function ChiefPageContent() {
     setSelectedOrderKey(null); // Clear individual selection when group is selected
   };
 
+  // ============================================================================
+  // CONTEXT-AWARE PRIORITY SYSTEM
+  // ============================================================================
+  // These hooks were MOVED HERE (before autoSelectFirstGroups) to fix hoisting error.
+  // Original position: around line 850+ (see commented out code there)
+  // 
+  // Purpose: Boost dessert priority to main dish level if table only has desserts.
+  // Example: Bàn 2 chỉ đặt Rau câu dừa → priority = 1 (thay vì 2)
+  // ============================================================================
+
+  // Helper: Analyze table context to determine if dessert should be boosted
+  const getTableCategoryContext = useMemo(() => {
+    const tableContext = new Map<number, Set<string>>();
+    
+    // Only consider orders that are "đang chờ" for context analysis
+    orders.filter(order => order.status === 'đang chờ').forEach(order => {
+      if (!tableContext.has(order.tableNumber)) {
+        tableContext.set(order.tableNumber, new Set());
+      }
+      const category = itemNameToCategory[order.itemName] || order.category;
+      if (category) {
+        tableContext.get(order.tableNumber)!.add(category);
+      }
+    });
+    
+    return tableContext;
+  }, [orders, itemNameToCategory]);
+
+  // Helper: Calculate contextual priority based on table context
+  const getContextualPriority = useCallback((itemName: string, tableNumber?: number): number => {
+    const category = itemNameToCategory[itemName];
+    
+    // Base priority
+    const basePriority = (() => {
+      switch (category) {
+        case 'Đồ uống':
+          return 0;
+        case 'Món chính':
+          return 1;
+        case 'Tráng miệng':
+          return 2;
+        default:
+          return 3;
+      }
+    })();
+    
+    // If no table context or not dessert, return base priority
+    if (!tableNumber || category !== 'Tráng miệng') {
+      return basePriority;
+    }
+    
+    // Check table context
+    const tableCategories = getTableCategoryContext.get(tableNumber);
+    if (!tableCategories || tableCategories.size === 0) {
+      return basePriority;
+    }
+    
+    // BOOST PRIORITY: If table only has dessert (no drinks and no main dishes), 
+    // treat dessert as main dish priority
+    const hasOnlyDessert = tableCategories.has('Tráng miệng') && 
+                          !tableCategories.has('Đồ uống') && 
+                          !tableCategories.has('Món chính');
+    
+    if (hasOnlyDessert) {
+      return 1; // Boost to main dish priority
+    }
+    
+    return basePriority;
+  }, [itemNameToCategory, getTableCategoryContext]);
+
   // Multiple group selection handler
   const handleMultipleGroupSelection = (groups: { itemName: string; tableNumber: number; id: number }[][], isAutomatic = false) => {
     if (!isAutomatic) {
@@ -518,7 +588,7 @@ function ChiefPageContent() {
     setSelectedOrderKey(null); // Clear individual selection when groups are selected
   };
 
-  // Function to automatically select the first 3 groups based on category priority
+  // Function to automatically select the first 3 groups based on context-aware category priority
   const autoSelectFirstGroups = useCallback(() => {
     // Only auto-select for relevant tabs, not for serve tab, and only if user hasn't made manual selection
     if (activeTab === 'bắt đầu phục vụ' || hasManualSelection || leftPanelTab !== 'byDish') {
@@ -529,20 +599,6 @@ function ChiefPageContent() {
     const filterByCategory = (itemName: string) => {
       if (selectedCategory === 'Tất cả') return true;
       return itemNameToCategory[itemName] === selectedCategory;
-    };
-
-    // Sort groups by category priority: Đồ uống > Món chính > Tráng miệng
-    const categoryPriority = (categoryName: string | undefined): number => {
-      switch (categoryName) {
-        case 'Đồ uống':
-          return 0;
-        case 'Món chính':
-          return 1;
-        case 'Tráng miệng':
-          return 2;
-        default:
-          return 3;
-      }
     };
 
     // Process grouped orders - each group is already grouped by itemName+size+note+toppings
@@ -557,6 +613,7 @@ function ChiefPageContent() {
         return {
           itemName: representative.itemName,
           category: representative.category,
+          tableNumber: representative.tableNumber, // For context-aware priority
           selectionItems: filtered.map(order => ({ 
             itemName: order.itemName, 
             tableNumber: order.tableNumber, 
@@ -570,9 +627,10 @@ function ChiefPageContent() {
         filterByCategory(group.itemName)
       )
       .sort((a, b) => {
-        const aCat = itemNameToCategory[a.itemName];
-        const bCat = itemNameToCategory[b.itemName];
-        return categoryPriority(aCat) - categoryPriority(bCat);
+        // Use context-aware priority instead of simple category priority
+        const priorityA = getContextualPriority(a.itemName, a.tableNumber);
+        const priorityB = getContextualPriority(b.itemName, b.tableNumber);
+        return priorityA - priorityB;
       });
 
     // Select the first 3 groups if available
@@ -595,7 +653,7 @@ function ChiefPageContent() {
         handleMultipleGroupSelection(groupsToSelect, true); // Pass true for automatic selection
       }
     }
-  }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection, leftPanelTab]);
+  }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection, leftPanelTab, getContextualPriority]);
 
   // Auto-select first group when page loads or significant data changes
   useEffect(() => {
@@ -727,32 +785,94 @@ function ChiefPageContent() {
       .sort((a, b) => a.tableNumber - b.tableNumber);
   }, [filteredGroupedOrdersForSearch]);
 
-  // Helper: sort grouped orders by category priority: Đồ uống > Món chính > Tráng miệng
-  const sortGroupedByCategoryPriority = (input: Record<string, Order[]>): Record<string, Order[]> => {
-    const categoryPriority = (categoryName: string | undefined): number => {
-      switch (categoryName) {
-        case 'Đồ uống':
-          return 0;
-        case 'Món chính':
-          return 1;
-        case 'Tráng miệng':
-          return 2;
-        default:
-          return 3;
-      }
-    };
+  // ============================================================================
+  // NOTE: getTableCategoryContext and getContextualPriority have been MOVED UP
+  // to line 482 and line 499 to fix hoisting error.
+  // Original position was here (around line 719-776) but caused:
+  // "ReferenceError: Cannot access 'getContextualPriority' before initialization"
+  // 
+  // Keeping commented out code below for reference:
+  // ============================================================================
+  
+  // // Helper: Analyze table context to determine if dessert should be boosted
+  // const getTableCategoryContext = useMemo(() => {
+  //   const tableContext = new Map<number, Set<string>>();
+  //   
+  //   // Only consider orders that are "đang chờ" for context analysis
+  //   orders.filter(order => order.status === 'đang chờ').forEach(order => {
+  //     if (!tableContext.has(order.tableNumber)) {
+  //       tableContext.set(order.tableNumber, new Set());
+  //     }
+  //     const category = itemNameToCategory[order.itemName] || order.category;
+  //     if (category) {
+  //       tableContext.get(order.tableNumber)!.add(category);
+  //     }
+  //   });
+  //   
+  //   return tableContext;
+  // }, [orders, itemNameToCategory]);
 
-    const sortedEntries = Object.entries(input).sort(([itemNameA], [itemNameB]) => {
-      const aCat = itemNameToCategory[itemNameA];
-      const bCat = itemNameToCategory[itemNameB];
-      return categoryPriority(aCat) - categoryPriority(bCat);
+  // // Helper: Calculate contextual priority based on table context
+  // const getContextualPriority = useCallback((itemName: string, tableNumber?: number): number => {
+  //   const category = itemNameToCategory[itemName];
+  //   
+  //   // Base priority
+  //   const basePriority = (() => {
+  //     switch (category) {
+  //       case 'Đồ uống':
+  //         return 0;
+  //       case 'Món chính':
+  //         return 1;
+  //       case 'Tráng miệng':
+  //         return 2;
+  //       default:
+  //         return 3;
+  //     }
+  //   })();
+  //   
+  //   // If no table context or not dessert, return base priority
+  //   if (!tableNumber || category !== 'Tráng miệng') {
+  //     return basePriority;
+  //   }
+  //   
+  //   // Check table context
+  //   const tableCategories = getTableCategoryContext.get(tableNumber);
+  //   if (!tableCategories || tableCategories.size === 0) {
+  //     return basePriority;
+  //   }
+  //   
+  //   // BOOST PRIORITY: If table only has dessert (no drinks and no main dishes), 
+  //   // treat dessert as main dish priority
+  //   const hasOnlyDessert = tableCategories.has('Tráng miệng') && 
+  //                         !tableCategories.has('Đồ uống') && 
+  //                         !tableCategories.has('Món chính');
+  //   
+  //   if (hasOnlyDessert) {
+  //     return 1; // Boost to main dish priority
+  //   }
+  //   
+  //   return basePriority;
+  // }, [itemNameToCategory, getTableCategoryContext]);
+
+  // Helper: sort grouped orders by category priority: Đồ uống > Món chính > Tráng miệng
+  // BUT with context-aware priority boost for tables with only desserts
+  const sortGroupedByCategoryPriority = useCallback((input: Record<string, Order[]>): Record<string, Order[]> => {
+    const sortedEntries = Object.entries(input).sort(([itemNameA, ordersA], [itemNameB, ordersB]) => {
+      // Get representative table number for priority calculation
+      const tableA = ordersA[0]?.tableNumber;
+      const tableB = ordersB[0]?.tableNumber;
+      
+      const priorityA = getContextualPriority(itemNameA, tableA);
+      const priorityB = getContextualPriority(itemNameB, tableB);
+      
+      return priorityA - priorityB;
     });
 
     return sortedEntries.reduce((acc, [key, value]) => {
       acc[key] = value;
       return acc;
     }, {} as Record<string, Order[]>);
-  };
+  }, [getContextualPriority]);
 
   // Show loading state
   if (isLoading) {
