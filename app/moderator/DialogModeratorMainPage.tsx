@@ -33,6 +33,7 @@ export const DialogModeratorMainPage: React.FC<
 }) => {
   const [tab, setTab] = useState(initialTab);
 
+  console.log("DialogModeratorMainPage rendered with tab:", idTable);
   // Cập nhật tab khi initialTab thay đổi
   useEffect(() => {
     if (open) {

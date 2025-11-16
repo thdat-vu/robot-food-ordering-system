@@ -19,6 +19,7 @@ export interface dto {
 }
 
 export interface TableData {
+    id : string;
     sessionId: string | null;
     tableName: string;
     counter: number;

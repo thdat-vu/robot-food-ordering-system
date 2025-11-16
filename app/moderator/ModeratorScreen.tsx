@@ -19,11 +19,11 @@ import {
 import { MdOutlineDoneOutline } from "react-icons/md";
 import { FcCancel } from "react-icons/fc";
 
-import { TableData } from "@/entites/moderator/FeedbackModole";
 import { useGetAllFeedbackHome } from "@/hooks/moderator/useFeedbackHooks";
 import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { ToastContainer } from "@/components/moderator/ToastContainer";
 import { DialogModeratorMainPage } from "@/app/moderator/DialogModeratorMainPage";
+import { TableData } from "@/entites/moderator/FeedbackModole";
 
 type FilterStatus =
   | "all"
@@ -75,6 +75,11 @@ const ModeratorScreen: React.FC = () => {
         }
 
         setData(newData);
+        setData((prev) => {
+          // ✅ tránh set lại nếu data giống y chang (giảm re-render)
+          const same = JSON.stringify(prev) === JSON.stringify(newData);
+          return same ? prev : (newData as Record<string, TableData>);
+        });
       } catch (error) {
         console.error("Error loading data:", error);
         addToast(
@@ -87,10 +92,9 @@ const ModeratorScreen: React.FC = () => {
     };
 
     loadData();
-    // ✅ Changed from 500ms to 3000ms (3 seconds)
     const interval = setInterval(loadData, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [run, addToast]);
 
   const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
@@ -98,6 +102,7 @@ const ModeratorScreen: React.FC = () => {
   }, []);
 
   const handle = (id: string) => {
+    console.log("Table clicked:", id);
     setIdTable(id);
     setOpenDialog(true);
   };
@@ -199,6 +204,7 @@ const ModeratorScreen: React.FC = () => {
       // Find matching table
       const matchingTable = Object.entries(data).find(
         ([tableId, tableData]) => {
+          console.log("Searching for table:", data);
           const tableNumber = tableData.tableName.replace(/\D/g, "");
           return tableNumber === query.trim();
         }
@@ -564,6 +570,7 @@ const ModeratorScreen: React.FC = () => {
               return getNumber(a.tableName) - getNumber(b.tableName);
             })
             .map(([tableId, tableData]) => {
+              console.log("Rendering table:", tableId, tableData);
               const isHighlighted = highlightedTable === tableId;
               const textColor = getTextColor(tableData);
               const cardColor = getTableColor(tableData);
@@ -672,18 +679,6 @@ const ModeratorScreen: React.FC = () => {
                               );
                           }
                         })()}
-                        {/*{*/}
-                        {/*    (tableData.totalItems != 0 && tableData.paidCount == tableData.totalItems) ? (*/}
-                        {/*        <MdOutlineDoneOutline size={12}*/}
-                        {/*                              className="flex-shrink-0 text-blue-500"/>*/}
-                        {/*    ) : (*/}
-                        {/*        <FcCancel size={12}*/}
-                        {/*                  className="flex-shrink-0 text-red-500"/>*/}
-                        {/*    )*/}
-                        {/*}*/}
-                        {/*<span>*/}
-                        {/*  {tableData.paidCount || 0}/{tableData.totalItems || 0}*/}
-                        {/*</span>*/}
                       </div>
                     </div>
                   )}
