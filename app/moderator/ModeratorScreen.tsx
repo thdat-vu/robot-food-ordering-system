@@ -11,6 +11,9 @@ import {
   Package,
   TrendingUp,
   CheckCircle2,
+  Wallet,
+  XCircle,
+  AlertTriangle,
   MessageSquareWarning,
 } from "lucide-react";
 import { MdOutlineDoneOutline } from "react-icons/md";
@@ -641,27 +644,31 @@ const ModeratorScreen: React.FC = () => {
                           switch (tableData.paymentStatus) {
                             case 1:
                               return (
-                                <div className="whitespace-nowrap">
-                                  Chưa thanh toán
-                                </div>
+                                <>
+                                  <Wallet className="w-4 h-4" />
+                                  <XCircle className="w-4 h-4 text-red-900 " />
+                                </>
                               );
                             case 2:
                               return (
-                                <div className="whitespace-nowrap">
-                                  Đã thanh toán
-                                </div>
+                                <>
+                                  <Wallet className="w-4 h-4" />
+                                  <CheckCircle2 className="w-4 h-4" />
+                                </>
                               );
                             case 3:
                               return (
-                                <div className="whitespace-nowrap">
-                                  Thanh toán thất bại
-                                </div>
+                                <>
+                                  <Wallet className="w-4 h-4" />
+                                  <XCircle className="w-4 h-4" />
+                                </>
                               );
                             case 4:
                               return (
-                                <div className="whitespace-nowrap">
-                                  Thất bại
-                                </div>
+                                <>
+                                  <Wallet className="w-4 h-4" />
+                                  <XCircle className="w-4 h-4" />
+                                </>
                               );
                           }
                         })()}
