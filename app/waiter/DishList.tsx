@@ -8,6 +8,7 @@ import {Button} from "@/components/ui/button";
 import {toast} from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface DishListProps {
     activeTab: OrderStatus;
@@ -63,6 +64,27 @@ const getCategoryPriority = (name: string) => {
     return CATEGORY_PRIORITY[normalized] ?? 3;
 };
 
+type LeftPanelView = "byDish" | "byTable";
+
+const STATUS_BADGES: Record<OrderStatus, { label: string; className: string }> = {
+    "đang chờ": { label: "Đang chờ", className: "bg-yellow-100 text-yellow-700" },
+    "đang thực hiện": { label: "Đang chuẩn bị", className: "bg-orange-100 text-orange-700" },
+    "bắt đầu phục vụ": { label: "Sẵn sàng phục vụ", className: "bg-blue-100 text-blue-700" },
+    "yêu cầu làm lại": { label: "Yêu cầu làm lại", className: "bg-red-100 text-red-600" },
+    "đã phục vụ": { label: "Đã phục vụ", className: "bg-green-100 text-green-700" },
+    "đã huỷ": { label: "Đã huỷ", className: "bg-gray-200 text-gray-700" },
+};
+
+interface TableGroup {
+    tableNumber: number;
+    dishes: WaiterDish[];
+    selectedCount: number;
+    totalCount: number;
+    selectedQuantity: number;
+    totalQuantity: number;
+    firstOrderTime?: string;
+}
+
 const REMAKE_SUGGESTIONS: string[] = [
     "Món ăn quá mặn",
     "Món ăn quá nhạt",
@@ -94,6 +116,8 @@ const DishList: React.FC<DishListProps> = ({
 
     const [showRemakeConfirmation, setShowRemakeConfirmation] = useState(false);
     const [remakeReason, setRemakeReason] = useState("");
+    const [viewMode, setViewMode] = useState<LeftPanelView>("byDish");
+    const [expandedTables, setExpandedTables] = useState<Set<number>>(() => new Set());
 
     // Get dishes for the active tab only
     const dishesForTab = getDishesByStatus(activeTab);
@@ -241,23 +265,25 @@ const DishList: React.FC<DishListProps> = ({
     }, [autoSuggestEnabled]);
 
     // Filter dishes by search query
-    const filteredDishes = allDishesToShow.filter((dish) => {
+    const filteredDishes = useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
-        if (!query) return true;
+        if (!query) return allDishesToShow;
 
-        return (
-            dish.name.toLowerCase().includes(query) ||
-            dish.tableNumber.toString().includes(query) ||
-            dish.categoryName.toLowerCase().includes(query) ||
-            (dish.toppings &&
-                dish.toppings.some((topping) =>
-                    topping.toLowerCase().includes(query)
-                )) ||
-            (dish.sizeName &&
-                dish.sizeName.toLowerCase().includes(query)) ||
-            (dish.note && dish.note.toLowerCase().includes(query))
-        );
-    });
+        return allDishesToShow.filter((dish) => {
+            return (
+                dish.name.toLowerCase().includes(query) ||
+                dish.tableNumber.toString().includes(query) ||
+                dish.categoryName.toLowerCase().includes(query) ||
+                (dish.toppings &&
+                    dish.toppings.some((topping) =>
+                        topping.toLowerCase().includes(query)
+                    )) ||
+                (dish.sizeName &&
+                    dish.sizeName.toLowerCase().includes(query)) ||
+                (dish.note && dish.note.toLowerCase().includes(query))
+            );
+        });
+    }, [allDishesToShow, searchQuery]);
 
     // Group dishes by category
     const groupedDishes = filteredDishes.reduce<Record<string, WaiterDish[]>>(
@@ -276,17 +302,72 @@ const DishList: React.FC<DishListProps> = ({
         return a[0].localeCompare(b[0], "vi", { sensitivity: "accent" });
     });
 
-    if (filteredDishes.length === 0) {
-        return (
-            <>
-                <div className="p-4 text-center text-gray-500">
-                    {searchQuery
-                        ? "Không tìm thấy món ăn phù hợp"
-                        : "Không có món ăn nào trong trạng thái này"}
-                </div>
-            </>
-        );
-    }
+    const tableGroups = useMemo<TableGroup[]>(() => {
+        const map = new Map<number, WaiterDish[]>();
+        filteredDishes.forEach((dish) => {
+            const current = map.get(dish.tableNumber) || [];
+            current.push(dish);
+            map.set(dish.tableNumber, current);
+        });
+
+        return Array.from(map.entries())
+            .sort(([tableA], [tableB]) => tableA - tableB)
+            .map(([tableNumber, tableDishes]) => {
+                const selectedDishes = tableDishes.filter((dish) => dish.selected);
+                const selectedCount = selectedDishes.length;
+                const totalCount = tableDishes.length;
+                const selectedQuantity = selectedDishes.reduce((sum, dish) => sum + (dish.quantity || 1), 0);
+                const totalQuantity = tableDishes.reduce((sum, dish) => sum + (dish.quantity || 1), 0);
+
+                return {
+                    tableNumber,
+                    dishes: tableDishes,
+                    selectedCount,
+                    totalCount,
+                    selectedQuantity,
+                    totalQuantity,
+                    firstOrderTime: tableDishes[0]?.orderTime,
+                };
+            });
+    }, [filteredDishes]);
+
+    const viewTabs = useMemo(
+        () => [
+            { key: "byDish" as LeftPanelView, label: "Theo món" },
+            { key: "byTable" as LeftPanelView, label: "Theo bàn" },
+        ],
+        []
+    );
+
+    const prevTableNumbersRef = useRef<number[]>([]);
+    useEffect(() => {
+        const currentNumbers = tableGroups.map(group => group.tableNumber);
+        const prevNumbers = prevTableNumbersRef.current;
+        const hasChanges =
+            currentNumbers.length !== prevNumbers.length ||
+            currentNumbers.some((num, idx) => num !== prevNumbers[idx]);
+
+        if (!hasChanges) {
+            return;
+        }
+
+        prevTableNumbersRef.current = currentNumbers;
+
+        setExpandedTables(prev => {
+            const next = new Set<number>();
+            currentNumbers.forEach(num => {
+                if (prev.has(num)) {
+                    next.add(num);
+                }
+            });
+
+            if (next.size === 0 && currentNumbers.length > 0) {
+                next.add(currentNumbers[0]);
+            }
+
+            return next;
+        });
+    }, [tableGroups]);
 
     const handleDishClick = (clickedDish: WaiterDish) => {
         if (activeTab.toString() === 'Đã phục vụ') {
@@ -332,6 +413,25 @@ const DishList: React.FC<DishListProps> = ({
                 safeToggle(dish.id);
             });
             toast.success(`Đã chọn ${unselectedQuantity} món từ Bàn ${clickedDish.tableNumber}`);
+        }
+    };
+
+    const toggleTableExpansion = (tableNumber: number) => {
+        setExpandedTables((prev) => {
+            const next = new Set(prev);
+            if (next.has(tableNumber)) {
+                next.delete(tableNumber);
+            } else {
+                next.add(tableNumber);
+            }
+            return next;
+        });
+    };
+
+    const toggleTableSelection = (tableNumber: number) => {
+        const firstDish = dishesForTab.find((dish) => dish.tableNumber === tableNumber);
+        if (firstDish) {
+            handleDishClick(firstDish);
         }
     };
 
@@ -407,6 +507,14 @@ const DishList: React.FC<DishListProps> = ({
             toast.info("Đã tắt chế độ robot");
         }
     };
+
+    const emptyState = (
+        <div className="p-4 text-center text-gray-500">
+            {searchQuery
+                ? "Không tìm thấy món ăn phù hợp"
+                : "Không có món ăn nào trong trạng thái này"}
+        </div>
+    );
 
     return (
         <div className="p-4 space-y-6">
@@ -488,136 +596,299 @@ const DishList: React.FC<DishListProps> = ({
                 </div>
             </div>
 
-            {sortedCategoryEntries.map(([categoryName, items]) => {
-                const style = getCategoryStyle(categoryName);
+            {/* View mode toggle */}
+            <div className="bg-gray-100 rounded-xl p-1 grid grid-cols-2 gap-1">
+                {viewTabs.map((tab) => (
+                    <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setViewMode(tab.key)}
+                        className={`text-sm font-medium py-2 rounded-lg transition-colors ${
+                            viewMode === tab.key
+                                ? "bg-white text-blue-600 shadow"
+                                : "text-gray-500 hover:text-gray-700"
+                        }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
 
-                return (
-                    <div key={categoryName} className="w-full">
-                        <div className="mb-2 text-sm font-semibold text-foreground uppercase tracking-wide">
-                            {style.label}
-                        </div>
-                        <ul className="space-y-3 w-full">
-                            {items.map((dish) => {
-                                const tableStatus = getTableSelectionStatus(dish.tableNumber);
-                                const isTablePartiallySelected = tableStatus === "partial";
-                                const isTableFullySelected = tableStatus === "all";
-                                
-                                // ============================================================================
-                                // ROBOT MODE: Check if dish can be selected
-                                // ============================================================================
-                                const isRobotLimitReached = useRobotDelivery && 
-                                                           activeTab === "bắt đầu phục vụ" && 
-                                                           selectedCount >= robotTrayLimit;
-                                const cannotSelectDish = !dish.selected && isRobotLimitReached;
+            <div className="space-y-4">
+                {filteredDishes.length === 0 && emptyState}
 
-                                return (
-                                    <li key={dish.id}>
-                                        <div
-                                            className={`flex items-center px-4 py-3 rounded-xl border ${
-                                                style.bg
-                                            } ${
-                                                style.border
-                                            } ${
-                                                cannotSelectDish 
-                                                    ? 'opacity-50 cursor-not-allowed' 
-                                                    : 'cursor-pointer transition-all hover:bg-accent'
-                                            } ${
-                                                dish.selected
-                                                    ? "ring-2 ring-green-500 ring-offset-2 bg-green-50 border-green-300"
-                                                    : isTablePartiallySelected
-                                                        ? "ring-1 ring-yellow-400 ring-offset-1 bg-yellow-50 border-yellow-200"
-                                                        : cannotSelectDish
-                                                            ? "bg-gray-100 border-gray-300"
-                                                            : ""
-                                            }`}
-                                            onClick={() => !cannotSelectDish && handleDishClick(dish)}
-                                            title={cannotSelectDish ? "🤖 Đã đạt giới hạn robot (3 món)" : undefined}
-                                        >
-                                            <div
-                                                className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${
-                                                    cannotSelectDish 
-                                                        ? 'cursor-not-allowed bg-gray-200 border-gray-400' 
-                                                        : 'cursor-pointer'
-                                                } transition-colors ${
-                                                    dish.selected
-                                                        ? 'bg-green-500 border-green-700'
-                                                        : isTablePartiallySelected
-                                                            ? 'bg-yellow-200 border-yellow-400'
-                                                            : cannotSelectDish
-                                                                ? 'bg-gray-200 border-gray-400'
-                                                                : 'bg-white border-gray-300 hover:border-gray-400'
-                                                }`}
-                                                onClick={(e) => !cannotSelectDish && handleIndividualToggle(dish, e)}
-                                                title={
-                                                    cannotSelectDish
-                                                        ? "🤖 Đã đạt giới hạn robot (3 món)"
-                                                        : dish.selected
-                                                            ? "Đã chọn - Click để bỏ chọn"
+                {filteredDishes.length > 0 && viewMode === "byDish" &&
+                    sortedCategoryEntries.map(([categoryName, items]) => {
+                        const style = getCategoryStyle(categoryName);
+
+                        return (
+                            <div key={categoryName} className="w-full">
+                                <div className="mb-2 text-sm font-semibold text-foreground uppercase tracking-wide">
+                                    {style.label}
+                                </div>
+                                <ul className="space-y-3 w-full">
+                                    {items.map((dish) => {
+                                        const tableStatus = getTableSelectionStatus(dish.tableNumber);
+                                        const isTablePartiallySelected = tableStatus === "partial";
+                                        const isTableFullySelected = tableStatus === "all";
+
+                                        const isRobotLimitReached =
+                                            useRobotDelivery &&
+                                            activeTab === "bắt đầu phục vụ" &&
+                                            selectedCount >= robotTrayLimit;
+                                        const cannotSelectDish = !dish.selected && isRobotLimitReached;
+
+                                        return (
+                                            <li key={dish.id}>
+                                                <div
+                                                    className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} ${
+                                                        cannotSelectDish
+                                                            ? "opacity-50 cursor-not-allowed"
+                                                            : "cursor-pointer transition-all hover:bg-accent"
+                                                    } ${
+                                                        dish.selected
+                                                            ? "ring-2 ring-green-500 ring-offset-2 bg-green-50 border-green-300"
                                                             : isTablePartiallySelected
-                                                                ? "Bàn này có món khác đã được chọn"
-                                                                : "Chưa chọn - Click để chọn"
-                                                }
-                                            >
-                                                {dish.selected && (
-                                                    <svg className="w-4 h-4 text-white" fill="currentColor"
-                                                         viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd"
-                                                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                              clipRule="evenodd"/>
-                                                    </svg>
-                                                )}
-                                                {isTablePartiallySelected && !dish.selected && (
-                                                    <div className="w-3 h-3 bg-yellow-600 rounded-full"></div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="text-sm font-medium text-foreground">
-                                                        {dish.name} - Bàn {dish.tableNumber}{" "}
-                                                        {dish.quantity > 1 && `(${dish.quantity})`}
+                                                                ? "ring-1 ring-yellow-400 ring-offset-1 bg-yellow-50 border-yellow-200"
+                                                                : cannotSelectDish
+                                                                    ? "bg-gray-100 border-gray-300"
+                                                                    : ""
+                                                    }`}
+                                                    onClick={() => !cannotSelectDish && handleDishClick(dish)}
+                                                    title={cannotSelectDish ? "🤖 Đã đạt giới hạn robot (3 món)" : undefined}
+                                                >
+                                                    <div
+                                                        className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${
+                                                            cannotSelectDish
+                                                                ? "cursor-not-allowed bg-gray-200 border-gray-400"
+                                                                : "cursor-pointer"
+                                                        } transition-colors ${
+                                                            dish.selected
+                                                                ? "bg-green-500 border-green-700"
+                                                                : isTablePartiallySelected
+                                                                    ? "bg-yellow-200 border-yellow-400"
+                                                                    : cannotSelectDish
+                                                                        ? "bg-gray-200 border-gray-400"
+                                                                        : "bg-white border-gray-300 hover:border-gray-400"
+                                                        }`}
+                                                        onClick={(e) => !cannotSelectDish && handleIndividualToggle(dish, e)}
+                                                        title={
+                                                            cannotSelectDish
+                                                                ? "🤖 Đã đạt giới hạn robot (3 món)"
+                                                                : dish.selected
+                                                                    ? "Đã chọn - Click để bỏ chọn"
+                                                                    : isTablePartiallySelected
+                                                                        ? "Bàn này có món khác đã được chọn"
+                                                                        : "Chưa chọn - Click để chọn"
+                                                        }
+                                                    >
+                                                        {dish.selected && (
+                                                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path
+                                                                    fillRule="evenodd"
+                                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                                    clipRule="evenodd"
+                                                                />
+                                                            </svg>
+                                                        )}
+                                                        {isTablePartiallySelected && !dish.selected && (
+                                                            <div className="w-3 h-3 bg-yellow-600 rounded-full"></div>
+                                                        )}
                                                     </div>
-                                                    {isTableFullySelected && (
-                                                        <span
-                                                            className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                                            Toàn bàn
-                                                        </span>
-                                                    )}
-                                                    {isTablePartiallySelected && (
-                                                        <span
-                                                            className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                                                            Một phần
-                                                        </span>
-                                                    )}
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="text-sm font-medium text-foreground">
+                                                                {dish.name} - Bàn {dish.tableNumber}{" "}
+                                                                {dish.quantity > 1 && `(${dish.quantity})`}
+                                                            </div>
+                                                            {isTableFullySelected && (
+                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                                                    Toàn bàn
+                                                                </span>
+                                                            )}
+                                                            {isTablePartiallySelected && (
+                                                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                                                                    Một phần
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {dish.orderTime && (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                Đặt lúc: {dish.orderTime}
+                                                            </div>
+                                                        )}
+                                                        {dish.note && (
+                                                            <div className="text-xs text-orange-600 mt-1">Ghi chú: {dish.note}</div>
+                                                        )}
+                                                        {dish.sizeName && (
+                                                            <div className="text-xs text-blue-600">Size: {dish.sizeName}</div>
+                                                        )}
+                                                        {dish.toppings && dish.toppings.length > 0 && (
+                                                            <div className="text-xs text-purple-600">
+                                                                Toppings: {dish.toppings.join(", ")}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                {dish.orderTime && (
-                                                    <div className="text-xs text-muted-foreground">
-                                                        Đặt lúc: {dish.orderTime}
-                                                    </div>
-                                                )}
-                                                {dish.note && (
-                                                    <div className="text-xs text-orange-600 mt-1">
-                                                        Ghi chú: {dish.note}
-                                                    </div>
-                                                )}
-                                                {dish.sizeName && (
-                                                    <div className="text-xs text-blue-600">
-                                                        Size: {dish.sizeName}
-                                                    </div>
-                                                )}
-                                                {dish.toppings && dish.toppings.length > 0 && (
-                                                    <div className="text-xs text-purple-600">
-                                                        Toppings: {dish.toppings.join(", ")}
-                                                    </div>
-                                                )}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        );
+                    })}
+
+                {filteredDishes.length > 0 && viewMode === "byTable" &&
+                    tableGroups.map((group) => {
+                        const tableSelectionStatus = getTableSelectionStatus(group.tableNumber);
+                        const checkboxState =
+                            tableSelectionStatus === "all"
+                                ? true
+                                : tableSelectionStatus === "partial"
+                                    ? "indeterminate"
+                                    : false;
+                        const isExpanded = expandedTables.has(group.tableNumber);
+
+                        return (
+                            <div
+                                key={group.tableNumber}
+                                className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+                            >
+                                <div className="px-4 py-3 flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            checked={checkboxState}
+                                            onCheckedChange={() => toggleTableSelection(group.tableNumber)}
+                                            className="size-5 border-2 border-blue-600 data-[state=checked]:bg-blue-600"
+                                        />
+                                        <div>
+                                            <div className="text-sm font-semibold text-gray-900">
+                                                Bàn {group.tableNumber}
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                                {group.totalCount} món · {group.selectedCount} món đã chọn
                                             </div>
                                         </div>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </div>
-                );
-            })}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="flex items-center justify-center h-8 w-8 rounded-full border border-gray-200 hover:bg-gray-100"
+                                        onClick={() => toggleTableExpansion(group.tableNumber)}
+                                        aria-label={isExpanded ? "Thu gọn" : "Mở rộng"}
+                                    >
+                                        {isExpanded ? (
+                                            <ChevronDown className="w-4 h-4" />
+                                        ) : (
+                                            <ChevronRight className="w-4 h-4" />
+                                        )}
+                                    </button>
+                                </div>
+                                {isExpanded && (
+                                    <div className="px-4 pb-4 space-y-3">
+                                        {group.dishes.map((dish) => {
+                                            const style = getCategoryStyle(dish.categoryName || "Khác");
+                                            const tableStatus = getTableSelectionStatus(dish.tableNumber);
+                                            const isTablePartiallySelected = tableStatus === "partial";
+                                            const isTableFullySelected = tableStatus === "all";
+                                            const isRobotLimitReached =
+                                                useRobotDelivery &&
+                                                activeTab === "bắt đầu phục vụ" &&
+                                                selectedCount >= robotTrayLimit;
+                                            const cannotSelectDish = !dish.selected && isRobotLimitReached;
+
+                                            return (
+                                                <div
+                                                    key={dish.id}
+                                                    className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} ${
+                                                        cannotSelectDish
+                                                            ? "opacity-50 cursor-not-allowed"
+                                                            : "cursor-pointer transition-all hover:bg-accent"
+                                                    } ${
+                                                        dish.selected
+                                                            ? "ring-2 ring-green-500 ring-offset-2 bg-green-50 border-green-300"
+                                                            : isTablePartiallySelected
+                                                                ? "ring-1 ring-yellow-400 ring-offset-1 bg-yellow-50 border-yellow-200"
+                                                                : cannotSelectDish
+                                                                    ? "bg-gray-100 border-gray-300"
+                                                                    : ""
+                                                    }`}
+                                                    onClick={() => !cannotSelectDish && handleDishClick(dish)}
+                                                    title={
+                                                        cannotSelectDish
+                                                            ? "🤖 Đã đạt giới hạn robot (3 món)"
+                                                            : undefined
+                                                    }
+                                                >
+                                                    <div
+                                                        className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${
+                                                            cannotSelectDish
+                                                                ? "cursor-not-allowed bg-gray-200 border-gray-400"
+                                                                : "cursor-pointer"
+                                                        } transition-colors ${
+                                                            dish.selected
+                                                                ? "bg-green-500 border-green-700"
+                                                                : isTablePartiallySelected
+                                                                    ? "bg-yellow-200 border-yellow-400"
+                                                                    : cannotSelectDish
+                                                                        ? "bg-gray-200 border-gray-400"
+                                                                        : "bg-white border-gray-300 hover:border-gray-400"
+                                                        }`}
+                                                        onClick={(e) => !cannotSelectDish && handleIndividualToggle(dish, e)}
+                                                    >
+                                                        {dish.selected && (
+                                                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path
+                                                                    fillRule="evenodd"
+                                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                                    clipRule="evenodd"
+                                                                />
+                                                            </svg>
+                                                        )}
+                                                        {isTablePartiallySelected && !dish.selected && (
+                                                            <div className="w-3 h-3 bg-yellow-600 rounded-full"></div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="text-sm font-medium text-foreground">
+                                                                {dish.name} - Bàn {dish.tableNumber}{" "}
+                                                                {dish.quantity > 1 && `(${dish.quantity})`}
+                                                            </div>
+                                                            {isTableFullySelected && (
+                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                                                    Toàn bàn
+                                                                </span>
+                                                            )}
+                                                            {isTablePartiallySelected && (
+                                                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                                                                    Một phần
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {dish.orderTime && (
+                                                            <div className="text-xs text-muted-foreground">Đặt lúc: {dish.orderTime}</div>
+                                                        )}
+                                                        {dish.note && (
+                                                            <div className="text-xs text-orange-600 mt-1">Ghi chú: {dish.note}</div>
+                                                        )}
+                                                        {dish.sizeName && (
+                                                            <div className="text-xs text-blue-600">Size: {dish.sizeName}</div>
+                                                        )}
+                                                        {dish.toppings && dish.toppings.length > 0 && (
+                                                            <div className="text-xs text-purple-600">
+                                                                Toppings: {dish.toppings.join(", ")}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+            </div>
 
             {activeTab.toString() === "đã phục vụ" && (
                 <div className="sticky bottom-0 left-0 right-0 bg-white border-t pt-3">
