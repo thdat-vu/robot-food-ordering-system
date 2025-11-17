@@ -460,15 +460,9 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
                         {activity.data && (
                           <div className="text-sm text-gray-600 mt-2 space-y-1">
-                            {activity.data.tableId && (
-                              <div>
-                                <span className="font-medium">Bàn:</span>{" "}
-                                {activity.data.tableId.substring(0, 16)}...
-                              </div>
-                            )}
                             {activity.data.tableName && (
                               <div>
-                                <span className="font-medium">Tên :</span>{" "}
+                                <span className="font-medium"></span>{" "}
                                 {activity.data.tableName}
                               </div>
                             )}
