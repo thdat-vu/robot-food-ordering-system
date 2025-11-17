@@ -388,15 +388,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   };
 
   const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
+    return dateString;
   };
 
   // --- Render ---
@@ -591,10 +583,10 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
             {propSessionId && totalPages > 1 && (
               <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
                 <p className="text-sm text-gray-700">
-                  Đang hiển thị **{(currentPage - 1) * ACTIVITIES_PER_PAGE + 1}
-                  ** đến **
+                  Đang hiển thị {(currentPage - 1) * ACTIVITIES_PER_PAGE + 1}
+                  đến
                   {Math.min(currentPage * ACTIVITIES_PER_PAGE, totalActivities)}
-                  ** trên tổng số **{totalActivities}** hoạt động
+                  {totalActivities}
                 </p>
                 <div className="flex gap-2">
                   <button

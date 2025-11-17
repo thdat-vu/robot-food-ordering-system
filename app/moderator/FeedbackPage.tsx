@@ -94,25 +94,26 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
 
   const loadFeedbackData = async () => {
     setIsLoading(true);
-    try {
-      const res = await run(idTable); // ví dụ res = { data: [], message: 'Không tìm thấy complain' }
-      console.log("Fetched feedback data 1:", res.data.data);
 
-      // 👉 Nếu data trống thì hiển thị message
-      if (!res.data || res.data.length === 0) {
-        if (res.message) {
-          addToast(res.message, `error`);
+    try {
+      const res = await run(idTable); // { data: FeedbackgGetTableId[], message: string }
+      const list = res?.data ?? [];
+      if (!list.length) {
+        // ví dụ: 404 = không có complain -> chỉ show info, hoặc im luôn
+        if (res.statusCodes && res.statusCodes !== "404" && res.message) {
+          addToast(res.message, "error");
         }
-        setData([]); // set rỗng để UI hiển thị "Không có phản hồi"
+        setData([]);
+        setIsLoading(false);
         return;
       }
 
-      // ✅ Có dữ liệu thì sắp xếp và hiển thị
-      const sorted = (res.data as FeedbackgGetTableId[]).sort((a, b) =>
+      const sorted = (list as FeedbackgGetTableId[]).sort((a, b) =>
         sortOrder === "newest"
           ? new Date(b.createData).getTime() - new Date(a.createData).getTime()
           : new Date(a.createData).getTime() - new Date(b.createData).getTime()
       );
+
       setData(sorted);
     } catch (error: any) {
       console.error("Error fetching feedback:", error);
@@ -123,7 +124,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
         error?.message ||
         "Lỗi không xác định khi tải feedback";
 
-      alert(errorMessage);
+      addToast(errorMessage, "error");
       setData([]);
     } finally {
       setIsLoading(false);
@@ -795,10 +796,18 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                           </div>
                           {/* Quick-serve status indicator */}
                           {(() => {
-                            const text = (feedback.feedBack || "").toLowerCase();
-                            const isQuickServeEligible = text.includes("nước mắm") || text.includes("nuoc mam") || text.includes("nước tương") || text.includes("nuoc tuong");
-                            const alreadySent = (feedback.resolutionNote || "").includes("Yêu cầu nhanh:");
-                            
+                            const text = (
+                              feedback.feedBack || ""
+                            ).toLowerCase();
+                            const isQuickServeEligible =
+                              text.includes("nước mắm") ||
+                              text.includes("nuoc mam") ||
+                              text.includes("nước tương") ||
+                              text.includes("nuoc tuong");
+                            const alreadySent = (
+                              feedback.resolutionNote || ""
+                            ).includes("Yêu cầu nhanh:");
+
                             if (isQuickServeEligible && alreadySent) {
                               return (
                                 <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
@@ -883,18 +892,24 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                       </div>
 
                       {/* Mark as Processed Button */}
-                      {feedback.isPending 
-                      && 
-                      (
+                      {feedback.isPending && (
                         <div className="flex justify-end gap-3">
                           {/* Send quick-serve request to waiter */}
                           {(() => {
-                            const text = (feedback.feedBack || "").toLowerCase();
-                            const isQuick = text.includes("nước mắm") || text.includes("nuoc mam") || text.includes("nước tương") || text.includes("nuoc tuong");
-                            const alreadySent = (feedback.resolutionNote || "").includes("Yêu cầu nhanh:");
-                            
+                            const text = (
+                              feedback.feedBack || ""
+                            ).toLowerCase();
+                            const isQuick =
+                              text.includes("nước mắm") ||
+                              text.includes("nuoc mam") ||
+                              text.includes("nước tương") ||
+                              text.includes("nuoc tuong");
+                            const alreadySent = (
+                              feedback.resolutionNote || ""
+                            ).includes("Yêu cầu nhanh:");
+
                             if (!isQuick) return null;
-                            
+
                             return (
                               <button
                                 onClick={async () => {
@@ -907,18 +922,25 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                                       `Yêu cầu nhanh: ${feedback.feedBack}`,
                                       true // keep isPending = true
                                     );
-                                    addToast("Đã gửi yêu cầu nhanh đến phục vụ", "success");
+                                    addToast(
+                                      "Đã gửi yêu cầu nhanh đến phục vụ",
+                                      "success"
+                                    );
                                     // Refresh list to reflect updated content/state
                                     await loadFeedbackData();
                                   } catch (e) {
-                                    addToast("Không thể gửi yêu cầu nhanh", "error");
+                                    addToast(
+                                      "Không thể gửi yêu cầu nhanh",
+                                      "error"
+                                    );
                                   }
                                 }}
                                 disabled={alreadySent}
                                 className={`px-5 py-2.5 rounded-xl transition-all duration-200 shadow-sm flex items-center space-x-2 font-semibold text-sm
-                                  ${alreadySent 
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                    : 'bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md transform hover:scale-105'
+                                  ${
+                                    alreadySent
+                                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                      : "bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md transform hover:scale-105"
                                   }`}
                               >
                                 {alreadySent ? (
@@ -959,8 +981,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                             )}
                           </button>
                         </div>
-                      )
-                      }
+                      )}
                     </div>
                   </div>
                 </div>

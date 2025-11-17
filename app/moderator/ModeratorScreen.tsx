@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Users,
   Clock,
@@ -13,11 +13,8 @@ import {
   CheckCircle2,
   Wallet,
   XCircle,
-  AlertTriangle,
   MessageSquareWarning,
 } from "lucide-react";
-import { MdOutlineDoneOutline } from "react-icons/md";
-import { FcCancel } from "react-icons/fc";
 
 import { useGetAllFeedbackHome } from "@/hooks/moderator/useFeedbackHooks";
 import { useToastModerator } from "@/hooks/use-toast-moderator";
@@ -34,30 +31,72 @@ type FilterStatus =
   | "occupied"
   | "paid";
 
-const ModeratorScreen: React.FC = () => {
-  const [data, setData] = useState<Record<string, TableData>>({});
-  const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
-  const [openDialog, setOpenDialog] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+/**
+ * ⏰ ClockCard: tách ra component riêng + React.memo
+ * -> chỉ component này re-render mỗi 1s, không kéo cả ModeratorScreen re-render.
+ */
+const ClockCard: React.FC = React.memo(() => {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const [idTable, setIdTable] = useState<string>("");
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [highlightedTable, setHighlightedTable] = useState<string>("");
-  const { run } = useGetAllFeedbackHome();
-  const { toasts, addToast, removeToast } = useToastModerator();
 
-  const [initialTab, setInitialTab] = useState("home");
-
-  // Update clock every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
+
     return () => clearInterval(timer);
   }, []);
 
+  const formatTime = (date: Date): string =>
+    date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+
+  const formatDate = (date: Date): string =>
+    date.toLocaleDateString("vi-VN", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+  return (
+    <div className="bg-white/20 backdrop-blur-lg rounded-2xl px-6 py-3 border border-white/30">
+      <div className="flex items-center space-x-2">
+        <Clock className="w-5 h-5 text-white" />
+        <div className="text-left">
+          <div className="text-white font-mono text-lg font-bold">
+            {formatTime(currentTime)}
+          </div>
+          <div className="text-white/80 text-xs">{formatDate(currentTime)}</div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const ModeratorScreen: React.FC = () => {
+  const [data, setData] = useState<Record<string, TableData>>({});
+  const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [idTable, setIdTable] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [highlightedTable, setHighlightedTable] = useState<string>("");
+  const [initialTab, setInitialTab] = useState<"home" | "feedback">("home");
+
+  const { run } = useGetAllFeedbackHome();
+  const { toasts, addToast, removeToast } = useToastModerator();
+
+  /**
+   * 🔄 Poll API mỗi 3 giây
+   * - Chỉ khởi tạo interval 1 lần khi mount
+   * - Không phụ thuộc vào các state khác => không bị chạy lại theo render
+   */
   useEffect(() => {
+    let isMounted = true;
+
     const loadData = async () => {
       try {
         const res = await run();
@@ -67,48 +106,57 @@ const ModeratorScreen: React.FC = () => {
           return;
         }
 
-        const newData = res.data;
+        const newData = (res as any).data;
 
         if (!newData || typeof newData !== "object") {
           console.warn("Invalid data from API:", newData);
           return;
         }
 
-        setData(newData);
+        if (!isMounted) return;
+
         setData((prev) => {
-          // ✅ tránh set lại nếu data giống y chang (giảm re-render)
           const same = JSON.stringify(prev) === JSON.stringify(newData);
           return same ? prev : (newData as Record<string, TableData>);
         });
       } catch (error) {
         console.error("Error loading data:", error);
-        addToast(
-          "Có lỗi xảy ra khi tải dữ liệu bàn. Vui lòng thử lại.",
-          "error"
-        );
+        if (isMounted) {
+          addToast(
+            "Có lỗi xảy ra khi tải dữ liệu bàn. Vui lòng thử lại.",
+            "error"
+          );
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
+    // gọi lần đầu khi mount
     loadData();
-    const interval = setInterval(loadData, 3000);
-    return () => clearInterval(interval);
-  }, [run, addToast]);
+    // sau đó poll mỗi 3s
+    const intervalId = setInterval(loadData, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, []);
 
   const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
-    setSelectedTable(null);
+    setInitialTab("home"); // reset tab về home khi đóng dialog
   }, []);
 
-  const handle = (id: string) => {
-    console.log("Table clicked:", id);
+  const handleOpenDialog = useCallback((id: string) => {
     setIdTable(id);
+    setInitialTab("home");
     setOpenDialog(true);
-  };
+  }, []);
 
-  // ✅ NEW: Determine table status based on counter values
-  // ✅ NEW: Determine table status based on counter values
+  // ✅ Determine table status dựa trên counters
   const getTableStatus = (tableData: TableData): FilterStatus => {
     const {
       totalItems,
@@ -118,29 +166,32 @@ const ModeratorScreen: React.FC = () => {
       tableStatus,
     } = tableData;
 
-    if (tableStatus == 0) {
+    if (tableStatus === 0) {
       return "empty";
     }
 
-    // Bàn trống - tất cả = 0
+    // Bàn có khách nhưng chưa gọi món
     if (tableStatus === 1 && totalItems === 0) {
       return "occupied";
     }
 
     // Đã thanh toán hết
-    if (paidCount === totalItems) {
+    if (totalItems > 0 && paidCount === totalItems) {
       return "paid";
     }
+
+    // Đã phục vụ và giao hết, chưa thanh toán
     if (
+      totalItems > 0 &&
       serveredCount === totalItems &&
-      paidCount === 0 &&
-      deliveredCount === totalItems
+      deliveredCount === totalItems &&
+      paidCount === 0
     ) {
       return "served";
     }
 
     // Đã giao hết (chưa thanh toán)
-    if (deliveredCount > 0 && deliveredCount === totalItems && paidCount == 0) {
+    if (totalItems > 0 && deliveredCount === totalItems && paidCount === 0) {
       return "delivered";
     }
 
@@ -148,51 +199,37 @@ const ModeratorScreen: React.FC = () => {
     if (totalItems > 0) {
       return "ordered";
     }
+
     return "empty";
   };
 
-  // ✅ NEW: Get table color based on status
   const getTableColor = (tableData: TableData): string => {
     const status = getTableStatus(tableData);
 
     switch (status) {
       case "empty":
-        // Trắng - Bàn trống
         return "bg-gradient-to-br from-white to-gray-100 shadow-lg shadow-gray-200/50 border-2 border-gray-200";
-
-      // đã có khach
       case "occupied":
-        // Màu vàng nhạt - Bàn có khách ngồi
         return "bg-gradient-to-br from-gray-100 via-gray-200 to-gray-600 shadow-lg shadow-gray-600/40 border-2 border-gray-400";
-
       case "ordered":
-        // Xanh dương - Đã order, đang xử lý
         return "bg-gradient-to-br from-blue-400 to-blue-500 shadow-lg shadow-blue-500/40 animate-pulse border-2 border-blue-300";
-
       case "delivered":
-        // Vàng cam - Đã phục vụ, chờ giao
         return "bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-orange-500/40 animate-pulse border-2 border-orange-300";
-
       case "served":
-        // Tím - Đã giao hết, chờ thanh toán
         return "bg-gradient-to-br from-purple-400 to-purple-500 shadow-lg shadow-purple-500/40 border-2 border-purple-300";
-
       case "paid":
-        // Xanh lá - Đã thanh toán hết
         return "bg-gradient-to-br from-green-400 to-green-500 shadow-lg shadow-green-500/40 border-2 border-green-300";
-
       default:
         return "bg-gradient-to-br from-white to-gray-100 shadow-lg shadow-gray-200/50 border-2 border-gray-200";
     }
   };
 
-  // ✅ NEW: Get text color based on status
   const getTextColor = (tableData: TableData): string => {
     const status = getTableStatus(tableData);
     return status === "empty" ? "text-gray-800" : "text-white";
   };
 
-  // Handle search functionality
+  // 🔍 Search theo số bàn
   const handleSearch = useCallback(
     (query: string) => {
       setSearchQuery(query);
@@ -201,18 +238,13 @@ const ModeratorScreen: React.FC = () => {
         return;
       }
 
-      // Find matching table
-      const matchingTable = Object.entries(data).find(
-        ([tableId, tableData]) => {
-          console.log("Searching for table:", data);
-          const tableNumber = tableData.tableName.replace(/\D/g, "");
-          return tableNumber === query.trim();
-        }
-      );
+      const matchingTable = Object.entries(data).find(([, tableData]) => {
+        const tableNumber = tableData.tableName.replace(/\D/g, "");
+        return tableNumber === query.trim();
+      });
 
       if (matchingTable) {
         setHighlightedTable(matchingTable[0]);
-        // Scroll to the highlighted table
         setTimeout(() => {
           const element = document.getElementById(`table-${matchingTable[0]}`);
           if (element) {
@@ -231,57 +263,60 @@ const ModeratorScreen: React.FC = () => {
     setHighlightedTable("");
   }, []);
 
-  const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  };
+  // ✅ MEMO HOÁ: danh sách sau filter + sort
+  const processedData = useMemo(
+    () =>
+      Object.entries(data)
+        .filter(([, tableData]) =>
+          filterStatus === "all"
+            ? true
+            : getTableStatus(tableData) === filterStatus
+        )
+        .sort(([, a], [, b]) => {
+          const getNumber = (name: string) => {
+            const match = name.match(/\d+/);
+            return match ? parseInt(match[0], 10) : 0;
+          };
+          return getNumber(a.tableName) - getNumber(b.tableName);
+        }),
+    [data, filterStatus]
+  );
 
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString("vi-VN", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+  const totalTables = useMemo(() => Object.keys(data).length, [data]);
 
-  // ✅ NEW: Filter data based on selected filter
-  const filteredData = Object.entries(data).filter(([tableId, tableData]) => {
-    if (filterStatus === "all") return true;
-    return getTableStatus(tableData) === filterStatus;
-  });
+  const statusCounts = useMemo(
+    () => ({
+      empty: Object.values(data).filter(
+        (table) => getTableStatus(table) === "empty"
+      ).length,
+      ordered: Object.values(data).filter(
+        (table) => getTableStatus(table) === "ordered"
+      ).length,
+      served: Object.values(data).filter(
+        (table) => getTableStatus(table) === "served"
+      ).length,
+      delivered: Object.values(data).filter(
+        (table) => getTableStatus(table) === "delivered"
+      ).length,
+      paid: Object.values(data).filter(
+        (table) => getTableStatus(table) === "paid"
+      ).length,
+    }),
+    [data]
+  );
 
-  const totalTables = Object.keys(data).length;
+  const activeTables = useMemo(
+    () => totalTables - statusCounts.empty,
+    [totalTables, statusCounts.empty]
+  );
 
-  // ✅ NEW: Calculate statistics for each status
-  const statusCounts = {
-    empty: Object.values(data).filter(
-      (table) => getTableStatus(table) === "empty"
-    ).length,
-    ordered: Object.values(data).filter(
-      (table) => getTableStatus(table) === "ordered"
-    ).length,
-    served: Object.values(data).filter(
-      (table) => getTableStatus(table) === "served"
-    ).length,
-    delivered: Object.values(data).filter(
-      (table) => getTableStatus(table) === "delivered"
-    ).length,
-    paid: Object.values(data).filter(
-      (table) => getTableStatus(table) === "paid"
-    ).length,
-  };
-
-  // ✅ Calculate total active tables (not empty)
-  const activeTables = totalTables - statusCounts.empty;
-
-  // ✅ Calculate total items across all tables
-  const totalItemsAllTables = Object.values(data).reduce(
-    (sum, table) => sum + (table.totalItems || 0),
-    0
+  const totalItemsAllTables = useMemo(
+    () =>
+      Object.values(data).reduce(
+        (sum, table) => sum + (table.totalItems || 0),
+        0
+      ),
+    [data]
   );
 
   if (isLoading) {
@@ -349,7 +384,7 @@ const ModeratorScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* ✅ NEW: Chú thích trạng thái - Updated colors */}
+            {/* Chú thích màu sắc */}
             <div className="absolute left-0 top-12 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 space-y-2 text-sm border border-white/50">
               <h3 className="font-bold text-gray-800 mb-3 text-base">
                 📋 Chú thích màu sắc
@@ -400,15 +435,12 @@ const ModeratorScreen: React.FC = () => {
           {/* Search Bar */}
           <div className="flex justify-center mb-8 px-4">
             <div className="relative w-full max-w-lg group">
-              {/* Main search container - NO BORDER */}
               <div className="relative flex items-center bg-gradient-to-r from-purple-600/30 via-pink-500/30 to-purple-600/30 backdrop-blur-2xl rounded-3xl px-5 sm:px-7 py-3 sm:py-4 transition-all duration-500 group-hover:scale-[1.02]">
-                {/* Search icon with animation */}
                 <div className="relative">
                   <Search className="w-5 h-5 sm:w-6 sm:h-6 text-purple-100 mr-3 sm:mr-4 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-purple-400 rounded-full blur-md opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
                 </div>
 
-                {/* Input field - NO BORDER/OUTLINE */}
                 <input
                   type="text"
                   placeholder="✨ Tìm kiếm bàn của bạn..."
@@ -417,7 +449,6 @@ const ModeratorScreen: React.FC = () => {
                   className="flex-1 bg-transparent border-none outline-none ring-0 focus:ring-0 focus:border-none text-white placeholder-purple-100/70 text-sm sm:text-base font-medium min-w-0 tracking-wide"
                 />
 
-                {/* Clear button with animation */}
                 {searchQuery && (
                   <button
                     onClick={clearSearch}
@@ -429,32 +460,19 @@ const ModeratorScreen: React.FC = () => {
                 )}
               </div>
 
-              {/* Animated gradient glow */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-pink-500/20 to-purple-600/20 rounded-3xl blur-2xl -z-10 opacity-60 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
 
-              {/* Bottom shine effect */}
               <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
             </div>
           </div>
+
           <p className="text-white/90 text-lg font-medium mb-4">
             Theo dõi trạng thái các bàn real-time
           </p>
 
-          {/* ✅ NEW: Stats cards - Updated */}
+          {/* Stats cards */}
           <div className="flex flex-wrap justify-center gap-4 mb-6">
-            <div className="bg-white/20 backdrop-blur-lg rounded-2xl px-6 py-3 border border-white/30">
-              <div className="flex items-center space-x-2">
-                <Clock className="w-5 h-5 text-white" />
-                <div className="text-left">
-                  <div className="text-white font-mono text-lg font-bold">
-                    {formatTime(currentTime)}
-                  </div>
-                  <div className="text-white/80 text-xs">
-                    {formatDate(currentTime)}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ClockCard />
 
             <div className="bg-white/20 backdrop-blur-lg rounded-2xl px-6 py-3 border border-white/30">
               <div className="flex items-center space-x-2">
@@ -483,7 +501,7 @@ const ModeratorScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* ✅ NEW: Filter Buttons - Updated */}
+          {/* Filter Buttons */}
           <div className="flex flex-wrap justify-center gap-2 mb-6">
             <button
               onClick={() => setFilterStatus("all")}
@@ -559,186 +577,161 @@ const ModeratorScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* ✅ Table Grid - Updated with new colors */}
+        {/* Table Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
-          {filteredData
-            .sort(([, a], [, b]) => {
-              const getNumber = (name: string) => {
-                const match = name.match(/\d+/);
-                return match ? parseInt(match[0], 10) : 0;
-              };
-              return getNumber(a.tableName) - getNumber(b.tableName);
-            })
-            .map(([tableId, tableData]) => {
-              console.log("Rendering table:", tableId, tableData);
-              const isHighlighted = highlightedTable === tableId;
-              const textColor = getTextColor(tableData);
-              const cardColor = getTableColor(tableData);
+          {processedData.map(([tableId, tableData]) => {
+            const isHighlighted = highlightedTable === tableId;
+            const textColor = getTextColor(tableData);
+            const cardColor = getTableColor(tableData);
 
-              return (
+            return (
+              <div
+                key={tableId}
+                id={`table-${tableId}`}
+                className={`group relative aspect-square rounded-3xl flex flex-col items-center justify-center 
+                  cursor-pointer transition-all duration-300 transform hover:scale-105 hover:rotate-1
+                  ${cardColor}`}
+                onClick={() => handleOpenDialog(tableId)}
+              >
+                {tableData.counter > 0 && (
+                  <div
+                    className="absolute top-2 right-2 z-[100] cursor-pointer hover:scale-110 transition-transform bg-white/10 rounded-full p-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInitialTab("feedback");
+                      setIdTable(tableId);
+                      setOpenDialog(true);
+                    }}
+                  >
+                    <div className="relative">
+                      <MessageSquareWarning
+                        size={22}
+                        className="text-orange-500 drop-shadow-[0_0_6px_rgba(255,165,0,0.8)]"
+                        strokeWidth={2.5}
+                      />
+                      <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[8px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center shadow-lg border border-white">
+                        {tableData.counter}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div
-                  key={tableId}
-                  id={`table-${tableId}`}
-                  className={`
-                                        group relative aspect-square rounded-3xl flex flex-col items-center justify-center 
-                                        cursor-pointer transition-all duration-300 transform hover:scale-105 hover:rotate-1
-                                        ${cardColor}
-                                    `}
-                  onClick={() => handle(tableId)}
+                  className={`text-xl md:text-2xl lg:text-3xl font-bold mb-2 text-center ${textColor}`}
                 >
-                  {tableData.counter > 0 && (
+                  {tableData.tableName}
+                </div>
+
+                <div
+                  className={`text-4xl md:text-5xl lg:text-6xl font-black ${textColor}`}
+                >
+                  {tableData.totalItems || 0}
+                </div>
+
+                <div
+                  className={`text-sm md:text-base font-bold text-center ${textColor}`}
+                >
+                  Món ăn
+                </div>
+
+                {tableData.tableStatus !== 0 && (
+                  <div className="flex items-center gap-1 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm flex-shrink-0">
+                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm">
+                      <ChefHat size={12} className="flex-shrink-0" />
+                      <span>
+                        {tableData.deliveredCount || 0}/
+                        {tableData.totalItems || 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm">
+                      <UserCheck size={12} className="flex-shrink-0" />
+                      <span>
+                        {tableData.serveredCount || 0}/
+                        {tableData.totalItems || 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm flex-shrink-0">
+                      {(() => {
+                        switch (tableData.paymentStatus) {
+                          case 1:
+                            return (
+                              <>
+                                <Wallet className="w-4 h-4" />
+                                <XCircle className="w-4 h-4 text-red-900 " />
+                              </>
+                            );
+                          case 2:
+                            return (
+                              <>
+                                <Wallet className="w-4 h-4" />
+                                <CheckCircle2 className="w-4 h-4" />
+                              </>
+                            );
+                          case 3:
+                          case 4:
+                            return (
+                              <>
+                                <Wallet className="w-4 h-4" />
+                                <XCircle className="w-4 h-4" />
+                              </>
+                            );
+                          default:
+                            return null;
+                        }
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {isHighlighted && (
+                  <>
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-green-500 via-cyan-400 to-green-500 text-black text-sm px-4 py-1 rounded-full font-bold shadow-2xl border-2 border-white animate-bounce z-10">
+                      🎯 TÌM THẤY 🎯
+                    </div>
+
+                    <div className="absolute inset-0 rounded-3xl border-4 border-transparent">
+                      <div className="absolute inset-0 rounded-3xl border-4 border-cyan-400 animate-[borderRun_2s_linear_infinite]"></div>
+                    </div>
+
+                    <div className="absolute -inset-2 bg-gradient-to-r from-cyan-400/20 via-transparent to-green-400/20 rounded-3xl animate-pulse"></div>
+
+                    <div className="absolute -top-2 -left-2 w-4 h-4 border-l-2 border-t-2 border-cyan-400 animate-pulse"></div>
                     <div
-                      className="absolute top-2 right-2 z-[100] cursor-pointer hover:scale-110 transition-transform bg-white/10 rounded-full p-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log("Counter clicked!");
-                        setInitialTab("feedback");
-                        setIdTable(tableId);
-                        setOpenDialog(true);
-                      }}
-                    >
-                      <div className="relative">
-                        <MessageSquareWarning
-                          size={22}
-                          className="text-orange-500 drop-shadow-[0_0_6px_rgba(255,165,0,0.8)]"
-                          strokeWidth={2.5}
-                        />
-                        <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[8px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center shadow-lg border border-white">
-                          {tableData.counter}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {/* Table Name */}
-                  <div
-                    className={`text-xl md:text-2xl lg:text-3xl font-bold mb-2 text-center ${textColor}`}
-                  >
-                    {tableData.tableName}
-                  </div>
+                      className="absolute -top-2 -right-2 w-4 h-4 border-r-2 border-t-2 border-green-400 animate-pulse"
+                      style={{ animationDelay: "0.25s" }}
+                    ></div>
+                    <div
+                      className="absolute -bottom-2 -right-2 w-4 h-4 border-r-2 border-b-2 border-yellow-400 animate-pulse"
+                      style={{ animationDelay: "0.5s" }}
+                    ></div>
+                    <div
+                      className="absolute -bottom-2 -left-2 w-4 h-4 border-l-2 border-b-2 border-red-400 animate-pulse"
+                      style={{ animationDelay: "0.75s" }}
+                    ></div>
 
-                  <div
-                    className={`text-4xl md:text-5xl lg:text-6xl font-black ${textColor}`}
-                  >
-                    {tableData.totalItems || 0}
-                  </div>
-
-                  <div
-                    className={`text-sm md:text-base font-bold text-center ${textColor}`}
-                  >
-                    Món ăn
-                  </div>
-
-                  {/* ✅ Bottom Status Indicators */}
-
-                  {tableData.tableStatus != 0 && (
-                    <div className="flex items-center gap-1  backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm flex-shrink-0">
-                      <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm">
-                        <ChefHat size={12} className="flex-shrink-0" />
-                        <span>
-                          {tableData.deliveredCount || 0}/
-                          {tableData.totalItems || 0}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm">
-                        <UserCheck size={12} className="flex-shrink-0" />
-                        <span>
-                          {tableData.serveredCount || 0}/
-                          {tableData.totalItems || 0}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm flex-shrink-0">
-                        {(() => {
-                          switch (tableData.paymentStatus) {
-                            case 1:
-                              return (
-                                <>
-                                  <Wallet className="w-4 h-4" />
-                                  <XCircle className="w-4 h-4 text-red-900 " />
-                                </>
-                              );
-                            case 2:
-                              return (
-                                <>
-                                  <Wallet className="w-4 h-4" />
-                                  <CheckCircle2 className="w-4 h-4" />
-                                </>
-                              );
-                            case 3:
-                              return (
-                                <>
-                                  <Wallet className="w-4 h-4" />
-                                  <XCircle className="w-4 h-4" />
-                                </>
-                              );
-                            case 4:
-                              return (
-                                <>
-                                  <Wallet className="w-4 h-4" />
-                                  <XCircle className="w-4 h-4" />
-                                </>
-                              );
-                          }
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {isHighlighted && (
-                    <>
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-green-500 via-cyan-400 to-green-500 text-black text-sm px-4 py-1 rounded-full font-bold shadow-2xl border-2 border-white animate-bounce z-10">
-                        🎯 TÌM THẤY 🎯
-                      </div>
-
-                      {/* Animated border */}
-                      <div className="absolute inset-0 rounded-3xl border-4 border-transparent">
-                        <div className="absolute inset-0 rounded-3xl border-4 border-cyan-400 animate-[borderRun_2s_linear_infinite]"></div>
-                      </div>
-
-                      {/* Pulsing energy field */}
-                      <div className="absolute -inset-2 bg-gradient-to-r from-cyan-400/20 via-transparent to-green-400/20 rounded-3xl animate-pulse"></div>
-
-                      {/* Corner markers */}
-                      <div className="absolute -top-2 -left-2 w-4 h-4 border-l-2 border-t-2 border-cyan-400 animate-pulse"></div>
+                    <div className="absolute inset-0 overflow-hidden rounded-3xl">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
                       <div
-                        className="absolute -top-2 -right-2 w-4 h-4 border-r-2 border-t-2 border-green-400 animate-pulse"
-                        style={{ animationDelay: "0.25s" }}
-                      ></div>
-                      <div
-                        className="absolute -bottom-2 -right-2 w-4 h-4 border-r-2 border-b-2 border-yellow-400 animate-pulse"
+                        className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-pulse"
                         style={{ animationDelay: "0.5s" }}
                       ></div>
-                      <div
-                        className="absolute -bottom-2 -left-2 w-4 h-4 border-l-2 border-b-2 border-red-400 animate-pulse"
-                        style={{ animationDelay: "0.75s" }}
-                      ></div>
+                    </div>
+                  </>
+                )}
 
-                      {/* Scanning lines */}
-                      <div className="absolute inset-0 overflow-hidden rounded-3xl">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
-                        <div
-                          className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-pulse"
-                          style={{ animationDelay: "0.5s" }}
-                        ></div>
-                      </div>
-                    </>
-                  )}
-
-                  <div className="absolute inset-0 bg-white/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-              );
-            })}
+                <div className="absolute inset-0 bg-white/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       <DialogModeratorMainPage
         open={openDialog}
-        onClose={() => {
-          setOpenDialog(false);
-          setInitialTab("home");
-        }}
+        onClose={handleCloseDialog}
         idTable={idTable}
         tableSessionId={data?.[idTable]?.sessionId}
-        tableName={data?.[idTable]?.tableName ?? "Bàn"} // ✅
+        tableName={data?.[idTable]?.tableName ?? "Bàn"}
         initialTab={initialTab}
       />
     </div>
