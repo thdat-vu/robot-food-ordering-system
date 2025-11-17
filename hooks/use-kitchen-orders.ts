@@ -1,7 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Order, OrderStatus, OrderCounts, GroupedOrders, RemainingItems } from '@/types/kitchen';
 import { MOCK_ORDERS, SIDEBAR_ANIMATION_DURATION } from '@/constants/kitchen-data';
 import { chefService } from '@/service/chef/chefService';
+import { useSignalR } from '@/hooks/useSignalR';
+import { getApiUrl } from '@/env.config';
 
 export function useKitchenOrders() {
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
@@ -12,6 +14,13 @@ export function useKitchenOrders() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [idMappings, setIdMappings] = useState<any[]>([]);
+  const realtimeFetchInFlight = useRef(false);
+
+  const signalRHubUrl = useMemo(() => {
+    const apiUrl = getApiUrl();
+    const normalizedBase = apiUrl.replace(/\/api\/?$/, '');
+    return `${normalizedBase}/orderNotificationHub`;
+  }, []);
 
   // Fetch orders from API
   const fetchOrders = useCallback(async () => {
@@ -53,6 +62,39 @@ export function useKitchenOrders() {
       // Don't set error for silent refresh to avoid UI disruption
     }
   }, []);
+
+  const triggerRealtimeRefresh = useCallback(async () => {
+    if (realtimeFetchInFlight.current) {
+      return;
+    }
+    realtimeFetchInFlight.current = true;
+    try {
+      await silentFetchOrders();
+    } finally {
+      realtimeFetchInFlight.current = false;
+    }
+  }, [silentFetchOrders]);
+
+  const hubMethods = useMemo(
+    () => ({
+      OrderItemStatusChanged: () => {
+        triggerRealtimeRefresh();
+      },
+      OrderStatusChanged: () => {
+        triggerRealtimeRefresh();
+      },
+      KitchenNotification: () => {
+        triggerRealtimeRefresh();
+      },
+    }),
+    [triggerRealtimeRefresh]
+  );
+
+  const { isConnected: isRealtimeConnected } = useSignalR({
+    url: signalRHubUrl,
+    groupName: 'Kitchen',
+    hubMethods,
+  });
 
   // Load orders on component mount
   useEffect(() => {
@@ -374,6 +416,7 @@ export function useKitchenOrders() {
     handleRejectRedoRequest,
     handleCancelOrder,
     refreshOrders,
+    isRealtimeConnected,
     
     // Helpers
     shouldShowInSidebar,
