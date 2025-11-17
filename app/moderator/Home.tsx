@@ -22,7 +22,7 @@ import { ToastContainer } from "@/components/moderator/ToastContainer";
 import OrderDetailDialog from "@/components/moderator/OrderDetailDialog";
 import { OrderData } from "@/entites/moderator/tableModel";
 
-interface TableDetail {
+export interface TableDetail {
   id: string;
   name: string;
   status: number;
