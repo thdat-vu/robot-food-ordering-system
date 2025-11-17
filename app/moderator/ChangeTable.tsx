@@ -8,7 +8,15 @@ import {
   useGetALlTable,
 } from "@/hooks/moderator/useTableHooks";
 import { item, messss, Response } from "@/api/moderator/TableApi";
-import { useRouter } from "next/navigation";
+
+// 🔹 Danh sách lý do gợi ý cho việc chuyển bàn
+const REASON_OPTIONS: string[] = [
+  "Khách muốn chỗ yên tĩnh hơn",
+  "Khách muốn gần cửa sổ / view đẹp hơn",
+  "Khách muốn gần quầy bar / khu vực trung tâm",
+  "Bàn hiện tại gặp vấn đề (ghế, bàn, vệ sinh...)",
+  "Điều phối lại sơ đồ bàn cho hợp lý",
+];
 
 type Props = {
   id: string;
@@ -21,7 +29,9 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
 
   const [tableData, setTableData] = useState<TableDetail | null>(null);
   const [listEmptyTable, setListEmptyTable] = useState<item[]>([]);
-  const [reason, setReason] = useState("");
+
+  // 🔹 reason giờ là 1 string được chọn từ REASON_OPTIONS, không cho nhập tay
+  const [reason, setReason] = useState<string>("");
   const [newTable, setNewTable] = useState<string>("");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -34,17 +44,11 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
 
   const { run: runGetAllTable } = useGetALlTable();
   const { run: runChangeTable } = useChangeTableApi();
-  const router = useRouter();
 
-  // 🔹 Validate reason
+  // 🔹 Validate reason (chỉ chọn từ gợi ý, không cho nhập tay)
   const trimmedReason = reason.trim();
-  const reasonLength = trimmedReason.length;
-
-  const isReasonEmpty = reasonLength === 0;
-  const isReasonTooShort = reasonLength > 0 && reasonLength < 5;
-  const isReasonTooLong = reasonLength > 500; // phòng trường hợp input khác không dùng maxLength
-  const isReasonValid =
-    reasonLength >= 5 && reasonLength <= 500 && !isReasonTooLong;
+  const isReasonEmpty = trimmedReason.length === 0;
+  const isReasonValid = !isReasonEmpty;
 
   // Lấy thông tin bàn hiện tại
   const fetchTableDetail = async () => {
@@ -88,17 +92,7 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
     }
 
     if (isReasonEmpty) {
-      addToast("Vui lòng nhập lý do chuyển bàn!", "error");
-      return;
-    }
-
-    if (isReasonTooShort) {
-      addToast("Lý do phải ít nhất 5 ký tự!", "error");
-      return;
-    }
-
-    if (isReasonTooLong) {
-      addToast("Lý do không được vượt quá 500 ký tự!", "error");
+      addToast("Vui lòng chọn lý do chuyển bàn!", "error");
       return;
     }
 
@@ -133,22 +127,6 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
       setShowResultDialog(true);
     }
   };
-
-  // Helper text cho ô reason
-  const getReasonHelperText = () => {
-    if (isReasonEmpty) {
-      return "Vui lòng nhập lý do chuyển bàn.";
-    }
-    if (isReasonTooShort) {
-      return "Lý do phải ít nhất 5 ký tự.";
-    }
-    if (isReasonTooLong) {
-      return "Lý do không được vượt quá 500 ký tự.";
-    }
-    return "Lý do hợp lệ.";
-  };
-
-  const isReasonError = isReasonEmpty || isReasonTooShort || isReasonTooLong;
 
   return (
     <div className="w-full h-full bg-gray-50 py-8 px-5 relative">
@@ -209,38 +187,62 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
         </div>
       </div>
 
-      {/* Reason */}
-      <div className="mt-12 flex flex-col items-center">
-        <input
-          type="text"
-          placeholder="Lý do chuyển bàn..."
-          value={reason}
-          maxLength={500}
-          onChange={(e) => setReason(e.target.value)}
-          disabled={isLoading}
-          className={`w-3/4 p-4 text-lg border-2 rounded-xl shadow focus:outline-none focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${
-            isReasonError && reasonLength > 0
-              ? "border-red-400"
-              : "border-gray-300"
-          }`}
-        />
+      {/* Reason - chọn từ gợi ý */}
+      <div className="mt-12 flex flex-col items-center gap-4">
+        <div className="w-3/4 flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Chọn lý do chuyển bàn
+          </h2>
+          <span className="text-sm text-gray-500">Bắt buộc chọn 1 lý do</span>
+        </div>
 
-        <div className="mt-2 w-3/4 flex items-center justify-between text-sm">
+        <div className="w-3/4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          {REASON_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setReason(option)}
+              disabled={isLoading}
+              className={`flex items-center justify-between w-full text-left p-3 rounded-xl border transition-all
+                ${
+                  reason === option
+                    ? "bg-blue-500 text-white border-blue-600 shadow-md"
+                    : "bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200"
+                }
+                ${
+                  isLoading ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
+                }
+              `}
+            >
+              <span className="text-sm">{option}</span>
+              {reason === option && (
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-1 w-3/4 text-sm">
           <span
             className={
-              isReasonError ? "text-red-600 font-medium" : "text-gray-500"
+              isReasonEmpty ? "text-red-600 font-medium" : "text-gray-500"
             }
           >
-            {getReasonHelperText()}
-          </span>
-          <span
-            className={
-              reasonLength > 500
-                ? "text-red-600 font-semibold"
-                : "text-gray-500"
-            }
-          >
-            {reasonLength}/500
+            {isReasonEmpty
+              ? "Vui lòng chọn lý do trước khi xác nhận."
+              : "Lý do hợp lệ."}
           </span>
         </div>
       </div>

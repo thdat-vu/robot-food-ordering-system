@@ -536,6 +536,12 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                   {activity.data.toTableName}
                                 </div>
                               )}
+                            {activity.data.reason && (
+                              <div className="text-sm text-gray-600">
+                                <span className="font-medium">Lý do:</span>{" "}
+                                {activity.data.reason}
+                              </div>
+                            )}
                             {activity.data.shareCode && (
                               <div>
                                 <span className="font-medium">Mã chia sẻ:</span>{" "}

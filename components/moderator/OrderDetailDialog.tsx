@@ -39,6 +39,45 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
   const [reason, setReason] = useState<string>("");
   const [showFinalConfirm, setShowFinalConfirm] = useState<boolean>(false);
 
+  // 🔹 Lý do hợp lệ khi khác rỗng
+  const isReasonValid = reason.trim().length > 0;
+
+  // 🔹 Tính thống kê từ orders để cảnh báo
+  const orderStats = React.useMemo(() => {
+    let totalOrders = orders.length;
+    let totalItems = 0;
+    let notServedItems = 0;
+
+    orders.forEach((order) => {
+      const o: any = order as any;
+
+      // tuỳ cấu trúc OrderData của bạn: items / orderItems / orderDetails...
+      const items: any[] = o.items ?? o.orderItems ?? o.orderDetails ?? [];
+
+      items.forEach((item: any) => {
+        const qty: number = item.quantity ?? item.qty ?? 1;
+        totalItems += qty;
+
+        const st = (item.status ?? item.itemStatus ?? "")
+          .toString()
+          .toLowerCase();
+
+        const isServed = st === "served" || st === "delivered" || st === "done";
+        const isCancelled = st === "cancelled" || st === "void";
+
+        if (!isServed && !isCancelled) {
+          notServedItems += qty;
+        }
+      });
+    });
+
+    return { totalOrders, totalItems, notServedItems };
+  }, [orders]);
+
+  const normalizedNewStatus = newStatus.toString().toLowerCase();
+  const isSwitchingToEmpty =
+    normalizedNewStatus === "0" || normalizedNewStatus === "available";
+
   // Early return if not open or no table
   if (!isOpen || !table) return null;
 
@@ -47,16 +86,17 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
   };
 
   const handleConfirmClick = () => {
-    // Mở dialog xác nhận Yes/No
+    // Chỉ mở dialog confirm cuối nếu đã có lý do
+    if (!isReasonValid) return;
     setShowFinalConfirm(true);
   };
 
   const handleFinalYes = () => {
     // Xác nhận cuối cùng - thực hiện thay đổi
-    const finalReason = reason.trim() || "Không có lý do cụ thể";
+    const finalReason = reason.trim();
+    if (!finalReason) return; // phòng hờ
     setShowFinalConfirm(false);
     onConfirmStatusChange(finalReason);
-    setReason(finalReason);
     console.log("Final Reason:", finalReason);
   };
 
@@ -154,7 +194,108 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
             style={{ maxHeight: "calc(95vh - 200px)" }}
           >
             <div className="space-y-6">
-              {/* Order Card Component */}
+              {/* 🔹 Warning từ OrderData khi chuẩn bị chuyển sang Trống */}
+              {isSwitchingToEmpty && orderStats.totalOrders > 0 && (
+                <div
+                  className={`rounded-2xl border px-4 py-3 flex items-start gap-3 ${
+                    orderStats.notServedItems > 0
+                      ? "bg-red-50 border-red-200"
+                      : "bg-emerald-50 border-emerald-200"
+                  }`}
+                >
+                  <AlertCircle
+                    className={`mt-1 w-6 h-6 ${
+                      orderStats.notServedItems > 0
+                        ? "text-red-600"
+                        : "text-emerald-600"
+                    }`}
+                  />
+
+                  <div className="text-sm sm:text-base text-left leading-relaxed">
+                    {orderStats.notServedItems > 0 ? (
+                      <>
+                        <p className="font-bold text-red-800 uppercase tracking-wide">
+                          ⚠️ Bàn này vẫn{" "}
+                          <span className="underline">
+                            CHƯA HOÀN TẤT PHỤC VỤ
+                          </span>
+                        </p>
+
+                        <p className="text-red-800 mt-2">
+                          <span className="font-semibold">Hiện có</span>{" "}
+                          <span className="font-extrabold text-red-900">
+                            {orderStats.totalOrders} order
+                          </span>
+                          {orderStats.totalItems > 0 && (
+                            <>
+                              {" "}
+                              với khoảng{" "}
+                              <span className="font-extrabold text-red-900">
+                                {orderStats.totalItems} món
+                              </span>
+                            </>
+                          )}
+                          .
+                        </p>
+
+                        <p className="text-red-800 mt-1">
+                          Trong đó còn{" "}
+                          <span className="font-extrabold text-red-900 underline">
+                            {orderStats.notServedItems} món CHƯA được đánh dấu
+                            đã phục vụ / hoàn tất
+                          </span>
+                          .
+                        </p>
+
+                        <p className="text-red-700 mt-2">
+                          Vui lòng{" "}
+                          <span className="font-bold underline">
+                            kiểm tra lại order và món ăn
+                          </span>{" "}
+                          trước khi chuyển trạng thái bàn sang{" "}
+                          <span className="font-extrabold text-red-900">
+                            TRỐNG
+                          </span>
+                          .
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-bold text-emerald-800 uppercase tracking-wide">
+                          ✅ Tất cả món đã được đánh dấu hoàn tất
+                        </p>
+
+                        <p className="text-emerald-800 mt-2">
+                          Bàn đang có{" "}
+                          <span className="font-extrabold text-emerald-900">
+                            {orderStats.totalOrders} order
+                          </span>
+                          {orderStats.totalItems > 0 && (
+                            <>
+                              {" "}
+                              với tổng khoảng{" "}
+                              <span className="font-extrabold text-emerald-900">
+                                {orderStats.totalItems} món
+                              </span>
+                              .
+                            </>
+                          )}
+                        </p>
+
+                        <p className="text-emerald-700 mt-2">
+                          Bạn có thể{" "}
+                          <span className="font-bold underline">
+                            an tâm chuyển trạng thái bàn sang TRỐNG
+                          </span>
+                          .
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Order Card Component (nếu cần mở lại) */}
               {/* <OrderCard
                 tableId={table.id}
                 orders={orders}
@@ -173,6 +314,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
                 subtitle={reasonSubtitle}
                 showCharacterCount={true}
                 maxLength={500}
+                required={true}
               />
             </div>
           </div>
@@ -192,7 +334,13 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
 
             <button
               onClick={handleConfirmClick}
-              className="group w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-2xl hover:from-emerald-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center font-semibold text-sm sm:text-base transform hover:scale-105"
+              disabled={!isReasonValid}
+              className={`group w-full sm:w-auto px-8 py-3 rounded-2xl font-semibold text-sm sm:text-base flex items-center justify-center transition-all duration-300
+                ${
+                  !isReasonValid
+                    ? "bg-gray-300 text-gray-500 border border-gray-300/60 cursor-not-allowed"
+                    : "bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:scale-105"
+                }`}
             >
               <CheckCircle className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform duration-300" />
               Xác Nhận Thay Đổi Trạng Thái
@@ -230,7 +378,57 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
                   → Sang:{" "}
                   <span className="font-bold">{getStatusText(newStatus)}</span>
                 </p>
+
+                {/* Tóm tắt nhanh từ orders trong confirm cuối */}
+                {isSwitchingToEmpty && orderStats.totalOrders > 0 && (
+                  <p className="mt-3 text-sm text-amber-900 leading-relaxed text-left">
+                    Bàn hiện có{" "}
+                    <span className="font-extrabold text-amber-950">
+                      {orderStats.totalOrders} order
+                    </span>
+                    {orderStats.totalItems > 0 && (
+                      <>
+                        {" "}
+                        (tổng khoảng{" "}
+                        <span className="font-extrabold text-amber-950">
+                          {orderStats.totalItems} món
+                        </span>
+                        )
+                      </>
+                    )}
+                    {orderStats.notServedItems > 0 ? (
+                      <>
+                        , trong đó còn{" "}
+                        <span className="font-extrabold text-red-700 underline">
+                          {orderStats.notServedItems} món chưa hoàn tất
+                        </span>
+                        .
+                      </>
+                    ) : (
+                      <>
+                        {" "}
+                        –{" "}
+                        <span className="font-semibold">
+                          tất cả món đã hoàn tất
+                        </span>
+                        .
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
+
+              {reason.trim() && (
+                <div className="mt-3 text-left">
+                  <p className="text-xs font-semibold text-amber-900 mb-1">
+                    Lý do thay đổi:
+                  </p>
+                  <p className="text-sm text-amber-900 bg-white/80 border border-amber-200 rounded-lg px-3 py-2">
+                    "{reason.trim()}"
+                  </p>
+                </div>
+              )}
+
               <p className="text-gray-600 text-sm pt-2">
                 Hành động này không thể hoàn tác.
               </p>
