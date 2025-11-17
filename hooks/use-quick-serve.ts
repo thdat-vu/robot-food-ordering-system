@@ -1,10 +1,12 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {categoriesApi, ApiProductCategoryResponse} from "@/lib/api/categories";
 import {tablesApi} from "@/lib/api/tables";
 import {GetFeedbackByIdtable, CheckSS} from "@/api/moderator/FeedbackApi";
 import {FeedbackgGetTableId} from "@/entites/moderator/FeedbackModole";
 import {productsApi} from "@/lib/api/products";
 import {ordersApi} from "@/lib/api/orders";
+import { useSignalR } from "@/hooks/useSignalR";
+import { getApiUrl } from "@/env.config";
 
 export interface QuickRequest {
   complainId: string;
@@ -21,6 +23,13 @@ export function useQuickServe() {
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<QuickRequest[]>([]);
   const [productMapReady, setProductMapReady] = useState(false); // Track if product map is loaded
+  const realtimeFetchInFlight = useRef(false);
+
+  const signalRHubUrl = useMemo(() => {
+    const apiUrl = getApiUrl();
+    const normalizedBase = apiUrl.replace(/\/api\/?$/, "");
+    return `${normalizedBase}/orderNotificationHub`;
+  }, []);
 
   // Build product name -> id map for category "Phục vụ nhanh"
   useEffect(() => {
@@ -60,9 +69,11 @@ export function useQuickServe() {
       for (const t of tables) {
         try {
           console.log(`[QuickServe] Fetching complaints for table: ${t.name} (ID: ${t.id})`);
-          const fb = await GetFeedbackByIdtable(t.id);
-          console.log(`[QuickServe] Response for ${t.name}:`, fb);
-          const list: FeedbackgGetTableId[] = (fb as any).data || [];
+          // Temporarily disable complain API call per requirement
+          // const fb = await GetFeedbackByIdtable(t.id);
+          // console.log(`[QuickServe] Response for ${t.name}:`, fb);
+          // const list: FeedbackgGetTableId[] = (fb as any).data || [];
+          const list: FeedbackgGetTableId[] = [];
           console.log(`[QuickServe] ${t.name} has ${list.length} complaints, ${list.filter(x => x.isPending).length} pending`);
           const pending = list.filter((x) => x.isPending);
           
@@ -147,8 +158,48 @@ export function useQuickServe() {
     }
 
     // 5. Mark complain processed
-    await CheckSS(req.tableId, [req.complainId], "Đã phục vụ nhanh");
+    // Temporarily disable complain status update per requirement
+    // await CheckSS(req.tableId, [req.complainId], "Đã phục vụ nhanh");
   }, []);
+
+  const triggerRealtimeRefresh = useCallback(async () => {
+    if (realtimeFetchInFlight.current) {
+      return;
+    }
+    realtimeFetchInFlight.current = true;
+    try {
+      await fetchQuickRequestsForActiveTables();
+    } finally {
+      realtimeFetchInFlight.current = false;
+    }
+  }, [fetchQuickRequestsForActiveTables]);
+
+  useEffect(() => {
+    if (productMapReady) {
+      fetchQuickRequestsForActiveTables();
+    }
+  }, [productMapReady, fetchQuickRequestsForActiveTables]);
+
+  const hubMethods = useMemo(
+    () => ({
+      OrderItemStatusChanged: () => {
+        triggerRealtimeRefresh();
+      },
+      OrderStatusChanged: () => {
+        triggerRealtimeRefresh();
+      },
+      WaiterNotification: () => {
+        triggerRealtimeRefresh();
+      },
+    }),
+    [triggerRealtimeRefresh]
+  );
+
+  const { isConnected: isRealtimeConnected } = useSignalR({
+    url: signalRHubUrl,
+    groupName: "Waiters",
+    hubMethods,
+  });
 
   return {
     productMap,
@@ -157,6 +208,7 @@ export function useQuickServe() {
     requests,
     fetchQuickRequestsForActiveTables,
     serveQuickRequest,
+    isRealtimeConnected,
   };
 }
 

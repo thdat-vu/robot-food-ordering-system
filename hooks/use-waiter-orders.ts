@@ -1,4 +1,4 @@
-import {useState, useEffect, useMemo, useCallback} from "react";
+import {useState, useEffect, useMemo, useCallback, useRef} from "react";
 import {ordersApi} from "@/lib/api/orders";
 import {
     categoriesApi,
@@ -6,6 +6,8 @@ import {
     ApiProductCategoryResponse,
 } from "@/lib/api/categories";
 import {OrderStatus} from "@/types/kitchen";
+import { useSignalR } from "@/hooks/useSignalR";
+import { getApiUrl } from "@/env.config";
 
 export interface WaiterDish {
     id: string; // Changed from number to string for consistent IDs
@@ -31,9 +33,14 @@ export function useWaiterOrders() {
     const [dishes, setDishes] = useState<WaiterDish[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [productCategoryMap, setProductCategoryMap] = useState<
-        Map<string, string>
-    >(new Map());
+    const [productCategoryMap, setProductCategoryMap] = useState<Map<string, string>>(new Map());
+    const realtimeFetchInFlight = useRef(false);
+
+    const signalRHubUrl = useMemo(() => {
+        const apiUrl = getApiUrl();
+        const normalizedBase = apiUrl.replace(/\/api\/?$/, "");
+        return `${normalizedBase}/orderNotificationHub`;
+    }, []);
 
     // Memoize productCategoryMap to prevent unnecessary re-creation
     const stableProductCategoryMap = useMemo(
@@ -238,6 +245,39 @@ export function useWaiterOrders() {
         }
     }, [categories, stableProductCategoryMap]);
 
+    const triggerRealtimeRefresh = useCallback(async () => {
+        if (realtimeFetchInFlight.current) {
+            return;
+        }
+        realtimeFetchInFlight.current = true;
+        try {
+            await silentFetchOrders();
+        } finally {
+            realtimeFetchInFlight.current = false;
+        }
+    }, [silentFetchOrders]);
+
+    const hubMethods = useMemo(
+        () => ({
+            OrderItemStatusChanged: () => {
+                triggerRealtimeRefresh();
+            },
+            OrderStatusChanged: () => {
+                triggerRealtimeRefresh();
+            },
+            WaiterNotification: () => {
+                triggerRealtimeRefresh();
+            },
+        }),
+        [triggerRealtimeRefresh]
+    );
+
+    const { isConnected: isRealtimeConnected } = useSignalR({
+        url: signalRHubUrl,
+        groupName: "Waiters",
+        hubMethods,
+    });
+
     // Load categories first, then orders
     useEffect(() => {
         const loadData = async () => {
@@ -394,5 +434,6 @@ export function useWaiterOrders() {
         refreshOrders,
         getTabCount,
         getDishesByStatus,
+        isRealtimeConnected,
     };
 }
