@@ -60,13 +60,6 @@ function WaiterPageContent() {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            refreshOrders(true);
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [refreshOrders]);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
             setCurrentDateTime(formatCurrentDateTime(new Date()));
         }, 1000);
         return () => clearInterval(interval);

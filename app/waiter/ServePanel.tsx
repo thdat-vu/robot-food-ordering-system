@@ -217,23 +217,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   const { requests, loading, productMapReady, fetchQuickRequestsForActiveTables, serveQuickRequest } = useQuickServe();
   
   // Always fetch - regardless of product map ready state
-  React.useEffect(() => {
-    console.log('[Waiter] Starting quick-serve monitoring, product map ready:', productMapReady);
-    
-    // Initial fetch immediately
-    fetchQuickRequestsForActiveTables();
-    
-    // Setup interval for periodic refresh every 5 seconds
-    const id = setInterval(() => {
-      console.log('[Waiter] Interval fetch triggered');
-      fetchQuickRequestsForActiveTables();
-    }, 5000);
-    
-    return () => {
-      console.log('[Waiter] Cleaning up interval');
-      clearInterval(id);
-    };
-  }, [fetchQuickRequestsForActiveTables]);
+  // Quick-serve refresh is handled within useQuickServe via SignalR
   // Get ALL selected dishes (not just from current tab)
   const allSelectedDishes = dishes.filter((dish) => dish.selected);
 
