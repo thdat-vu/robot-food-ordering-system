@@ -56,7 +56,8 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
     const finalReason = reason.trim() || "Không có lý do cụ thể";
     setShowFinalConfirm(false);
     onConfirmStatusChange(finalReason);
-    setReason("");
+    setReason(finalReason);
+    console.log("Final Reason:", finalReason);
   };
 
   const handleFinalNo = () => {
@@ -154,13 +155,13 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
           >
             <div className="space-y-6">
               {/* Order Card Component */}
-              <OrderCard
+              {/* <OrderCard
                 tableId={table.id}
                 orders={orders}
                 onToggleExpand={toggleOrderExpand}
                 expandedOrderId={expandedOrderId}
                 showDateFilter={true}
-              />
+              /> */}
 
               {/* Reason Card Component */}
               <ReasonCard

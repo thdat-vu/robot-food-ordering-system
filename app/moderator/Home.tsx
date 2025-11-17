@@ -112,7 +112,6 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
   // ✅ FIX: Logic để toggle giữa Available (0) và Occupied (1)
   const getNextStatus = (currentStatus: number): number => {
     const statusValue = getStatusValue(currentStatus);
-    console.log("Current status value:", statusValue);
 
     // Toggle: 0 ↔ 1
     if (statusValue === 0) {
@@ -440,14 +439,6 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
   const computedStatus =
     pendingStatus !== null ? pendingStatus : getNextStatus(tableData.status);
 
-  // ✅ DEBUG: Log để check logic
-  console.log("=== HOME DEBUG ===");
-  console.log("Current tableData.status:", tableData.status);
-  console.log("Status value:", getStatusValue(tableData.status));
-  console.log("Is Available?:", isAvailableStatus(tableData.status));
-  console.log("Next status would be:", getNextStatus(tableData.status));
-  console.log("================");
-
   return (
     <>
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
@@ -639,16 +630,6 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
                     </div>
                     <span className="text-sm text-gray-700">
                       <strong>Có Khách:</strong> Bàn đang được sử dụng
-                    </span>
-                  </li>
-                  <li className="flex items-start space-x-3">
-                    <div className="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-yellow-600 text-xs font-bold">
-                        2
-                      </span>
-                    </div>
-                    <span className="text-sm text-gray-700">
-                      <strong>Đã Đặt:</strong> Bàn đã được đặt trước
                     </span>
                   </li>
                 </ul>
