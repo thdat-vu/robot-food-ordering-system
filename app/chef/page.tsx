@@ -291,16 +291,6 @@ function ChiefPageContent() {
     }
   };
 
-  // Auto-fetch orders every 2 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshOrders(true); // Use silent refresh to avoid loading state
-    }, 2000);
-
-    // Cleanup interval on component unmount
-    return () => clearInterval(interval);
-  }, [refreshOrders]);
-
   // Clear all selections when switching tabs to avoid stale CTA selections
   useEffect(() => {
     setSelectedGroups([]);
