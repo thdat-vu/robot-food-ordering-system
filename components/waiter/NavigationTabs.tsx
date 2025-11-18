@@ -13,8 +13,9 @@ interface NavigationTabsProps {
 }
 
 const TAB_ORDER: OrderStatus[] = [
-  "đang thực hiện",
+  // "đang thực hiện", // Commented out per requirement
   "bắt đầu phục vụ",
+  "phục vụ nhanh",
   "yêu cầu làm lại",
   "đã phục vụ",
 ];

@@ -8,6 +8,8 @@ import {
 import {OrderStatus} from "@/types/kitchen";
 import { useSignalR } from "@/hooks/useSignalR";
 import { getApiUrl } from "@/env.config";
+import { useQuickServe, QuickRequest } from "@/hooks/use-quick-serve";
+import { CheckSS } from "@/api/moderator/FeedbackApi";
 
 export interface WaiterDish {
     id: string; // Changed from number to string for consistent IDs
@@ -26,6 +28,10 @@ export interface WaiterDish {
     note?: string;
     sizeName?: string;
     toppings?: string[];
+    // Quick-serve specific fields
+    isQuickServe?: boolean;
+    complainId?: string;
+    tableId?: string;
 }
 
 export function useWaiterOrders() {
@@ -34,6 +40,7 @@ export function useWaiterOrders() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [productCategoryMap, setProductCategoryMap] = useState<Map<string, string>>(new Map());
+    const [quickServeSelections, setQuickServeSelections] = useState<Set<string>>(new Set());
     const realtimeFetchInFlight = useRef(false);
 
     const signalRHubUrl = useMemo(() => {
@@ -257,19 +264,25 @@ export function useWaiterOrders() {
         }
     }, [silentFetchOrders]);
 
+    // Quick-serve integration - must be before hubMethods
+    const { requests: quickServeRequests, fetchQuickRequestsForActiveTables } = useQuickServe();
+
     const hubMethods = useMemo(
         () => ({
             OrderItemStatusChanged: () => {
                 triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
             },
             OrderStatusChanged: () => {
                 triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
             },
             WaiterNotification: () => {
                 triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
             },
         }),
-        [triggerRealtimeRefresh]
+        [triggerRealtimeRefresh, fetchQuickRequestsForActiveTables]
     );
 
     const { isConnected: isRealtimeConnected } = useSignalR({
@@ -277,6 +290,40 @@ export function useWaiterOrders() {
         groupName: "Waiters",
         hubMethods,
     });
+
+    // Transform quick-serve requests to WaiterDish format
+    const quickServeDishes = useMemo(() => {
+        return quickServeRequests.map((req): WaiterDish => {
+            const tableNumber = parseInt(req.tableName.replace(/\D/g, "")) || 1;
+            const categoryName = "Phục vụ nhanh";
+            const category = categories.find((c) => c.name === categoryName) || categories[0];
+            const dishId = `quick-serve-${req.complainId}`;
+
+            return {
+                id: dishId,
+                name: req.productName,
+                categoryId: category?.id || "unknown",
+                categoryName: categoryName,
+                selected: quickServeSelections.has(dishId),
+                served: false,
+                orderId: `quick-${req.complainId}`,
+                itemId: `quick-item-${req.complainId}`,
+                tableNumber,
+                quantity: 1,
+                status: "phục vụ nhanh" as OrderStatus,
+                estimatedTime: "Ngay lập tức",
+                note: "Yêu cầu phục vụ nhanh",
+                isQuickServe: true,
+                complainId: req.complainId,
+                tableId: req.tableId,
+            };
+        });
+    }, [quickServeRequests, categories, quickServeSelections]);
+
+    // Merge regular dishes with quick-serve dishes
+    const allDishes = useMemo(() => {
+        return [...dishes, ...quickServeDishes];
+    }, [dishes, quickServeDishes]);
 
     // Load categories first, then orders
     useEffect(() => {
@@ -290,24 +337,25 @@ export function useWaiterOrders() {
     useEffect(() => {
         if (categories.length > 0) {
             fetchOrders();
+            fetchQuickRequestsForActiveTables();
         }
-    }, [fetchOrders, categories]);
+    }, [fetchOrders, categories, fetchQuickRequestsForActiveTables]);
 
     // Group dishes by category
     const groupedDishes = useMemo(() => {
-        return dishes.reduce<Record<string, WaiterDish[]>>((acc, dish) => {
+        return allDishes.reduce<Record<string, WaiterDish[]>>((acc, dish) => {
             if (!acc[dish.categoryName]) acc[dish.categoryName] = [];
             acc[dish.categoryName].push(dish);
             return acc;
         }, {});
-    }, [dishes]);
+    }, [allDishes]);
 
     // Filter dishes by status
     const getDishesByStatus = useCallback(
         (status: OrderStatus) => {
-            return dishes.filter((dish) => dish.status === status);
+            return allDishes.filter((dish) => dish.status === status);
         },
-        [dishes]
+        [allDishes]
     );
 
     // Get count for each tab
@@ -319,51 +367,99 @@ export function useWaiterOrders() {
     );
 
     // Check if any dishes are selected
-    const hasSelected = dishes.some((d) => d.selected && !d.served);
+    const hasSelected = allDishes.some((d) => d.selected && !d.served);
 
-    // Toggle dish selection
+    // Toggle dish selection - handle both regular and quick-serve dishes
     const toggleDish = (id: string) => {
-        setDishes((prev) =>
-            prev.map((d) => (d.id === id ? {...d, selected: !d.selected} : d))
-        );
+        if (id.startsWith("quick-serve-")) {
+            setQuickServeSelections((prev) => {
+                const next = new Set(prev);
+                if (next.has(id)) {
+                    next.delete(id);
+                } else {
+                    next.add(id);
+                }
+                return next;
+            });
+        } else {
+            // For regular dishes, update dishes state
+            setDishes((prev) =>
+                prev.map((d) => (d.id === id ? {...d, selected: !d.selected} : d))
+            );
+        }
     };
 
     // Handle serving dishes
     const handleServe = useCallback(async () => {
-        // BUG FIX: Only serve dishes that are selected AND in "bắt đầu phục vụ" status
-        // OLD CODE (BUGGY): const selectedDishes = dishes.filter((dish) => dish.selected);
-        // This was serving ALL selected dishes regardless of their status/tab
-        const selectedDishes = dishes.filter(
-            (dish) => dish.selected && dish.status === "bắt đầu phục vụ"
+        // Get selected dishes from allDishes (includes both regular and quick-serve)
+        const selectedDishes = allDishes.filter(
+            (dish) => dish.selected && (dish.status === "bắt đầu phục vụ" || dish.status === "phục vụ nhanh")
         );
         if (selectedDishes.length === 0) return false;
 
         try {
-            // Update each selected dish status to Served (4)
-            const updatePromises = selectedDishes.map((dish) =>
-                ordersApi.updateOrderItemStatus(dish.orderId, dish.itemId, 4, "")
-            );
+            // Separate regular dishes and quick-serve dishes
+            const regularDishes = selectedDishes.filter((d) => !d.isQuickServe);
+            const quickServeDishes = selectedDishes.filter((d) => d.isQuickServe);
 
-            await Promise.all(updatePromises);
+            // Handle regular dishes
+            if (regularDishes.length > 0) {
+                const updatePromises = regularDishes.map((dish) =>
+                    ordersApi.updateOrderItemStatus(dish.orderId, dish.itemId, 4, "")
+                );
+                await Promise.all(updatePromises);
 
-            // Update local state - also add status check for safety
-            setDishes((prev) =>
-                prev.map((d) =>
-                    d.selected && !d.served && d.status === "bắt đầu phục vụ"
-                        ? {...d, served: true, selected: false, status: "đã phục vụ"}
-                        : d
-                )
-            );
+                // Update local state for regular dishes
+                setDishes((prev) =>
+                    prev.map((d) =>
+                        d.selected && !d.served && d.status === "bắt đầu phục vụ"
+                            ? {...d, served: true, selected: false, status: "đã phục vụ"}
+                            : d
+                    )
+                );
+            }
+
+            // Handle quick-serve dishes - mark complain as processed
+            if (quickServeDishes.length > 0) {
+                // Group by tableId to batch CheckSS calls
+                const byTable = new Map<string, string[]>();
+                quickServeDishes.forEach((dish) => {
+                    if (dish.tableId && dish.complainId) {
+                        const existing = byTable.get(dish.tableId) || [];
+                        existing.push(dish.complainId);
+                        byTable.set(dish.tableId, existing);
+                    }
+                });
+
+                // Call CheckSS for each table
+                const checkSSPromises = Array.from(byTable.entries()).map(([tableId, complainIds]) =>
+                    CheckSS(tableId, complainIds, "Đã phục vụ nhanh", false)
+                );
+                await Promise.all(checkSSPromises);
+
+                // Remove served quick-serve items from selection
+                setQuickServeSelections((prev) => {
+                    const next = new Set(prev);
+                    quickServeDishes.forEach((dish) => {
+                        next.delete(dish.id);
+                    });
+                    return next;
+                });
+
+                // Refresh quick-serve requests to remove processed ones
+                await fetchQuickRequestsForActiveTables();
+            }
 
             return true;
         } catch (err) {
+            console.error("Error serving dishes:", err);
             return false;
         }
-    }, [dishes]);
+    }, [allDishes, fetchQuickRequestsForActiveTables]);
 
     // Handle requesting remake for dishes
     const handleRequestRemake = useCallback(async (reason?: string) => {
-        const selectedDishes = dishes.filter((dish) => dish.selected);
+        const selectedDishes = allDishes.filter((dish) => dish.selected);
         if (selectedDishes.length === 0) return false;
 
         try {
@@ -422,7 +518,7 @@ export function useWaiterOrders() {
     );
 
     return {
-        dishes,
+        dishes: allDishes, // Return merged dishes (regular + quick-serve)
         groupedDishes,
         categories,
         hasSelected,

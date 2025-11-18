@@ -126,6 +126,7 @@ export function OrdersContent({
       'đang chờ': 'bg-amber-100 text-amber-800',
       'đang thực hiện': 'bg-blue-100 text-blue-800',
       'bắt đầu phục vụ': 'bg-green-100 text-green-800',
+      'phục vụ nhanh': 'bg-purple-100 text-purple-800',
       'yêu cầu làm lại': 'bg-red-100 text-red-800',
       'đã phục vụ': 'bg-gray-100 text-gray-800',
       'đã huỷ': 'bg-gray-200 text-gray-700',

@@ -70,6 +70,7 @@ const STATUS_BADGES: Record<OrderStatus, { label: string; className: string }> =
     "đang chờ": { label: "Đang chờ", className: "bg-yellow-100 text-yellow-700" },
     "đang thực hiện": { label: "Đang chuẩn bị", className: "bg-orange-100 text-orange-700" },
     "bắt đầu phục vụ": { label: "Sẵn sàng phục vụ", className: "bg-blue-100 text-blue-700" },
+    "phục vụ nhanh": { label: "Phục vụ nhanh", className: "bg-purple-100 text-purple-700" },
     "yêu cầu làm lại": { label: "Yêu cầu làm lại", className: "bg-red-100 text-red-600" },
     "đã phục vụ": { label: "Đã phục vụ", className: "bg-green-100 text-green-700" },
     "đã huỷ": { label: "Đã huỷ", className: "bg-gray-200 text-gray-700" },

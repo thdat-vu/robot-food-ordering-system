@@ -267,6 +267,7 @@ export const TAB_DISPLAY_NAMES = {
   "yêu cầu làm lại": "Yêu cầu làm lại",
   "đã phục vụ": "Đã phục vụ",
   "đã huỷ": "Đã huỷ",
+  "phục vụ nhanh": "Phục vụ nhanh",
 } as const;
 
 export const DEFAULT_IMAGE_PLACEHOLDER = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23f3f4f6"/><text x="50%" y="50%" font-family="Arial" font-size="12" fill="%236b7280" text-anchor="middle" dy=".3em">No Image</text></svg>`;
