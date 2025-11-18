@@ -529,14 +529,14 @@ const ServePanel: React.FC<ServePanelProps> = ({
                 <p className="text-gray-500 font-medium text-lg">
                   {activeTab === "đã phục vụ"
                     ? "Không có món nào đã phục vụ"
-                    : activeTab === "phục vụ nhanh"
+                    : (activeTab as OrderStatus) === "phục vụ nhanh"
                     ? "Không có yêu cầu phục vụ nhanh"
                     : `Không có món nào trong trạng thái "${activeTab}"`}
                 </p>
                 <p className="text-gray-400 text-sm mt-2">
                   {activeTab === "đã phục vụ"
                     ? "Các món đã phục vụ sẽ hiển thị ở đây"
-                    : activeTab === "phục vụ nhanh"
+                    : (activeTab as OrderStatus) === "phục vụ nhanh"
                     ? "Các yêu cầu phục vụ nhanh từ moderator sẽ hiển thị ở đây"
                     : "Hãy chờ đợi hoặc chuyển sang tab khác"}
                 </p>
