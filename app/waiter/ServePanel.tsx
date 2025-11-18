@@ -356,8 +356,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
         </p> */}
 
         <div className="w-full mb-6">
-          {/* Quick Serve Requests Panel - Enhanced UI */}
-          {requests.length > 0 && (
+          {/* Quick Serve Requests Panel - Only show when NOT in quick-serve tab */}
+          {requests.length > 0 && activeTab !== "phục vụ nhanh" && (
             <div className="w-full mb-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-xl border-2 border-blue-300 overflow-hidden">
               {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3">
@@ -452,7 +452,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
           {/* Robot delivery mode UI has been moved to DishList (left sidebar) */}
           
-          {activeTab === "bắt đầu phục vụ" ? (
+          {activeTab === "bắt đầu phục vụ" || activeTab === "phục vụ nhanh" ? (
             <MapPanel mapUrl={mapUrl} />
           ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
@@ -529,11 +529,15 @@ const ServePanel: React.FC<ServePanelProps> = ({
                 <p className="text-gray-500 font-medium text-lg">
                   {activeTab === "đã phục vụ"
                     ? "Không có món nào đã phục vụ"
+                    : activeTab === "phục vụ nhanh"
+                    ? "Không có yêu cầu phục vụ nhanh"
                     : `Không có món nào trong trạng thái "${activeTab}"`}
                 </p>
                 <p className="text-gray-400 text-sm mt-2">
                   {activeTab === "đã phục vụ"
                     ? "Các món đã phục vụ sẽ hiển thị ở đây"
+                    : activeTab === "phục vụ nhanh"
+                    ? "Các yêu cầu phục vụ nhanh từ moderator sẽ hiển thị ở đây"
                     : "Hãy chờ đợi hoặc chuyển sang tab khác"}
                 </p>
               </div>
@@ -541,8 +545,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
           )}
         </div>
 
-        {/* Show serve button only for "bắt đầu phục vụ" tab */}
-        {activeTab === "bắt đầu phục vụ" && hasSelected && (
+        {/* Show serve button for "bắt đầu phục vụ" and "phục vụ nhanh" tabs */}
+        {(activeTab === "bắt đầu phục vụ" || activeTab === "phục vụ nhanh") && hasSelected && (
           <div className="w-full flex justify-center gap-4 mb-6">
             <Button
               onClick={handleServeClick}
@@ -623,6 +627,19 @@ const ServePanel: React.FC<ServePanelProps> = ({
                 ) : null
               )}
             </ul>
+          </div>
+        )}
+
+        {activeTab === "phục vụ nhanh" && dishesForTab.length > 0 && (
+          <div className="w-full mb-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+            <h3 className="font-semibold text-lg text-purple-800 mb-3 flex items-center">
+              <div className="w-2 h-2 bg-purple-500 rounded-full mr-3 animate-pulse"></div>
+              Yêu cầu phục vụ nhanh ({dishesForTab.length})
+            </h3>
+            <p className="text-purple-700 leading-relaxed">
+              Các yêu cầu phục vụ nhanh từ khách hàng (ví dụ: thêm nước mắm, nước tương).
+              Vui lòng phục vụ ngay và đánh dấu đã xử lý sau khi hoàn thành.
+            </p>
           </div>
         )}
 

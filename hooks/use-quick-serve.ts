@@ -37,12 +37,32 @@ export function useQuickServe() {
       try {
         const res = await categoriesApi.getProductCategories(1, 200);
         const map: Record<string, string> = {};
+        const allCategories: string[] = [];
+        
         (res.data || []).forEach((p: ApiProductCategoryResponse) => {
-          if (p.categoryName && p.categoryName.toLowerCase() === QUICK_CATEGORY_NAME) {
-            map[p.productName.toLowerCase()] = p.productId;
+          // Collect all unique category names for debugging
+          if (p.categoryName && !allCategories.includes(p.categoryName.toLowerCase())) {
+            allCategories.push(p.categoryName.toLowerCase());
+          }
+          
+          // Match category name (case-insensitive, flexible matching)
+          const categoryNameLower = (p.categoryName || "").toLowerCase();
+          if (categoryNameLower.includes(QUICK_CATEGORY_NAME) || QUICK_CATEGORY_NAME.includes(categoryNameLower)) {
+            const productNameLower = p.productName.toLowerCase();
+            map[productNameLower] = p.productId;
+            console.log('[QuickServe] Added to product map:', productNameLower, '→', p.productId, 'from category:', p.categoryName);
           }
         });
+        
         console.log('[QuickServe] Product map loaded:', map);
+        console.log('[QuickServe] All categories found:', allCategories);
+        console.log('[QuickServe] Looking for category containing:', QUICK_CATEGORY_NAME);
+        
+        if (Object.keys(map).length === 0) {
+          console.warn('[QuickServe] ⚠️ Product map is EMPTY! No products found in category "phục vụ nhanh"');
+          console.warn('[QuickServe] Available categories:', allCategories);
+        }
+        
         setProductMap(map);
         setProductMapReady(true); // Mark as ready
       } catch (e) {
@@ -69,20 +89,19 @@ export function useQuickServe() {
       for (const t of tables) {
         try {
           console.log(`[QuickServe] Fetching complaints for table: ${t.name} (ID: ${t.id})`);
-          // Temporarily disable complain API call per requirement
-          // const fb = await GetFeedbackByIdtable(t.id);
-          // console.log(`[QuickServe] Response for ${t.name}:`, fb);
-          // const list: FeedbackgGetTableId[] = (fb as any).data || [];
-          const list: FeedbackgGetTableId[] = [];
+          const fb = await GetFeedbackByIdtable(t.id);
+          console.log(`[QuickServe] Response for ${t.name}:`, fb);
+          const list: FeedbackgGetTableId[] = (fb as any).data || [];
           console.log(`[QuickServe] ${t.name} has ${list.length} complaints, ${list.filter(x => x.isPending).length} pending`);
           const pending = list.filter((x) => x.isPending);
           
           pending.forEach((c) => {
             // Check resolutionNote for quick-serve marker (set by moderator)
-            const resolutionNote = (c.resolutionNote || "").toLowerCase();
+            // Handle both PascalCase (from backend) and camelCase (if mapped)
+            const resolutionNote = (c.resolutionNote || c.ResolutionNote || "").toLowerCase();
             console.log('[QuickServe] Table', t.name, '- Checking complaint:', {
               feedBack: c.feedBack,
-              resolutionNote: c.resolutionNote,
+              resolutionNote: c.resolutionNote || c.ResolutionNote,
               isPending: c.isPending
             });
             
@@ -92,19 +111,57 @@ export function useQuickServe() {
             
             // Extract product name from original feedBack
             const feedBackText = (c.feedBack || "").toLowerCase();
-            const matched = Object.keys(productMap).find((name) => feedBackText.includes(name));
             
-            if (matched) {
-              console.log('[QuickServe] Matched product:', matched, 'for table', t.name);
+            // Try to match with product map first
+            let matched = Object.keys(productMap).find((name) => feedBackText.includes(name));
+            let matchedProductId: string | undefined = matched ? productMap[matched] : undefined;
+            let matchedProductName: string | undefined = matched;
+            
+            // Fallback: If no match in product map, try to match common keywords
+            if (!matched) {
+              console.log('[QuickServe] No match in product map, trying fallback keywords...');
+              
+              // Common quick-serve product keywords
+              const keywordMap: Record<string, string> = {
+                "nước mắm": "nước mắm",
+                "nuoc mam": "nước mắm",
+                "nước tương": "nước tương",
+                "nuoc tuong": "nước tương",
+                "nước chấm": "nước mắm",
+                "nuoc cham": "nước mắm",
+              };
+              
+              // Find matching keyword
+              const matchedKeyword = Object.keys(keywordMap).find((keyword) => 
+                feedBackText.includes(keyword)
+              );
+              
+              if (matchedKeyword) {
+                matchedProductName = keywordMap[matchedKeyword];
+                console.log('[QuickServe] Matched keyword:', matchedKeyword, '→ product:', matchedProductName);
+                
+                // Try to find product ID from product map by normalized name
+                const normalizedName = matchedProductName.toLowerCase();
+                matchedProductId = productMap[normalizedName];
+                
+                if (!matchedProductId) {
+                  console.warn('[QuickServe] Product name found but no ID in map. Product map keys:', Object.keys(productMap));
+                  // Still add to results but without productId - will need to handle in UI
+                }
+              }
+            }
+            
+            if (matchedProductName) {
+              console.log('[QuickServe] Matched product:', matchedProductName, 'for table', t.name, 'productId:', matchedProductId);
               results.push({
                 complainId: c.complainId,
                 tableId: t.id,
                 tableName: t.name,
-                productId: productMap[matched],
-                productName: matched,
+                productId: matchedProductId || "", // Empty string if not found, will need to handle
+                productName: matchedProductName,
               });
             } else {
-              console.warn('[QuickServe] No product match found for feedback:', c.feedBack);
+              console.warn('[QuickServe] No product match found for feedback:', c.feedBack, 'Available product map keys:', Object.keys(productMap));
             }
           });
         } catch (e) {
