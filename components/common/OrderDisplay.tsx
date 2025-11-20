@@ -32,9 +32,7 @@ import {TABLE_STORE, TOKEN_Bro_VALUE} from "@/name-value-env";
 import {BaseEntityData, BaseEntityResponse_v2} from "@/entites/BaseEntity";
 import {useRouter} from "next/navigation";
 import {useGetSetting} from "@/hooks/customHooks/useSettingHooks";
-import {Feedback} from "@/components/common/Feedback";
 import {BillDialog} from "@/components/common/BillDialog";
-import {BillPDFPreview} from "@/components/common/BillPDFPreview";
 
 type OrderDisplay = {
     handleChange: (number: number) => void;
@@ -65,11 +63,9 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
     const [openDialogFeedBack, setOpenDialogFeedBack] = useState<boolean>(false);
     const [idOrderId, setIdOrderId] = useState<string>()
 
-    // Thêm ref để track interval và prevent multiple intervals
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const isMountedRef = useRef(true);
 
-    // Helper function to shorten size names
     const getSizeShortName = (sizeName: string): string => {
         const sizeMap: { [key: string]: string } = {
             'Large': 'L',
@@ -96,11 +92,9 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
         }
     }, []);
 
-    // Hàm fetch data - KHÔNG thay đổi loading state khi background refresh
     const fetchOrderData = async (isBackgroundUpdate = false) => {
         if (!idTable || !token) return;
 
-        // Chỉ set loading khi lần đầu tiên load hoặc manual refresh
         if (!isBackgroundUpdate) {
             setLoading(true);
         }
@@ -108,14 +102,11 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
         try {
             const res: BaseEntityData<OrderRespontGetByID> = await runGet(idTable, token);
 
-            // Kiểm tra component còn mounted không
             if (!isMountedRef.current) return;
 
             if (res.code === 'SUCCESS') {
                 setIdOrderId(res.data.id);
 
-                // So sánh data mới với data cũ trước khi update
-                // Chỉ update khi có thay đổi thực sự
                 const hasChanges = JSON.stringify(orderData) !== JSON.stringify(res.data);
 
                 if (hasChanges) {
@@ -126,7 +117,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
             }
         } catch (err) {
             console.error('Fetch error:', err);
-            // Chỉ show error khi không phải background update
             if (!isBackgroundUpdate) {
                 setError('Không thể tải đơn hàng');
             }

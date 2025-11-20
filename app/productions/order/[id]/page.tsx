@@ -11,28 +11,30 @@ import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
 export default function Page() {
     const {id} = useParams<{ id: string }>();
 
-    const {run} = useGetTable();
-    const {tableId, setTable} = useTableContext();
+    const {setTable} = useTableContext();
     const {deviceToken} = useDeviceToken();
+    const {run: runGetTable} = useGetTable();
+
+    const loadTable = async () => {
+        if (!id || !deviceToken) return;
+
+        try {
+            const res: Table | ErroTable = await runGetTable(id, deviceToken);
+
+            if ("id" in res) {
+                const t = res as Table;
+                setTable(t.id, t.status, t.name);
+            } else {
+                console.error("Error loading table:", res.message);
+            }
+        } catch (e) {
+            console.error("Unexpected error:", e);
+        }
+    };
 
     useEffect(() => {
-        if (!id || !deviceToken) return;
-        if (id === tableId) return;
-
-        (async () => {
-            try {
-                const res: Table | ErroTable = await run(id, deviceToken);
-
-                if ("id" in res) {
-                    setTable(res.id, res.status, res.name);
-                } else {
-                    console.error("Error from API:", res.message);
-                }
-            } catch (e) {
-                console.error("Fetch error:", e);
-            }
-        })();
-    }, [id, tableId, deviceToken, run]);
+        loadTable();
+    }, [id, deviceToken]);
 
     return <OrderList id={id}/>;
 }

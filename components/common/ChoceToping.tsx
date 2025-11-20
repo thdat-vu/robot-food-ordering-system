@@ -43,7 +43,7 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
         [key: string]: { name: string, price: number, quanlity: number }
     }>({});
     const context = useProductContext();
-    const tableId = useTableContext();
+    const {tableId} = useTableContext();
     const {size_name, name, size, price, urlImg} = context;
     const [open, setOpen] = useState<boolean>(false);
     const [res, setRes] = useState<ShoppingCart[]>()
@@ -56,6 +56,7 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
 
     // State mới cho dialog kiểm tra bàn
     const [openTableInvalid, setOpenTableInvalid] = useState<boolean>(false);
+    const [mess, setMess] = useState<string>("")
 
     const {
         run: runGetToppingForProduct,
@@ -72,16 +73,17 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
         return sizeName.charAt(0).toUpperCase();
     };
 
-    // Tối ưu hàm kiểm tra bàn - sửa kiểu trả về và xử lý đầy đủ
     const handleCheck = async (): Promise<boolean> => {
+        if (!tableId) return false;
+        if (!deviceToken) return false;
+
         try {
-            if (!tableId) {
-                return false;
-            }
-            const res: BaseEntityResponse_v2<checkTable> = await run(tableId.tableId, deviceToken);
+            const res: BaseEntityResponse_v2<checkTable> = await run(tableId, deviceToken);
+            console.log(res)
+            setMess(res.message)
             return res.data.isMatch;
         } catch (error) {
-            console.error("Error checking table:", error);
+            setMess("Mạng yếu không thể thực hiện thao tác tiếp theo")
             return false;
         }
     }
@@ -202,7 +204,7 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
     const handleTableInvalidConfirm = () => {
         setOpenTableInvalid(false);
         onClose();
-        router.push('/'); // Chuyển về trang root
+        router.push(`/${tableId}`);
     };
 
     return (
@@ -217,7 +219,7 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
                 rightClick={() => {
                 }}
                 status="warning"
-                message="Bàn không còn hiệu lực với thiết bị này. Vui lòng quét mã QR lại!"
+                message={mess}
             />
 
             {/* Dialog thêm giỏ hàng thành công */}

@@ -1,4 +1,6 @@
-import React, {useRef, useState, useEffect} from 'react';
+"use client";
+
+import React, {useRef, useState} from 'react';
 import {X, Download, CheckCircle} from 'lucide-react';
 import {OrderRespontGetByID, InForProductOrderDetail} from "@/entites/respont/OrderRespont";
 import {useRouter} from "next/navigation";
@@ -27,11 +29,7 @@ export const BillPDFPreview: React.FC<BillPDFPreviewProps> = ({billData, onClose
 
     const formatDateTime = (value: any): string => {
         const date = new Date(value);
-
-        if (isNaN(date.getTime())) {
-            return "Không xác định"; // hoặc ""
-        }
-
+        if (isNaN(date.getTime())) return "Không xác định";
         return new Intl.DateTimeFormat("vi-VN", {
             year: "numeric",
             month: "2-digit",
@@ -42,7 +40,6 @@ export const BillPDFPreview: React.FC<BillPDFPreviewProps> = ({billData, onClose
         }).format(date);
     };
 
-
     const formatDateTimeFull = (date: Date): string => {
         return new Intl.DateTimeFormat('vi-VN', {
             year: 'numeric',
@@ -51,7 +48,7 @@ export const BillPDFPreview: React.FC<BillPDFPreviewProps> = ({billData, onClose
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit'
-        }).format(new Date(date));
+        }).format(date);
     };
 
     const calculateItemTotal = (item: InForProductOrderDetail): number => {
@@ -59,49 +56,65 @@ export const BillPDFPreview: React.FC<BillPDFPreviewProps> = ({billData, onClose
         return item.price + toppingTotal;
     };
 
-    const handleDownload = async () => {
-        if (printRef.current && !isDownloading) {
-            setIsDownloading(true);
+    // ======================
+    // ⭐ GOM NHÓM MÓN TỰ ĐỘNG
+    // ======================
+    const groupedItems = Object.values(
+        billData.items.reduce((acc: any, item) => {
+            const key = [
+                item.productName,
+                item.sizeName,
+                item.toppings.map(t => t.name).sort().join(','),
+                item.note || ''
+            ].join('|');
 
-            const element = printRef.current;
-            const opt = {
-                margin: 10,
-                filename: `hoa-don-${billData.id.substring(0, 8)}-${Date.now()}.pdf`,
-                image: {
-                    type: 'jpeg' as const,  // Thêm 'as const'
-                    quality: 0.98
-                },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false
-                },
-                jsPDF: {
-                    unit: 'mm' as const,           // Thêm 'as const'
-                    format: 'a4' as const,         // Thêm 'as const'
-                    orientation: 'portrait' as const  // Thêm 'as const'
-                }
-            };
-
-            try {
-                await html2pdf().set(opt).from(element).save();
-
-                // Sau khi lưu xong, reset và chuyển trang
-                setTimeout(() => {
-                    setTable("", "", "");
-                    router.push("/");
-                }, 500);
-            } catch (error) {
-                console.error('Lỗi khi tạo PDF:', error);
-                alert('Có lỗi xảy ra khi tạo PDF. Vui lòng thử lại!');
-            } finally {
-                setIsDownloading(false);
+            if (!acc[key]) {
+                acc[key] = {
+                    ...item,
+                    quantity: 1,
+                    total: calculateItemTotal(item)
+                };
+            } else {
+                acc[key].quantity += 1;
+                acc[key].total += calculateItemTotal(item);
             }
-        }
-    };
 
-    const handleComplete = () => {
-        onComplete();
+            return acc;
+        }, {})
+    );
+
+    // ======================
+    // ⭐ EXPORT PDF
+    // ======================
+    const handleDownload = async () => {
+        if (!printRef.current || isDownloading) return;
+
+        setIsDownloading(true);
+
+        const opt = {
+            margin: 10,
+            filename: `hoa-don-${billData.id.substring(0, 8)}-${Date.now()}.pdf`,
+            image: {type: 'jpeg' as const, quality: 0.98},
+            html2canvas: {scale: 2, useCORS: true},
+            jsPDF: {
+                unit: 'mm' as const,
+                format: 'a4' as const,
+                orientation: 'portrait' as const
+            }
+        };
+
+        try {
+            await html2pdf().set(opt).from(printRef.current).save();
+
+            setTimeout(() => {
+                setTable("", "", "");
+                router.replace("/end");
+            }, 500);
+        } catch (e) {
+            alert("Lỗi khi tạo PDF");
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     return (
@@ -109,6 +122,7 @@ export const BillPDFPreview: React.FC<BillPDFPreviewProps> = ({billData, onClose
             <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[60] p-4">
                 <div className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl">
 
+                    {/* Header */}
                     <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 text-white">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -118,135 +132,135 @@ export const BillPDFPreview: React.FC<BillPDFPreviewProps> = ({billData, onClose
                                     <p className="text-xs opacity-90">Xuất lúc: {formatDateTimeFull(exportTime)}</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={onClose}
-                                className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                                disabled={isDownloading}
-                            >
+                            <button onClick={onClose} disabled={isDownloading}
+                                    className="p-2 hover:bg-white/20 rounded-full">
                                 <X className="w-5 h-5"/>
                             </button>
                         </div>
                     </div>
 
+                    {/* Content */}
                     <div className="overflow-y-auto max-h-[calc(90vh-180px)] bg-gray-50 p-6">
                         <div ref={printRef} className="bg-white max-w-[210mm] mx-auto p-8 shadow-lg">
-                            {/* Bill Header */}
+
+                            {/* BILL HEADER */}
                             <div className="text-center border-b-2 border-gray-800 pb-4 mb-6">
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">HÓA ĐƠN</h1>
                                 <p className="text-sm text-gray-600">Số:
                                     #{billData.id.substring(0, 8).toUpperCase()}</p>
                                 <p className="text-sm text-gray-600">Ngày
                                     đặt: {formatDateTime(billData.createdTime)}</p>
-                                <p className="text-sm text-gray-600 font-semibold">Ngày
+                                <p className="text-sm font-semibold text-gray-600">Ngày
                                     xuất: {formatDateTimeFull(exportTime)}</p>
                             </div>
 
-                            <div className="mb-6">
-                                <h2 className="text-lg font-bold text-gray-900 mb-2">NHÀ HÀNG </h2>
-                                <p className="text-sm text-gray-700">Địa chỉ: </p>
-                                <p className="text-sm text-gray-700">Điện thoại:</p>
-                                <p className="text-sm text-gray-700">MST: </p>
-                            </div>
-
-                            {/* Customer Info */}
+                            {/* CUSTOMER INFO */}
                             <div className="mb-6 bg-gray-50 p-4 rounded">
                                 <p className="text-sm text-gray-700"><span
-                                    className="font-semibold">Bàn:</span> {billData.tableName}</p>
+                                    className="font-semibold"></span> {billData.tableName}</p>
                             </div>
 
-                            {/* Items Table */}
-                            <table className="w-full mb-6">
-                                <thead>
-                                <tr className="border-b-2 border-gray-800">
-                                    <th className="text-left py-2 text-sm font-bold">STT</th>
-                                    <th className="text-left py-2 text-sm font-bold">Tên món</th>
-                                    <th className="text-right py-2 text-sm font-bold">Đơn giá</th>
-                                    <th className="text-right py-2 text-sm font-bold">Thành tiền</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {billData.items.map((item, index) => (
-                                    <React.Fragment key={item.id}>
-                                        <tr className="border-b border-gray-200">
-                                            <td className="py-3 text-sm">{index + 1}</td>
+                            {/* ====================== */}
+                            {/* ⭐ NEW BILL FORMAT     */}
+                            {/* ====================== */}
+                            <div className="mb-6">
+                                <h2 className="text-lg font-bold mb-3">Danh sách món</h2>
+
+                                <table className="w-full">
+                                    <thead>
+                                    <tr className="border-b-2 border-gray-800">
+                                        <th className="text-left py-2 text-sm font-bold">Tên món</th>
+                                        <th className="text-center py-2 text-sm font-bold">SL</th>
+                                        <th className="text-right py-2 text-sm font-bold">Tổng tiền</th>
+                                    </tr>
+                                    </thead>
+
+                                    <tbody>
+                                    {groupedItems.map((g: any, index: number) => (
+                                        <tr key={index} className="border-b border-gray-200">
                                             <td className="py-3 text-sm">
-                                                <div className="font-medium">{item.productName}</div>
-                                                <div className="text-xs text-gray-600">Size: {item.sizeName}</div>
-                                                {item.toppings.length > 0 && (
-                                                    <div className="text-xs text-gray-600 mt-1">
-                                                        Topping: {item.toppings.map(t => t.name).join(', ')}
+                                                <div className="font-medium">{g.productName}</div>
+                                                <div className="text-xs text-gray-600">Size: {g.sizeName}</div>
+
+                                                {g.toppings.length > 0 && (
+                                                    <div className="text-xs text-gray-600">
+                                                        Topping: {g.toppings.map((t: any) => t.name).join(', ')}
                                                     </div>
                                                 )}
-                                                {item.note && (
-                                                    <div className="text-xs text-gray-600 italic mt-1">
-                                                        Ghi chú: {item.note}
+
+                                                {g.note && (
+                                                    <div className="text-xs text-gray-600 italic">
+                                                        Ghi chú: {g.note}
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="py-3 text-sm text-right">{formatCurrency(item.price)}</td>
-                                            <td className="py-3 text-sm text-right font-medium">
-                                                {formatCurrency(calculateItemTotal(item))}
+
+                                            <td className="py-3 text-center text-sm font-semibold">
+                                                {g.quantity}
+                                            </td>
+
+                                            <td className="py-3 text-right text-sm font-bold text-gray-900">
+                                                {formatCurrency(g.total)}
                                             </td>
                                         </tr>
-                                    </React.Fragment>
-                                ))}
-                                </tbody>
-                            </table>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                            {/* Summary */}
+                            {/* SUMARY */}
                             <div className="border-t-2 border-gray-800 pt-4">
                                 <div className="flex justify-between mb-2">
                                     <span className="text-sm">Tổng số món:</span>
                                     <span className="text-sm font-medium">{billData.items.length} món</span>
                                 </div>
+
                                 <div className="flex justify-between mb-2">
-                                    <span className="text-sm">Tạm tính:</span>
+                                    <span className="text-sm">Tổng tiền:</span>
                                     <span className="text-sm font-medium">{formatCurrency(billData.totalPrice)}</span>
                                 </div>
-                                <div className="flex justify-between mb-2">
-                                    <span className="text-sm">Thuế VAT (0%):</span>
-                                    <span className="text-sm font-medium">{formatCurrency(0)}</span>
-                                </div>
+
                                 <div className="flex justify-between pt-3 border-t border-gray-300">
                                     <span className="text-lg font-bold">TỔNG CỘNG:</span>
                                     <span className="text-xl font-bold">{formatCurrency(billData.totalPrice)}</span>
                                 </div>
                             </div>
 
-                            {/* Export Info */}
                             <div className="mt-6 pt-4 border-t border-gray-200">
                                 <p className="text-xs text-gray-500 text-center">
-                                    Hóa đơn được xuất tự động lúc: {formatDateTimeFull(exportTime)}
+                                    Hóa đơn được xuất lúc: {formatDateTimeFull(exportTime)}
                                 </p>
                             </div>
 
-                            {/* Footer */}
                             <div className="mt-8 pt-6 border-t border-gray-300">
-                                <p className="text-center text-sm text-gray-600 mb-4">
+                                <p className="text-center text-sm text-gray-600">
                                     Cảm ơn quý khách và hẹn gặp lại!
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="px-6 py-4 bg-white border-t border-gray-200 flex gap-3">
+                    {/* ACTION BUTTONS */}
+                    <div className="px-6 py-4 bg-white border-t flex gap-3">
                         <button
                             onClick={handleDownload}
                             disabled={isDownloading}
-                            className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                             <Download className="w-4 h-4"/>
-                            {isDownloading ? 'Đang tạo PDF...' : 'Tải PDF'}
+                            {isDownloading ? "Đang tạo PDF..." : "Tải PDF"}
                         </button>
+
                         <button
-                            onClick={handleComplete}
+                            onClick={onComplete}
                             disabled={isDownloading}
-                            className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:from-green-700 hover:to-emerald-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                             <CheckCircle className="w-4 h-4"/>
-                            Tiếp tục đánh giá
+                            Kết thúc
                         </button>
                     </div>
+
                 </div>
             </div>
         </>

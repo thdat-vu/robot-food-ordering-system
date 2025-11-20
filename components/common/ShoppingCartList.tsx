@@ -83,6 +83,7 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
     const [cartItems, setCartItems] = useState<ShoppingCart[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
     const [open, setOpen] = useState<boolean>(false);
+    const [mess, setMess] = useState<string>("");
     const [deleteConfirm, setDeleteConfirm] = useState<{
         isOpen: boolean;
         itemId: string;
@@ -266,17 +267,18 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
     }, [detail]);
 
     const handleCheck = async (): Promise<boolean> => {
+        if (!tableId) return false;
+        if (!deviceToken) return false;
+
         try {
-            if (!tableId) {
-                return false;
-            }
-            const res: BaseEntityResponse_v2<checkTable> = await runCheckTable(tableId, deviceToken);
+            const res = await runCheckTable(tableId, deviceToken);
+            setMess(res.message);
             return res.data.isMatch;
-        } catch (error) {
-            console.error("Error checking table:", error);
+        } catch (e) {
+            setMess("Mạng yếu không thể thực hiện thao tác tiếp theo");
             return false;
         }
-    }
+    };
 
 
     const check = async () => {
@@ -292,7 +294,7 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
     const handleTableInvalidConfirm = () => {
         setOpenTableInvalid(false);
         // onClose();
-        router.push('/');
+        router.push(`/${tableId}`);
     };
 
 
@@ -475,7 +477,7 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
                 rightClick={() => {
                 }}
                 status="warning"
-                message="Bàn không còn hiệu lực với thiết bị này. Vui lòng quét mã QR lại!"
+                message={mess}
             />
         </>
     );

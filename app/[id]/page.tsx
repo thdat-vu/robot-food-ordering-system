@@ -184,7 +184,7 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
             console.log("Fetching table data...");
 
             try {
-                const result = await run(id, key);
+                const result: Table | ErroTable = await run(id, key);
 
                 if (checkTable(result)) {
                     setData(result);
@@ -196,7 +196,12 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
                     console.log("Table loaded successfully:", result);
                 } else if (result && typeof result === 'object' && 'status' in result && 'message' in result) {
                     const errorResult = result as ErroTable;
-                    console.log("Bàn không còn hiệu lực:", errorResult.message);
+
+                    setErrlog({
+                        title: "Lỗi",
+                        status: false,
+                        message: result.message
+                    });
 
                     setErrlog({
                         title: "Cảnh Báo",
@@ -505,11 +510,22 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
                 <FaCamera className="text-2xl"/>
             </button>
 
-            <div className="flex justify-center items-center h-screen bg-gray-100">
-                {step === 1 && <Frame1 onNext={nextStep} onSkip={skip} isLoading={isFetchingData}/>}
-                {step === 2 && <Frame2 onNext={nextStep} onSkip={skip} isLoading={isFetchingData}/>}
-                {step === 3 && <Frame3 onNext={nextStep} onSkip={skip} isLoading={isFetchingData}/>}
-            </div>
+            {isFetchingData ? (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
+                    <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">
+                        <Loader2 className="w-12 h-12 text-blue-600 animate-spin"/>
+                        <p className="text-lg font-semibold text-gray-800">Đang tải dữ liệu...</p>
+                        <p className="text-sm text-gray-600">Vui lòng đợi trong giây lát</p>
+                    </div>
+                </div>
+            ) : (
+                <div className="flex justify-center items-center h-screen bg-gray-100">
+                    {step === 1 && <Frame1 onNext={nextStep} onSkip={skip} isLoading={false}/>}
+                    {step === 2 && <Frame2 onNext={nextStep} onSkip={skip} isLoading={false}/>}
+                    {step === 3 && <Frame3 onNext={nextStep} onSkip={skip} isLoading={false}/>}
+                </div>
+            )}
+
 
             {errlog && shouldShowErrorDialog && (
                 <MobileDialog

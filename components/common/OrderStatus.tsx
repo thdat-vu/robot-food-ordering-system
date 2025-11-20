@@ -6,10 +6,11 @@ import {
     Truck,
     Smile,
     XOctagon,
-    Coffee,
     Bell,
     AlertCircle,
 } from "lucide-react";
+import {IoFastFoodOutline} from "react-icons/io5";
+
 
 enum OrderStatusEnum {
     Pending = "Pending",
@@ -71,7 +72,7 @@ export const OrderStatus: React.FC<{ status: string }> = ({status}) => {
                 return {
                     text: "Sẵn sàng",
                     color: "bg-teal-100 text-teal-700 border-teal-200",
-                    icon: Coffee,
+                    icon: IoFastFoodOutline,
                 };
             default:
                 return {

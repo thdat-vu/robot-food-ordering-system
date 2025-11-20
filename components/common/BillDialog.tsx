@@ -6,6 +6,9 @@ import {BillPDFPreview} from "@/components/common/BillPDFPreview";
 import {useRouter} from "next/navigation";
 import {useTableContext} from "@/hooks/context/Context";
 import {useCheckoutTable} from "@/hooks/customHooks/useTableHooks";
+import {MobileDialogB2} from "@/components/common/MobileDialogB2";
+import {BaseEntityResponse_v2} from "@/entites/BaseEntity";
+import {CheckoutErrorResponse, CheckoutSuccessResponse} from "@/api/TableApi";
 
 interface BillDialogProps extends OrderRespontGetByID {
     isOpen: boolean;
@@ -37,11 +40,12 @@ export const BillDialog: React.FC<BillDialogProps> = ({
     const router = useRouter();
     const {setTable} = useTableContext();
     const {run} = useCheckoutTable();
+    const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
 
     // Tạo key từ tất cả các thông tin của sản phẩm để so sánh
     const createKeyFromOrderDetail = (item: InForProductOrderDetail): string => {
         let toppingString = '';
-        // Sort toppings để đảm bảo cùng toppings nhưng khác thứ tự vẫn giống nhau
         const sortedToppings = [...(item.toppings || [])].sort((a, b) => a.id.localeCompare(b.id));
         sortedToppings.forEach(topping => {
             toppingString += `${topping.id}-`;
@@ -122,7 +126,7 @@ export const BillDialog: React.FC<BillDialogProps> = ({
 
     const handleConfirmBill = () => {
         handleCheckout();
-        setShowConfirmDialog(true);
+        // setShowConfirmDialog(true);
     };
 
     const handleProceedToPDF = () => {
@@ -136,10 +140,38 @@ export const BillDialog: React.FC<BillDialogProps> = ({
     };
 
     const handleCheckout = async () => {
-        (async () => {
+        try {
             const res = await run(tableId);
-        })()
-    }
+
+            console.log("CHECKOUT RESPONSE:", res);
+
+
+            // ⭐ THÀNH CÔNG 200
+            if ("data" in res && res.statusCode === 200) {
+                setShowConfirmDialog(true);
+                return;
+            }
+
+            // ⭐ LỖI 400 TỪ BACKEND
+            if ("errorMessage" in res && res.statusCode === 400) {
+                setCheckoutError(res.errorMessage || "Không thể checkout");
+                return;
+            }
+
+            // ⭐ LỖI KHÁC
+            setCheckoutError("Không thể checkout");
+        } catch (error) {
+            // Nếu API lỗi mạng → res = undefined
+            if (error as CheckoutErrorResponse) {
+                const a = error as CheckoutErrorResponse;
+                setCheckoutError(a.errorMessage || "Không thể checkout");
+                return;
+            }
+
+        }
+
+    };
+
 
     const billData = {
         id,
@@ -381,11 +413,34 @@ export const BillDialog: React.FC<BillDialogProps> = ({
                     onClose={() => {
                         setShowPDFPreview(false);
                         setTable("", "", "");
-                        router.push("/")
+
+                        setTimeout(() => {
+                            router.replace("/end");
+                        }, 50);
                     }}
-                    onComplete={handlePDFComplete}
+                    onComplete={() => {
+                        handlePDFComplete();
+                        setTimeout(() => {
+                            router.replace("/end");
+                        }, 50);
+                    }}
                 />
             )}
+
+            {checkoutError && (
+                <MobileDialogB2
+                    isOpen={true}
+                    onClose={() => setCheckoutError(null)}
+                    leftConten="Đã hiểu"
+                    rigttConten=""
+                    leftClick={() => setCheckoutError(null)}
+                    rightClick={() => {
+                    }}
+                    status="warning"
+                    message={checkoutError}
+                />
+            )}
+
         </>
     );
 };

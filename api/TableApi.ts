@@ -62,10 +62,42 @@ export const AcceptShareTable = async (
     return res.data;
 };
 
-export const CheckoutTable = async (idTable: string): Promise<any> => {
-    const res = await api.patch(`${API_TABLE}/${idTable}/Checkout`, {})
-    return res.data;
+export interface CheckoutSuccessResponse {
+    id: string;
+    tableSessionId: string | null;
+    name: string;
+    status: string;
+    isQrLocked: boolean;
+    isShared: boolean;
+    lockedAt: string | null;
+    qrCode: string | null;
 }
+
+export interface CheckoutErrorResponse {
+    statusCode: number;     // 400
+    errorCode: string;      // "INVALID_OPERATION"
+    errorMessage: string;   // "Không thể checkout khi order ..."
+}
+
+export const CheckoutTable = async (
+    idTable: string
+): Promise<any> => {
+    try {
+        const res = await api.patch(`${API_TABLE}/${idTable}/Checkout`, {});
+        return res.data;
+    } catch (err: any) {
+        if (err.response?.data) {
+            return err.response.data as CheckoutErrorResponse;
+        }
+
+        return {
+            statusCode: 500,
+            errorCode: "NETWORK_ERROR",
+            errorMessage: "Không thể kết nối máy chủ"
+        };
+    }
+};
+
 
 export interface checkTable {
     isMatch: boolean;
