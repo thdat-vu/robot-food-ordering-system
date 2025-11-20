@@ -9,11 +9,12 @@ import {
   Search,
   X,
   Package,
-  TrendingUp,
   CheckCircle2,
   Wallet,
   XCircle,
   MessageSquareWarning,
+  TrendingUp,
+  Clock10Icon,
 } from "lucide-react";
 
 import { useGetAllFeedbackHome } from "@/hooks/moderator/useFeedbackHooks";
@@ -21,6 +22,10 @@ import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { ToastContainer } from "@/components/moderator/ToastContainer";
 import { DialogModeratorMainPage } from "@/app/moderator/DialogModeratorMainPage";
 import { TableData } from "@/entites/moderator/FeedbackModole";
+import { MdPending } from "react-icons/md";
+import { LegendFloating } from "./LegendFloating";
+import { Label } from "@/components/ui/label";
+import LateDishWarning from "@/components/moderator/LateDishWarning";
 
 type FilterStatus =
   | "all"
@@ -85,6 +90,8 @@ const ModeratorScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [highlightedTable, setHighlightedTable] = useState<string>("");
   const [initialTab, setInitialTab] = useState<"home" | "feedback">("home");
+
+  const [isLegendFloating, setIsLegendFloating] = useState(false);
 
   const { run } = useGetAllFeedbackHome();
   const { toasts, addToast, removeToast } = useToastModerator();
@@ -154,6 +161,42 @@ const ModeratorScreen: React.FC = () => {
     setIdTable(id);
     setInitialTab("home");
     setOpenDialog(true);
+  }, []);
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    const updateLegendState = () => {
+      const y = lastScrollY;
+
+      setIsLegendFloating((prev) => {
+        // dùng 2 ngưỡng để tránh flicker
+        const showFloatingThreshold = 260; // xuống dưới header kha khá
+        const backToTopThreshold = 180; // kéo lên lại trên cao hơn
+
+        if (!prev && y > showFloatingThreshold) return true; // chuyển sang floating
+        if (prev && y < backToTopThreshold) return false; // quay về dạng top
+        return prev; // giữ nguyên, không setState thừa
+      });
+
+      ticking = false;
+    };
+
+    const handleScroll = () => {
+      lastScrollY = window.scrollY;
+
+      if (!ticking) {
+        window.requestAnimationFrame(updateLegendState);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    // set trạng thái ban đầu
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // ✅ Determine table status dựa trên counters
@@ -310,6 +353,48 @@ const ModeratorScreen: React.FC = () => {
     [totalTables, statusCounts.empty]
   );
 
+  // Format "Lần cập nhật món gần nhất"
+  const parseLastOrderTime = (raw?: string | null): Date | null => {
+    if (!raw) return null;
+
+    // Nếu backend sau này trả ISO (2025-11-20T16:13:47) thì vẫn hỗ trợ
+    if (raw.includes("T")) {
+      const isoDate = new Date(raw);
+      return isNaN(isoDate.getTime()) ? null : isoDate;
+    }
+
+    // Format hiện tại: "20/11/2025 16:13:47"
+    const [datePart, timePart] = raw.split(" ");
+    if (!datePart || !timePart) return null;
+
+    const [day, month, year] = datePart.split("/").map(Number);
+    const [hour, minute, second] = timePart.split(":").map(Number);
+
+    const d = new Date(
+      year,
+      (month || 1) - 1,
+      day || 1,
+      hour || 0,
+      minute || 0,
+      second || 0
+    );
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const getLastOrderTimeLabel = (table: TableData): string => {
+    const date = parseLastOrderTime(table.lastOrderUpdatedTime);
+    if (!date) return "—";
+
+    // Hiển thị HH:mm:ss
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
+  // Format pill "⏱ Chờ món: X' (Y món)"
+
   const totalItemsAllTables = useMemo(
     () =>
       Object.values(data).reduce(
@@ -385,51 +470,7 @@ const ModeratorScreen: React.FC = () => {
             </div>
 
             {/* Chú thích màu sắc */}
-            <div className="absolute left-0 top-12 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 space-y-2 text-sm border border-white/50">
-              <h3 className="font-bold text-gray-800 mb-3 text-base">
-                📋 Chú thích màu sắc
-              </h3>
-
-              <div className="flex items-center gap-3">
-                <span className="w-4 h-4 rounded-full bg-gradient-to-br from-white to-gray-100 border-2 border-gray-300"></span>
-                <span className="text-gray-700 font-medium">Bàn trống</span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-100 to-gray-700 animate-pulse"></span>
-                <span className="text-gray-700 font-medium">
-                  Có khách - chưa gọi món
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 animate-pulse"></span>
-                <span className="text-gray-700 font-medium">
-                  Đã order - Đang xử lý
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 animate-pulse"></span>
-                <span className="text-gray-700 font-medium">
-                  Đã phục vụ - Chờ giao
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-400 to-purple-500"></span>
-                <span className="text-gray-700 font-medium">
-                  Đã giao - Chờ thanh toán
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="w-4 h-4 rounded-full bg-gradient-to-br from-green-400 to-green-500"></span>
-                <span className="text-gray-700 font-medium">
-                  Đã thanh toán hết
-                </span>
-              </div>
-            </div>
+            <LegendFloating isFloating={isLegendFloating} />
           </div>
 
           {/* Search Bar */}
@@ -578,8 +619,9 @@ const ModeratorScreen: React.FC = () => {
         </div>
 
         {/* Table Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
           {processedData.map(([tableId, tableData]) => {
+            console.log("table dattaa : ", tableData);
             const isHighlighted = highlightedTable === tableId;
             const textColor = getTextColor(tableData);
             const cardColor = getTableColor(tableData);
@@ -588,11 +630,31 @@ const ModeratorScreen: React.FC = () => {
               <div
                 key={tableId}
                 id={`table-${tableId}`}
-                className={`group relative aspect-square rounded-3xl flex flex-col items-center justify-center 
+                className={` basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 
+                  group relative aspect-square rounded-3xl flex flex-col items-center justify-center 
                   cursor-pointer transition-all duration-300 transform hover:scale-105 hover:rotate-1
                   ${cardColor}`}
                 onClick={() => handleOpenDialog(tableId)}
               >
+                {tableData.lastOrderUpdatedTime && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 flex">
+                    <div
+                      className="
+          px-1.5 py-2
+          rounded-r-full rounded-l-none
+          bg-black/35 text-[10px] leading-tight
+          font-semibold text-white/90
+          backdrop-blur-sm shadow-sm
+          [writing-mode:vertical-rl] [text-orientation:mixed]
+        "
+                    >
+                      <span className="mt-1 block">
+                        {tableData.lastOrderUpdatedTime}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {tableData.counter > 0 && (
                   <div
                     className="absolute top-2 right-2 z-[100] cursor-pointer hover:scale-110 transition-transform bg-white/10 rounded-full p-1"
@@ -657,7 +719,7 @@ const ModeratorScreen: React.FC = () => {
                             return (
                               <>
                                 <Wallet className="w-4 h-4" />
-                                <XCircle className="w-4 h-4 text-red-900 " />
+                                <Clock10Icon className="w-4 h-4" />
                               </>
                             );
                           case 2:
@@ -682,6 +744,10 @@ const ModeratorScreen: React.FC = () => {
                     </div>
                   </div>
                 )}
+                <LateDishWarning table={tableData} />
+
+                {/* Overlay hover */}
+                <div className="absolute inset-0 bg-white/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                 {isHighlighted && (
                   <>
