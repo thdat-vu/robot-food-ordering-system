@@ -111,6 +111,28 @@
     transform: translateX(100%);
   }
 }
+/* globals.css hoặc moderator.css */
+@keyframes borderGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 100, 100, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 50, 50, 0.9);
+  }
+}
+
+@keyframes ping {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
 
 .animating-out {
   animation: slideOutRight 300ms ease-out forwards;
