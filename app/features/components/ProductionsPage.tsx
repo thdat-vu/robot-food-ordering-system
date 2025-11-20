@@ -10,7 +10,6 @@ import {Catagory} from "@/entites/respont/Catagory";
 import {CategoryList} from "@/components/common/CatagoryList";
 import {Production} from "@/entites/respont/Production";
 
-
 export default function ProductionsPage({id}: { id: string }) {
 
     const [type, setType] = useState<string>('');
@@ -29,11 +28,6 @@ export default function ProductionsPage({id}: { id: string }) {
         run: runLoadCategory
     } = useGetAllCategory();
 
-    useEffect(() => {
-        if (categories)
-            setListTpe(categories.items)
-    }, [categories]);
-
     const filteredProductions = useMemo(() => {
         if (!name.trim()) return listData;
 
@@ -44,7 +38,6 @@ export default function ProductionsPage({id}: { id: string }) {
 
     const handleChangeType = useCallback((typeNew: string) => {
         setType(typeNew);
-        console.log(typeNew);
     }, []);
 
     const handeChangName = useCallback((name: string) => {
@@ -52,53 +45,61 @@ export default function ProductionsPage({id}: { id: string }) {
     }, []);
 
     useEffect(() => {
-        (async () => {
-            await runLoadCategory()
-        })()
+        runLoadCategory();
     }, []);
 
     useEffect(() => {
-        if (categories)
-            setListTpe([{id: "", name: "tất cả"}, ...categories.items])
+        if (categories) {
+            const filtered = categories.items.filter(
+                (item) => item.name !== "Phục vụ nhanh"
+            );
+            setListTpe([{id: "", name: "Tất cả"}, ...filtered]);
+        }
     }, [categories]);
 
 
     useEffect(() => {
-
-        (async () => {
-            await runProductions({
-                PageSize: 200,
-                PageNumber: 1,
-                CategoryName: type === 'tất cả' ? "" : type
-            })
-        })()
-
-
+        runProductions({
+            PageSize: 200,
+            PageNumber: 1,
+            CategoryName: type === 'Tất cả' ? "" : type
+        });
     }, [type]);
 
     useEffect(() => {
         if (productions) {
-            setListData(productions.items);
+            const filtered = productions.items.filter(
+                (item) =>
+                    item.productName !== "chén nước mắm" &&
+                    item.productName !== "chén nước tương"
+            );
+            setListData(filtered);
         }
     }, [productions]);
 
+
     return (
-        <div className="min-h-screen w-full">
+        <div className="min-h-screen w-full bg-gray-50">
+            {/* Header Sticky */}
             <Header id={id} handeChangName={handeChangName}/>
 
-            <div className="top-2 bg-white left-0 z-40 mb-3">
+            {/* Category List - Sticky, NO gap */}
+            <div className="sticky top-[57px] bg-white z-40">
                 <CategoryList category={listTpe} handleChange={handleChangeType}/>
             </div>
 
-            <main className="pt-3 px-4 pb-4">
+            {/* Main Content */}
+            <main className="px-3 sm:px-4 py-3">
                 {loadingProducts ? (
                     <Loading/>
                 ) : filteredProductions?.length ? (
                     <ProductionsList products={filteredProductions}/>
                 ) : (
-                    <p className="text-center text-gray-500">
-                        {name.trim() ? 'Không tìm thấy sản phẩm nào.' : 'Không có sản phẩm nào.'}
-                    </p>
+                    <div className="flex items-center justify-center min-h-[50vh]">
+                        <p className="text-center text-gray-500 text-sm sm:text-base">
+                            {name.trim() ? 'Không tìm thấy sản phẩm nào.' : 'Không có sản phẩm nào.'}
+                        </p>
+                    </div>
                 )}
             </main>
         </div>

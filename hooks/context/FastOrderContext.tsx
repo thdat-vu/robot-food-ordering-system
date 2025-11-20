@@ -1,5 +1,5 @@
 "use client";
-import React, {createContext, useContext, useState} from "react";
+import React, {createContext, useContext, useState, useCallback, useMemo} from "react";
 import {item} from "@/entites/request/OrderRequest";
 
 // export interface item {
@@ -33,24 +33,25 @@ export function FastOrderProvider({children}: { children: React.ReactNode }) {
     const [data, setData] = useState<orderRequet>({
         items: [{productId: '', productSizeId: '', toppingIds: [''], note: ""}],
         tableId: '',
-    })
-    const setProduct = (tableId: string, items: item[]) => {
+    });
+
+    const setProduct = useCallback((tableId: string, items: item[]) => {
         setData({tableId: tableId, items: items});
-    }
+    }, []);
 
-    const clearProduct = () => {
+    const clearProduct = useCallback(() => {
         setData({tableId: '', items: []});
-    }
+    }, []);
 
-    const value: OrderContextType = {
+    const value: OrderContextType = useMemo(() => ({
         ...data,
         setProduct,
         clearProduct,
-    }
+    }), [data, setProduct, clearProduct]);
 
     return (
         <FastOrderContext.Provider value={value}>
             {children}
         </FastOrderContext.Provider>
-    )
+    );
 }

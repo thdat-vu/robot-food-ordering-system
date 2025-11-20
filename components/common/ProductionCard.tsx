@@ -1,19 +1,20 @@
 'use client'
-import React from "react";
+import React, {memo, useCallback} from "react";
 import {useRouter} from "next/navigation";
+import Image from "next/image";
 
-export const ProductionCard: React.FC<{
-    idProduction: string,
-    name: string,
-    // price: string,
-    url: string,
-    // sale?: number,
-}> = ({url, name, idProduction}) => {
+interface ProductionCardProps {
+    idProduction: string;
+    name: string;
+    url: string;
+}
+
+export const ProductionCard: React.FC<ProductionCardProps> = memo(({url, name, idProduction}) => {
     const router = useRouter();
 
-    const handle = () => {
+    const handle = useCallback(() => {
         router.push(`/productions/detail/${idProduction}`);
-    };
+    }, [router, idProduction]);
 
     return (
         <div
@@ -25,11 +26,16 @@ export const ProductionCard: React.FC<{
                        hover:scale-105 hover:shadow-xl cursor-pointer"
         >
             <div className="flex justify-center">
-                <img
-                    src={url}
-                    alt={name}
-                    className="w-20 h-20 sm:w-24 sm:h-24 object-cover mt-2 rounded-full"
-                />
+                {/*<Image*/}
+                {/*    src={url}*/}
+                {/*    alt={name}*/}
+                {/*    width={96}*/}
+                {/*    height={96}*/}
+                {/*    className="w-20 h-20 sm:w-24 sm:h-24 object-cover mt-2 rounded-full"*/}
+                {/*    loading="lazy"*/}
+                {/*    quality={75}*/}
+                {/*/>*/}
+                <img className="w-20 h-20 sm:w-24 sm:h-24 object-cover mt-2 rounded-full" src={url} alt=""/>
             </div>
 
             <div className="mt-5 bg-gray-50 rounded-2xl p-2 sm:p-3 transition hover:bg-gray-100">
@@ -37,12 +43,9 @@ export const ProductionCard: React.FC<{
                     <h3 className="text-sm font-medium sm:font-semibold text-gray-800 line-clamp-1">
                         {name}
                     </h3>
-                    {/*<p className="text-green-600 font-bold text-sm sm:text-base">*/}
-                    {/*    {price}*/}
-                    {/*</p>*/}
                 </div>
             </div>
 
         </div>
     );
-};
+});

@@ -3,13 +3,20 @@ import {BottomModal} from "@/components/common/BottomModal";
 import {useGetToppingForProduct} from "@/hooks/customHooks/userTopingHooks";
 import {ToppingProduct} from "@/entites/respont/Topping";
 import formatCurrency from "@/unit/unit";
-import {Check, Minus, Plus} from "lucide-react";
+import {Check, Minus, Plus, ShoppingBag} from "lucide-react";
 import {useProductContext} from "@/hooks/context/ContextProduct";
 import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
 import {addProduction} from "@/store/ShoppingCart";
 import {useTableContext} from "@/hooks/context/Context";
 import {ConfimOrder} from "@/app/features/components/ConfimOrder";
 import {SHOPPING_CARTS} from "@/key-store";
+import {MobileDialog} from "@/components/common/MobileDialog";
+import {useRouter} from "next/navigation";
+import {MobileDialogB2} from "@/components/common/MobileDialogB2";
+import {useCheckTable} from "@/hooks/customHooks/useTableHooks";
+import {BaseEntityResponse_v2} from "@/entites/BaseEntity";
+import {checkTable} from "@/api/TableApi";
+import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
 
 type ChoceTopingProps = {
     id: string;
@@ -29,7 +36,8 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
 
     const [data, setData] = useState<ToppingProduct[]>([]);
     const [note, setNote] = useState<string>('')
-    const [quanlityPr, setQuanlityPr] = useState<number>(1)
+    const [quanlityPr, setQuanlityPr] = useState<number>(1);
+    const {run} = useCheckTable();
 
     const [selectedToppings, setSelectedToppings] = useState<{
         [key: string]: { name: string, price: number, quanlity: number }
@@ -40,6 +48,14 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
     const [open, setOpen] = useState<boolean>(false);
     const [res, setRes] = useState<ShoppingCart[]>()
     const [totalPrice, setTotalPrice] = useState<number>(0);
+    const router = useRouter();
+    const {deviceToken} = useDeviceToken();
+
+    const [openConfin, setOpenConfin] = useState<boolean>(false);
+    const [dataDialog, setDataDialog] = useState<{ status: boolean, text: string }>()
+
+    // State mới cho dialog kiểm tra bàn
+    const [openTableInvalid, setOpenTableInvalid] = useState<boolean>(false);
 
     const {
         run: runGetToppingForProduct,
@@ -47,6 +63,28 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
         data: dataToppings
     } = useGetToppingForProduct();
 
+    // Hàm chuyển đổi tên size thành ký hiệu
+    const getSizeSymbol = (sizeName: string): string => {
+        const lowerName = sizeName.toLowerCase();
+        if (lowerName.includes('Large') || lowerName.includes('lớn')) return 'L';
+        if (lowerName.includes('medium') || lowerName.includes('vừa')) return 'M';
+        if (lowerName.includes('Small') || lowerName.includes('nhỏ')) return 'S';
+        return sizeName.charAt(0).toUpperCase();
+    };
+
+    // Tối ưu hàm kiểm tra bàn - sửa kiểu trả về và xử lý đầy đủ
+    const handleCheck = async (): Promise<boolean> => {
+        try {
+            if (!tableId) {
+                return false;
+            }
+            const res: BaseEntityResponse_v2<checkTable> = await run(tableId.tableId, deviceToken);
+            return res.data.isMatch;
+        } catch (error) {
+            console.error("Error checking table:", error);
+            return false;
+        }
+    }
 
     useEffect(() => {
         (async () => {
@@ -98,7 +136,19 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
         });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        // Kiểm tra bàn còn hiệu lực không
+        const isTableValid = await handleCheck();
+
+
+        if (!isTableValid) {
+            // Bàn không còn hiệu lực - hiển thị dialog cảnh báo
+            setOpenTableInvalid(true);
+            onClose();
+            return;
+        }
+
+        // Bàn còn hiệu lực - tiếp tục xử lý
         const toppingsArray: Topping[] = Object.entries(selectedToppings).map(([id, topping]) => {
             const originalTopping = data.find(t => t.id === id);
 
@@ -120,17 +170,18 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
             note: note
         };
 
-
         switch (content) {
-            case 'Gọi món ngay' :
+            case 'Gọi món ngay':
                 setRes(Array(quanlityPr).fill(temp));
                 setOpen(true);
                 break;
-            case 'Lưu võ hàng':
-                var a = Array(quanlityPr).fill(temp);
-                a.forEach(value => {
+            case 'Lưu giỏ hàng':
+                const items = Array(quanlityPr).fill(temp);
+                items.forEach(value => {
                     addProduction<ShoppingCart>(SHOPPING_CARTS, value);
-                })
+                });
+                setDataDialog({status: true, text: "Thêm giỏ hàng thành công"});
+                setOpenConfin(true);
                 break;
             default:
                 break;
@@ -138,9 +189,54 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
         onClose();
     };
 
+    // Tính tổng tiền
+    const calculateTotal = () => {
+        const productTotal = price * quanlityPr;
+        const toppingsTotal = Object.values(selectedToppings).reduce((sum, topping) => {
+            return sum + (topping.price * topping.quanlity);
+        }, 0);
+        return productTotal + toppingsTotal;
+    };
+
+    // Xử lý khi bàn không còn hiệu lực
+    const handleTableInvalidConfirm = () => {
+        setOpenTableInvalid(false);
+        onClose();
+        router.push('/'); // Chuyển về trang root
+    };
 
     return (
         <>
+            {/* Dialog cảnh báo bàn không còn hiệu lực */}
+            <MobileDialogB2
+                isOpen={openTableInvalid}
+                onClose={handleTableInvalidConfirm}
+                leftConten="Đồng ý"
+                rigttConten=""
+                leftClick={handleTableInvalidConfirm}
+                rightClick={() => {
+                }}
+                status="warning"
+                message="Bàn không còn hiệu lực với thiết bị này. Vui lòng quét mã QR lại!"
+            />
+
+            {/* Dialog thêm giỏ hàng thành công */}
+            {dataDialog && (
+                <MobileDialogB2
+                    isOpen={openConfin}
+                    onClose={() => {
+                        setOpenConfin(false);
+                        router.back()
+                    }}
+                    leftConten="Có"
+                    rigttConten="Không"
+                    leftClick={() => router.back()}
+                    rightClick={() => router.push(`/productions/order/${id}`)}
+                    status={dataDialog.status ? "success" : "warning"}
+                    message="Bạn có muốn gọi thêm món không?"
+                />
+            )}
+
             <BottomModal
                 id={id}
                 title="Tùy chỉnh món ăn"
@@ -148,180 +244,198 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
                 onClose={onClose}
             >
                 <div className="px-5 pb-6 bg-white">
-                    {/* Header section */}
-                    <div className="mb-5 p-4 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm">
+
+                    {/* Size Info Card */}
+                    <div className="mb-6 p-4 bg-green-50 rounded-2xl border border-green-200">
                         <div className="flex items-center justify-between">
-                            <span className="font-medium text-gray-700">Size đã chọn:</span>
-                            <div className="flex items-center gap-2">
-                                <span className="font-bold text-emerald-700">{size_name}</span>
-                                <span className="font-bold text-gray-900">{formatCurrency(price)}</span>
-                            </div>
+                            <span className="font-medium text-gray-700">
+                                Size đã chọn:
+                            </span>
+                            <span
+                                className="font-bold text-green-600">{getSizeSymbol(size_name)}</span>
+                            <span className="font-bold text-xl text-green-600">{formatCurrency(price)}</span>
                         </div>
                     </div>
 
-                    {/* Product quantity */}
-                    <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-3">Số lượng</h3>
+                    {/* Product Quantity - Simple */}
+                    <div className="mb-6 bg-white rounded-2xl">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <ShoppingBag className="w-5 h-5 text-green-600"/>
+                            Số lượng món
+                        </h3>
+
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => setQuanlityPr(Math.max(1, quanlityPr - 1))}
-                                    className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-emerald-500 transition-colors active:scale-95"
+                                    className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-all active:scale-95"
                                 >
-                                    <Minus className="w-4 h-4 text-gray-600"/>
+                                    <Minus className="w-5 h-5 text-gray-700"/>
                                 </button>
 
-                                <span className="w-10 text-center font-semibold text-lg text-gray-800">
-                                        {quanlityPr}
-                                    </span>
+                                <span className="text-3xl font-bold text-gray-900 w-12 text-center">{quanlityPr}</span>
 
                                 <button
                                     onClick={() => setQuanlityPr(quanlityPr + 1)}
-                                    className="w-10 h-10 rounded-full border-2 border-emerald-500 bg-emerald-500 flex items-center justify-center hover:bg-emerald-600 transition-colors active:scale-95"
+                                    className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center hover:bg-green-600 transition-all active:scale-95"
                                 >
-                                    <Plus className="w-4 h-4 text-white"/>
+                                    <Plus className="w-5 h-5 text-white"/>
                                 </button>
                             </div>
 
-                            <div className="text-emerald-600 font-bold">
-                                {formatCurrency(price * quanlityPr)}
+                            <div className="text-right">
+                                <div className="text-xs text-gray-500 mb-1">Thành tiền</div>
+                                <div className="text-xl font-bold text-green-600">
+                                    {formatCurrency(price * quanlityPr)}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Toppings section */}
+                    {/* Toppings Section - Simple */}
                     {!loadinggetToppingsForProduct && data.length > 0 && (
-                        <div className="space-y-4 mb-6">
-                            <h3 className="text-lg font-semibold text-gray-800">Topping (tùy chọn)</h3>
+                        <div className="mb-6">
+                            <h3 className="text-lg font-bold text-gray-900 mb-4">Topping thêm</h3>
 
-                            {data.map((topping) => {
-                                const toppingData = selectedToppings[topping.id];
-                                const quantity = toppingData ? toppingData.quanlity : 0;
+                            <div className="space-y-3">
+                                {data.map((topping) => {
+                                    const toppingData = selectedToppings[topping.id];
+                                    const quantity = toppingData ? toppingData.quanlity : 0;
 
-                                return (
-                                    <div key={topping.id}
-                                         className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div className="flex-1">
-                                                <h4 className="font-semibold text-gray-900">{topping.name}</h4>
-                                                <p className="text-emerald-600 font-bold mt-1">
-                                                    +{formatCurrency(topping.price)}
-                                                </p>
-                                            </div>
-
-                                            {topping.imageUrl && (
-                                                <div className="ml-4">
-                                                    <div
-                                                        className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border">
+                                    return (
+                                        <div
+                                            key={topping.id}
+                                            className="bg-gray-50 rounded-2xl p-4"
+                                        >
+                                            <div className="flex items-center gap-3 mb-3">
+                                                {topping.imageUrl && (
+                                                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-200">
                                                         <img
                                                             src={topping.imageUrl}
                                                             alt={topping.name}
                                                             className="w-full h-full object-cover"
                                                         />
                                                     </div>
+                                                )}
+
+                                                <div className="flex-1">
+                                                    <h4 className="font-semibold text-gray-900">{topping.name}</h4>
+                                                    <span className="text-green-600 font-bold">
+                                                        +{formatCurrency(topping.price)}
+                                                    </span>
                                                 </div>
-                                            )}
-                                        </div>
+                                            </div>
 
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-3">
-                                                <button
-                                                    onClick={() => updateToppingQuantity(topping.id, -1 * quanlityPr, topping.name, topping.price * quanlityPr)}
-                                                    disabled={quantity === 0}
-                                                    className="w-9 h-9 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-40 hover:border-emerald-500 transition-colors active:scale-95"
-                                                >
-                                                    <Minus className="w-4 h-4 text-gray-600"/>
-                                                </button>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <button
+                                                        onClick={() => updateToppingQuantity(topping.id, -1 * quanlityPr, topping.name, topping.price * quanlityPr)}
+                                                        disabled={quantity === 0}
+                                                        className="w-10 h-10 rounded-xl bg-white flex items-center justify-center disabled:opacity-30 hover:bg-gray-100 transition-all active:scale-95"
+                                                    >
+                                                        <Minus className="w-4 h-4 text-gray-700"/>
+                                                    </button>
 
-                                                <span
-                                                    className={`w-8 text-center font-semibold text-lg ${quantity > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                    <span className={`w-8 text-center font-bold text-lg ${
+                                                        quantity > 0 ? 'text-green-600' : 'text-gray-400'
+                                                    }`}>
                                                         {quantity}
                                                     </span>
 
-                                                <button
-                                                    onClick={() => updateToppingQuantity(topping.id, quanlityPr, topping.name, topping.price * quanlityPr)}
-                                                    className="w-9 h-9 rounded-full border-2 border-emerald-500 bg-emerald-500 flex items-center justify-center hover:bg-emerald-600 transition-colors active:scale-95"
-                                                >
-                                                    <Plus className="w-4 h-4 text-white"/>
-                                                </button>
-                                            </div>
-
-                                            {quantity > 0 && (
-                                                <div className="flex items-center text-emerald-600 font-medium">
-                                                        <span className="font-semibold">
-                                                            {formatCurrency(topping.price * quantity)}
-                                                        </span>
+                                                    <button
+                                                        onClick={() => updateToppingQuantity(topping.id, quanlityPr, topping.name, topping.price * quanlityPr)}
+                                                        className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center hover:bg-green-600 transition-all active:scale-95"
+                                                    >
+                                                        <Plus className="w-4 h-4 text-white"/>
+                                                    </button>
                                                 </div>
-                                            )}
+
+                                                {quantity > 0 && (
+                                                    <div className="font-bold text-green-600">
+                                                        {formatCurrency(topping.price * quantity)}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    {(Object.keys(selectedToppings).length > 0 || quanlityPr > 1) && (
-                        <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
-                            <h4 className="font-semibold text-gray-800 mb-3">Tóm tắt đơn hàng</h4>
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm py-1">
-                                    <span className="text-gray-600">{name} ({size_name}) × {quanlityPr}</span>
-                                    <span
-                                        className="font-medium text-gray-800">{formatCurrency(price * quanlityPr)}</span>
-                                </div>
-
-                                {Object.entries(selectedToppings).map(([toppingId, toppingData]) => (
-                                    <div key={toppingId} className="flex justify-between text-sm py-1">
-                                            <span
-                                                className="text-gray-600">{toppingData.name} × {toppingData.quanlity}</span>
-                                        <span className="font-medium text-gray-800">
-                                                +{formatCurrency(toppingData.price * toppingData.quanlity / quanlityPr)}
-                                            </span>
-                                    </div>
-                                ))}
-
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
 
-                    {/* Note section */}
+                    {/* Order Summary - Simple */}
+                    {(Object.keys(selectedToppings).length > 0 || quanlityPr > 1) && (
+                        <div className="mb-6 bg-gray-50 rounded-2xl p-4">
+                            <h4 className="font-bold text-gray-900 mb-3">Chi tiết đơn hàng</h4>
+
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-700">{name} ({size_name}) × {quanlityPr}</span>
+                                    <span
+                                        className="font-bold text-gray-900">{formatCurrency(price * quanlityPr)}</span>
+                                </div>
+
+                                {Object.entries(selectedToppings).map(([toppingId, toppingData]) => (
+                                    <div key={toppingId} className="flex justify-between items-center text-sm">
+                                        <span
+                                            className="text-gray-600">+ {toppingData.name} × {toppingData.quanlity}</span>
+                                        <span className="font-semibold text-gray-700">
+                                            {formatCurrency(toppingData.price * toppingData.quanlity / quanlityPr)}
+                                        </span>
+                                    </div>
+                                ))}
+
+                                <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+                                    <span className="font-bold text-gray-900">Tổng cộng</span>
+                                    <span className="text-xl font-bold text-green-600">
+                                        {formatCurrency(calculateTotal())}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Note Section */}
                     <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block font-bold text-gray-900 mb-3">
                             Ghi chú cho món ăn
                         </label>
                         <div className="relative">
-                                <textarea
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    placeholder="Ví dụ: Ít đá, không đường, thêm tương ớt..."
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder-gray-400 text-gray-700"
-                                    rows={3}
-                                    maxLength={200}
-                                />
-                            <div className="absolute bottom-2 right-3 text-xs text-gray-400 bg-white px-2 py-1 rounded">
+                            <textarea
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                placeholder="Ví dụ: Ít đá, không đường, thêm tương ớt..."
+                                className="w-full px-4 py-3 border border-gray-300 rounded-2xl resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all placeholder-gray-400 text-gray-700"
+                                rows={3}
+                                maxLength={200}
+                            />
+                            <div className="absolute bottom-3 right-3 text-xs text-gray-400">
                                 {note.length}/200
                             </div>
                         </div>
                     </div>
 
-                    {/* Action buttons */}
-                    <div className="flex space-x-3">
+                    {/* Action Buttons */}
+                    <div className="flex gap-3">
                         <button
                             onClick={onClose}
-                            className="flex-1 py-3.5 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                            className="flex-1 py-3.5 px-4 border border-gray-300 rounded-2xl text-gray-700 font-bold hover:bg-gray-50 transition-all"
                         >
                             Hủy bỏ
                         </button>
                         <button
                             onClick={handleSave}
-                            className="flex-1 py-3.5 px-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 active:bg-emerald-800 transition-colors shadow-md hover:shadow-lg"
+                            className="flex-[2] py-3.5 px-4 bg-green-500 text-white rounded-2xl font-bold hover:bg-green-600 transition-all flex items-center justify-center gap-2"
                         >
-                            {content}
+                            <ShoppingBag className="w-5 h-5"/>
+                            <span>{content}</span>
                         </button>
                     </div>
                 </div>
             </BottomModal>
-            <ConfimOrder ShoppingCart={res} isOpen={open} onClose={() => setOpen(false)}/>
+
+            <ConfimOrder onChange={() => {
+            }} ShoppingCart={res} isOpen={open} onClose={() => setOpen(false)}/>
         </>
     );
 };

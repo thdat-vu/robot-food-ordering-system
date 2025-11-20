@@ -1,5 +1,6 @@
 export interface FeedbackRequest {
-    idTable: string;
-    idOrderItem: string[];
-    note: string;
+    tableId: string;
+    orderItemIds: string[];
+    complainNote: string;
+    title: string;
 }

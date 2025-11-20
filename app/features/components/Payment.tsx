@@ -4,15 +4,15 @@ import Button from "@/components/common/Button";
 import {RiBankCard2Line} from "react-icons/ri";
 import {useCreateOreder, useCreatePayment} from "@/hooks/customHooks/useOrderHooks";
 import {BaseEntityData} from "@/entites/BaseEntity";
-import {PaymentRespont} from "@/entites/respont/Payment";
 import {useFastOrderContext} from "@/hooks/context/FastOrderContext";
 import {item, OrderRequest} from "@/entites/request/OrderRequest";
-import {useTableContext} from "@/hooks/context/Context";
 import {OrderRespont} from "@/entites/respont/OrderRespont";
-import {addProduction, removeProduction} from "@/store/ShoppingCart";
+import {addProduction, loadListFromLocalStorage} from "@/store/ShoppingCart";
 import {Order} from "@/entites/Props/Order";
-import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
 import {ORDER_CARTS} from "@/key-store";
+import {useRouter} from "next/navigation";
+import {TABLE_STORE, TOKEN_Bro_VALUE} from "@/name-value-env";
+import {Table} from "@/entites/respont/Table";
 
 type PaymentProps = {
     id: string;
@@ -73,8 +73,28 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
     const [currentOrderId, setCurrentOrderId] = useState<string>(orderId);
 
     const context = useFastOrderContext();
-    const tablecontext = useTableContext();
-    const deviceToken = useDeviceToken();
+    const [idTable, setIdTable] = useState<string>();
+    const [token, setToken] = useState<string>();
+    const router = useRouter();
+
+
+    console.log(orderId)
+
+    useEffect(() => {
+        try {
+            const tk = localStorage.getItem(TOKEN_Bro_VALUE);
+            if (tk) {
+                setToken(tk);
+            }
+
+            const tables: Table[] = loadListFromLocalStorage<Table>(TABLE_STORE);
+            if (tables && tables.length > 0) {
+                setIdTable(tables[0].id);
+            }
+        } catch (error) {
+            console.error("Error loading from localStorage:", error);
+        }
+    }, []);
 
 
     const [alert, setAlert] = useState<{
@@ -126,7 +146,7 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
             return null;
         }
 
-        if (!tablecontext.tableId) {
+        if (!idTable) {
             showAlert(
                 'Lỗi bàn',
                 'Không xác định được bàn. Vui lòng chọn bàn trước khi đặt hàng.',
@@ -136,9 +156,9 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
         }
 
         const orderRequest: OrderRequest = {
-            tableId: tablecontext.tableId,
+            tableId: idTable,
             items: items,
-            deviceToken: deviceToken.deviceToken
+            deviceToken: token as string,
         };
 
         try {
@@ -159,6 +179,7 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
             );
             return null;
         }
+
     };
 
     const handlePayment = async () => {
@@ -171,18 +192,20 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
 
         try {
             const orderIdToUse = await createOrderIfNeeded();
+            console.log(orderIdToUse)
             if (!orderIdToUse) {
                 return;
             }
-            addProduction<Order>(ORDER_CARTS, {
-                tableId: tablecontext.tableId,
-                id: orderIdToUse
-            });
+            if (idTable)
+                addProduction<Order>(ORDER_CARTS, {
+                    tableId: idTable,
+                    id: orderIdToUse
+                });
 
 
-            const paymentRes: BaseEntityData<PaymentRespont> = await runPayment(orderIdToUse, {
-                paymentMethod: payment
-            });
+            // const paymentRes: BaseEntityData<PaymentRespont> = await runPayment(orderIdToUse, {
+            //     paymentMethod: payment
+            // });
 
             showAlert(
                 'Thanh toán',
@@ -194,8 +217,8 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
                 localStorage.removeItem(ORDER_CARTS)
             })()
 
-
             onClose();
+            router.forward();
         } catch (error: any) {
             console.error('Payment error:', error);
             showAlert(
@@ -238,24 +261,6 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
 
 
                 <div className="space-y-4">
-                    <label
-                        className={`flex items-center p-3 bg-gray-100 text-black rounded-lg cursor-pointer hover:bg-gray-200 transition-colors ${
-                            payment === 1 ? 'ring-2 ring-yellow-500 bg-yellow-50' : ''
-                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                        <input
-                            type="radio"
-                            name="payment"
-                            className="mr-3"
-                            checked={payment === 1}
-                            onChange={() => !isLoading && setPayment(1)}
-                            disabled={isLoading}
-                        />
-                        <div className="flex items-center">
-                            <img src="https://img.icons8.com/color/48/000000/money.png" alt="Cash"
-                                 className="w-6 h-6 mr-2"/>
-                            <span>Tiền mặt</span>
-                        </div>
-                    </label>
 
                     <label
                         className={`flex items-center p-3 bg-gray-100 text-black rounded-lg cursor-pointer hover:bg-gray-200 transition-colors ${
@@ -289,6 +294,7 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
                     }
                     handle={handlePayment}
                 />
+
             </BottomModal>
 
             <AlertDialog

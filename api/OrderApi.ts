@@ -9,9 +9,10 @@ import {PaymentRespont} from "@/entites/respont/Payment";
 export const createOrderApi = async (orderRequest: OrderRequest):
     Promise<BaseEntityData<OrderRespont>> => {
 
-    console.log(orderRequest);
+    console.log(orderRequest)
     try {
         const res = await api.post(`${API_ORDERING}/handle`, orderRequest);
+        console.log(res)
         return res.data;
     } catch (e) {
         throw e;
@@ -45,7 +46,6 @@ export const CreatePayment = async (id: string, paymentMethor: PaymentRequest): 
 export const GetOrderWithIdTableAndToken = async (idTable: string, token: string): Promise<BaseEntityData<OrderRespontGetByID>> => {
     try {
         const res = await api.get(`${API_ORDERING}/get-table-token/${idTable}/${token}`);
-        console.log(res);
         return res.data;
     } catch (e) {
         throw e;

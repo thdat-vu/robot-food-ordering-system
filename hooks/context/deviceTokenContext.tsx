@@ -1,6 +1,6 @@
 "use client"
 
-import React, {createContext, ReactNode, useContext, useState} from "react";
+import React, {createContext, ReactNode, useContext, useState, useCallback, useMemo} from "react";
 
 interface deviceToken {
     deviceToken: string;
@@ -21,18 +21,19 @@ export const useDeviceToken = () => {
 export function DeviceTokenProvider({children}: { children: ReactNode }) {
     const [token, setToken] = useState<string>('');
 
-    const setDeviceToken = (deviceToken: string) => {
+    const setDeviceToken = useCallback((deviceToken: string) => {
         setToken(deviceToken);
-    }
+    }, []);
 
-    const clearDeviceToken = () => {
-        setDeviceToken('');
-    }
+    const clearDeviceToken = useCallback(() => {
+        setToken('');
+    }, []);
 
-    const value: deviceToken = {
+    const value: deviceToken = useMemo(() => ({
         deviceToken: token,
-        setDeviceToken: setDeviceToken,
-        clearDeviceToken: clearDeviceToken,
-    }
+        setDeviceToken,
+        clearDeviceToken,
+    }), [token, setDeviceToken, clearDeviceToken]);
+
     return <DeviceTokenContext.Provider value={value}>{children}</DeviceTokenContext.Provider>;
 }

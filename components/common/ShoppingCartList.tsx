@@ -1,6 +1,6 @@
 "use client"
 import React, {useCallback, useEffect, useState} from "react";
-import {ShoppingCart, Topping} from "@/entites/Props/ShoppingCart";
+import {ShoppingCart} from "@/entites/Props/ShoppingCart";
 import {Minus, Plus, ShoppingBag, Trash2, AlertTriangle} from "lucide-react";
 import formatCurrency, {totolPrice} from "@/unit/unit";
 import {
@@ -11,6 +11,14 @@ import {
 } from "@/store/ShoppingCart";
 import {ConfimOrder} from "@/app/features/components/ConfimOrder";
 import {SHOPPING_CARTS} from "@/key-store";
+import {BaseEntityResponse_v2} from "@/entites/BaseEntity";
+import {checkTable, ErroTable} from "@/api/TableApi";
+import {useCheckTable, useGetTable} from "@/hooks/customHooks/useTableHooks";
+import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
+import {useRouter} from "next/navigation";
+import {MobileDialogB2} from "@/components/common/MobileDialogB2";
+import {useTableContext} from "@/hooks/context/Context";
+import {Table} from "@/entites/respont/Table";
 
 type DetailType = {
     shc: ShoppingCart;
@@ -23,6 +31,7 @@ const DeleteConfirmModal: React.FC<{
     onCancel: () => void;
     itemName: string;
 }> = ({isOpen, onConfirm, onCancel, itemName}) => {
+
     if (!isOpen) return null;
 
     return (
@@ -65,7 +74,11 @@ const DeleteConfirmModal: React.FC<{
     );
 };
 
-export const ShoppingCartList: React.FC = () => {
+interface Props {
+    onChange: (tab: "food" | "ordered") => void;
+}
+
+export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
     const [detail, setDetail] = useState<DetailType[] | undefined>()
     const [cartItems, setCartItems] = useState<ShoppingCart[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
@@ -76,6 +89,32 @@ export const ShoppingCartList: React.FC = () => {
         itemName: string;
     }>({isOpen: false, itemId: '', itemName: ''});
     const [isRemoving, setIsRemoving] = useState<string | null>(null);
+
+    const [openTableInvalid, setOpenTableInvalid] = useState<boolean>(false);
+    const {run: runCheckTable} = useCheckTable();
+    const {deviceToken} = useDeviceToken();
+    const router = useRouter();
+    const {run} = useGetTable();
+    const {tableId, setTable} = useTableContext();
+
+    useEffect(() => {
+        (async () => {
+            if (!deviceToken) return;
+
+            try {
+                const res: Table | ErroTable = await run(tableId, deviceToken);
+
+                if ("id" in res) {
+                    setTable(res.id, res.status, res.name);
+                } else {
+                    console.error("Error from API:", res.message);
+                }
+            } catch (error) {
+                console.error("Fetch error:", error);
+            }
+        })();
+    }, [tableId, deviceToken]);
+
 
     const calculateItemTotal = (item: DetailType) => {
         let sum = 0;
@@ -119,10 +158,8 @@ export const ShoppingCartList: React.FC = () => {
         const currentItems = loadListFromLocalStorage<ShoppingCart>(SHOPPING_CARTS);
 
         if (isIncrease) {
-            // Thêm 1 sản phẩm giống hệt
             addProduction<ShoppingCart>(SHOPPING_CARTS, itemDetail.shc);
         } else {
-            // Giảm 1 sản phẩm - tìm và xóa 1 item đầu tiên matching
             const targetItem = itemDetail.shc;
             let toppingString = '';
             targetItem.toppings.forEach(value => {
@@ -144,7 +181,6 @@ export const ShoppingCartList: React.FC = () => {
             }
         }
 
-        // Reload cart items
         const updatedItems = loadListFromLocalStorage<ShoppingCart>(SHOPPING_CARTS);
         setCartItems(updatedItems);
     }, []);
@@ -228,6 +264,37 @@ export const ShoppingCartList: React.FC = () => {
             setTotalPrice(sum);
         }
     }, [detail]);
+
+    const handleCheck = async (): Promise<boolean> => {
+        try {
+            if (!tableId) {
+                return false;
+            }
+            const res: BaseEntityResponse_v2<checkTable> = await runCheckTable(tableId, deviceToken);
+            return res.data.isMatch;
+        } catch (error) {
+            console.error("Error checking table:", error);
+            return false;
+        }
+    }
+
+
+    const check = async () => {
+        const isTableValid = await handleCheck();
+
+        if (!isTableValid) {
+            setOpenTableInvalid(true);
+            return;
+        }
+        setOpen(true)
+    }
+
+    const handleTableInvalidConfirm = () => {
+        setOpenTableInvalid(false);
+        // onClose();
+        router.push('/');
+    };
+
 
     if (cartItems.length === 0) {
         return (
@@ -385,7 +452,7 @@ export const ShoppingCartList: React.FC = () => {
                         </div>
                     </div>
 
-                    <ActionButtons handle={() => setOpen(true)}/>
+                    <ActionButtons handle={check}/>
                 </div>
             </div>
 
@@ -397,20 +464,36 @@ export const ShoppingCartList: React.FC = () => {
                 itemName={deleteConfirm.itemName}
             />
 
-            <ConfimOrder ShoppingCart={undefined} isOpen={open} onClose={() => setOpen(false)}/>
+            <ConfimOrder onChange={onChange} ShoppingCart={undefined} isOpen={open} onClose={() => setOpen(false)}/>
+
+            <MobileDialogB2
+                isOpen={openTableInvalid}
+                onClose={handleTableInvalidConfirm}
+                leftConten="Đồng ý"
+                rigttConten=""
+                leftClick={handleTableInvalidConfirm}
+                rightClick={() => {
+                }}
+                status="warning"
+                message="Bàn không còn hiệu lực với thiết bị này. Vui lòng quét mã QR lại!"
+            />
         </>
     );
 };
 
 const ActionButtons: React.FC<{ handle: () => void }> = ({handle}) => {
+
     return (
-        <div className="flex space-x-3">
-            <button
-                onClick={handle}
-                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
-                Gọi Món
-            </button>
-        </div>
+        <>
+            <div className="flex space-x-3">
+                <button
+                    onClick={handle}
+                    className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
+                    Gọi Món
+                </button>
+            </div>
+        </>
+
     )
 }
 

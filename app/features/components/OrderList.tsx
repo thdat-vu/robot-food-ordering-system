@@ -5,12 +5,14 @@ import {useRouter} from "next/navigation";
 import {IoIosArrowBack} from "react-icons/io";
 import {ShoppingCartList} from "@/components/common/ShoppingCartList";
 import {OrderDisplay} from "@/components/common/OrderDisplay";
+import {useTableContext} from "@/hooks/context/Context";
 
 
 export const OrderList: React.FC<{ id: string }> = ({id}) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<"food" | "ordered">("food");
     const [count, setCount] = useState<number>(0);
+    const {tableName} = useTableContext();
 
 
     return (
@@ -24,7 +26,7 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
                         <IoIosArrowBack className="text-black text-3xl"/>
                     </button>
                     <h2 className="flex-1 text-center text-xl font-bold text-gray-800">
-                        Gọi món của bạn
+                        {tableName}
                     </h2>
                     <button
                         onClick={() => router.push(`/productions/${id}`)}
@@ -70,7 +72,7 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {
                             activeTab === "food" ? (
-                                <ShoppingCartList/>
+                                <ShoppingCartList onChange={setActiveTab}/>
                             ) : (
                                 <OrderDisplay handleChange={setCount}/>
                             )

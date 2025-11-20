@@ -1,281 +1,354 @@
-import React, {useEffect, useState} from 'react';
-import {X, Send, MessageSquare, RefreshCw, Users, Clock, Star, LucideIcon} from 'lucide-react';
+import React, {useEffect, useState, useRef} from "react";
+import {X, MessageSquare, Lightbulb} from "lucide-react";
 import {useCreateFeedback} from "@/hooks/customHooks/useFeedbackHooks";
 import {FeedbackRequest} from "@/entites/request/FeedbackRequest";
 import {useTableContext} from "@/hooks/context/Context";
+import {InForProductOrderDetail} from "@/entites/respont/OrderRespont";
 
-interface FeedbackSuggestion {
+interface AutocompleteSuggestion {
     id: string;
     text: string;
-    icon: LucideIcon;
-    color: string;
+    keywords: string[];
+    category: string;
 }
 
 interface FeedbackDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    productInfo?: any;
+    productInfo?: InForProductOrderDetail;
     listIds?: string[];
 }
 
-export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({isOpen, onClose, productInfo, listIds}) => {
-    const [selectedSuggestions, setSelectedSuggestions] = useState<string[]>([]);
-    const [customFeedback, setCustomFeedback] = useState<string>('');
-    const [rating, setRating] = useState<number>(0);
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+interface StoredFeedback {
+    tableId: string;
+    content: string;
+    timestamp: number;
+}
+
+const FEEDBACK_DRAFT_KEY = "feedback_draft";
+const FEEDBACK_SENT_KEY = "feedback_sent";
+const AUTOCACHE_KEY = "cached_suggestions";
+const EXPIRY_TIME = 30 * 60 * 1000;
+
+export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
+                                                                  isOpen,
+                                                                  onClose,
+                                                                  listIds
+                                                              }) => {
+
+    const [customFeedback, setCustomFeedback] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showAutocomplete, setShowAutocomplete] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [sentFeedbackList, setSentFeedbackList] = useState<StoredFeedback[]>([]);
+
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
     const {tableId} = useTableContext();
     const {run} = useCreateFeedback();
 
-    useEffect(() => {
-        if (!isOpen) {
-            setSelectedSuggestions([]);
-            setCustomFeedback('');
-            setRating(0);
-            setIsSubmitting(false);
-        }
-    }, [isOpen]);
-
-    const feedbackSuggestions: FeedbackSuggestion[] = [
-        {id: 'remake', text: 'Làm lại món', icon: RefreshCw, color: 'bg-orange-100 text-orange-600'},
-        {id: 'service', text: 'Yêu cầu phục vụ', icon: Users, color: 'bg-blue-100 text-blue-600'},
-        {id: 'slow', text: 'Phục vụ chậm', icon: Clock, color: 'bg-red-100 text-red-600'},
-        {id: 'cold', text: 'Món bị nguội', icon: RefreshCw, color: 'bg-purple-100 text-purple-600'},
-        {id: 'taste', text: 'Vị không đúng', icon: MessageSquare, color: 'bg-yellow-100 text-yellow-600'},
-        {id: 'missing', text: 'Thiếu món', icon: MessageSquare, color: 'bg-gray-100 text-gray-600'},
+    // ================= DEFAULT SUGGESTIONS ====================
+    const defaultSuggestions: AutocompleteSuggestion[] = [
+        {id: "nuocmam", text: "Cho thêm nước mắm", keywords: ["nuoc", "mam"], category: "Nước chấm"},
+        {id: "nuoctuong", text: "Cho thêm nước tương", keywords: ["nuoc", "tuong"], category: "Nước chấm"},
+        {id: "tuongot", text: "Cho thêm tương ớt", keywords: ["tuong", "ot"], category: "Gia vị"},
+        {id: "khonghanh", text: "Không hành", keywords: ["khong", "hanh"], category: "Loại bỏ"},
+        {id: "khongtoi", text: "Không tỏi", keywords: ["khong", "toi"], category: "Loại bỏ"},
+        {id: "itcay", text: "Ít cay", keywords: ["it", "cay"], category: "Độ cay"},
+        {id: "cayvua", text: "Cay vừa", keywords: ["cay", "vua"], category: "Độ cay"},
+        {id: "ratcay", text: "Rất cay", keywords: ["rat", "cay"], category: "Độ cay"},
+        {id: "itdau", text: "Ít dầu", keywords: ["it", "dau"], category: "Dầu mỡ"},
+        {id: "nonghoi", text: "Nóng hổi", keywords: ["nong", "hoi"], category: "Nhiệt độ"},
+        {id: "themrau", text: "Thêm rau sống", keywords: ["them", "rau"], category: "Phần ăn"},
+        {id: "taikhong", text: "Tái hơn", keywords: ["tai", "song"], category: "Chế biến"},
     ];
 
-    const handleSuggestionToggle = (suggestionId: string): void => {
-        setSelectedSuggestions(prev =>
-            prev.includes(suggestionId)
-                ? prev.filter(id => id !== suggestionId)
-                : [...prev, suggestionId]
+    // Load cache
+    const [autocompleteSuggestions] = useState<AutocompleteSuggestion[]>(() => {
+        try {
+            const raw = localStorage.getItem(AUTOCACHE_KEY);
+            if (raw) return JSON.parse(raw);
+        } catch {
+        }
+
+        localStorage.setItem(AUTOCACHE_KEY, JSON.stringify(defaultSuggestions));
+        return defaultSuggestions;
+    });
+
+    // Build keyword map
+    const keywordMap = useRef<Map<string, AutocompleteSuggestion[]>>(new Map());
+
+    useEffect(() => {
+        const map = new Map<string, AutocompleteSuggestion[]>();
+
+        autocompleteSuggestions.forEach(s => {
+            s.keywords.forEach(k => {
+                const key = k.toLowerCase();
+                if (!map.has(key)) map.set(key, []);
+                map.get(key)!.push(s);
+            });
+        });
+
+        keywordMap.current = map;
+    }, [autocompleteSuggestions]);
+
+    // Validate only suggestion text allowed
+    const isValidFeedback = (text: string) => {
+        if (!text.trim()) return false;
+
+        const allowed = autocompleteSuggestions.map(s => s.text.toLowerCase());
+        const parts = text.toLowerCase().split(",");
+
+        return parts.every(p =>
+            allowed.some(a => p.trim().includes(a))
         );
     };
 
-    const handleSubmit = async (): Promise<void> => {
-        if (isSubmitting) return;
+    // Save feedback
+    const saveSentFeedback = (content: string) => {
+        let list: StoredFeedback[] = [];
+
+        try {
+            const raw = localStorage.getItem(FEEDBACK_SENT_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) list = parsed;
+            }
+        } catch {
+        }
+
+        list.push({
+            tableId,
+            content,
+            timestamp: Date.now()
+        });
+
+        list = list.filter(f => Date.now() - f.timestamp < EXPIRY_TIME);
+
+        localStorage.setItem(FEEDBACK_SENT_KEY, JSON.stringify(list));
+    };
+
+    // Save draft
+    const saveDraft = () => {
+        if (!customFeedback.trim()) return;
+
+        localStorage.setItem(FEEDBACK_DRAFT_KEY, JSON.stringify({
+            tableId,
+            content: customFeedback,
+            timestamp: Date.now()
+        }));
+    };
+
+    // Load storage
+    const loadStorage = () => {
+        try {
+            const raw = localStorage.getItem(FEEDBACK_SENT_KEY);
+            if (raw) {
+                let list = JSON.parse(raw);
+
+                if (!Array.isArray(list)) list = [];
+
+                list = list.filter(
+                    (f: StoredFeedback) =>
+                        f.tableId === tableId &&
+                        Date.now() - f.timestamp < EXPIRY_TIME
+                );
+
+                setSentFeedbackList(list);
+            }
+        } catch {
+        }
+
+        try {
+            const raw = localStorage.getItem(FEEDBACK_DRAFT_KEY);
+            if (raw) {
+                const d = JSON.parse(raw);
+                if (d.tableId === tableId && Date.now() - d.timestamp < EXPIRY_TIME) {
+                    setCustomFeedback(d.content);
+                }
+            }
+        } catch {
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) loadStorage();
+    }, [isOpen, tableId]);
+
+    useEffect(() => {
+        if (customFeedback) saveDraft();
+    }, [customFeedback]);
+
+    // FIXED: Smart fuzzy suggestion filter
+    const getFilteredSuggestions = (text: string) => {
+        const cleaned = text.toLowerCase().trim();
+        if (!cleaned) return [];
+
+        const lastWord = cleaned.split(/[\s,]/).pop()!.trim();
+        if (!lastWord) return [];
+
+        const results: AutocompleteSuggestion[] = [];
+
+        for (const [key, list] of keywordMap.current.entries()) {
+            if (key.startsWith(lastWord)) {
+                results.push(...list);
+            }
+        }
+
+        return Array.from(new Set(results)); // remove duplicates
+    };
+
+    const filteredSuggestions = React.useMemo(
+        () => getFilteredSuggestions(customFeedback),
+        [customFeedback]
+    );
+
+    useEffect(() => {
+        setShowAutocomplete(filteredSuggestions.length > 0);
+        setSelectedIndex(0);
+    }, [filteredSuggestions]);
+
+    // Insert suggestion
+    const insertSuggestion = (s: AutocompleteSuggestion) => {
+        if (!textareaRef.current) return;
+
+        const textarea = textareaRef.current;
+        const text = customFeedback;
+        const cursor = textarea.selectionStart;
+
+        let start = cursor - 1;
+        while (start >= 0 && ![" ", ",", "\n"].includes(text[start])) start--;
+        start++;
+
+        let end = cursor;
+        while (end < text.length && ![" ", ",", "\n"].includes(text[end])) end++;
+
+        const newText = text.substring(0, start) + s.text + text.substring(end);
+
+        setCustomFeedback(newText);
+        setShowAutocomplete(false);
+
+        setTimeout(() => {
+            const pos = start + s.text.length;
+            textarea.setSelectionRange(pos, pos);
+            textarea.focus();
+        }, 0);
+    };
+
+    // Submit
+    const handleSubmit = async () => {
+        if (!isValidFeedback(customFeedback)) {
+            alert("Chỉ được dùng gợi ý có sẵn!");
+            return;
+        }
 
         setIsSubmitting(true);
 
         try {
-            let combinedNote = '';
-
-            if (selectedSuggestions.length > 0) {
-                const suggestionTexts = selectedSuggestions
-                    .map(id => feedbackSuggestions.find(s => s.id === id)?.text)
-                    .filter(Boolean);
-                combinedNote += `Phản hồi: ${suggestionTexts.join(', ')}`;
-            }
-
-            if (customFeedback.trim()) {
-                if (combinedNote) combinedNote += '\n';
-                combinedNote += `Chi tiết: ${customFeedback.trim()}`;
-            }
-
-            if (rating > 0) {
-                if (combinedNote) combinedNote += '\n';
-                combinedNote += `Đánh giá: ${rating}/5 sao`;
-            }
-
-            const feedbackRequest: FeedbackRequest = {
-                idTable: tableId,
-                note: combinedNote || 'Feedback không có nội dung cụ thể',
-                idOrderItem: listIds || []
+            const payload: FeedbackRequest = {
+                tableId,
+                complainNote: customFeedback,
+                orderItemIds: listIds || [],
+                title: "",
             };
 
-            const result = await run(feedbackRequest);
-
-            if (result) {
+            const ok = await run(payload);
+            if (ok) {
+                saveSentFeedback(customFeedback);
+                localStorage.removeItem(FEEDBACK_DRAFT_KEY);
+                alert("Gửi feedback thành công!");
                 onClose();
             }
-
-        } catch (error) {
-            console.error('Error submitting feedback:', error);
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
-        const value = e.target.value;
-        if (value.length <= 200) {
-            setCustomFeedback(value);
-        }
-    };
-
-    const isSubmitDisabled = isSubmitting || (
-        !rating &&
-        selectedSuggestions.length === 0 &&
-        !customFeedback.trim()
-    );
-
-    const totalItems = listIds ? listIds.length : 1;
-
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-            <div
-                className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                onClick={onClose}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                        onClose();
-                    }
-                }}
-            />
 
-            <div
-                className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:w-96 sm:max-w-md max-h-[90vh] overflow-hidden shadow-2xl">
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4 text-white">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <MessageSquare className="w-6 h-6"/>
-                            <h2 className="text-lg font-semibold">
-                                Feedback {totalItems > 1 ? `(${totalItems} món)` : ''}
-                            </h2>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors"
-                            aria-label="Đóng dialog"
-                        >
-                            <X className="w-5 h-5"/>
-                        </button>
-                    </div>
+            <div className="absolute inset-0 bg-black/50" onClick={onClose}/>
 
-                    <div className="mt-3 bg-white bg-opacity-20 rounded-lg px-3 py-2">
-                        <p className="text-sm opacity-90">Món ăn:</p>
-                        <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                                <p className="font-medium truncate">
-                                    {productInfo?.shc.productName || 'Tên món ăn'}
-                                </p>
-                                <div className="flex items-center gap-2 text-xs opacity-75 mt-1">
-                                    <span>Size: {productInfo?.shc.sizeName}</span>
-                                    <span>•</span>
-                                    <span>SL: {productInfo?.quantity}</span>
-                                    {totalItems > 1 && (
-                                        <>
-                                            <span>•</span>
-                                            <span className="bg-white bg-opacity-30 px-2 py-0.5 rounded-full">
-                                                +{totalItems - 1} tương tự
-                                            </span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                            {productInfo?.shc.imageUrl && (
-                                <img
-                                    src={productInfo.shc.imageUrl}
-                                    alt={productInfo.shc.productName}
-                                    className="w-12 h-12 rounded-lg object-cover ml-3"
-                                />
-                            )}
-                        </div>
+            <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:w-96 max-h-[90vh] shadow-xl">
 
-                        {productInfo?.shc.toppings && productInfo.shc.toppings.length > 0 && (
-                            <div className="mt-2 pt-2 border-t border-white border-opacity-20">
-                                <p className="text-xs opacity-75 mb-1">Topping:</p>
-                                <div className="flex flex-wrap gap-1">
-                                    {productInfo.shc.toppings.map((topping:any) => (
-                                        <span
-                                            key={topping.id}
-                                            className="text-xs bg-white bg-opacity-30 px-2 py-1 rounded-full"
-                                        >
-                                            {topping.name}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                <div
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4 text-white flex justify-between items-center">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5"/> Feedback
+                    </h2>
+                    <button onClick={onClose}>
+                        <X className="w-5 h-5"/>
+                    </button>
                 </div>
 
-                <div className="px-6 py-6 space-y-6 max-h-96 overflow-y-auto">
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                            Gợi ý phản hồi
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                            {feedbackSuggestions.map((suggestion) => {
-                                const Icon = suggestion.icon;
-                                const isSelected = selectedSuggestions.includes(suggestion.id);
+                {/* Sent recent */}
+                {sentFeedbackList.length > 0 && (
+                    <div
+                        className="bg-green-50 text-green-700 px-4 py-3 text-sm border-b border-green-200 max-h-32 overflow-y-auto">
+                        <p className="font-medium mb-2">Feedback đã gửi:</p>
+                        {sentFeedbackList.map((f, i) => (
+                            <div key={i} className="mb-2 pb-2 border-b border-green-200">
+                                {f.content}
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                                return (
-                                    <button
-                                        key={suggestion.id}
-                                        onClick={() => handleSuggestionToggle(suggestion.id)}
-                                        className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                                            isSelected
-                                                ? `${suggestion.color} border-current scale-95 shadow-md`
-                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'
-                                        }`}
-                                        aria-pressed={isSelected}
-                                    >
-                                        <Icon className="w-5 h-5 mx-auto mb-2"/>
-                                        <p className="text-xs font-medium text-center leading-tight">
-                                            {suggestion.text}
-                                        </p>
-                                    </button>
-                                );
-                            })}
+                {/* Input */}
+                <div className="px-6 py-5 space-y-4 max-h-80 overflow-y-auto">
+
+                    <label className="text-sm font-medium flex items-center gap-1">
+                        Gợi ý
+                        {showAutocomplete && <Lightbulb className="w-4 h-4 text-blue-600"/>}
+                    </label>
+
+                    <textarea
+                        ref={textareaRef}
+                        value={customFeedback}
+                        onChange={(e) => setCustomFeedback(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (showAutocomplete && e.key === "Tab") {
+                                e.preventDefault();
+                                insertSuggestion(filteredSuggestions[selectedIndex]);
+                            }
+                        }}
+                        className="w-full px-4 py-3 border rounded-xl"
+                        placeholder="Nhập để hiện gợi ý..."
+                        rows={4}
+                    />
+
+                    {showAutocomplete && (
+                        <div className="bg-white border rounded-xl shadow max-h-60 overflow-y-auto">
+                            {filteredSuggestions.map((s, idx) => (
+                                <button
+                                    key={s.id}
+                                    onClick={() => insertSuggestion(s)}
+                                    className={`w-full px-4 py-3 text-left text-sm border-b hover:bg-blue-50 ${
+                                        selectedIndex === idx ? "bg-blue-100" : ""
+                                    }`}
+                                >
+                                    {s.text}
+                                </button>
+                            ))}
                         </div>
-                    </div>
-
-                    <div>
-                        <label
-                            htmlFor="custom-feedback"
-                            className="block text-sm font-medium text-gray-700 mb-2"
-                        >
-                            Nội dung khác (tùy chọn)
-                        </label>
-                        <textarea
-                            id="custom-feedback"
-                            value={customFeedback}
-                            onChange={handleTextareaChange}
-                            placeholder="Chia sẻ thêm về trải nghiệm của bạn..."
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                            rows={4}
-                            maxLength={200}
-                        />
-                        <p className="text-xs text-gray-500 mt-2">
-                            {customFeedback.length}/200 ký tự
-                        </p>
-                    </div>
+                    )}
                 </div>
 
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-                    <div className="flex gap-3">
-                        <button
-                            onClick={onClose}
-                            disabled={isSubmitting}
-                            className="flex-1 px-4 py-3 text-gray-600 font-medium rounded-xl border border-gray-200 hover:bg-gray-100 disabled:opacity-50 transition-colors"
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            onClick={handleSubmit}
-                            disabled={isSubmitDisabled}
-                            className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <div
-                                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Đang gửi...
-                                </>
-                            ) : (
-                                <>
-                                    <Send className="w-4 h-4"/>
-                                    Gửi feedback
-                                </>
-                            )}
-                        </button>
-                    </div>
+                {/* Footer */}
+                <div className="px-6 py-4 bg-gray-50 border-t flex gap-3">
+                    <button className="flex-1 py-3 rounded-xl border" onClick={onClose}>
+                        Hủy
+                    </button>
+
+                    <button
+                        disabled={!isValidFeedback(customFeedback) || isSubmitting}
+                        onClick={handleSubmit}
+                        className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white disabled:opacity-50"
+                    >
+                        {isSubmitting ? "Đang gửi..." : "Gửi feedback"}
+                    </button>
                 </div>
             </div>
         </div>

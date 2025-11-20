@@ -1,1 +1,2 @@
-export const TOKEN_NAME_VALUE = `token_vl_store`
+export const TOKEN_Bro_VALUE = `token_bro_store`
+export const TABLE_STORE = 'TABLESTOREWEBSHOP'

@@ -5,17 +5,70 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/components/common/MobileDialog.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/api/SettingApi.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/api/payment.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/[id]/Frame1.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/[id]/Frame2.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/[id]/Frame3.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/payment/cancel/[id]/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/payment/success/[id]/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/share/[tableId]/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/BillDialog.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/BillPDFPreview.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/BrowserRedirect.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/Feedback.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/InternetGuard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/MobileDialogB2.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/NoInternetPage.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/OrderStatus.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hooks/customHooks/usePayment.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hooks/customHooks/useSettingHooks.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/img4.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/img_1.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/img_2.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/img_3.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api-endpoint-env.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api-endpoint-env.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/FeedbackApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/FeedbackApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/OrderApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/OrderApi.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/api/TableApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/TableApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/api.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/CallStaff.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/CallStaff.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ConfimOrder.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/features/components/OrderList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/OrderList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/Payment.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/Payment.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/ProductionsPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ProductionsPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/Profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/Profile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/productions.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/productions.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/productions/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/productions/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/productions/order/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/productions/order/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/CatagoryList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/CatagoryList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/ChoceToping.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ChoceToping.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/Dialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/Dialog.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/common/FeedbackDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/FeedbackDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/Header.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/ProductionCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ProductionCard.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/entites/respont/Table.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/respont/Table.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entites/BaseEntity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/BaseEntity.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entites/request/FeedbackRequest.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/request/FeedbackRequest.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entites/respont/OrderRespont.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/respont/OrderRespont.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/context/Context.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/context/Context.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/context/ContextProduct.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/context/ContextProduct.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/context/FastOrderContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/context/FastOrderContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/context/deviceTokenContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/context/deviceTokenContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/customHooks/useFeedbackHooks.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/customHooks/useFeedbackHooks.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/customHooks/useTableHooks.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/customHooks/useTableHooks.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/key-store.ts" beforeDir="false" afterPath="$PROJECT_DIR$/key-store.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/name-value-env.ts" beforeDir="false" afterPath="$PROJECT_DIR$/name-value-env.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/next.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tailwind.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/tailwind.config.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,6 +116,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;develop__mobileweb&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/NhatTruong/Desktop/MobileWeb - Sao chép/public&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -70,12 +124,17 @@
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;npm.dev.executor&quot;: &quot;Run&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;terminal&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\NhatTruong\\Desktop\\MobileWeb\\node_modules\\typescript\\lib&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\NhatTruong\\Desktop\\MobileWeb - Sao chép\\node_modules\\typescript\\lib&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\NhatTruong\Desktop\MobileWeb - Sao chép\public" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\NhatTruong\Desktop\MobileWeb - Sao chép\app\payment\success\[id]" />
+      <recent name="C:\Users\NhatTruong\Desktop\MobileWeb - Sao chép\app\payment\cancel\[id]" />
       <recent name="C:\Users\NhatTruong\Desktop\MobileWeb\hooks\context" />
     </key>
   </component>
@@ -151,6 +210,89 @@
       <workItem from="1756092193241" duration="5070000" />
       <workItem from="1756098862707" duration="882000" />
       <workItem from="1756108095546" duration="2191000" />
+      <workItem from="1756112365589" duration="81000" />
+      <workItem from="1756113182164" duration="51000" />
+      <workItem from="1756124498020" duration="366000" />
+      <workItem from="1756124899489" duration="1866000" />
+      <workItem from="1756184887510" duration="1201000" />
+      <workItem from="1756268976348" duration="1827000" />
+      <workItem from="1756352790084" duration="3430000" />
+      <workItem from="1756403954023" duration="418000" />
+      <workItem from="1756435515157" duration="625000" />
+      <workItem from="1756573370330" duration="4000" />
+      <workItem from="1756867857333" duration="26000" />
+      <workItem from="1756957485816" duration="5568000" />
+      <workItem from="1756983258545" duration="6000" />
+      <workItem from="1757002733260" duration="2749000" />
+      <workItem from="1757082074925" duration="19000" />
+      <workItem from="1757292979700" duration="727000" />
+      <workItem from="1757293809103" duration="1124000" />
+      <workItem from="1757310037975" duration="716000" />
+      <workItem from="1757566831879" duration="3405000" />
+      <workItem from="1757570912863" duration="13576000" />
+      <workItem from="1757596630893" duration="95000" />
+      <workItem from="1757742977314" duration="1772000" />
+      <workItem from="1757758209220" duration="587000" />
+      <workItem from="1757950704642" duration="730000" />
+      <workItem from="1758808109774" duration="17000" />
+      <workItem from="1759723413229" duration="14149000" />
+      <workItem from="1759803399249" duration="4171000" />
+      <workItem from="1759809896596" duration="1260000" />
+      <workItem from="1759823165598" duration="265000" />
+      <workItem from="1759986143568" duration="5745000" />
+      <workItem from="1759998027745" duration="1580000" />
+      <workItem from="1760020869717" duration="2902000" />
+      <workItem from="1760326766355" duration="4355000" />
+      <workItem from="1760618450708" duration="2697000" />
+      <workItem from="1760623444923" duration="9580000" />
+      <workItem from="1760702773783" duration="636000" />
+      <workItem from="1760760381504" duration="9190000" />
+      <workItem from="1760775788871" duration="4471000" />
+      <workItem from="1760974016090" duration="143000" />
+      <workItem from="1760975175964" duration="1520000" />
+      <workItem from="1760977605286" duration="6000" />
+      <workItem from="1760981918818" duration="1547000" />
+      <workItem from="1761010601375" duration="1680000" />
+      <workItem from="1761017997018" duration="3659000" />
+      <workItem from="1761103314941" duration="2759000" />
+      <workItem from="1761195724832" duration="3387000" />
+      <workItem from="1761200123733" duration="50000" />
+      <workItem from="1761200265995" duration="59000" />
+      <workItem from="1761200626502" duration="42000" />
+      <workItem from="1761212063022" duration="2265000" />
+      <workItem from="1761215433476" duration="520000" />
+      <workItem from="1761223081159" duration="790000" />
+      <workItem from="1761234602410" duration="259000" />
+      <workItem from="1761265876695" duration="28000" />
+      <workItem from="1761265924545" duration="2113000" />
+      <workItem from="1761300824096" duration="11000" />
+      <workItem from="1761540631074" duration="4586000" />
+      <workItem from="1762185578721" duration="983000" />
+      <workItem from="1762206030855" duration="5651000" />
+      <workItem from="1762405778088" duration="3931000" />
+      <workItem from="1762410567303" duration="3727000" />
+      <workItem from="1762450117076" duration="1938000" />
+      <workItem from="1762768917005" duration="7602000" />
+      <workItem from="1762781647616" duration="628000" />
+      <workItem from="1762782389873" duration="301000" />
+      <workItem from="1762791292372" duration="2793000" />
+      <workItem from="1762937459379" duration="7519000" />
+      <workItem from="1763001582555" duration="1920000" />
+      <workItem from="1763048374297" duration="5760000" />
+      <workItem from="1763057124876" duration="3523000" />
+      <workItem from="1763128445869" duration="29000" />
+      <workItem from="1763129949894" duration="677000" />
+      <workItem from="1763165930039" duration="577000" />
+      <workItem from="1763169111638" duration="1159000" />
+      <workItem from="1763208657077" duration="221000" />
+      <workItem from="1763272168369" duration="8052000" />
+      <workItem from="1763284143755" duration="1923000" />
+      <workItem from="1763287073363" duration="954000" />
+      <workItem from="1763365209342" duration="1190000" />
+      <workItem from="1763368398885" duration="674000" />
+      <workItem from="1763392949474" duration="5861000" />
+      <workItem from="1763564675069" duration="1850000" />
+      <workItem from="1763619711919" duration="1023000" />
     </task>
     <servers />
   </component>
@@ -172,9 +314,44 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/app/features/components/Payment.tsx</url>
+          <line>184</line>
+          <option name="timeStamp" value="15" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/app/features/components/Payment.tsx</url>
+          <line>194</line>
+          <option name="timeStamp" value="17" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/app/features/components/Payment.tsx</url>
+          <line>252</line>
+          <option name="timeStamp" value="18" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/app/features/components/ConfimOrder.tsx</url>
-          <line>104</line>
-          <option name="timeStamp" value="4" />
+          <line>148</line>
+          <option name="timeStamp" value="20" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/app/features/components/ProductionDetail.tsx</url>
+          <line>93</line>
+          <option name="timeStamp" value="23" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/app/features/components/ConfimOrder.tsx</url>
+          <line>405</line>
+          <option name="timeStamp" value="25" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/app/[id]/page.tsx</url>
+          <line>225</line>
+          <option name="timeStamp" value="27" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/components/common/ShoppingCartList.tsx</url>
+          <line>97</line>
+          <option name="timeStamp" value="30" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

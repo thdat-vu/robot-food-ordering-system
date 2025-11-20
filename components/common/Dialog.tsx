@@ -12,10 +12,9 @@ export const DialogComponation: React.FC<ModalProps> = ({isOpen, onClose, childr
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-while bg-opacity-40 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm px-4">
             <div
-                className="bg-white  max-h-[90vh]
-                w-full max-w-lg rounded-xl border border-gray-200 shadow-lg flex flex-col overflow-hidden">
+                className="bg-white max-h-[90vh] w-full max-w-lg rounded-xl border border-gray-200 shadow-lg flex flex-col overflow-hidden">
                 <div
                     className="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
                     <button
@@ -33,4 +32,3 @@ export const DialogComponation: React.FC<ModalProps> = ({isOpen, onClose, childr
         </div>
     );
 };
-

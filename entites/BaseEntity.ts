@@ -10,3 +10,8 @@ export interface BaseEntityData<T> {
     statusCode:string;
     code:string;
 }
+
+export interface BaseEntityResponse_v2<T> extends BaseEntityData<T> {
+    additionalData: string;
+    message: string;
+}

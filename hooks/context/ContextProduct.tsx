@@ -1,6 +1,6 @@
 "use client"
 
-import {createContext, ReactNode, useContext, useState} from "react";
+import {createContext, ReactNode, useContext, useState, useCallback, useMemo} from "react";
 
 interface ProductState {
     id: string,
@@ -48,24 +48,23 @@ export function ProductProvider({children}: { children: ReactNode }) {
         size_name: "",
     });
 
-
-    const setProduct = (id: string, name: string, urlImg: string, price: number, size: string, size_name: string, note: string) => {
+    const setProduct = useCallback((id: string, name: string, urlImg: string, price: number, size: string, size_name: string, note: string) => {
         setProductState({id, name, urlImg, price, size, size_name, note});
-    }
+    }, []);
 
-    const clearProduct = () => {
+    const clearProduct = useCallback(() => {
         setProductState({id: '', name: '', urlImg: '', price: 0, size: '', size_name: '', note: ''});
-    }
+    }, []);
 
-
-    const value: ProductContextType = {
+    const value: ProductContextType = useMemo(() => ({
         ...product,
         setProduct,
         clearProduct,
-    }
+    }), [product, setProduct, clearProduct]);
+
     return (
         <ContextProduct.Provider value={value}>
             {children}
         </ContextProduct.Provider>
-    )
+    );
 }
