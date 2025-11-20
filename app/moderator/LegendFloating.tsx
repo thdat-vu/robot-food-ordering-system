@@ -28,30 +28,22 @@ export const LegendFloating: React.FC<LegendFloatingProps> = ({
 
         <div className="flex items-center gap-3">
           <span className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-100 to-gray-700 animate-pulse" />
-          <span className="text-gray-700 font-medium">
-            Có khách - chưa gọi món
-          </span>
+          <span className="text-gray-700 font-medium">Có khách</span>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 animate-pulse" />
-          <span className="text-gray-700 font-medium">
-            Đã order - Đang xử lý
-          </span>
+          <span className="text-gray-700 font-medium">Đã order</span>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 animate-pulse" />
-          <span className="text-gray-700 font-medium">
-            Đã phục vụ - Chờ giao
-          </span>
+          <span className="text-gray-700 font-medium">Đã phục vụ</span>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-400 to-purple-500" />
-          <span className="text-gray-700 font-medium">
-            Đã giao - Chờ thanh toán
-          </span>
+          <span className="text-gray-700 font-medium">Đã giao</span>
         </div>
 
         <div className="flex items-center gap-3">

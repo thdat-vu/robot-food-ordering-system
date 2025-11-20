@@ -22,10 +22,10 @@ import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { ToastContainer } from "@/components/moderator/ToastContainer";
 import { DialogModeratorMainPage } from "@/app/moderator/DialogModeratorMainPage";
 import { TableData } from "@/entites/moderator/FeedbackModole";
-import { MdPending } from "react-icons/md";
 import { LegendFloating } from "./LegendFloating";
-import { Label } from "@/components/ui/label";
 import LateDishWarning from "@/components/moderator/LateDishWarning";
+import LastUpdateBadge from "@/components/moderator/LastUpdateBadge";
+import ExpandableSearch from "@/components/moderator/ExpandableSearch";
 
 type FilterStatus =
   | "all"
@@ -478,7 +478,14 @@ const ModeratorScreen: React.FC = () => {
             <div className="relative w-full max-w-lg group">
               <div className="relative flex items-center bg-gradient-to-r from-purple-600/30 via-pink-500/30 to-purple-600/30 backdrop-blur-2xl rounded-3xl px-5 sm:px-7 py-3 sm:py-4 transition-all duration-500 group-hover:scale-[1.02]">
                 <div className="relative">
-                  <Search className="w-5 h-5 sm:w-6 sm:h-6 text-purple-100 mr-3 sm:mr-4 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" />
+                  <ExpandableSearch
+                    placeholder="Tìm kiếm bàn, món ăn..."
+                    onSearch={(query) => {
+                      console.log("Tìm kiếm:", query);
+                      // Gọi hàm lọc dữ liệu của bạn ở đây
+                      handleSearch(query);
+                    }}
+                  />
                   <div className="absolute inset-0 bg-purple-400 rounded-full blur-md opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
                 </div>
 
@@ -636,25 +643,6 @@ const ModeratorScreen: React.FC = () => {
                   ${cardColor}`}
                 onClick={() => handleOpenDialog(tableId)}
               >
-                {tableData.lastOrderUpdatedTime && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 flex">
-                    <div
-                      className="
-          px-1.5 py-2
-          rounded-r-full rounded-l-none
-          bg-black/35 text-[10px] leading-tight
-          font-semibold text-white/90
-          backdrop-blur-sm shadow-sm
-          [writing-mode:vertical-rl] [text-orientation:mixed]
-        "
-                    >
-                      <span className="mt-1 block">
-                        {tableData.lastOrderUpdatedTime}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
                 {tableData.counter > 0 && (
                   <div
                     className="absolute top-2 right-2 z-[100] cursor-pointer hover:scale-110 transition-transform bg-white/10 rounded-full p-1"
@@ -684,18 +672,20 @@ const ModeratorScreen: React.FC = () => {
                   {tableData.tableName}
                 </div>
 
-                <div
-                  className={`text-4xl md:text-5xl lg:text-6xl font-black ${textColor}`}
-                >
-                  {tableData.totalItems || 0}
-                </div>
-
-                <div
-                  className={`text-sm md:text-base font-bold text-center ${textColor}`}
-                >
-                  Món ăn
-                </div>
-
+                {tableData.totalItems > 0 ? (
+                  <div className="text-center">
+                    <div
+                      className={`text-4xl md:text-5xl lg:text-6xl font-black ${textColor}`}
+                    >
+                      {tableData.totalItems}
+                    </div>
+                    <div
+                      className={`text-sm md:text-base font-bold text-center ${textColor}`}
+                    >
+                      Món ăn
+                    </div>
+                  </div>
+                ) : null}
                 {tableData.tableStatus !== 0 && (
                   <div className="flex items-center gap-1 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm flex-shrink-0">
                     <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm">
@@ -745,6 +735,9 @@ const ModeratorScreen: React.FC = () => {
                   </div>
                 )}
                 <LateDishWarning table={tableData} />
+                <LastUpdateBadge
+                  lastUpdateTime={tableData.lastOrderUpdatedTime}
+                />
 
                 {/* Overlay hover */}
                 <div className="absolute inset-0 bg-white/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
