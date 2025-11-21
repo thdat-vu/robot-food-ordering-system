@@ -278,12 +278,17 @@ const ServePanel: React.FC<ServePanelProps> = ({
       params.append("selected", tableNumbersByStatus.selected.join(","));
     }
 
+    // Add isRobot parameter when robot delivery mode is enabled
+    if (useRobotDelivery) {
+      params.append("isRobot", "true");
+    }
+
     const queryString = params.toString();
     if (queryString) {
       return `${baseUrl}?${queryString}`;
     }
     return baseUrl;
-  }, [tableNumbersByStatus]);
+  }, [tableNumbersByStatus, useRobotDelivery]);
 
   // Update selected table when dishes change
   React.useEffect(() => {
