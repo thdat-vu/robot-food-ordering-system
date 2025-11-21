@@ -15,6 +15,9 @@ import {
   MessageSquareWarning,
   TrendingUp,
   Clock10Icon,
+  AlertTriangle,
+  Utensils,
+  AlarmClock,
 } from "lucide-react";
 
 import { useGetAllFeedbackHome } from "@/hooks/moderator/useFeedbackHooks";
@@ -26,7 +29,8 @@ import { LegendFloating } from "./LegendFloating";
 import LateDishWarning from "@/components/moderator/LateDishWarning";
 import LastUpdateBadge from "@/components/moderator/LastUpdateBadge";
 import ExpandableSearch from "@/components/moderator/ExpandableSearch";
-
+import { ClockCard } from "@/components/moderator/ClockCard";
+import { StatsCard } from "@/components/moderator/StatsCard";
 type FilterStatus =
   | "all"
   | "empty"
@@ -40,46 +44,6 @@ type FilterStatus =
  * ⏰ ClockCard: tách ra component riêng + React.memo
  * -> chỉ component này re-render mỗi 1s, không kéo cả ModeratorScreen re-render.
  */
-const ClockCard: React.FC = React.memo(() => {
-  const [currentTime, setCurrentTime] = useState<Date>(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (date: Date): string =>
-    date.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-
-  const formatDate = (date: Date): string =>
-    date.toLocaleDateString("vi-VN", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-  return (
-    <div className="bg-white/20 backdrop-blur-lg rounded-2xl px-6 py-3 border border-white/30">
-      <div className="flex items-center space-x-2">
-        <Clock className="w-5 h-5 text-white" />
-        <div className="text-left">
-          <div className="text-white font-mono text-lg font-bold">
-            {formatTime(currentTime)}
-          </div>
-          <div className="text-white/80 text-xs">{formatDate(currentTime)}</div>
-        </div>
-      </div>
-    </div>
-  );
-});
 
 const ModeratorScreen: React.FC = () => {
   const [data, setData] = useState<Record<string, TableData>>({});
@@ -403,6 +367,14 @@ const ModeratorScreen: React.FC = () => {
       ),
     [data]
   );
+  const slowItemsCount = useMemo(
+    () =>
+      Object.values(data).reduce(
+        (sum, TableData) => sum + (TableData.pendingItems ?? 0),
+        0
+      ),
+    [data]
+  );
 
   if (isLoading) {
     return (
@@ -469,7 +441,6 @@ const ModeratorScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Chú thích màu sắc */}
             <LegendFloating isFloating={isLegendFloating} />
           </div>
 
@@ -518,34 +489,29 @@ const ModeratorScreen: React.FC = () => {
             Theo dõi trạng thái các bàn real-time
           </p>
 
-          {/* Stats cards */}
-          <div className="flex flex-wrap justify-center gap-4 mb-6">
+          {/* Thanh stats + đồng hồ – đẩy sát về bên phải vừa đủ */}
+          <div className="flex justify-center  items-center gap-5 mb-7 pr-6">
+            {/* Đồng hồ */}
             <ClockCard />
 
-            <div className="bg-white/20 backdrop-blur-lg rounded-2xl px-6 py-3 border border-white/30">
-              <div className="flex items-center space-x-2">
-                <Users className="w-5 h-5 text-green-300" />
-                <div className="text-left">
-                  <div className="text-white font-bold text-lg">
-                    {activeTables}/{totalTables}
-                  </div>
-                  <div className="text-white/80 text-xs">
-                    Bàn đang hoạt động
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/20 backdrop-blur-lg rounded-2xl px-6 py-3 border border-white/30">
-              <div className="flex items-center space-x-2">
-                <Package className="w-5 h-5 text-yellow-300" />
-                <div className="text-left">
-                  <div className="text-white font-bold text-lg">
-                    {totalItemsAllTables}
-                  </div>
-                  <div className="text-white/80 text-xs">Tổng món đã order</div>
-                </div>
-              </div>
+            {/* 3 stats nhỏ gọn */}
+            <div className="flex items-center gap-4">
+              <StatsCard
+                icon={<Users className="w-5 h-5 text-emerald-300" />}
+                value={`${activeTables}/${totalTables}`}
+                label="Bàn hoạt động"
+              />
+              <StatsCard
+                icon={<Utensils className="w-5 h-5 text-yellow-300" />}
+                value={totalItemsAllTables}
+                label="Món đã order"
+              />
+              <StatsCard
+                icon={<AlarmClock className="w-5 h-5 text-red-300" />}
+                value={slowItemsCount}
+                label="Món chậm"
+                highlight={slowItemsCount > 0}
+              />
             </div>
           </div>
 
