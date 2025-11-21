@@ -419,7 +419,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
                       </div>
 
                       {/* Action Button */}
-                      <Button
+                      {/* <Button
                         size="lg"
                         className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-3 rounded-xl"
                         onClick={async () => {
@@ -440,7 +440,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
                       >
                         <CheckCircle className="w-5 h-5 mr-2" />
                         Phục vụ ngay
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 ))}
