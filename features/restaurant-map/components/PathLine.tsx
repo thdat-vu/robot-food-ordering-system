@@ -35,7 +35,13 @@ export const PathLine: React.FC<PathLineProps> = ({
   };
 
   const colorClass = getColorClasses(color);
-  const arrowColor = "#0ea5e9"; // Bright cyan for better contrast
+  const colorHexMap: Record<string, string> = {
+    primary: "#3b82f6",
+    danger: "#ef4444",
+    success: "#22c55e",
+  };
+  const lineColor = colorHexMap[color] ?? colorHexMap.primary;
+  const arrowColor = "#b91c1c"; // Deep red for consistency with route color
   type Pt = { x: number; y: number };
 
   const waypoints: Pt[] = [];
@@ -84,8 +90,16 @@ export const PathLine: React.FC<PathLineProps> = ({
           return (
             <div
               key={`h-${idx}`}
-              className={`absolute h-2 ${colorClass} opacity-80 animate-pulse shadow-lg rounded-full`}
-              style={{ left: `${left}px`, top: `${s.a.y - 1}px`, width: `${width}px`, zIndex: 5 }}
+              className="absolute"
+              style={{
+                left: `${left}px`,
+                top: `${s.a.y - 1}px`,
+                width: `${width}px`,
+                height: "4px",
+                backgroundImage: `repeating-linear-gradient(90deg, ${lineColor}, ${lineColor} 18px, transparent 18px, transparent 32px)`,
+                opacity: 0.85,
+                zIndex: 5,
+              }}
             />
           );
         }
@@ -95,8 +109,16 @@ export const PathLine: React.FC<PathLineProps> = ({
         return (
           <div
             key={`v-${idx}`}
-            className={`absolute w-2 ${colorClass} opacity-80 animate-pulse shadow-lg rounded-full`}
-            style={{ left: `${s.a.x - 1}px`, top: `${top}px`, height: `${height}px`, zIndex: 5 }}
+            className="absolute"
+            style={{
+              left: `${s.a.x - 1}px`,
+              top: `${top}px`,
+              width: "4px",
+              height: `${height}px`,
+              backgroundImage: `repeating-linear-gradient(180deg, ${lineColor}, ${lineColor} 18px, transparent 18px, transparent 32px)`,
+              opacity: 0.85,
+              zIndex: 5,
+            }}
           />
         );
       })}
