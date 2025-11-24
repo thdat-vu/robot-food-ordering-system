@@ -5,6 +5,7 @@ export type TableActivityType =
   | 'CreateOrder'
   | 'AddOrderItems'
   | 'PartialPayment'
+  |'UpdateOrderItemStatus'
   | 'FullPayment'
   | 'MoveTable'
   | 'ShareStart'

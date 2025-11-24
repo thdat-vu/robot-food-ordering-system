@@ -1,44 +1,34 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react"; // 💡 Thêm useMemo
+import React, { useState, useEffect } from "react";
 import { Clock, Users, QrCode, CheckCircle, Activity } from "lucide-react";
-// ⚠️ Giả định tableService đã được update để chấp nhận tham số phân trang
 
 import {
   TableActivityLog,
   TableActivityTrackerProps,
-  TableActivityType,
 } from "@/entites/moderator/TableActivityLog";
 import { tableService } from "@/service/moderator/TableService";
 
-// ⚙️ Cấu hình hằng số phân trang
+// Cấu hình phân trang
 const ACTIVITIES_PER_PAGE = 10;
 
 export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   propSessionId,
 }) => {
   const [activities, setActivities] = useState<TableActivityLog[]>([]);
-  const [table, setTable] = useState();
   const [activityLoading, setActivityLoading] = useState(false);
-
-  // 🆕 STATE CHO PHÂN TRANG
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalActivities, setTotalActivities] = useState(0);
-  // -------------------------
 
-  console.log(
-    "📝 TableActivityTracker rendered with sessionId:",
-    propSessionId
-  );
+  console.log("TableActivityTracker rendered with sessionId:", propSessionId);
 
-  // 🔄 Cập nhật hàm fetch để hỗ trợ phân trang
+  // Fetch activities với phân trang
   const fetchActivitiesBySessionId = async (
     sessionId: string | null,
     page: number,
     limit: number
   ) => {
     if (!sessionId) {
-      console.log("⚠️ Không có sessionId, clear activities");
       setActivities([]);
       setTotalActivities(0);
       setTotalPages(1);
@@ -47,9 +37,6 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
     try {
       setActivityLoading(true);
-
-      // 📞 GỌI API VỚI PHÂN TRANG
-      // ⚠️ Giả định tableService.getActivitiesBySessionId trả về { data: TableActivityLog[], totalCount: number }
       const res = await tableService.getActivitiesBySessionId(
         sessionId,
         page,
@@ -65,10 +52,6 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       } else if (res && Array.isArray((res as any)?.data)) {
         list = (res as any).data;
         totalCount = (res as any).totalCount ?? list.length;
-      } else {
-        console.error("getActivitiesBySessionId không trả về array:", res);
-        list = [];
-        totalCount = 0;
       }
 
       const normalized = list.map((a) => ({
@@ -76,17 +59,11 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
         data: a.data ?? {},
       }));
 
-      console.log("🔍 Fetched activities:", normalized);
-      // 💾 CẬP NHẬT STATE PHÂN TRANG
       setActivities(normalized);
       setTotalActivities(totalCount);
       setTotalPages(Math.ceil(totalCount / limit));
-
-      console.log(
-        `🔄 Fetched ${normalized.length} activities (Total: ${totalCount}) for sessionId: ${sessionId}, Page: ${page}`
-      );
     } catch (error) {
-      console.error("❌ Lỗi khi tải hoạt động bàn:", error);
+      console.error("Lỗi khi tải hoạt động bàn:", error);
       setActivities([]);
       setTotalActivities(0);
       setTotalPages(1);
@@ -95,30 +72,20 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
     }
   };
 
-  // 1. useEffect theo dõi propSessionId (reset trang về 1 nếu thay đổi)
+  // Reset trang khi sessionId thay đổi
   useEffect(() => {
     if (propSessionId) {
-      // Nếu session ID thay đổi, luôn chuyển về trang 1.
-      // Nếu đã ở trang 1, gọi fetch ngay.
-      if (currentPage !== 1) {
-        setCurrentPage(1);
-      } else {
-        fetchActivitiesBySessionId(
-          propSessionId,
-          currentPage,
-          ACTIVITIES_PER_PAGE
-        );
-      }
+      if (currentPage !== 1) setCurrentPage(1);
+      else fetchActivitiesBySessionId(propSessionId, 1, ACTIVITIES_PER_PAGE);
     } else {
       setActivities([]);
-      setActivityLoading(false);
       setTotalActivities(0);
       setTotalPages(1);
       setCurrentPage(1);
     }
   }, [propSessionId]);
 
-  // 2. useEffect theo dõi currentPage (chỉ fetch khi currentPage thay đổi)
+  // Fetch khi đổi trang
   useEffect(() => {
     if (propSessionId) {
       fetchActivitiesBySessionId(
@@ -129,11 +96,56 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
     }
   }, [currentPage]);
 
-  // 🎯 LOGIC MAP MÓN ĂN CHUẨN XÁC
+  // Helper: Tên trạng thái món theo enum C#
+  const getOrderItemStatusLabel = (status: number | string): string => {
+    const map: Record<number | string, string> = {
+      1: "Đang chờ",
+      Pending: "Đang chờ",
+      2: "Đang chế biến",
+      Preparing: "Đang chế biến",
+      3: "Đã hoàn thành",
+      Ready: "Đã hoàn thành",
+      4: "Đã phục vụ",
+      Served: "Đã phục vụ",
+      5: "Hoàn tất",
+      Completed: "Hoàn tất",
+      6: "Đã hủy",
+      Cancelled: "Đã hủy",
+      7: "Ghi chú",
+      Remark: "Ghi chú",
+      8: "Yêu cầu hủy",
+      RequestCancel: "Yêu cầu hủy",
+    };
+    return map[status] || `Trạng thái ${status}`;
+  };
+
+  // Helper: Màu badge theo trạng thái mới
+  const getStatusColor = (status: number | string): string => {
+    switch (Number(status)) {
+      case 1:
+        return "bg-gray-100 text-gray-700 border-gray-300";
+      case 2:
+        return "bg-orange-100 text-orange-800 border-orange-300";
+      case 3:
+        return "bg-blue-100 text-blue-800 border-blue-300";
+      case 4:
+        return "bg-emerald-100 text-emerald-800 border-emerald-300";
+      case 5:
+        return "bg-green-100 text-green-800 border-green-300";
+      case 6:
+        return "bg-red-100 text-red-800 border-red-300";
+      case 7:
+        return "bg-purple-100 text-purple-800 border-purple-300";
+      case 8:
+        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+      default:
+        return "bg-gray-100 text-gray-600 border-gray-300";
+    }
+  };
+
+  // Format danh sách món (CreateOrder & AddOrderItems)
   const formatItemsList = (activity: TableActivityLog): string => {
     let itemsArray: any[] = [];
-
-    // Lấy mảng items dựa trên type
     if (activity.type === "CreateOrder" && Array.isArray(activity.data.items)) {
       itemsArray = activity.data.items;
     } else if (
@@ -141,257 +153,297 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       Array.isArray(activity.data.newItems)
     ) {
       itemsArray = activity.data.newItems;
-    } else {
-      return ""; // Không phải hoạt động liên quan đến món ăn
-    }
+    } else return "";
 
-    // Map tên sản phẩm (và số lượng nếu có)
-    const itemNames = itemsArray.map((item) => {
-      // Giả sử số lượng (quantity) là 1 nếu không có trường cụ thể
-      const quantity = item.quantity ?? 1;
-      return `${item.productName}${quantity > 1 ? ` x${quantity}` : ""}`;
-    });
-
-    return itemNames.join(", ");
+    return itemsArray
+      .map((item) => {
+        const qty = item.quantity > 1 ? ` x${item.quantity}` : "";
+        return `${item.productName || "Món"}${qty}`;
+      })
+      .join(", ");
   };
-  // ------------------------------------
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case "CheckIn":
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case "ScanAgain":
-        return <QrCode className="w-5 h-5 text-blue-500" />;
-      case "CreateOrder":
-        return (
-          <svg
-            className="w-5 h-5 text-purple-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-            />
-          </svg>
-        );
-      case "AddOrderItems":
-        return (
-          <svg
-            className="w-5 h-5 text-indigo-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-        );
-      case "PartialPayment":
-        return (
-          <svg
-            className="w-5 h-5 text-yellow-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-            />
-          </svg>
-        );
-      case "FullPayment":
-        return (
-          <svg
-            className="w-5 h-5 text-green-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        );
-      case "MoveTable":
-        return (
-          <svg
-            className="w-5 h-5 text-orange-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-            />
-          </svg>
-        );
-      case "ShareStart":
-        return (
-          <svg
-            className="w-5 h-5 text-cyan-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-            />
-          </svg>
-        );
-      case "ShareJoin":
-        return <Users className="w-5 h-5 text-teal-500" />;
-      case "ShareStop":
-        return (
-          <svg
-            className="w-5 h-5 text-red-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-            />
-          </svg>
-        );
-      case "RequestCheckout":
-        return (
-          <svg
-            className="w-5 h-5 text-amber-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-            />
-          </svg>
-        );
-      case "CloseSession":
-        return (
-          <svg
-            className="w-5 h-5 text-gray-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        );
-      case "AutoRelease":
-        return <Clock className="w-5 h-5 text-slate-500" />;
-      case "AttachDeviceFromModerator":
-        return (
-          <svg
-            className="w-5 h-5 text-violet-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-            />
-          </svg>
-        );
-      default:
-        return <Activity className="w-5 h-5 text-gray-500" />;
+  // Format UpdateOrderItemStatus – SIÊU ĐẸP
+  const formatUpdateOrderItemStatus = (
+    activity: TableActivityLog
+  ): React.ReactNode => {
+    if (activity.type !== "UpdateOrderItemStatus") return null;
+
+    const { updatedItems } = activity.data as any;
+    if (!Array.isArray(updatedItems) || updatedItems.length === 0) {
+      return <span className="text-gray-600">Đã cập nhật trạng thái món</span>;
     }
+
+    return (
+      <div className="space-y-3">
+        {updatedItems.map((item: any, idx: number) => {
+          const name = item.productName || "Món ăn";
+          const qty = item.quantity > 1 ? ` x${item.quantity}` : "";
+          const fromStatus = item.previousStatus ?? item.oldStatus;
+          const toStatus = item.newStatus ?? item.status;
+
+          const fromLabel = getOrderItemStatusLabel(fromStatus);
+          const toLabel = getOrderItemStatusLabel(toStatus);
+
+          return (
+            <div key={idx} className="flex items-center gap-3 text-sm">
+              <span className="font-medium text-gray-800 min-w-36">
+                {name}
+                {qty}
+              </span>
+              <span className="text-gray-500">→</span>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium border bg-gray-50">
+                  {fromLabel}
+                </span>
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14 5l7 7m0 0l-7 7m7-7H3"
+                  />
+                </svg>
+                <span
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 ${getStatusColor(
+                    toStatus
+                  )}`}
+                >
+                  {toLabel}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Icon theo loại
+  const getActivityIcon = (type: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      CheckIn: <CheckCircle className="w-5 h-5 text-green-500" />,
+      ScanAgain: <QrCode className="w-5 h-5 text-blue-500" />,
+      CreateOrder: (
+        <svg
+          className="w-5 h-5 text-purple-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+      ),
+      AddOrderItems: (
+        <svg
+          className="w-5 h-5 text-indigo-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+          />
+        </svg>
+      ),
+      UpdateOrderItemStatus: (
+        <svg
+          className="w-5 h-5 text-emerald-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+          />
+        </svg>
+      ),
+      PartialPayment: (
+        <svg
+          className="w-5 h-5 text-yellow-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+          />
+        </svg>
+      ),
+      FullPayment: (
+        <svg
+          className="w-5 h-5 text-green-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      ),
+      MoveTable: (
+        <svg
+          className="w-5 h-5 text-orange-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+          />
+        </svg>
+      ),
+      ShareStart: (
+        <svg
+          className="w-5 h-5 text-cyan-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+          />
+        </svg>
+      ),
+      ShareJoin: <Users className="w-5 h-5 text-teal-500" />,
+      ShareStop: (
+        <svg
+          className="w-5 h-5 text-red-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+          />
+        </svg>
+      ),
+      RequestCheckout: (
+        <svg
+          className="w-5 h-5 text-amber-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+          />
+        </svg>
+      ),
+      CloseSession: (
+        <svg
+          className="w-5 h-5 text-gray-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      ),
+      AutoRelease: <Clock className="w-5 h-5 text-slate-500" />,
+      AttachDeviceFromModerator: (
+        <svg
+          className="w-5 h-5 text-violet-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+          />
+        </svg>
+      ),
+    };
+    return icons[type] || <Activity className="w-5 h-5 text-gray-500" />;
   };
 
   const getActivityColor = (type: string) => {
-    switch (type) {
-      case "CheckIn":
-        return "bg-green-50 border-green-200";
-      case "ScanAgain":
-        return "bg-blue-50 border-blue-200";
-      case "CreateOrder":
-        return "bg-purple-50 border-purple-200";
-      case "AddOrderItems":
-        return "bg-indigo-50 border-indigo-200";
-      case "PartialPayment":
-        return "bg-yellow-50 border-yellow-200";
-      case "FullPayment":
-        return "bg-green-100 border-green-300";
-      case "MoveTable":
-        return "bg-orange-50 border-orange-200";
-      case "ShareStart":
-        return "bg-cyan-50 border-cyan-200";
-      case "ShareJoin":
-        return "bg-teal-50 border-teal-200";
-      case "ShareStop":
-        return "bg-red-50 border-red-200";
-      case "RequestCheckout":
-        return "bg-amber-50 border-amber-200";
-      case "CloseSession":
-        return "bg-gray-50 border-gray-300";
-      case "AutoRelease":
-        return "bg-slate-50 border-slate-200";
-      case "AttachDeviceFromModerator":
-        return "bg-violet-50 border-violet-200";
-      default:
-        return "bg-gray-50 border-gray-200";
-    }
+    const colors: Record<string, string> = {
+      CheckIn: "bg-green-50 border-green-200",
+      ScanAgain: "bg-blue-50 border-blue-200",
+      CreateOrder: "bg-purple-50 border-purple-200",
+      AddOrderItems: "bg-indigo-50 border-indigo-200",
+      UpdateOrderItemStatus: "bg-emerald-50 border-emerald-200",
+      PartialPayment: "bg-yellow-50 border-yellow-200",
+      FullPayment: "bg-green-100 border-green-300",
+      MoveTable: "bg-orange-50 border-orange-200",
+      ShareStart: "bg-cyan-50 border-cyan-200",
+      ShareJoin: "bg-teal-50 border-teal-200",
+      ShareStop: "bg-red-50 border-red-200",
+      RequestCheckout: "bg-amber-50 border-amber-200",
+      CloseSession: "bg-gray-50 border-gray-300",
+      AutoRelease: "bg-slate-50 border-slate-200",
+      AttachDeviceFromModerator: "bg-violet-50 border-violet-200",
+    };
+    return colors[type] || "bg-gray-50 border-gray-200";
   };
 
-  const activityLabels: Record<TableActivityType, string> = {
+  const activityLabels: Record<string, string> = {
     CheckIn: "Check-in",
     ScanAgain: "Quét lại QR",
-    CreateOrder: "Tạo order",
-    AddOrderItems: "Thêm món vào order",
+    CreateOrder: "Tạo đơn hàng",
+    AddOrderItems: "Thêm món vào đơn",
+    UpdateOrderItemStatus: "Cập nhật trạng thái món",
     PartialPayment: "Thanh toán một phần",
     FullPayment: "Thanh toán toàn bộ",
     MoveTable: "Chuyển bàn",
     ShareStart: "Bắt đầu chia sẻ bàn",
-    ShareJoin: "Thiết bị join share bàn",
+    ShareJoin: "Thiết bị tham gia chia sẻ",
     ShareStop: "Dừng chia sẻ bàn",
-    RequestCheckout: "Khách yêu cầu checkout",
+    RequestCheckout: "Yêu cầu thanh toán",
     CloseSession: "Đóng phiên bàn",
-    AutoRelease: "Hệ thống auto release",
+    AutoRelease: "Tự động giải phóng",
     AttachDeviceFromModerator: "Moderator gán thiết bị",
   };
 
-  const getActivityLabel = (type: TableActivityType): string => {
-    return activityLabels[type];
-  };
+  const getActivityLabel = (type: string) => activityLabels[type] || type;
 
   const formatDateTime = (dateString: string) => {
     return dateString;
   };
-
-  // --- Render ---
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -402,219 +454,236 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
           </h1>
           <p className="text-gray-600">
             {propSessionId
-              ? `Đang hiển thị hoạt động cho session: ${propSessionId.substring(
-                  0,
-                  12
-                )}...`
-              : "Không có session ID nào được cung cấp"}
+              ? `Session: ${propSessionId.substring(0, 12)}...`
+              : "Chưa có session ID"}
           </p>
         </div>
 
-        {/* Chi tiết hoạt động */}
-        <div>
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Lịch sử hoạt động
-            </h2>
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            <Activity className="w-6 h-6" />
+            Lịch sử hoạt động
+          </h2>
 
-            {activityLoading ? (
-              <div className="text-center py-16">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Đang tải hoạt động...</p>
-              </div>
-            ) : !propSessionId ? (
-              <div className="text-center py-16 text-gray-500">
-                <Activity className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p>Vui lòng cung cấp một session ID để xem hoạt động</p>
-              </div>
-            ) : activities.length === 0 ? (
-              <div className="text-center py-16 text-gray-500">
-                <Activity className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p>Không có hoạt động nào được ghi nhận</p>
-              </div>
-            ) : (
-              // ⚠️ Xóa max-h và overflow-y-auto khi dùng phân trang để dễ đọc
+          {activityLoading ? (
+            <div className="text-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Đang tải hoạt động...</p>
+            </div>
+          ) : !propSessionId ? (
+            <div className="text-center py-16 text-gray-500">
+              <Activity className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p>Vui lòng cung cấp session ID</p>
+            </div>
+          ) : activities.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              <Activity className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p>Chưa có hoạt động nào</p>
+            </div>
+          ) : (
+            <>
               <div className="space-y-4">
                 {activities.map((activity, index) => (
                   <div
                     key={activity.id || index}
-                    className={`p-4 rounded-lg border-2 ${getActivityColor(
+                    className={`p-5 rounded-lg border-2 ${getActivityColor(
                       activity.type
                     )}`}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-4">
                       <div className="mt-1">
                         {getActivityIcon(activity.type)}
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold text-gray-900">
+                        <div className="flex justify-between items-start mb-3">
+                          <h3 className="font-semibold text-gray-900">
                             {getActivityLabel(activity.type)}
-                          </span>
+                          </h3>
                           <span className="text-sm text-gray-500 flex items-center gap-1">
                             <Clock className="w-4 h-4" />
                             {formatDateTime(activity.createdTime)}
                           </span>
                         </div>
 
-                        {activity.data && (
-                          <div className="text-sm text-gray-600 mt-2 space-y-1">
-                            {activity.data.tableName && (
-                              <div>
-                                <span className="font-medium"></span>{" "}
+                        <div className="text-sm text-gray-700 space-y-2">
+                          {activity.data.tableName && (
+                            <div>
+                              Bàn:{" "}
+                              <span className="font-medium">
                                 {activity.data.tableName}
-                              </div>
-                            )}
-                            {activity.data.orderId && (
-                              <div>
-                                <span className="font-medium">Đơn hàng:</span>{" "}
+                              </span>
+                            </div>
+                          )}
+                          {activity.data.orderId && (
+                            <div>
+                              Đơn hàng:{" "}
+                              <span className="font-medium">
                                 {activity.data.orderId.substring(0, 16)}...
+                              </span>
+                            </div>
+                          )}
+
+                          {(activity.type === "CreateOrder" ||
+                            activity.type === "AddOrderItems") &&
+                            activity.data.newTotalPrice !== undefined && (
+                              <div className="text-emerald-700 font-medium">
+                                Tổng tiền mới:{" "}
+                                {activity.data.newTotalPrice.toLocaleString(
+                                  "vi-VN"
+                                )}{" "}
+                                đ
                               </div>
                             )}
-                            {/* Hiển thị TỔNG TIỀN của đơn hàng mới (từ CreateOrder) */}
-                            {(activity.type === "CreateOrder" ||
-                              activity.type === "AddOrderItems") &&
-                              activity.data.newTotalPrice !== undefined && (
-                                <div>
-                                  <span className="font-medium">
-                                    Tổng tiền mới:
-                                  </span>{" "}
-                                  {activity.data.newTotalPrice.toLocaleString(
-                                    "vi-VN"
-                                  )}{" "}
-                                  đ
-                                </div>
-                              )}
-                            {/* Hiển thị số tiền đã thêm (từ AddOrderItems) */}
-                            {activity.type === "AddOrderItems" &&
-                              activity.data.addedTotal !== undefined && (
-                                <div>
-                                  <span className="font-medium">Thêm:</span>{" "}
-                                  {activity.data.addedTotal.toLocaleString(
-                                    "vi-VN"
-                                  )}{" "}
-                                  đ
-                                </div>
-                              )}
-                            {/* 🎯 LOGIC MAP MÓN ĂN CHUẨN */}
-                            {(activity.type === "CreateOrder" ||
-                              activity.type === "AddOrderItems") && (
+                          {activity.type === "AddOrderItems" &&
+                            activity.data.addedTotal !== undefined && (
+                              <div className="text-indigo-700">
+                                +{" "}
+                                {activity.data.addedTotal.toLocaleString(
+                                  "vi-VN"
+                                )}{" "}
+                                đ
+                              </div>
+                            )}
+
+                          {(activity.type === "CreateOrder" ||
+                            activity.type === "AddOrderItems") &&
+                            formatItemsList(activity) && (
                               <div>
                                 <span className="font-medium">Món:</span>{" "}
                                 {formatItemsList(activity)}
                               </div>
                             )}
-                            {/* --------------------------- */}
-                            {activity.data.paidAmount !== undefined && (
-                              <div>
-                                <span className="font-medium">
-                                  Đã thanh toán:
-                                </span>{" "}
-                                {activity.data.paidAmount.toLocaleString(
-                                  "vi-VN"
-                                )}{" "}
-                                đ
-                              </div>
-                            )}
-                            {activity.data.remainingAmount !== undefined && (
-                              <div>
-                                <span className="font-medium">Còn lại:</span>{" "}
-                                {activity.data.remainingAmount.toLocaleString(
-                                  "vi-VN"
-                                )}{" "}
-                                đ
-                              </div>
-                            )}
-                            {activity.data.fromTableName &&
-                              activity.data.toTableName && (
+
+                          {/* CẬP NHẬT TRẠNG THÁI MÓN – ĐẸP NHẤT */}
+                          {activity.type === "UpdateOrderItemStatus" && (
+                            <div className="mt-4 p-5 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border-2 border-emerald-200">
+                              <div className="flex items-center gap-3 mb-4">
+                                <svg
+                                  className="w-6 h-6 text-emerald-600"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
                                 <div>
-                                  <span className="font-medium">
-                                    Chuyển từ:
+                                  <div className="font-bold text-emerald-900">
+                                    Trạng thái món đã được cập nhật
+                                  </div>
+                                  <div className="text-xs text-emerald-700">
+                                    Bếp đang xử lý theo yêu cầu
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="bg-white/80 rounded-lg p-4 border border-emerald-100">
+                                {formatUpdateOrderItemStatus(activity)}
+                              </div>
+
+                              {activity.data.reason && (
+                                <div className="mt-3 text-sm">
+                                  <span className="font-medium text-red-700">
+                                    Lý do:
                                   </span>{" "}
-                                  {activity.data.fromTableName} →{" "}
-                                  {activity.data.toTableName}
+                                  <span className="text-red-600 italic">
+                                    {activity.data.reason}
+                                  </span>
                                 </div>
                               )}
-                            {activity.data.reason && (
-                              <div className="text-sm text-gray-600">
-                                <span className="font-medium">Lý do:</span>{" "}
-                                {activity.data.reason}
+                            </div>
+                          )}
+
+                          {activity.data.paidAmount !== undefined && (
+                            <div className="text-green-700 font-medium">
+                              Đã thanh toán:{" "}
+                              {activity.data.paidAmount.toLocaleString("vi-VN")}{" "}
+                              đ
+                            </div>
+                          )}
+                          {activity.data.remainingAmount !== undefined && (
+                            <div>
+                              Còn lại:{" "}
+                              {activity.data.remainingAmount.toLocaleString(
+                                "vi-VN"
+                              )}{" "}
+                              đ
+                            </div>
+                          )}
+                          {activity.data.fromTableName &&
+                            activity.data.toTableName && (
+                              <div>
+                                Chuyển từ{" "}
+                                <strong>{activity.data.fromTableName}</strong> →{" "}
+                                <strong>{activity.data.toTableName}</strong>
                               </div>
                             )}
-                            {activity.data.shareCode && (
-                              <div>
-                                <span className="font-medium">Mã chia sẻ:</span>{" "}
+                          {activity.data.shareCode && (
+                            <div>
+                              Mã chia sẻ:{" "}
+                              <code className="bg-gray-200 px-2 py-1 rounded">
                                 {activity.data.shareCode}
-                              </div>
-                            )}
-                            {activity.data.joinedUser && (
-                              <div>
-                                <span className="font-medium">
-                                  Người tham gia:
-                                </span>{" "}
-                                {activity.data.joinedUser}
-                              </div>
-                            )}
-                            {activity.data.paymentMethod && (
-                              <div>
-                                <span className="font-medium">
-                                  Phương thức:
-                                </span>{" "}
-                                {activity.data.paymentMethod}
-                              </div>
-                            )}
-                            {activity.data.sessionDuration && (
-                              <div>
-                                <span className="font-medium">Thời gian:</span>{" "}
-                                {activity.data.sessionDuration}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                              </code>
+                            </div>
+                          )}
+                          {activity.data.joinedUser && (
+                            <div>Tham gia: {activity.data.joinedUser}</div>
+                          )}
+                          {activity.data.paymentMethod && (
+                            <div>
+                              Phương thức: {activity.data.paymentMethod}
+                            </div>
+                          )}
+                          {activity.data.sessionDuration && (
+                            <div>
+                              Thời gian sử dụng: {activity.data.sessionDuration}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
 
-            {/* 🆕 GIAO DIỆN PHÂN TRANG */}
-            {propSessionId && totalPages > 1 && (
-              <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-700">
-                  Đang hiển thị {(currentPage - 1) * ACTIVITIES_PER_PAGE + 1}
-                  đến
-                  {Math.min(currentPage * ACTIVITIES_PER_PAGE, totalActivities)}
-                  {totalActivities}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.max(1, prev - 1))
-                    }
-                    disabled={currentPage === 1 || activityLoading}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Trang trước
-                  </button>
-                  <span className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-md border border-gray-300">
-                    Trang {currentPage} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                    }
-                    disabled={currentPage === totalPages || activityLoading}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Trang sau
-                  </button>
+              {/* Phân trang */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center mt-8 pt-6 border-t border-gray-200 gap-4">
+                  <p className="text-sm text-gray-700">
+                    Hiển thị {(currentPage - 1) * ACTIVITIES_PER_PAGE + 1} -{" "}
+                    {Math.min(
+                      currentPage * ACTIVITIES_PER_PAGE,
+                      totalActivities
+                    )}{" "}
+                    / {totalActivities} hoạt động
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1 || activityLoading}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Trang trước
+                    </button>
+                    <span className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-md border border-gray-300">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      disabled={currentPage === totalPages || activityLoading}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Trang sau
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-            {/* --------------------------- */}
-          </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -4,43 +4,77 @@ import { Clock, Zap } from "lucide-react";
 
 interface LastUpdateBadgeProps {
   lastUpdateTime?: string | null;
+  // Thêm các key phổ biến để linh hoạt hơn
+  createdTime?: string | null;
+  updatedTime?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
 }
+
 export const LastUpdateBadge: React.FC<LastUpdateBadgeProps> = ({
   lastUpdateTime,
+  createdTime,
+  updatedTime,
+  updatedAt,
+  createdAt,
 }) => {
-  if (!lastUpdateTime) return null;
+  // Ưu tiên lấy thời gian theo thứ tự: lastUpdateTime > updatedAt > updatedTime > createdTime > createdAt
+  const timeString =
+    lastUpdateTime ||
+    updatedAt ||
+    updatedTime ||
+    createdTime ||
+    createdAt ||
+    null;
 
-  // Parse thời gian (hỗ trợ cả định dạng VN và ISO)
+  if (!timeString) return null;
+
   let date: Date | null = null;
+
   try {
-    if (lastUpdateTime.includes("T") || lastUpdateTime.includes("-")) {
-      date = new Date(lastUpdateTime);
-    } else {
-      // Format: "20/11/2025 16:28:45"
-      const [datePart, timePart] = lastUpdateTime.split(" ");
-      if (datePart && timePart) {
-        const [day, month, year] = datePart.split("/").map(Number);
-        const [hour, minute, second] = timePart.split(":").map(Number);
-        date = new Date(year, month - 1, day, hour, minute, second);
-      }
+    // 1. ISO format: 2025-11-25T00:34:41Z hoặc 2025-11-25T00:34:41.000Z
+    if (timeString.includes("T") || timeString.match(/\d{4}-\d{2}-\d{2}/)) {
+      date = new Date(timeString);
+    }
+    // 2. Định dạng Việt Nam: 25/11/2025 00:34:41 hoặc 25/11/2025 00:34
+    else if (timeString.includes("/")) {
+      const [datePart, timePart = "00:00:00"] = timeString.split(" ");
+      const [day, month, year] = datePart.split("/").map(Number);
+      const [hour = 0, minute = 0, second = 0] = timePart
+        .split(":")
+        .map(Number);
+
+      date = new Date(year, month - 1, day, hour, minute, second);
+    }
+    // 3. Fallback: để browser tự parse (hỗ trợ nhiều format khác)
+    else {
+      date = new Date(timeString);
     }
   } catch (e) {
+    console.warn("Invalid date format:", timeString);
     return null;
   }
 
+  // Kiểm tra ngày hợp lệ
   if (!date || isNaN(date.getTime())) return null;
 
   const minutesAgo = (Date.now() - date.getTime()) / 1000 / 60;
 
   // Chỉ hiện trong 15 phút gần nhất
-  if (minutesAgo > 15) return null;
+  if (minutesAgo > 15 || minutesAgo < 0) return null;
 
   const isVeryRecent = minutesAgo < 2;
+
+  const timeDisplay = date.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 
   return (
     <div className="mt-2 flex items-center justify-center gap-2">
       <div
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border shadow-lg transition-all duration-500 ${
+        className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border shadow-lg transition-all duration-500 ${
           isVeryRecent
             ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-yellow-300 shadow-yellow-400/50 animate-pulse"
             : "bg-white/90 text-gray-700 border-gray-300"
@@ -58,29 +92,24 @@ export const LastUpdateBadge: React.FC<LastUpdateBadgeProps> = ({
             : `${Math.round(minutesAgo)} phút trước`}
         </span>
 
-        {/* Hiển thị giờ chính xác khi hover (tooltip nhỏ) */}
-        <div className="relative group">
-          <span className="ml-1 opacity-70">
-            {date.toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            })}
-          </span>
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Cập nhật lúc: {date.toLocaleTimeString("vi-VN")}
+        {/* Tooltip giờ chính xác khi hover */}
+        <div className="group relative">
+          <span className="ml-1 opacity-70 cursor-help">{timeDisplay}</span>
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+            Cập nhật lúc: {date.toLocaleString("vi-VN")}
           </div>
         </div>
-      </div>
 
-      {/* Hiệu ứng chấm sáng nhỏ khi vừa cập nhật */}
-      {isVeryRecent && (
-        <>
-          <div className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-300 rounded-full animate-ping"></div>
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-400 rounded-full animate-ping delay-300"></div>
-        </>
-      )}
+        {/* Hiệu ứng chấm nháy khi vừa cập nhật */}
+        {isVeryRecent && (
+          <>
+            <div className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-300 rounded-full animate-ping"></div>
+            <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-400 rounded-full animate-ping delay-300"></div>
+          </>
+        )}
+      </div>
     </div>
   );
 };
+
 export default LastUpdateBadge;
