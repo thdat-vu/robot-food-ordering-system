@@ -99,6 +99,13 @@ export const PathLine: React.FC<PathLineProps> = ({
 
   const renderSegments = mergedSegments.length > 0 ? mergedSegments : segments;
 
+  const getSegmentLength = (segment: { a: Pt; b: Pt }) =>
+    Math.hypot(segment.b.x - segment.a.x, segment.b.y - segment.a.y);
+
+  const MIN_ARROW_LENGTH = 60;
+  const MIN_ARROW_GAP = 110;
+  let lastArrowPosition: Pt | null = null;
+
   return (
     <>
       {renderSegments.map((s, idx) => {
@@ -151,6 +158,15 @@ export const PathLine: React.FC<PathLineProps> = ({
           zIndex: 10,
         };
 
+        const segmentLength = getSegmentLength(s);
+        const distanceToLastArrow = lastArrowPosition
+          ? Math.hypot(lastArrowPosition.x - s.b.x, lastArrowPosition.y - s.b.y)
+          : Infinity;
+
+        if (segmentLength < MIN_ARROW_LENGTH || distanceToLastArrow < MIN_ARROW_GAP) {
+          return null;
+        }
+
         if (horizontal) {
           const isRight = s.b.x > s.a.x;
           const arrowWidth = 18;
@@ -168,6 +184,7 @@ export const PathLine: React.FC<PathLineProps> = ({
             borderRight: !isRight ? `${arrowWidth}px solid ${arrowColor}` : undefined,
           };
 
+          lastArrowPosition = { ...s.b };
           return <div key={`arrow-${idx}`} style={style} />;
         } else {
           const isDown = s.b.y > s.a.y;
@@ -186,6 +203,7 @@ export const PathLine: React.FC<PathLineProps> = ({
             borderBottom: !isDown ? `${arrowHeight}px solid ${arrowColor}` : undefined,
           };
 
+          lastArrowPosition = { ...s.b };
           return <div key={`arrow-${idx}`} style={style} />;
         }
       })}
