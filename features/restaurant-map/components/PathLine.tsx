@@ -80,11 +80,30 @@ export const PathLine: React.FC<PathLineProps> = ({
     segments.push({ a: waypoints[i], b: waypoints[i + 1] });
   }
 
+  const mergedSegments: Array<{ a: Pt; b: Pt }> = [];
+  const isHorizontal = (segment: { a: Pt; b: Pt }) => segment.a.y === segment.b.y;
+
+  segments.forEach((segment) => {
+    const last = mergedSegments[mergedSegments.length - 1];
+    if (
+      last &&
+      isHorizontal(last) === isHorizontal(segment) &&
+      ((isHorizontal(segment) && last.b.y === segment.a.y && last.b.x === segment.a.x) ||
+        (!isHorizontal(segment) && last.b.x === segment.a.x && last.b.y === segment.a.y))
+    ) {
+      last.b = segment.b;
+    } else {
+      mergedSegments.push({ ...segment });
+    }
+  });
+
+  const renderSegments = mergedSegments.length > 0 ? mergedSegments : segments;
+
   return (
     <>
-      {segments.map((s, idx) => {
-        const isHorizontal = s.a.y === s.b.y;
-        if (isHorizontal) {
+      {renderSegments.map((s, idx) => {
+        const horizontal = s.a.y === s.b.y;
+        if (horizontal) {
           const left = Math.min(s.a.x, s.b.x);
           const width = Math.abs(s.a.x - s.b.x);
           return (
@@ -123,8 +142,8 @@ export const PathLine: React.FC<PathLineProps> = ({
         );
       })}
 
-      {segments.map((s, idx) => {
-        const isHorizontal = s.a.y === s.b.y;
+      {renderSegments.map((s, idx) => {
+        const horizontal = s.a.y === s.b.y;
         const arrowBaseStyles: React.CSSProperties = {
           position: "absolute",
           width: 0,
@@ -132,7 +151,7 @@ export const PathLine: React.FC<PathLineProps> = ({
           zIndex: 10,
         };
 
-        if (isHorizontal) {
+        if (horizontal) {
           const isRight = s.b.x > s.a.x;
           const arrowWidth = 18;
           const arrowHeight = 12;
