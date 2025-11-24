@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapPin, Eye, RotateCcw, Loader2, Send, Package, CheckCircle } from "lucide-react";
+import { MapPin, RotateCcw, Loader2, Send, Package, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { OrderStatus } from "@/types/kitchen";
 import { WaiterDish } from "@/hooks/use-waiter-orders";
 import { toast } from "sonner";
 import { useQuickServe } from "@/hooks/use-quick-serve";
+import { RestaurantMap } from "@/features/restaurant-map/RestaurantMap";
 
 interface ServePanelProps {
   activeTab: OrderStatus;
@@ -24,37 +25,51 @@ interface ServePanelProps {
   onToggleRobotMode: (enabled: boolean) => void; // Toggle robot mode
 }
 
+/* Legacy MapPanel with iframe embed is kept for reference.
 const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
+  ...
+};
+*/
+
+interface MapPanelProps {
+  readyTables: number[];
+  servedTables: number[];
+  selectedTables: number[];
+  tableSequence: number[];
+  isRobotMode: boolean;
+  legacyMapUrl: string | null;
+}
+
+const MapPanel = ({
+  readyTables,
+  servedTables,
+  selectedTables,
+  tableSequence,
+  isRobotMode,
+  legacyMapUrl,
+}: MapPanelProps) => {
   const [showMap, setShowMap] = useState(false);
 
-  // Auto-show map when mapUrl is available
   React.useEffect(() => {
-    if (mapUrl) {
+    if (selectedTables.length > 0 || readyTables.length > 0 || servedTables.length > 0) {
       setShowMap(true);
     } else {
       setShowMap(false);
     }
-  }, [mapUrl]);
+  }, [readyTables, servedTables, selectedTables]);
 
-  const handleShowMap = () => {
-    setShowMap(true);
-  };
-
-  const handleResetMap = () => {
-    setShowMap(false);
-  };
-
-  const getTableNumbersFromUrl = () => {
-    if (!mapUrl) return "";
-    const urlParams = new URLSearchParams(mapUrl.split("?")[1]);
-    return urlParams.get("tables") || "";
+  const getSelectedTableNumbers = () => {
+    if (selectedTables.length > 0) {
+      return selectedTables.join(", ");
+    }
+    if (!legacyMapUrl) return "";
+    const urlParams = new URLSearchParams(legacyMapUrl.split("?")[1]);
+    return urlParams.get("selected") || "";
   };
 
   return (
     <div className="w-full h-full flex flex-col bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-      {/* Header Section */}
       <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
-        {/* Legend for table colors */}
         <div className="flex items-center justify-end gap-2 md:gap-3 mb-2">
           <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-2 py-1 text-[10px] md:text-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
@@ -73,77 +88,44 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
             <span>Không có món</span>
           </div>
         </div>
-        {/* <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <Eye className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold">Hướng dẫn đến bàn</h3>
-              <p className="text-blue-100 text-sm">
-                Xem đường đi đến bàn được chọn
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 bg-white/10 rounded-full px-3 py-1">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium">Trực tuyến</span>
-          </div>
-        </div> */}
-
-        {/* Map Controls */}
-        {mapUrl && showMap 
-        // && (
-        //   <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-sm">
-        //     <div className="flex items-center space-x-3">
-        //       <Button
-        //         onClick={handleResetMap}
-        //         variant="outline"
-        //         className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-        //         size="sm"
-        //       >
-        //         Ẩn bản đồ
-        //       </Button>
-        //     </div>
-        //   </div>
-        // )
-        }
       </div>
 
-      {/* Map Content - Only show when needed */}
       {showMap ? (
         <div className="flex-1 relative bg-gray-50 min-h-[260px] sm:min-h-[340px] md:min-h-[420px] lg:min-h-[520px]">
-          {mapUrl ? (
-            // Show map with selected table numbers (centered & true 960x600 aspect)
-            <div className="relative h-full w-full flex justify-center items-start">
-              <div className="relative w-full max-w-[960px] aspect-[8/5]">
-                <iframe
-                  key={mapUrl} // Force reload when URL changes
-                  src={mapUrl}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  className="absolute inset-0 w-full h-full block mx-auto rounded-2xl"
-                  title="Map Embed"
-                  style={{ border: "none", zIndex: 1 }}
-                />
-              </div>
+          <RestaurantMap
+            readyTables={readyTables}
+            servedTables={servedTables}
+            selectedTables={selectedTables}
+            tableSequence={tableSequence}
+            isRobotMode={isRobotMode}
+          />
+
+          {/* Legacy iframe embed kept for fallback reference */}
+          {/* {legacyMapUrl ? (
+            <div className="absolute inset-0">
+              <iframe
+                key={legacyMapUrl}
+                src={legacyMapUrl}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="absolute inset-0 w-full h-full rounded-2xl"
+                title="Legacy Map Embed"
+                style={{ border: "none", zIndex: 0 }}
+              />
             </div>
-          ) : null}
+          ) : null} */}
         </div>
       ) : (
-        // Empty state when map is not shown
         <div className="flex items-center justify-center flex-1 bg-gradient-to-br from-gray-50 to-gray-100 min-h-0">
           <div className="text-center max-w-sm p-6">
             <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
               <MapPin className="w-10 h-10 text-blue-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-3">
-              Bản đồ nhà hàng
-            </h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-3">Bản đồ nhà hàng</h3>
             <p className="text-gray-600 leading-relaxed text-base">
-              {mapUrl
-                ? `Bản đồ sẽ hiển thị các bàn đã chọn với hướng dẫn đến bàn ${getTableNumbersFromUrl()}`
+              {selectedTables.length > 0
+                ? `Đang hiển thị đường đi cho bàn ${getSelectedTableNumbers()}`
                 : "Chọn món để xem bản đồ với hướng dẫn đến bàn tương ứng"}
             </p>
           </div>
@@ -222,9 +204,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   const allSelectedDishes = dishes.filter((dish) => dish.selected);
 
   // Get selected dishes for the current tab
-  const selectedDishes = dishes.filter(
-    (dish) => dish.selected && dish.status === activeTab
-  );
+  const selectedDishes = dishes.filter((dish) => dish.selected && dish.status === activeTab);
 
   // Get table numbers by status
   const tableNumbersByStatus = React.useMemo(() => {
@@ -257,6 +237,36 @@ const ServePanel: React.FC<ServePanelProps> = ({
       selected: selectedTables,
     };
   }, [dishes, allSelectedDishes]);
+
+  const selectedTableSequence = React.useMemo(() => {
+    const sequence: number[] = [];
+    const seen = new Set<number>();
+
+    const sortedDishes = [...allSelectedDishes].sort((a, b) => {
+      const timeA = a.orderTime ? new Date(a.orderTime).getTime() : Number.MAX_SAFE_INTEGER;
+      const timeB = b.orderTime ? new Date(b.orderTime).getTime() : Number.MAX_SAFE_INTEGER;
+      if (timeA !== timeB) return timeA - timeB;
+      return a.tableNumber - b.tableNumber;
+    });
+
+    sortedDishes.forEach((dish) => {
+      if (!seen.has(dish.tableNumber)) {
+        sequence.push(dish.tableNumber);
+        seen.add(dish.tableNumber);
+      }
+    });
+
+    return sequence;
+  }, [allSelectedDishes]);
+
+  const robotTableSequence = React.useMemo(() => {
+    return [...tableNumbersByStatus.selected].sort((a, b) => {
+      const rowA = Math.floor((a - 1) / 5);
+      const rowB = Math.floor((b - 1) / 5);
+      if (rowA !== rowB) return rowA - rowB;
+      return a - b;
+    });
+  }, [tableNumbersByStatus.selected]);
 
   // Generate map URL with table statuses
   const mapUrl = React.useMemo(() => {
@@ -458,7 +468,14 @@ const ServePanel: React.FC<ServePanelProps> = ({
           {/* Robot delivery mode UI has been moved to DishList (left sidebar) */}
           
           {activeTab === "bắt đầu phục vụ" || activeTab === "phục vụ nhanh" ? (
-            <MapPanel mapUrl={mapUrl} />
+            <MapPanel
+              readyTables={tableNumbersByStatus.ready}
+              servedTables={tableNumbersByStatus.served}
+              selectedTables={tableNumbersByStatus.selected}
+            tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
+              isRobotMode={useRobotDelivery}
+              legacyMapUrl={mapUrl}
+            />
           ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
               // For "đã phục vụ" tab, don't show map, just show the list
@@ -523,7 +540,14 @@ const ServePanel: React.FC<ServePanelProps> = ({
               </div>
             ) : (
               // For other tabs, show the map
-              <MapPanel mapUrl={mapUrl} />
+              <MapPanel
+                readyTables={tableNumbersByStatus.ready}
+                servedTables={tableNumbersByStatus.served}
+                selectedTables={tableNumbersByStatus.selected}
+                tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
+                isRobotMode={useRobotDelivery}
+                legacyMapUrl={mapUrl}
+              />
             )
           ) : (
             <div className="w-full h-[400px] flex items-center justify-center bg-white rounded-2xl shadow-lg border-2 border-gray-200">
