@@ -5,7 +5,7 @@ import { Staff } from "./components/Staff";
 import { Table } from "./components/Table";
 import { PathLine } from "./components/PathLine";
 import { HighlightArea } from "./components/HighlightArea";
-import { TABLE_POSITIONS } from "./constants";
+import { ROW_ENTRY_Y, TABLE_POSITIONS } from "./constants";
 import { ClusterBoundingBox, Position } from "./types";
 import { computeOptimizedPath } from "./pathfinding";
 
@@ -92,21 +92,123 @@ const detectClusters = (tableIds: number[]): Cluster[] => {
   return clusters;
 };
 
-/* Legacy helper retained for reference
-const getPathPropsForTable = (tableId: number) => {
-  const { aisleX, corridorMid, corridorTop, corridorBottom } = AISLE_CONFIG;
-  if (tableId >= 6 && tableId <= 15) {
-    return { aisleX, corridorY: corridorMid, mode: "aisle-mid" as const };
-  }
-  if (tableId >= 1 && tableId <= 5) {
-    return { aisleX, corridorY: corridorTop, mode: "aisle-top" as const };
-  }
-  if (tableId >= 16 && tableId <= 20) {
-    return { aisleX, corridorY: corridorBottom, mode: "aisle-bottom" as const };
-  }
-  return { aisleX, mode: "aisle" as const };
+const ROBOT_WALKWAY_X = 90;
+const ROBOT_ROW_ENTRIES = [ROW_ENTRY_Y[0], ROW_ENTRY_Y[1], ROW_ENTRY_Y[2], ROW_ENTRY_Y[3]];
+const TABLE_ROW_Y = [TABLE_POSITIONS[1].y, TABLE_POSITIONS[6].y, TABLE_POSITIONS[11].y, TABLE_POSITIONS[16].y];
+
+const dedupePoints = (points: Position[]): Position[] => {
+  return points.filter((point, index, arr) => {
+    if (index === 0) return true;
+    const prev = arr[index - 1];
+    return prev.x !== point.x || prev.y !== point.y;
+  });
 };
-*/
+
+const buildHumanPathSegments = (sequence: number[], start: Position) => {
+  const segments: Array<{ tableId: number; path: Position[]; start: Position; end: Position }> = [];
+  let currentStart: Position = start;
+
+  sequence.forEach((tableId) => {
+    const tablePosition = TABLE_POSITIONS[tableId];
+    if (!tablePosition) return;
+    const path = computeOptimizedPath(currentStart, tableId);
+    if (path.length >= 2) {
+      segments.push({
+        tableId,
+        path,
+        start: currentStart,
+        end: tablePosition,
+      });
+      currentStart = tablePosition;
+    }
+  });
+
+  return segments;
+};
+
+const getRowEntryY = (tableId: number) => {
+  const rowIndex = Math.max(0, Math.min(3, Math.floor((tableId - 1) / 5)));
+  return ROBOT_ROW_ENTRIES[rowIndex] ?? ROBOT_ROW_ENTRIES[ROBOT_ROW_ENTRIES.length - 1];
+};
+
+const getNearestRowEntryForY = (y: number) => {
+  let closest = ROBOT_ROW_ENTRIES[0];
+  let minDiff = Math.abs(y - closest);
+
+  ROBOT_ROW_ENTRIES.forEach((entry) => {
+    const diff = Math.abs(y - entry);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = entry;
+    }
+  });
+
+  const fallback = ROBOT_ROW_ENTRIES[ROBOT_ROW_ENTRIES.length - 1];
+  return closest ?? fallback;
+};
+
+const getRowEntryFromTableY = (y: number) => {
+  let closestIdx = 0;
+  let minDiff = Math.abs(y - TABLE_ROW_Y[0]);
+
+  TABLE_ROW_Y.forEach((rowY, idx) => {
+    const diff = Math.abs(y - rowY);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closestIdx = idx;
+    }
+  });
+
+  return ROBOT_ROW_ENTRIES[closestIdx] ?? ROBOT_ROW_ENTRIES[ROBOT_ROW_ENTRIES.length - 1];
+};
+
+const buildRobotPathSegments = (sequence: number[], start: Position) => {
+  const segments: Array<{ tableId: number; path: Position[]; start: Position; end: Position }> = [];
+  let current = { ...start };
+
+  sequence.forEach((tableId) => {
+    const tablePosition = TABLE_POSITIONS[tableId];
+    if (!tablePosition) return;
+
+    const rowEntryY = getRowEntryY(tableId);
+    const pathPoints: Position[] = [{ ...current }];
+
+    const pushPoint = (point: Position) => {
+      const last = pathPoints[pathPoints.length - 1];
+      if (!last || last.x !== point.x || last.y !== point.y) {
+        pathPoints.push(point);
+      }
+    };
+
+    const currentRowEntry = current.x === ROBOT_WALKWAY_X ? getNearestRowEntryForY(current.y) : getRowEntryFromTableY(current.y);
+
+    if (current.x !== ROBOT_WALKWAY_X) {
+      pushPoint({ x: current.x, y: currentRowEntry });
+      pushPoint({ x: ROBOT_WALKWAY_X, y: currentRowEntry });
+    } else if (pathPoints[pathPoints.length - 1].y !== currentRowEntry) {
+      pushPoint({ x: ROBOT_WALKWAY_X, y: currentRowEntry });
+    }
+
+    if (pathPoints[pathPoints.length - 1].y !== rowEntryY) {
+      pushPoint({ x: ROBOT_WALKWAY_X, y: rowEntryY });
+    }
+
+    pushPoint({ x: tablePosition.x, y: rowEntryY });
+    pushPoint({ x: tablePosition.x, y: tablePosition.y });
+
+    const cleanedPath = dedupePoints(pathPoints);
+    segments.push({
+      tableId,
+      path: cleanedPath,
+      start: cleanedPath[0],
+      end: tablePosition,
+    });
+
+    current = { ...tablePosition };
+  });
+
+  return segments;
+};
 
 export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   readyTables,
@@ -119,35 +221,20 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   const staffPosition: Position = isRobotMode ? { x: 90, y: 120 } : { x: 90, y: 300 };
   const readyClusters = useMemo(() => detectClusters(readyTables), [readyTables]);
   const pathSegments = useMemo(() => {
-    const result: Array<{ tableId: number; path: Position[]; start: Position; end: Position }> = [];
     const sequence = (tableSequence && tableSequence.length > 0 ? tableSequence : selectedTables).filter((tableId) =>
       selectedTables.includes(tableId)
     );
 
     if (sequence.length === 0) {
-      return result;
+      return [];
     }
 
-    let currentStart: Position = staffPosition;
+    if (isRobotMode) {
+      return buildRobotPathSegments(sequence, staffPosition);
+    }
 
-    sequence.forEach((tableId) => {
-      const path = computeOptimizedPath(currentStart, tableId);
-      if (path.length >= 2) {
-        const tablePosition = TABLE_POSITIONS[tableId];
-        if (tablePosition) {
-          result.push({
-            tableId,
-            path,
-            start: currentStart,
-            end: tablePosition,
-          });
-          currentStart = tablePosition;
-        }
-      }
-    });
-
-    return result;
-  }, [tableSequence, selectedTables, staffPosition]);
+    return buildHumanPathSegments(sequence, staffPosition);
+  }, [tableSequence, selectedTables, staffPosition, isRobotMode]);
 
   return (
     <div className="relative h-full w-full flex justify-center items-start">

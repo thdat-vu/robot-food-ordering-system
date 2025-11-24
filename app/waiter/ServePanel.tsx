@@ -259,6 +259,15 @@ const ServePanel: React.FC<ServePanelProps> = ({
     return sequence;
   }, [allSelectedDishes]);
 
+  const robotTableSequence = React.useMemo(() => {
+    return [...tableNumbersByStatus.selected].sort((a, b) => {
+      const rowA = Math.floor((a - 1) / 5);
+      const rowB = Math.floor((b - 1) / 5);
+      if (rowA !== rowB) return rowA - rowB;
+      return a - b;
+    });
+  }, [tableNumbersByStatus.selected]);
+
   // Generate map URL with table statuses
   const mapUrl = React.useMemo(() => {
     const baseUrl = `https://my-app-henna-three.vercel.app/`;
@@ -463,7 +472,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
               readyTables={tableNumbersByStatus.ready}
               servedTables={tableNumbersByStatus.served}
               selectedTables={tableNumbersByStatus.selected}
-            tableSequence={selectedTableSequence}
+            tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
               isRobotMode={useRobotDelivery}
               legacyMapUrl={mapUrl}
             />
@@ -535,7 +544,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
                 readyTables={tableNumbersByStatus.ready}
                 servedTables={tableNumbersByStatus.served}
                 selectedTables={tableNumbersByStatus.selected}
-                tableSequence={selectedTableSequence}
+                tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
                 isRobotMode={useRobotDelivery}
                 legacyMapUrl={mapUrl}
               />
