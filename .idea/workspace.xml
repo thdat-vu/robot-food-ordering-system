@@ -4,26 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/app/end/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/payment/cancel/CancelPageContent.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/payment/cancel/page.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/payment/success/SuccessPageContent.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/payment/success/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/TableApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/TableApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/[id]/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/payment/cancel/[id]/page.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/payment/success/[id]/page.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/productions/order/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/productions/order/[id]/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/BillDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/BillDialog.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/BillPDFPreview.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/BillPDFPreview.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/ChoceToping.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ChoceToping.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/OrderStatus.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/OrderStatus.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/ShoppingCartList.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hooks/context/deviceTokenContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/context/deviceTokenContext.tsx" afterDir="false" />
-    </list>
+    <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -251,7 +232,7 @@
       <workItem from="1763619711919" duration="4743000" />
       <workItem from="1763627853782" duration="1932000" />
       <workItem from="1763641195524" duration="11056000" />
-      <workItem from="1763655693922" duration="9357000" />
+      <workItem from="1763655693922" duration="9665000" />
     </task>
     <servers />
   </component>
