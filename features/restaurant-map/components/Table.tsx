@@ -30,7 +30,8 @@ export const Table: React.FC<TableProps> = ({
     if (isServed) {
       return "bg-gradient-to-br from-yellow-400 to-yellow-500 text-white shadow-yellow-200";
     }
-    return "bg-gradient-to-br from-slate-600 to-slate-700 text-white hover:from-slate-500 hover:to-slate-600";
+    // return "bg-gradient-to-br from-slate-600 to-slate-700 text-white hover:from-slate-500 hover:to-slate-600";
+    return "bg-gradient-to-br from-gray-400 to-gray-500 text-white hover:from-gray-500 hover:to-gray-600";
   };
 
   const handleClick = () => {

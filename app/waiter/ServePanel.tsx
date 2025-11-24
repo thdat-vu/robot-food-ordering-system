@@ -35,11 +35,19 @@ interface MapPanelProps {
   readyTables: number[];
   servedTables: number[];
   selectedTables: number[];
+  tableSequence: number[];
   isRobotMode: boolean;
   legacyMapUrl: string | null;
 }
 
-const MapPanel = ({ readyTables, servedTables, selectedTables, isRobotMode, legacyMapUrl }: MapPanelProps) => {
+const MapPanel = ({
+  readyTables,
+  servedTables,
+  selectedTables,
+  tableSequence,
+  isRobotMode,
+  legacyMapUrl,
+}: MapPanelProps) => {
   const [showMap, setShowMap] = useState(false);
 
   React.useEffect(() => {
@@ -88,6 +96,7 @@ const MapPanel = ({ readyTables, servedTables, selectedTables, isRobotMode, lega
             readyTables={readyTables}
             servedTables={servedTables}
             selectedTables={selectedTables}
+            tableSequence={tableSequence}
             isRobotMode={isRobotMode}
           />
 
@@ -195,9 +204,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   const allSelectedDishes = dishes.filter((dish) => dish.selected);
 
   // Get selected dishes for the current tab
-  const selectedDishes = dishes.filter(
-    (dish) => dish.selected && dish.status === activeTab
-  );
+  const selectedDishes = dishes.filter((dish) => dish.selected && dish.status === activeTab);
 
   // Get table numbers by status
   const tableNumbersByStatus = React.useMemo(() => {
@@ -230,6 +237,27 @@ const ServePanel: React.FC<ServePanelProps> = ({
       selected: selectedTables,
     };
   }, [dishes, allSelectedDishes]);
+
+  const selectedTableSequence = React.useMemo(() => {
+    const sequence: number[] = [];
+    const seen = new Set<number>();
+
+    const sortedDishes = [...allSelectedDishes].sort((a, b) => {
+      const timeA = a.orderTime ? new Date(a.orderTime).getTime() : Number.MAX_SAFE_INTEGER;
+      const timeB = b.orderTime ? new Date(b.orderTime).getTime() : Number.MAX_SAFE_INTEGER;
+      if (timeA !== timeB) return timeA - timeB;
+      return a.tableNumber - b.tableNumber;
+    });
+
+    sortedDishes.forEach((dish) => {
+      if (!seen.has(dish.tableNumber)) {
+        sequence.push(dish.tableNumber);
+        seen.add(dish.tableNumber);
+      }
+    });
+
+    return sequence;
+  }, [allSelectedDishes]);
 
   // Generate map URL with table statuses
   const mapUrl = React.useMemo(() => {
@@ -435,6 +463,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
               readyTables={tableNumbersByStatus.ready}
               servedTables={tableNumbersByStatus.served}
               selectedTables={tableNumbersByStatus.selected}
+            tableSequence={selectedTableSequence}
               isRobotMode={useRobotDelivery}
               legacyMapUrl={mapUrl}
             />
@@ -506,6 +535,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
                 readyTables={tableNumbersByStatus.ready}
                 servedTables={tableNumbersByStatus.served}
                 selectedTables={tableNumbersByStatus.selected}
+                tableSequence={selectedTableSequence}
                 isRobotMode={useRobotDelivery}
                 legacyMapUrl={mapUrl}
               />

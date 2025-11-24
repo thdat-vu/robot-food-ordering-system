@@ -4,8 +4,9 @@ import React from "react";
 import { Position } from "../types";
 
 interface PathLineProps {
-  start: Position;
-  end: Position;
+  start?: Position;
+  end?: Position;
+  pathPoints?: Position[];
   color?: "primary" | "danger" | "success";
   aisleX?: number;
   corridorY?: number;
@@ -15,6 +16,7 @@ interface PathLineProps {
 export const PathLine: React.FC<PathLineProps> = ({
   start,
   end,
+  pathPoints,
   color = "primary",
   aisleX,
   corridorY,
@@ -33,28 +35,39 @@ export const PathLine: React.FC<PathLineProps> = ({
   };
 
   const colorClass = getColorClasses(color);
+  const arrowColor = "#0ea5e9"; // Bright cyan for better contrast
   type Pt = { x: number; y: number };
 
-  const waypoints: Pt[] = [{ x: start.x, y: start.y }];
-  const useAisle = typeof aisleX === "number";
+  const waypoints: Pt[] = [];
 
-  if (useAisle) {
-    waypoints.push({ x: aisleX as number, y: start.y });
+  if (pathPoints && pathPoints.length >= 2) {
+    pathPoints.forEach((pt) => waypoints.push({ x: pt.x, y: pt.y }));
+  } else if (start && end) {
+    waypoints.push({ x: start.x, y: start.y });
+    const useAisle = typeof aisleX === "number";
 
-    if (
-      (mode === "aisle-mid" || mode === "aisle-top" || mode === "aisle-bottom") &&
-      typeof corridorY === "number"
-    ) {
-      waypoints.push({ x: aisleX as number, y: corridorY as number });
-      waypoints.push({ x: end.x, y: corridorY as number });
+    if (useAisle) {
+      waypoints.push({ x: aisleX as number, y: start.y });
+
+      if (
+        (mode === "aisle-mid" || mode === "aisle-top" || mode === "aisle-bottom") &&
+        typeof corridorY === "number"
+      ) {
+        waypoints.push({ x: aisleX as number, y: corridorY as number });
+        waypoints.push({ x: end.x, y: corridorY as number });
+      } else {
+        waypoints.push({ x: aisleX as number, y: end.y });
+      }
     } else {
-      waypoints.push({ x: aisleX as number, y: end.y });
+      waypoints.push({ x: end.x, y: start.y });
     }
-  } else {
-    waypoints.push({ x: end.x, y: start.y });
+
+    waypoints.push({ x: end.x, y: end.y });
   }
 
-  waypoints.push({ x: end.x, y: end.y });
+  if (waypoints.length < 2) {
+    return null;
+  }
 
   const segments: Array<{ a: Pt; b: Pt }> = [];
   for (let i = 0; i < waypoints.length - 1; i++) {
@@ -88,10 +101,60 @@ export const PathLine: React.FC<PathLineProps> = ({
         );
       })}
 
-      <div
-        className={`absolute w-3 h-3 ${colorClass} rounded-full animate-ping opacity-70 border border-white`}
-        style={{ left: `${start.x - 1.5}px`, top: `${start.y - 1.5}px`, zIndex: 6 }}
-      />
+      {segments.map((s, idx) => {
+        const isHorizontal = s.a.y === s.b.y;
+        const arrowBaseStyles: React.CSSProperties = {
+          position: "absolute",
+          width: 0,
+          height: 0,
+          zIndex: 10,
+        };
+
+        if (isHorizontal) {
+          const isRight = s.b.x > s.a.x;
+          const arrowWidth = 18;
+          const arrowHeight = 12;
+          const left = isRight ? s.b.x - arrowWidth : s.b.x;
+          const top = s.b.y - arrowHeight / 2;
+
+          const style: React.CSSProperties = {
+            ...arrowBaseStyles,
+            left: `${left}px`,
+            top: `${top}px`,
+            borderTop: `${arrowHeight / 2}px solid transparent`,
+            borderBottom: `${arrowHeight / 2}px solid transparent`,
+            borderLeft: isRight ? `${arrowWidth}px solid ${arrowColor}` : undefined,
+            borderRight: !isRight ? `${arrowWidth}px solid ${arrowColor}` : undefined,
+          };
+
+          return <div key={`arrow-${idx}`} style={style} />;
+        } else {
+          const isDown = s.b.y > s.a.y;
+          const arrowWidth = 12;
+          const arrowHeight = 18;
+          const left = s.b.x - arrowWidth / 2;
+          const top = isDown ? s.b.y - arrowHeight : s.b.y;
+
+          const style: React.CSSProperties = {
+            ...arrowBaseStyles,
+            left: `${left}px`,
+            top: `${top}px`,
+            borderLeft: `${arrowWidth / 2}px solid transparent`,
+            borderRight: `${arrowWidth / 2}px solid transparent`,
+            borderTop: isDown ? `${arrowHeight}px solid ${arrowColor}` : undefined,
+            borderBottom: !isDown ? `${arrowHeight}px solid ${arrowColor}` : undefined,
+          };
+
+          return <div key={`arrow-${idx}`} style={style} />;
+        }
+      })}
+
+      {start && (
+        <div
+          className={`absolute w-3 h-3 ${colorClass} rounded-full animate-ping opacity-70 border border-white`}
+          style={{ left: `${start.x - 1.5}px`, top: `${start.y - 1.5}px`, zIndex: 6 }}
+        />
+      )}
       {waypoints.slice(1, -1).map((p, i) => (
         <div
           key={`corner-${i}`}
@@ -99,10 +162,12 @@ export const PathLine: React.FC<PathLineProps> = ({
           style={{ left: `${p.x - 1}px`, top: `${p.y - 1}px`, zIndex: 6 }}
         />
       ))}
-      <div
-        className={`absolute w-3 h-3 ${colorClass} rounded-full animate-ping opacity-70 border border-white`}
-        style={{ left: `${end.x - 1.5}px`, top: `${end.y - 1.5}px`, zIndex: 6 }}
-      />
+      {end && (
+        <div
+          className={`absolute w-3 h-3 ${colorClass} rounded-full animate-ping opacity-70 border border-white`}
+          style={{ left: `${end.x - 1.5}px`, top: `${end.y - 1.5}px`, zIndex: 6 }}
+        />
+      )}
     </>
   );
 };

@@ -5,13 +5,15 @@ import { Staff } from "./components/Staff";
 import { Table } from "./components/Table";
 import { PathLine } from "./components/PathLine";
 import { HighlightArea } from "./components/HighlightArea";
-import { AISLE_CONFIG, TABLE_POSITIONS } from "./constants";
+import { TABLE_POSITIONS } from "./constants";
 import { ClusterBoundingBox, Position } from "./types";
+import { computeOptimizedPath } from "./pathfinding";
 
 interface RestaurantMapProps {
   readyTables: number[];
   servedTables: number[];
   selectedTables: number[];
+  tableSequence?: number[];
   isRobotMode?: boolean;
   onTableClick?: (tableId: number) => void;
 }
@@ -90,6 +92,7 @@ const detectClusters = (tableIds: number[]): Cluster[] => {
   return clusters;
 };
 
+/* Legacy helper retained for reference
 const getPathPropsForTable = (tableId: number) => {
   const { aisleX, corridorMid, corridorTop, corridorBottom } = AISLE_CONFIG;
   if (tableId >= 6 && tableId <= 15) {
@@ -103,16 +106,48 @@ const getPathPropsForTable = (tableId: number) => {
   }
   return { aisleX, mode: "aisle" as const };
 };
+*/
 
 export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   readyTables,
   servedTables,
   selectedTables,
+  tableSequence,
   isRobotMode = false,
   onTableClick,
 }) => {
   const staffPosition: Position = isRobotMode ? { x: 90, y: 120 } : { x: 90, y: 300 };
   const readyClusters = useMemo(() => detectClusters(readyTables), [readyTables]);
+  const pathSegments = useMemo(() => {
+    const result: Array<{ tableId: number; path: Position[]; start: Position; end: Position }> = [];
+    const sequence = (tableSequence && tableSequence.length > 0 ? tableSequence : selectedTables).filter((tableId) =>
+      selectedTables.includes(tableId)
+    );
+
+    if (sequence.length === 0) {
+      return result;
+    }
+
+    let currentStart: Position = staffPosition;
+
+    sequence.forEach((tableId) => {
+      const path = computeOptimizedPath(currentStart, tableId);
+      if (path.length >= 2) {
+        const tablePosition = TABLE_POSITIONS[tableId];
+        if (tablePosition) {
+          result.push({
+            tableId,
+            path,
+            start: currentStart,
+            end: tablePosition,
+          });
+          currentStart = tablePosition;
+        }
+      }
+    });
+
+    return result;
+  }, [tableSequence, selectedTables, staffPosition]);
 
   return (
     <div className="relative h-full w-full flex justify-center items-start">
@@ -155,6 +190,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
           );
         })}
 
+        {/* Legacy straight-line routing kept for reference
         {selectedTables.map((tableId) => (
           <PathLine
             key={`selected-${tableId}`}
@@ -162,6 +198,17 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
             end={TABLE_POSITIONS[tableId]}
             color="danger"
             {...getPathPropsForTable(tableId)}
+          />
+        ))}
+        */}
+
+        {pathSegments.map((segment) => (
+          <PathLine
+            key={`selected-${segment.tableId}`}
+            start={segment.start}
+            end={segment.end}
+            pathPoints={segment.path}
+            color="danger"
           />
         ))}
       </div>

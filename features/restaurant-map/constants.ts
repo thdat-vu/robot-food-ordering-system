@@ -30,3 +30,13 @@ export const AISLE_CONFIG = {
   corridorBottom: 540,
 };
 
+export const WALKWAY_X_COORDS = [90, 240, 400, 560, 720, 880];
+export const WALKWAY_Y_COORDS = [60, 180, 300, 420, 540];
+
+export const ROW_ENTRY_Y: Record<number, number> = {
+  0: 60,
+  1: 180,
+  2: 300,
+  3: 420,
+};
+
