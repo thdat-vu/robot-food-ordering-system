@@ -15,6 +15,7 @@ export function useKitchenOrders() {
   const [error, setError] = useState<string | null>(null);
   const [idMappings, setIdMappings] = useState<any[]>([]);
   const realtimeFetchInFlight = useRef(false);
+  const refreshDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const signalRHubUrl = useMemo(() => {
     const apiUrl = getApiUrl();
@@ -64,26 +65,55 @@ export function useKitchenOrders() {
   }, []);
 
   const triggerRealtimeRefresh = useCallback(async () => {
-    if (realtimeFetchInFlight.current) {
-      return;
+    // Clear any pending debounced refresh
+    if (refreshDebounceTimeout.current) {
+      clearTimeout(refreshDebounceTimeout.current);
+      refreshDebounceTimeout.current = null;
     }
-    realtimeFetchInFlight.current = true;
-    try {
-      await silentFetchOrders();
-    } finally {
-      realtimeFetchInFlight.current = false;
-    }
+
+    // Debounce rapid notifications (e.g., Remark -> Preparing in quick succession)
+    refreshDebounceTimeout.current = setTimeout(async () => {
+      // If a refresh is already in progress, wait a bit more
+      if (realtimeFetchInFlight.current) {
+        console.log('⏳ Refresh in progress, scheduling another refresh...');
+        setTimeout(async () => {
+          if (!realtimeFetchInFlight.current) {
+            realtimeFetchInFlight.current = true;
+            try {
+              console.log('🔄 Executing scheduled refresh...');
+              await silentFetchOrders();
+              console.log('✅ Scheduled refresh completed');
+            } finally {
+              realtimeFetchInFlight.current = false;
+            }
+          }
+        }, 500);
+        return;
+      }
+      
+      console.log('🔄 Triggering realtime refresh...');
+      realtimeFetchInFlight.current = true;
+      try {
+        await silentFetchOrders();
+        console.log('✅ Realtime refresh completed');
+      } finally {
+        realtimeFetchInFlight.current = false;
+      }
+    }, 300); // 300ms debounce to batch rapid notifications
   }, [silentFetchOrders]);
 
   const hubMethods = useMemo(
     () => ({
-      OrderItemStatusChanged: () => {
+      OrderItemStatusChanged: (data?: any) => {
+        console.log('🔔 OrderItemStatusChanged notification received', data);
         triggerRealtimeRefresh();
       },
-      OrderStatusChanged: () => {
+      OrderStatusChanged: (data?: any) => {
+        console.log('🔔 OrderStatusChanged notification received', data);
         triggerRealtimeRefresh();
       },
-      KitchenNotification: () => {
+      KitchenNotification: (data?: any) => {
+        console.log('🔔 KitchenNotification received', data);
         triggerRealtimeRefresh();
       },
     }),

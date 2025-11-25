@@ -1,13 +1,21 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Staff } from "./components/Staff";
 import { Table } from "./components/Table";
 import { PathLine } from "./components/PathLine";
 import { HighlightArea } from "./components/HighlightArea";
+import { TableInfoCard } from "./components/TableInfoCard";
 import { ROW_ENTRY_Y, TABLE_POSITIONS } from "./constants";
 import { ClusterBoundingBox, Position } from "./types";
 import { computeOptimizedPath } from "./pathfinding";
+
+interface Dish {
+  tableNumber: number;
+  status: string;
+  orderTime?: string;
+  createdTime?: string;
+}
 
 interface RestaurantMapProps {
   readyTables: number[];
@@ -16,6 +24,7 @@ interface RestaurantMapProps {
   tableSequence?: number[];
   isRobotMode?: boolean;
   onTableClick?: (tableId: number) => void;
+  dishes?: Dish[]; // Add dishes prop for table stats
 }
 
 interface Cluster {
@@ -217,9 +226,61 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   tableSequence,
   isRobotMode = false,
   onTableClick,
+  dishes = [],
 }) => {
+  const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const staffPosition: Position = isRobotMode ? { x: 90, y: 120 } : { x: 90, y: 300 };
   const readyClusters = useMemo(() => detectClusters(readyTables), [readyTables]);
+
+  // Calculate table stats
+  const tableStats = useMemo(() => {
+    const stats: Record<number, {
+      total: number;
+      preparing: number;
+      served: number;
+      lastUpdateTime: string | null;
+    }> = {};
+
+    dishes.forEach((dish) => {
+      const tableId = dish.tableNumber;
+      if (!stats[tableId]) {
+        stats[tableId] = {
+          total: 0,
+          preparing: 0,
+          served: 0,
+          lastUpdateTime: null,
+        };
+      }
+
+      stats[tableId].total++;
+      
+      if (dish.status === "đang thực hiện" || dish.status === "bắt đầu phục vụ") {
+        stats[tableId].preparing++;
+      }
+      
+      if (dish.status === "đã phục vụ") {
+        stats[tableId].served++;
+      }
+
+      // Get latest update time
+      const updateTime = dish.createdTime || dish.orderTime;
+      if (updateTime) {
+        if (!stats[tableId].lastUpdateTime || updateTime > stats[tableId].lastUpdateTime) {
+          stats[tableId].lastUpdateTime = updateTime;
+        }
+      }
+    });
+
+    return stats;
+  }, [dishes]);
+
+  const handleTableClick = (tableId: number) => {
+    if (onTableClick) {
+      onTableClick(tableId);
+    }
+    // Toggle table info card
+    setSelectedTableId(selectedTableId === tableId ? null : tableId);
+  };
   const pathSegments = useMemo(() => {
     const sequence = (tableSequence && tableSequence.length > 0 ? tableSequence : selectedTables).filter((tableId) =>
       selectedTables.includes(tableId)
@@ -265,15 +326,27 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
           const isServed = servedTables.includes(tableId) && !isActive;
 
           return (
-            <Table
-              key={id}
-              id={tableId}
-              position={position}
-              isActive={isActive}
-              isReady={isReady}
-              isServed={isServed}
-              onClick={onTableClick}
-            />
+            <React.Fragment key={id}>
+              <Table
+                id={tableId}
+                position={position}
+                isActive={isActive}
+                isReady={isReady}
+                isServed={isServed}
+                onClick={handleTableClick}
+              />
+              {selectedTableId === tableId && tableStats[tableId] && (
+                <TableInfoCard
+                  tableId={tableId}
+                  position={position}
+                  totalDishes={tableStats[tableId].total}
+                  preparingCount={tableStats[tableId].preparing}
+                  servedCount={tableStats[tableId].served}
+                  lastUpdateTime={tableStats[tableId].lastUpdateTime}
+                  onClose={() => setSelectedTableId(null)}
+                />
+              )}
+            </React.Fragment>
           );
         })}
 

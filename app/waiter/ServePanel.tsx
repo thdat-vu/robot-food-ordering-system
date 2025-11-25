@@ -38,6 +38,7 @@ interface MapPanelProps {
   tableSequence: number[];
   isRobotMode: boolean;
   legacyMapUrl: string | null;
+  dishes?: WaiterDish[];
 }
 
 const MapPanel = ({
@@ -47,6 +48,7 @@ const MapPanel = ({
   tableSequence,
   isRobotMode,
   legacyMapUrl,
+  dishes = [],
 }: MapPanelProps) => {
   const [showMap, setShowMap] = useState(false);
 
@@ -98,6 +100,7 @@ const MapPanel = ({
             selectedTables={selectedTables}
             tableSequence={tableSequence}
             isRobotMode={isRobotMode}
+            dishes={dishes}
           />
 
           {/* Legacy iframe embed kept for fallback reference */}
@@ -475,6 +478,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
             tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
               isRobotMode={useRobotDelivery}
               legacyMapUrl={mapUrl}
+              dishes={dishes}
             />
           ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
@@ -540,14 +544,16 @@ const ServePanel: React.FC<ServePanelProps> = ({
               </div>
             ) : (
               // For other tabs, show the map
-              <MapPanel
-                readyTables={tableNumbersByStatus.ready}
-                servedTables={tableNumbersByStatus.served}
-                selectedTables={tableNumbersByStatus.selected}
-                tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
-                isRobotMode={useRobotDelivery}
-                legacyMapUrl={mapUrl}
-              />
+              <div className="flex-1 relative bg-gray-50 min-h-[260px] sm:min-h-[340px] md:min-h-[420px] lg:min-h-[520px]">
+                <RestaurantMap
+                  readyTables={tableNumbersByStatus.ready}
+                  servedTables={tableNumbersByStatus.served}
+                  selectedTables={tableNumbersByStatus.selected}
+                  tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
+                  isRobotMode={useRobotDelivery}
+                  dishes={dishes}
+                />
+              </div>
             )
           ) : (
             <div className="w-full h-[400px] flex items-center justify-center bg-white rounded-2xl shadow-lg border-2 border-gray-200">
