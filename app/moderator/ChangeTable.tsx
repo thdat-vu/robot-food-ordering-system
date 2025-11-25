@@ -8,8 +8,14 @@ import {
   useGetALlTable,
 } from "@/hooks/moderator/useTableHooks";
 import { item, messss, Response } from "@/api/moderator/TableApi";
+import {
+  ArrowRight,
+  Table,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 
-// 🔹 Danh sách lý do gợi ý cho việc chuyển bàn
 const REASON_OPTIONS: string[] = [
   "Khách muốn chỗ yên tĩnh hơn",
   "Khách muốn gần cửa sổ / view đẹp hơn",
@@ -29,14 +35,10 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
 
   const [tableData, setTableData] = useState<TableDetail | null>(null);
   const [listEmptyTable, setListEmptyTable] = useState<item[]>([]);
-
-  // 🔹 reason giờ là 1 string được chọn từ REASON_OPTIONS, không cho nhập tay
   const [reason, setReason] = useState<string>("");
   const [newTable, setNewTable] = useState<string>("");
-
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingTables, setIsFetchingTables] = useState(true);
-
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [resultMessage, setResultMessage] = useState("");
@@ -45,12 +47,8 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
   const { run: runGetAllTable } = useGetALlTable();
   const { run: runChangeTable } = useChangeTableApi();
 
-  // 🔹 Validate reason (chỉ chọn từ gợi ý, không cho nhập tay)
-  const trimmedReason = reason.trim();
-  const isReasonEmpty = trimmedReason.length === 0;
-  const isReasonValid = !isReasonEmpty;
+  const isReasonValid = reason.trim().length > 0;
 
-  // Lấy thông tin bàn hiện tại
   const fetchTableDetail = async () => {
     try {
       const res = await axios.get(`${API_BASE}/Table/${id}`);
@@ -60,13 +58,10 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
     }
   };
 
-  // Lấy danh sách bàn trống
   const fetchEmptyTable = async () => {
     try {
       setIsFetchingTables(true);
       const res: Response = await runGetAllTable(1, 200);
-
-      // chỉ lấy bàn AVAILABLE và khác bàn hiện tại
       const empty = res.items.filter(
         (t) => t.status === "Available" && t.id !== id
       );
@@ -81,40 +76,27 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
   useEffect(() => {
     fetchTableDetail();
     fetchEmptyTable();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Mở dialog xác nhận
   const openConfirmDialog = () => {
-    if (!newTable) {
-      addToast("Vui lòng chọn bàn mới!", "error");
-      return;
-    }
-
-    if (isReasonEmpty) {
-      addToast("Vui lòng chọn lý do chuyển bàn!", "error");
-      return;
-    }
-
+    if (!newTable) return addToast("Vui lòng chọn bàn mới!", "error");
+    if (!isReasonValid)
+      return addToast("Vui lòng chọn lý do chuyển bàn!", "error");
     setShowConfirmDialog(true);
   };
 
-  // Xử lý đổi bàn
   const handleChangeTable = async () => {
     setShowConfirmDialog(false);
     setIsLoading(true);
 
     try {
-      const res: messss = await runChangeTable(id, newTable, trimmedReason);
-
+      const res: messss = await runChangeTable(id, newTable, reason.trim());
       if (res.statusCode === 200) {
         setResultSuccess(true);
-        setResultMessage(res.message);
+        setResultMessage(res.message || "Chuyển bàn thành công!");
         setReason("");
         setNewTable("");
         onClose();
-        fetchTableDetail();
-        fetchEmptyTable();
       } else {
         setResultSuccess(false);
         setResultMessage(res.message || "Có lỗi xảy ra");
@@ -128,171 +110,209 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
     }
   };
 
-  return (
-    <div className="w-full h-full bg-gray-50 py-8 px-5 relative">
-      <h1 className="text-2xl font-bold text-center mb-10">Chuyển Bàn</h1>
+  const selectedNewTable = listEmptyTable.find((t) => t.id === newTable);
 
-      {/* LOADING OVERLAY */}
+  return (
+    <>
+      {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-lg font-semibold text-gray-700">
-              Đang xử lý đổi bàn...
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white/95 rounded-3xl p-12 shadow-2xl flex flex-col items-center gap-5">
+            <Loader2 className="w-16 h-16 text-violet-600 animate-spin" />
+            <p className="text-2xl font-bold text-gray-800">
+              Đang chuyển bàn...
             </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Vui lòng chờ trong giây lát
-            </p>
+            <p className="text-gray-600">Vui lòng chờ một chút</p>
           </div>
         </div>
       )}
 
-      {/* MAIN UI */}
-      <div className="flex items-center justify-center gap-14">
-        {/* Bàn hiện tại */}
-        <div className="w-64 h-64 bg-white border-2 border-gray-300 rounded-2xl shadow flex items-center justify-center text-xl font-semibold">
-          {tableData?.name ?? "Đang tải..."}
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 p-6">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-5xl font-extrabold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Chuyển Bàn
+            </h1>
+            <p className="text-gray-600 mt-3 text-lg">
+              Chọn bàn mới và lý do phù hợp
+            </p>
+          </div>
 
-        <div className="text-5xl font-extrabold opacity-60">➡️</div>
+          {/* Cards */}
+          <div className="grid lg:grid-cols-2 gap-10 mb-12">
+            {/* Current Table */}
+            <div className="group">
+              <div className="bg-white/85 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl p-8 text-center transition-all hover:shadow-3xl hover:-translate-y-1">
+                <div className="w-28 h-28 mx-auto mb-6 bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl flex items-center justify-center shadow-xl">
+                  <Table className="w-16 h-16 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-3">
+                  Bàn hiện tại
+                </h3>
+                <p className="text-5xl font-extrabold text-gray-900">
+                  {tableData?.name || "..."}
+                </p>
+              </div>
+            </div>
 
-        {/* Danh sách bàn trống */}
-        <div className="w-64 h-64 bg-white border-2 border-gray-300 rounded-2xl shadow p-4 overflow-y-auto">
-          {isFetchingTables ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3" />
-              <p className="text-gray-500 text-sm">Đang tải danh sách bàn...</p>
-            </div>
-          ) : listEmptyTable.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              Không có bàn trống
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {listEmptyTable.map((t) => (
-                <li
-                  key={t.id}
-                  onClick={() => setNewTable(t.id)}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                    newTable === t.id
-                      ? "bg-blue-500 text-white border-blue-600 shadow-md"
-                      : "bg-gray-100 border-gray-300 hover:bg-gray-200"
+            {/* New Table */}
+            <div className="group">
+              <div
+                className={`bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl p-8 text-center transition-all hover:-translate-y-1 ${
+                  newTable
+                    ? "ring-4 ring-emerald-300 shadow-emerald-100"
+                    : "border-4 border-dashed border-gray-300"
+                }`}
+              >
+                <div
+                  className={`w-28 h-28 mx-auto mb-6 rounded-3xl flex items-center justify-center shadow-xl transition-all ${
+                    newTable
+                      ? "bg-gradient-to-br from-emerald-500 to-teal-600"
+                      : "bg-gray-200"
                   }`}
                 >
-                  {t.name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      {/* Reason - chọn từ gợi ý */}
-      <div className="mt-12 flex flex-col items-center gap-4">
-        <div className="w-3/4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Chọn lý do chuyển bàn
-          </h2>
-          <span className="text-sm text-gray-500">Bắt buộc chọn 1 lý do</span>
-        </div>
-
-        <div className="w-3/4 grid grid-cols-1 md:grid-cols-2 gap-3">
-          {REASON_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setReason(option)}
-              disabled={isLoading}
-              className={`flex items-center justify-between w-full text-left p-3 rounded-xl border transition-all
-                ${
-                  reason === option
-                    ? "bg-blue-500 text-white border-blue-600 shadow-md"
-                    : "bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200"
-                }
-                ${
-                  isLoading ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
-                }
-              `}
-            >
-              <span className="text-sm">{option}</span>
-              {reason === option && (
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-1 w-3/4 text-sm">
-          <span
-            className={
-              isReasonEmpty ? "text-red-600 font-medium" : "text-gray-500"
-            }
-          >
-            {isReasonEmpty
-              ? "Vui lòng chọn lý do trước khi xác nhận."
-              : "Lý do hợp lệ."}
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-8 flex justify-center">
-        <button
-          onClick={openConfirmDialog}
-          disabled={isLoading || !newTable || !isReasonValid}
-          className={`px-10 py-3 text-lg font-semibold rounded-2xl border-2 shadow transition-all ${
-            isLoading || !newTable || !isReasonValid
-              ? "bg-gray-300 text-gray-700 border-gray-400 cursor-not-allowed"
-              : "bg-blue-500 text-white border-blue-600 hover:bg-blue-600 hover:shadow-lg"
-          }`}
-        >
-          {isLoading ? "Đang xử lý..." : "Xác nhận chuyển bàn"}
-        </button>
-      </div>
-
-      {/* CONFIRM DIALOG */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white w-96 p-6 rounded-2xl shadow-lg">
-            <h2 className="text-xl font-semibold mb-4 text-center">
-              Xác nhận đổi bàn?
-            </h2>
-
-            <div className="space-y-3 mb-6 text-left bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-700">
-                <span className="font-semibold">Từ bàn:</span> {tableData?.name}
-              </p>
-              <p className="text-gray-700">
-                <span className="font-semibold">Sang bàn:</span>{" "}
-                {listEmptyTable.find((t) => t.id === newTable)?.name}
-              </p>
-              <p className="text-gray-700">
-                <span className="font-semibold">Lý do:</span> {trimmedReason}
-              </p>
+                  {newTable ? (
+                    <Table className="w-16 h-16 text-white" />
+                  ) : (
+                    <div className="text-5xl font-bold text-gray-400">?</div>
+                  )}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-3">
+                  Bàn mới
+                </h3>
+                <p className="text-5xl font-extrabold text-gray-900 min-h-20 flex items-center justify-center">
+                  {selectedNewTable ? selectedNewTable.name : "Chưa chọn"}
+                </p>
+              </div>
             </div>
+          </div>
 
-            <div className="flex justify-center gap-4">
+          {/* Arrow */}
+          <div className="flex justify-center -my-6">
+            <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-5 rounded-full shadow-2xl animate-pulse ring-8 ring-purple-500/30">
+              <ArrowRight className="w-12 h-12 text-white" />
+            </div>
+          </div>
+
+          {/* Empty Tables List */}
+          <div className="mt-16 mb-10">
+            <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
+              Chọn bàn trống để chuyển đến
+            </h2>
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/40">
+              {isFetchingTables ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-14 h-14 text-violet-600 animate-spin" />
+                </div>
+              ) : listEmptyTable.length === 0 ? (
+                <div className="text-center py-16 text-gray-500">
+                  <AlertCircle className="w-20 h-20 mx-auto mb-6 opacity-40" />
+                  <p className="text-2xl">Hiện không có bàn trống nào</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {listEmptyTable.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setNewTable(t.id)}
+                      className={`p-8 rounded-3xl font-bold text-xl transition-all transform hover:scale-110 shadow-xl ${
+                        newTable === t.id
+                          ? "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 text-white ring-4 ring-purple-400"
+                          : "bg-white/95 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300"
+                      }`}
+                    >
+                      {t.name}
+                      {newTable === t.id && (
+                        <CheckCircle2 className="w-8 h-8 inline-block ml-3" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reason Selection */}
+          <div className="mt-12">
+            <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
+              Lý do chuyển bàn <span className="text-rose-600">*</span>
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {REASON_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setReason(option)}
+                  disabled={isLoading}
+                  className={`p-6 rounded-3xl text-left transition-all shadow-lg border-2 ${
+                    reason === option
+                      ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white border-transparent ring-4 ring-purple-400"
+                      : "bg-white/90 border-gray-200 hover:bg-gray-50 hover:border-purple-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-lg">{option}</span>
+                    {reason === option && <CheckCircle2 className="w-8 h-8" />}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Confirm Button */}
+          <div className="flex justify-center mt-16">
+            <button
+              onClick={openConfirmDialog}
+              disabled={isLoading || !newTable || !isReasonValid}
+              className={`px-20 py-6 text-2xl font-bold rounded-full shadow-2xl transition-all transform hover:scale-105 ${
+                isLoading || !newTable || !isReasonValid
+                  ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                  : "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 shadow-purple-500/50"
+              }`}
+            >
+              {isLoading ? "Đang xử lý..." : "Xác nhận chuyển bàn"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Confirm Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-md w-full">
+            <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+              Xác nhận chuyển bàn?
+            </h2>
+            <div className="bg-gray-50 rounded-3xl p-8 space-y-6 mb-8">
+              <div className="flex justify-between text-lg">
+                <span className="font-medium text-gray-600">Từ bàn:</span>
+                <span className="font-bold text-rose-600 text-xl">
+                  {tableData?.name}
+                </span>
+              </div>
+              <div className="flex justify-between text-lg">
+                <span className="font-medium text-gray-600">Sang bàn:</span>
+                <span className="font-bold text-emerald-600 text-xl">
+                  {selectedNewTable?.name}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">Lý do:</span>
+                <p className="mt-2 text-gray-800 font-medium bg-white/80 rounded-2xl p-4">
+                  {reason}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-6">
               <button
                 onClick={() => setShowConfirmDialog(false)}
-                className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 font-semibold transition"
+                className="flex-1 py-5 bg-gray-200 rounded-3xl font-bold hover:bg-gray-300 transition"
               >
                 Hủy
               </button>
-
               <button
                 onClick={handleChangeTable}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-semibold transition"
+                className="flex-1 py-5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-3xl font-bold hover:opacity-90 transition shadow-lg"
               >
                 Xác nhận
               </button>
@@ -301,65 +321,38 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
         </div>
       )}
 
-      {/* RESULT DIALOG */}
+      {/* Result Dialog */}
       {showResultDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white w-96 p-6 rounded-2xl shadow-lg text-center">
-            <div className="mb-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-12 text-center max-w-md w-full">
+            <div
+              className={`w-28 h-28 mx-auto mb-8 rounded-full flex items-center justify-center ${
+                resultSuccess ? "bg-emerald-100" : "bg-rose-100"
+              }`}
+            >
               {resultSuccess ? (
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-8 h-8 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
+                <CheckCircle2 className="w-20 h-20 text-emerald-600" />
               ) : (
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-8 h-8 text-red-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </div>
+                <AlertCircle className="w-20 h-20 text-rose-600" />
               )}
             </div>
-
             <h2
-              className={`text-xl font-bold mb-4 ${
-                resultSuccess ? "text-green-600" : "text-red-600"
+              className={`text-4xl font-extrabold mb-6 ${
+                resultSuccess ? "text-emerald-600" : "text-rose-600"
               }`}
             >
               {resultSuccess ? "Thành công!" : "Thất bại!"}
             </h2>
-
-            <p className="text-gray-700 mb-6">{resultMessage}</p>
-
+            <p className="text-gray-700 text-xl mb-10">{resultMessage}</p>
             <button
               onClick={() => setShowResultDialog(false)}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-semibold transition"
+              className="px-16 py-5 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-xl font-bold rounded-full hover:opacity-90 transition shadow-xl"
             >
               Đóng
             </button>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
