@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { getApiUrl } from "@/env.config";
 import { TableDetail } from "@/app/moderator/Home";
@@ -25,7 +25,7 @@ const REASON_OPTIONS: string[] = [
 ];
 
 type Props = {
-  id: string;
+  id: string; // có thể là tableId hoặc lỡ truyền nhầm sessionId -> đã xử lý fallback
   onClose: () => void;
 };
 
@@ -49,6 +49,35 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
 
   const isReasonValid = reason.trim().length > 0;
 
+  // ✅ Chuẩn hoá status để xử lý chắc
+  const normalizeTableStatus = (raw: any) => {
+    // hỗ trợ cả số lẫn chữ
+    // ví dụ: 0 = available, 1 = occupied (tuỳ backend bạn)
+    if (typeof raw === "number") {
+      // chỉnh mapping theo backend bạn nếu cần
+      if (raw === 0) return "available";
+      if (raw === 1) return "occupied";
+      return "unknown";
+    }
+
+    const s = String(raw ?? "")
+      .trim()
+      .toLowerCase();
+    if (!s) return "unknown";
+    if (s.includes("available") || s.includes("empty") || s === "trống")
+      return "available";
+    if (
+      s.includes("occupied") ||
+      s.includes("busy") ||
+      s.includes("using") ||
+      s.includes("có khách")
+    )
+      return "occupied";
+    if (s.includes("reserve") || s.includes("book") || s.includes("đặt"))
+      return "reserved";
+    return "unknown";
+  };
+
   const fetchTableDetail = async () => {
     try {
       const res = await axios.get(`${API_BASE}/Table/${id}`);
@@ -58,14 +87,11 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
     }
   };
 
-  const fetchEmptyTable = async () => {
+  const fetchAllTable = async () => {
     try {
       setIsFetchingTables(true);
       const res: Response = await runGetAllTable(1, 200);
-      const empty = res.items.filter(
-        (t) => t.status === "Available" && t.id !== id
-      );
-      setListEmptyTable(empty);
+      setListEmptyTable(res.items);
     } catch {
       addToast("Không thể tải danh sách bàn", "error");
     } finally {
@@ -75,8 +101,22 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
 
   useEffect(() => {
     fetchTableDetail();
-    fetchEmptyTable();
+    fetchAllTable();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // ✅ Xác định current table an toàn (fix lỗi không ra màu cam)
+  const currentTableId = useMemo(() => {
+    const td: any = tableData ?? {};
+    // ưu tiên id thật từ tableData (tránh trường hợp prop id là sessionId)
+    const realId = td.id ?? td.tableId ?? td.TableId ?? null;
+    return String(realId ?? id);
+  }, [tableData, id]);
+
+  const currentTableName = useMemo(() => {
+    const td: any = tableData ?? {};
+    return String(td.name ?? td.tableName ?? "").trim();
+  }, [tableData]);
 
   const openConfirmDialog = () => {
     if (!newTable) return addToast("Vui lòng chọn bàn mới!", "error");
@@ -110,7 +150,9 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
     }
   };
 
-  const selectedNewTable = listEmptyTable.find((t) => t.id === newTable);
+  const selectedNewTable = listEmptyTable.find(
+    (t) => String(t.id) === String(newTable)
+  );
 
   return (
     <>
@@ -151,7 +193,9 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
                   Bàn hiện tại
                 </h3>
                 <p className="text-5xl font-extrabold text-gray-900">
-                  {tableData?.name || "..."}
+                  {(tableData as any)?.name ??
+                    (tableData as any)?.tableName ??
+                    "..."}
                 </p>
               </div>
             </div>
@@ -195,11 +239,28 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
             </div>
           </div>
 
-          {/* Empty Tables List */}
+          {/* Table List */}
           <div className="mt-16 mb-10">
-            <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
+            <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
               Chọn bàn trống để chuyển đến
             </h2>
+
+            {/* NOTE màu sắc */}
+            <div className="flex items-center justify-center gap-6 mb-6 text-sm text-gray-700">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 shadow" />
+                <span>Trống</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-gray-500 shadow" />
+                <span>Có khách</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-orange-500 shadow" />
+                <span>Bàn hiện tại</span>
+              </div>
+            </div>
+
             <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/40">
               {isFetchingTables ? (
                 <div className="flex items-center justify-center py-16">
@@ -211,23 +272,85 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
                   <p className="text-2xl">Hiện không có bàn trống nào</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {listEmptyTable.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setNewTable(t.id)}
-                      className={`p-8 rounded-3xl font-bold text-xl transition-all transform hover:scale-110 shadow-xl ${
-                        newTable === t.id
-                          ? "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 text-white ring-4 ring-purple-400"
-                          : "bg-white/95 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300"
-                      }`}
-                    >
-                      {t.name}
-                      {newTable === t.id && (
-                        <CheckCircle2 className="w-8 h-8 inline-block ml-3" />
-                      )}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                  {listEmptyTable.map((t: any) => {
+                    // ✅ FIX: current table check chắc chắn (id + fallback name)
+                    const isCurrent =
+                      String(t.id) === currentTableId ||
+                      (currentTableName &&
+                        String(t.name ?? "").trim() === currentTableName);
+
+                    // ⚠️ Nếu API không có `status`, sửa dòng dưới:
+                    // ví dụ dùng t.tableStatus: normalizeTableStatus(t.tableStatus)
+                    const statusKey = normalizeTableStatus(t.status);
+
+                    const isAvailable = statusKey === "available";
+                    const isBlocked = isCurrent || !isAvailable;
+                    const isSelected = String(newTable) === String(t.id);
+
+                    const dotClass = isCurrent
+                      ? "bg-orange-500"
+                      : !isAvailable
+                      ? "bg-gray-500"
+                      : "bg-emerald-500";
+
+                    const handlePick = () => {
+                      if (isCurrent) {
+                        addToast(
+                          "Đây là bàn hiện tại, không thể chọn để chuyển.",
+                          "warning"
+                        );
+                        return;
+                      }
+                      if (!isAvailable) {
+                        addToast(
+                          "Bàn này đang có khách/không trống, không thể chuyển.",
+                          "warning"
+                        );
+                        return;
+                      }
+                      setNewTable(String(t.id));
+                    };
+
+                    return (
+                      <button
+                        key={String(t.id)}
+                        type="button"
+                        aria-disabled={isBlocked || isLoading}
+                        onClick={handlePick}
+                        className={`relative p-8 rounded-3xl font-bold text-xl transition-all transform shadow-xl
+                          ${
+                            isSelected && isAvailable
+                              ? "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 text-white ring-4 ring-purple-400 hover:scale-110"
+                              : "bg-white/95 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300 hover:scale-110"
+                          }
+                          ${
+                            // current table: mờ + grayscale + không scale
+                            isCurrent
+                              ? "opacity-55 grayscale border-gray-300 hover:scale-100 cursor-not-allowed"
+                              : ""
+                          }
+                          ${
+                            // occupied/không available: xám + không scale
+                            !isCurrent && !isAvailable
+                              ? "bg-gray-200/80 text-gray-600 border-gray-300 hover:bg-gray-200 hover:border-gray-300 hover:scale-100 cursor-not-allowed"
+                              : ""
+                          }
+                        `}
+                      >
+                        {/* chấm màu góc phải */}
+                        <span
+                          className={`absolute top-3 right-3 w-3 h-3 rounded-full ${dotClass} shadow`}
+                        />
+
+                        {t.name}
+
+                        {isSelected && isAvailable && (
+                          <CheckCircle2 className="w-8 h-8 inline-block ml-3" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -287,7 +410,7 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
               <div className="flex justify-between text-lg">
                 <span className="font-medium text-gray-600">Từ bàn:</span>
                 <span className="font-bold text-rose-600 text-xl">
-                  {tableData?.name}
+                  {(tableData as any)?.name ?? (tableData as any)?.tableName}
                 </span>
               </div>
               <div className="flex justify-between text-lg">

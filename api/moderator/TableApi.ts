@@ -38,7 +38,7 @@ export const GetALlTable = async (PageNumber: number, PageSize: number): Promise
         params: {
             PageNumber,
             PageSize,
-            status: 0
+            // status: 0
         }
     })
     return res.data;
