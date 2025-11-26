@@ -37,8 +37,8 @@ export const GetALlTable = async (PageNumber: number, PageSize: number): Promise
     const res = await api.get(`${API_TABLE_V2}`, {
         params: {
             PageNumber,
-            PageSize,
-            status: 0
+            PageSize
+       
         }
     })
     return res.data;
