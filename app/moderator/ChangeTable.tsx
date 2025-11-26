@@ -245,19 +245,21 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
               Chọn bàn trống để chuyển đến
             </h2>
 
-            {/* NOTE màu sắc */}
-            <div className="flex items-center justify-center gap-6 mb-6 text-sm text-gray-700">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500 shadow" />
-                <span>Trống</span>
+            {/* NOTE: Chú thích màu sắc */}
+            <div className="flex items-center justify-center gap-8 mb-6">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white shadow-sm border text-gray-700">
+                <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow" />
+                <span className="font-medium">Trống</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-gray-500 shadow" />
-                <span>Có khách</span>
+
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white shadow-sm border text-gray-700">
+                <span className="w-3.5 h-3.5 rounded-full bg-gray-500 shadow" />
+                <span className="font-medium">Có khách</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-orange-500 shadow" />
-                <span>Bàn hiện tại</span>
+
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white shadow-sm border text-gray-700">
+                <span className="w-3.5 h-3.5 rounded-full bg-orange-500 shadow" />
+                <span className="font-medium">Bàn hiện tại</span>
               </div>
             </div>
 
@@ -274,20 +276,18 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                   {listEmptyTable.map((t: any) => {
-                    // ✅ FIX: current table check chắc chắn (id + fallback name)
                     const isCurrent =
                       String(t.id) === currentTableId ||
                       (currentTableName &&
                         String(t.name ?? "").trim() === currentTableName);
 
-                    // ⚠️ Nếu API không có `status`, sửa dòng dưới:
-                    // ví dụ dùng t.tableStatus: normalizeTableStatus(t.tableStatus)
                     const statusKey = normalizeTableStatus(t.status);
-
                     const isAvailable = statusKey === "available";
+
                     const isBlocked = isCurrent || !isAvailable;
                     const isSelected = String(newTable) === String(t.id);
 
+                    // ⭐ DOT màu cam nếu là bàn hiện tại
                     const dotClass = isCurrent
                       ? "bg-orange-500"
                       : !isAvailable
@@ -312,35 +312,33 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
                       setNewTable(String(t.id));
                     };
 
+                    // // ⭐ ẨN bàn hiện tại nếu bàn đó không trống
+                    // if (isCurrent && !isAvailable) return null;
+
                     return (
                       <button
                         key={String(t.id)}
                         type="button"
-                        aria-disabled={isBlocked || isLoading}
+                        disabled={
+                          isBlocked || isLoading || isCurrent || !isAvailable
+                        }
                         onClick={handlePick}
-                        className={`relative p-8 rounded-3xl font-bold text-xl transition-all transform shadow-xl
-                          ${
-                            isSelected && isAvailable
-                              ? "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 text-white ring-4 ring-purple-400 hover:scale-110"
-                              : "bg-white/95 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300 hover:scale-110"
-                          }
-                          ${
-                            // current table: mờ + grayscale + không scale
-                            isCurrent
-                              ? "opacity-55 grayscale border-gray-300 hover:scale-100 cursor-not-allowed"
-                              : ""
-                          }
-                          ${
-                            // occupied/không available: xám + không scale
-                            !isCurrent && !isAvailable
-                              ? "bg-gray-200/80 text-gray-600 border-gray-300 hover:bg-gray-200 hover:border-gray-300 hover:scale-100 cursor-not-allowed"
-                              : ""
-                          }
-                        `}
+                        className={`
+                        relative p-8 rounded-3xl font-bold text-xl transition-all transform shadow-xl
+                        ${
+                          isCurrent
+                            ? "bg-orange-100 text-orange-700 ring-4 ring-orange-500 ring-offset-2 ring-offset-white cursor-not-allowed opacity-90 hover:scale-100"
+                            : isSelected && isAvailable
+                            ? "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 text-white ring-4 ring-purple-400 hover:scale-110"
+                            : isAvailable
+                            ? "bg-white/95 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300 hover:scale-110"
+                            : "bg-gray-200/80 text-gray-600 border-2 border-gray-300 hover:bg-gray-200 cursor-not-allowed hover:scale-100"
+                        }
+                      `}
                       >
-                        {/* chấm màu góc phải */}
+                        {/* Dot status */}
                         <span
-                          className={`absolute top-3 right-3 w-3 h-3 rounded-full ${dotClass} shadow`}
+                          className={`absolute top-3 right-3 w-3 h-3 rounded-full shadow ${dotClass}`}
                         />
 
                         {t.name}
