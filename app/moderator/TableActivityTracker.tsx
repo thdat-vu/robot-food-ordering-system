@@ -1,26 +1,27 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React, { useEffect, useState } from "react";
 import { Clock, Users, QrCode, CheckCircle, Activity } from "lucide-react";
 
-import {
-  TableActivityLog,
-  TableActivityTrackerProps,
-} from "@/entites/moderator/TableActivityLog";
+import { TableActivityLog } from "@/entites/moderator/TableActivityLog";
 import { tableService } from "@/service/moderator/TableService";
 
-// Cấu hình phân trang
 const ACTIVITIES_PER_PAGE = 10;
+
+export type TableActivityTrackerProps = {
+  propSessionId: string | null;
+  variant?: "page" | "embedded"; // ✅ thêm mode để nhúng modal
+};
 
 export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   propSessionId,
+  variant = "page",
 }) => {
   const [activities, setActivities] = useState<TableActivityLog[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalActivities, setTotalActivities] = useState(0);
-
-  console.log("TableActivityTracker rendered with sessionId:", propSessionId);
 
   // Fetch activities với phân trang
   const fetchActivitiesBySessionId = async (
@@ -56,12 +57,12 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
       const normalized = list.map((a) => ({
         ...a,
-        data: a.data ?? {},
+        data: (a as any).data ?? {},
       }));
 
       setActivities(normalized);
       setTotalActivities(totalCount);
-      setTotalPages(Math.ceil(totalCount / limit));
+      setTotalPages(Math.max(1, Math.ceil(totalCount / limit)));
     } catch (error) {
       console.error("Lỗi khi tải hoạt động bàn:", error);
       setActivities([]);
@@ -72,28 +73,32 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
     }
   };
 
-  // Reset trang khi sessionId thay đổi
+  // ✅ 1 useEffect: đổi sessionId hoặc đổi trang đều fetch
   useEffect(() => {
-    if (propSessionId) {
-      if (currentPage !== 1) setCurrentPage(1);
-      else fetchActivitiesBySessionId(propSessionId, 1, ACTIVITIES_PER_PAGE);
-    } else {
+    if (!propSessionId) {
       setActivities([]);
       setTotalActivities(0);
       setTotalPages(1);
       setCurrentPage(1);
+      return;
     }
+
+    // nếu đổi sessionId mà đang ở page > 1 thì reset về 1 trước
+    // (giúp UX hợp lý + tránh fetch trang không tồn tại)
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+      return;
+    }
+
+    fetchActivitiesBySessionId(propSessionId, currentPage, ACTIVITIES_PER_PAGE);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propSessionId]);
 
-  // Fetch khi đổi trang
+  // ✅ Fetch khi đổi trang (sau khi đã reset xong)
   useEffect(() => {
-    if (propSessionId) {
-      fetchActivitiesBySessionId(
-        propSessionId,
-        currentPage,
-        ACTIVITIES_PER_PAGE
-      );
-    }
+    if (!propSessionId) return;
+    fetchActivitiesBySessionId(propSessionId, currentPage, ACTIVITIES_PER_PAGE);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
   // Helper: Tên trạng thái món theo enum C#
@@ -145,20 +150,22 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
   // Format danh sách món (CreateOrder & AddOrderItems)
   const formatItemsList = (activity: TableActivityLog): string => {
+    const data: any = (activity as any).data ?? {};
     let itemsArray: any[] = [];
-    if (activity.type === "CreateOrder" && Array.isArray(activity.data.items)) {
-      itemsArray = activity.data.items;
+
+    if (activity.type === "CreateOrder" && Array.isArray(data.items)) {
+      itemsArray = data.items;
     } else if (
       activity.type === "AddOrderItems" &&
-      Array.isArray(activity.data.newItems)
+      Array.isArray(data.newItems)
     ) {
-      itemsArray = activity.data.newItems;
+      itemsArray = data.newItems;
     } else return "";
 
     return itemsArray
       .map((item) => {
-        const qty = item.quantity > 1 ? ` x${item.quantity}` : "";
-        return `${item.productName || "Món"}${qty}`;
+        const qty = item?.quantity > 1 ? ` x${item.quantity}` : "";
+        return `${item?.productName || "Món"}${qty}`;
       })
       .join(", ");
   };
@@ -169,7 +176,9 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   ): React.ReactNode => {
     if (activity.type !== "UpdateOrderItemStatus") return null;
 
-    const { updatedItems } = activity.data as any;
+    const data: any = (activity as any).data ?? {};
+    const updatedItems = data.updatedItems;
+
     if (!Array.isArray(updatedItems) || updatedItems.length === 0) {
       return <span className="text-gray-600">Đã cập nhật trạng thái món</span>;
     }
@@ -177,10 +186,10 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
     return (
       <div className="space-y-3">
         {updatedItems.map((item: any, idx: number) => {
-          const name = item.productName || "Món ăn";
-          const qty = item.quantity > 1 ? ` x${item.quantity}` : "";
-          const fromStatus = item.previousStatus ?? item.oldStatus;
-          const toStatus = item.newStatus ?? item.status;
+          const name = item?.productName || "Món ăn";
+          const qty = item?.quantity > 1 ? ` x${item.quantity}` : "";
+          const fromStatus = item?.previousStatus ?? item?.oldStatus;
+          const toStatus = item?.newStatus ?? item?.status;
 
           const fromLabel = getOrderItemStatusLabel(fromStatus);
           const toLabel = getOrderItemStatusLabel(toStatus);
@@ -397,6 +406,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
         </svg>
       ),
     };
+
     return icons[type] || <Activity className="w-5 h-5 text-gray-500" />;
   };
 
@@ -446,18 +456,21 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Theo dõi hoạt động bàn
-          </h1>
-          <p className="text-gray-600">
-            {propSessionId
-              ? `Session: ${propSessionId.substring(0, 12)}...`
-              : "Chưa có session ID"}
-          </p>
-        </div>
+    <div className={variant === "page" ? "min-h-screen bg-gray-50 p-6" : "p-0"}>
+      <div className={variant === "page" ? "max-w-7xl mx-auto" : ""}>
+        {/* ✅ Header chỉ hiện ở page */}
+        {variant === "page" && (
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Theo dõi hoạt động bàn
+            </h1>
+            <p className="text-gray-600">
+              {propSessionId
+                ? `Session: ${propSessionId.substring(0, 12)}...`
+                : "Chưa có session ID"}
+            </p>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
@@ -467,7 +480,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
           {activityLoading ? (
             <div className="text-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
               <p className="mt-4 text-gray-600">Đang tải hoạt động...</p>
             </div>
           ) : !propSessionId ? (
@@ -483,172 +496,180 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
           ) : (
             <>
               <div className="space-y-4">
-                {activities.map((activity, index) => (
-                  <div
-                    key={activity.id || index}
-                    className={`p-5 rounded-lg border-2 ${getActivityColor(
-                      activity.type
-                    )}`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="mt-1">
-                        {getActivityIcon(activity.type)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-3">
-                          <h3 className="font-semibold text-gray-900">
-                            {getActivityLabel(activity.type)}
-                          </h3>
-                          <span className="text-sm text-gray-500 flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {formatDateTime(activity.createdTime)}
-                          </span>
+                {activities.map((activity, index) => {
+                  const data: any = (activity as any).data ?? {};
+
+                  return (
+                    <div
+                      key={(activity as any).id || index}
+                      className={`p-5 rounded-lg border-2 ${getActivityColor(
+                        activity.type
+                      )}`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="mt-1">
+                          {getActivityIcon(activity.type)}
                         </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-3">
+                            <h3 className="font-semibold text-gray-900">
+                              {getActivityLabel(activity.type)}
+                            </h3>
+                            <span className="text-sm text-gray-500 flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {formatDateTime((activity as any).createdTime)}
+                            </span>
+                          </div>
 
-                        <div className="text-sm text-gray-700 space-y-2">
-                          {activity.data.tableName && (
-                            <div>
-                              Bàn:{" "}
-                              <span className="font-medium">
-                                {activity.data.tableName}
-                              </span>
-                            </div>
-                          )}
-                          {activity.data.orderId && (
-                            <div>
-                              Đơn hàng:{" "}
-                              <span className="font-medium">
-                                {activity.data.orderId.substring(0, 16)}...
-                              </span>
-                            </div>
-                          )}
-
-                          {(activity.type === "CreateOrder" ||
-                            activity.type === "AddOrderItems") &&
-                            activity.data.newTotalPrice !== undefined && (
-                              <div className="text-emerald-700 font-medium">
-                                Tổng tiền mới:{" "}
-                                {activity.data.newTotalPrice.toLocaleString(
-                                  "vi-VN"
-                                )}{" "}
-                                đ
-                              </div>
-                            )}
-                          {activity.type === "AddOrderItems" &&
-                            activity.data.addedTotal !== undefined && (
-                              <div className="text-indigo-700">
-                                +{" "}
-                                {activity.data.addedTotal.toLocaleString(
-                                  "vi-VN"
-                                )}{" "}
-                                đ
-                              </div>
-                            )}
-
-                          {(activity.type === "CreateOrder" ||
-                            activity.type === "AddOrderItems") &&
-                            formatItemsList(activity) && (
+                          <div className="text-sm text-gray-700 space-y-2">
+                            {data.tableName && (
                               <div>
-                                <span className="font-medium">Món:</span>{" "}
-                                {formatItemsList(activity)}
+                                Bàn:{" "}
+                                <span className="font-medium">
+                                  {data.tableName}
+                                </span>
                               </div>
                             )}
 
-                          {/* CẬP NHẬT TRẠNG THÁI MÓN – ĐẸP NHẤT */}
-                          {activity.type === "UpdateOrderItemStatus" && (
-                            <div className="mt-4 p-5 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border-2 border-emerald-200">
-                              <div className="flex items-center gap-3 mb-4">
-                                <svg
-                                  className="w-6 h-6 text-emerald-600"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                <div>
-                                  <div className="font-bold text-emerald-900">
-                                    Trạng thái món đã được cập nhật
-                                  </div>
-                                  <div className="text-xs text-emerald-700">
-                                    Bếp đang xử lý theo yêu cầu
-                                  </div>
-                                </div>
+                            {data.orderId && (
+                              <div>
+                                Đơn hàng:{" "}
+                                <span className="font-medium">
+                                  {String(data.orderId).substring(0, 16)}...
+                                </span>
                               </div>
+                            )}
 
-                              <div className="bg-white/80 rounded-lg p-4 border border-emerald-100">
-                                {formatUpdateOrderItemStatus(activity)}
-                              </div>
-
-                              {activity.data.reason && (
-                                <div className="mt-3 text-sm">
-                                  <span className="font-medium text-red-700">
-                                    Lý do:
-                                  </span>{" "}
-                                  <span className="text-red-600 italic">
-                                    {activity.data.reason}
-                                  </span>
+                            {(activity.type === "CreateOrder" ||
+                              activity.type === "AddOrderItems") &&
+                              data.newTotalPrice !== undefined && (
+                                <div className="text-emerald-700 font-medium">
+                                  Tổng tiền mới:{" "}
+                                  {Number(data.newTotalPrice).toLocaleString(
+                                    "vi-VN"
+                                  )}{" "}
+                                  đ
                                 </div>
                               )}
-                            </div>
-                          )}
 
-                          {activity.data.paidAmount !== undefined && (
-                            <div className="text-green-700 font-medium">
-                              Đã thanh toán:{" "}
-                              {activity.data.paidAmount.toLocaleString("vi-VN")}{" "}
-                              đ
-                            </div>
-                          )}
-                          {activity.data.remainingAmount !== undefined && (
-                            <div>
-                              Còn lại:{" "}
-                              {activity.data.remainingAmount.toLocaleString(
-                                "vi-VN"
-                              )}{" "}
-                              đ
-                            </div>
-                          )}
-                          {activity.data.fromTableName &&
-                            activity.data.toTableName && (
-                              <div>
-                                Chuyển từ{" "}
-                                <strong>{activity.data.fromTableName}</strong> →{" "}
-                                <strong>{activity.data.toTableName}</strong>
+                            {activity.type === "AddOrderItems" &&
+                              data.addedTotal !== undefined && (
+                                <div className="text-indigo-700">
+                                  +{" "}
+                                  {Number(data.addedTotal).toLocaleString(
+                                    "vi-VN"
+                                  )}{" "}
+                                  đ
+                                </div>
+                              )}
+
+                            {(activity.type === "CreateOrder" ||
+                              activity.type === "AddOrderItems") &&
+                              formatItemsList(activity) && (
+                                <div>
+                                  <span className="font-medium">Món:</span>{" "}
+                                  {formatItemsList(activity)}
+                                </div>
+                              )}
+
+                            {activity.type === "UpdateOrderItemStatus" && (
+                              <div className="mt-4 p-5 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border-2 border-emerald-200">
+                                <div className="flex items-center gap-3 mb-4">
+                                  <svg
+                                    className="w-6 h-6 text-emerald-600"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  <div>
+                                    <div className="font-bold text-emerald-900">
+                                      Trạng thái món đã được cập nhật
+                                    </div>
+                                    <div className="text-xs text-emerald-700">
+                                      Bếp đang xử lý theo yêu cầu
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="bg-white/80 rounded-lg p-4 border border-emerald-100">
+                                  {formatUpdateOrderItemStatus(activity)}
+                                </div>
+
+                                {data.reason && (
+                                  <div className="mt-3 text-sm">
+                                    <span className="font-medium text-red-700">
+                                      Lý do:
+                                    </span>{" "}
+                                    <span className="text-red-600 italic">
+                                      {data.reason}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             )}
-                          {activity.data.shareCode && (
-                            <div>
-                              Mã chia sẻ:{" "}
-                              <code className="bg-gray-200 px-2 py-1 rounded">
-                                {activity.data.shareCode}
-                              </code>
-                            </div>
-                          )}
-                          {activity.data.joinedUser && (
-                            <div>Tham gia: {activity.data.joinedUser}</div>
-                          )}
-                          {activity.data.paymentMethod && (
-                            <div>
-                              Phương thức: {activity.data.paymentMethod}
-                            </div>
-                          )}
-                          {activity.data.sessionDuration && (
-                            <div>
-                              Thời gian sử dụng: {activity.data.sessionDuration}
-                            </div>
-                          )}
+
+                            {data.paidAmount !== undefined && (
+                              <div className="text-green-700 font-medium">
+                                Đã thanh toán:{" "}
+                                {Number(data.paidAmount).toLocaleString(
+                                  "vi-VN"
+                                )}{" "}
+                                đ
+                              </div>
+                            )}
+
+                            {data.remainingAmount !== undefined && (
+                              <div>
+                                Còn lại:{" "}
+                                {Number(data.remainingAmount).toLocaleString(
+                                  "vi-VN"
+                                )}{" "}
+                                đ
+                              </div>
+                            )}
+
+                            {data.fromTableName && data.toTableName && (
+                              <div>
+                                Chuyển từ <strong>{data.fromTableName}</strong>{" "}
+                                → <strong>{data.toTableName}</strong>
+                              </div>
+                            )}
+
+                            {data.shareCode && (
+                              <div>
+                                Mã chia sẻ:{" "}
+                                <code className="bg-gray-200 px-2 py-1 rounded">
+                                  {data.shareCode}
+                                </code>
+                              </div>
+                            )}
+
+                            {data.joinedUser && (
+                              <div>Tham gia: {data.joinedUser}</div>
+                            )}
+
+                            {data.paymentMethod && (
+                              <div>Phương thức: {data.paymentMethod}</div>
+                            )}
+
+                            {data.sessionDuration && (
+                              <div>
+                                Thời gian sử dụng: {data.sessionDuration}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              {/* Phân trang */}
               {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row justify-between items-center mt-8 pt-6 border-t border-gray-200 gap-4">
                   <p className="text-sm text-gray-700">
