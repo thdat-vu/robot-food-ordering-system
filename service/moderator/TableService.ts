@@ -1,3 +1,4 @@
+import { ApiResponse, Bill } from "@/entites/moderator/BillModel";
 import { TableActivityLog } from "@/entites/moderator/TableActivityLog";
 import { getApiUrl } from "@/env.config";
 
@@ -116,20 +117,25 @@ export const tableService = {
   },
 
   // ✅ Endpoint của bạn đang là /Invoice/Order/{orderId}/invoice => param phải là orderId
-  async getInvoiceByOrderId(orderId: string): Promise<any> {
-    if (!orderId) return null;
-
-    const url = `${API_BASE_URL}/Invoice/Order/${encodeURIComponent(orderId)}/invoice`;
-
+  async getInvoiceById(invoiceId: string | null): Promise<ApiResponse<Bill> | null> {
+    if (!invoiceId) return null;
+  
+    const url = `${API_BASE_URL}/Invoice/invoice/${encodeURIComponent(invoiceId)}`;
+  
+  
     const response = await fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     });
-
+  
+   
     if (!response.ok) {
-      throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
+      const bodyText = await response.text().catch(() => "");
+      throw new Error(
+        `GET ${url} failed: ${response.status} ${response.statusText}${bodyText ? ` | ${bodyText}` : ""}`
+      );
     }
-
-    return await response.json();
-  },
-};
+  
+    return (await response.json()) as ApiResponse<Bill>;
+  }
+}

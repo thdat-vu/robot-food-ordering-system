@@ -2,9 +2,12 @@ interface Session {
     id: string;
     tableName : string;
     checkIn: string;
+    sessionCode: string | null;
     checkOut: string | null;
     customerName: string;
     phoneNumber: string;
+    hasInvoice: boolean;
+    invoiceId : string | null;
   }
   interface SessionTableProps {
     idTable: string;

@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import TableActivityTracker from "./TableActivityTracker";
+import { SessionTable } from "./SessionTable";
 
 type Props = {
   open: boolean;
@@ -15,6 +16,7 @@ type Props = {
   tableId: string;
   tableName?: string | null;
   sessionId: string | null;
+  sessionCode: string | null;
   customerName?: string | null;
 };
 
@@ -24,6 +26,7 @@ export const ActivityDialog: React.FC<Props> = ({
   tableId,
   tableName,
   sessionId,
+  sessionCode,
   customerName,
 }) => {
   return (
@@ -33,11 +36,15 @@ export const ActivityDialog: React.FC<Props> = ({
           <DialogTitle className="text-xl">
             Hoạt động - {customerName ?? "Khách"} • {tableName ?? tableId}
           </DialogTitle>
-          <p className="text-sm text-gray-500">Session: {sessionId ?? "-"}</p>
+          <p className="text-sm text-gray-500">Session: {sessionCode ?? "-"}</p>
         </DialogHeader>
 
         <div className="h-[calc(85vh-88px)] overflow-auto px-6 pb-6">
-          <TableActivityTracker propSessionId={sessionId} variant="embedded" />
+          <TableActivityTracker
+            propSessionId={sessionId}
+            propSessionCode={sessionCode}
+            variant="embedded"
+          />
         </div>
       </DialogContent>
     </Dialog>
