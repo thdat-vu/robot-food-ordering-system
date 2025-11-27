@@ -37,7 +37,7 @@ interface OrderItemDetail {
 interface Topping {
   name: string;
   price: number;
-
+}
 // Bill/Invoice Main Entity
 interface Bill {
   id: string;

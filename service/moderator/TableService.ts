@@ -1,4 +1,4 @@
-import { ApiResponse, Bill } from "@/entites/moderator/SessionModel";
+import { ApiResponse, Bill } from "@/entites/moderator/BillModel";
 import { TableActivityLog } from "@/entites/moderator/TableActivityLog";
 import { getApiUrl } from "@/env.config";
 
