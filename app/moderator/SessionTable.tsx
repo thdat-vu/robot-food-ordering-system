@@ -5,12 +5,18 @@ import { Dialog, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
 import { DialogHeader } from "@/components/ui/dialog";
 import TableActivityTracker from "./TableActivityTracker";
 import ActivityDialog from "./ActivityDialog";
+import CompleteBillComponent from "@/components/moderator/CompleteBillComponent";
 
 export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activityOpen, setActivityOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(
+    null
+  );
+
   const [revealedPhoneIds, setRevealedPhoneIds] = useState<Set<string>>(
     new Set()
   );
@@ -97,22 +103,20 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
     }
   };
 
-  const handleViewInvoice = async (session: Session): Promise<void> => {
+  const handleViewInvoice = async (session: Session) => {
     try {
-      setLoading(true);
-      // const invoice = await tableService.getSessionInvoice(session.id);
-      // console.log("Invoice data:", invoice);
-      // Xử lý hiển thị invoice (có thể mở modal, navigate, etc.)
-      alert(
-        `Xem hóa đơn của ${session.customerName}\nMã phiên: ${session.id}\nBàn: ${idTable}`
-      );
-    } catch (error) {
-      alert("Không thể tải hóa đơn. Vui lòng thử lại!");
-    } finally {
-      setLoading(false);
+      // ✅ nếu session chưa có invoiceId thì chặn luôn
+      if (!session.invoiceId) {
+        alert("Session này chưa có hóa đơn.");
+        return;
+      }
+
+      setSelectedInvoiceId(session.invoiceId);
+      setInvoiceOpen(true);
+    } catch (e) {
+      alert("Không thể mở hóa đơn. Vui lòng thử lại!");
     }
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -280,16 +284,19 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
                                 Hoạt động
                               </span>
                             </button>
-                            <button
-                              onClick={() => handleViewInvoice(session)}
-                              className="inline-flex items-center gap-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
-                              title="Xem hóa đơn"
-                            >
-                              <FileText size={16} />
-                              <span className="text-sm font-medium">
-                                Hóa đơn
-                              </span>
-                            </button>
+
+                            {session.hasInvoice && session.invoiceId && (
+                              <button
+                                onClick={() => handleViewInvoice(session)}
+                                className="inline-flex items-center gap-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
+                                title="Xem hóa đơn"
+                              >
+                                <FileText size={16} />
+                                <span className="text-sm font-medium">
+                                  Hóa đơn
+                                </span>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -363,6 +370,35 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
               sessionId={selectedSession?.id || null}
               customerName={selectedSession?.customerName || null}
             />
+
+            {invoiceOpen && selectedInvoiceId && (
+              <div className="fixed inset-0 z-50">
+                {/* overlay */}
+                <div
+                  className="absolute inset-0 bg-black/50"
+                  onClick={() => setInvoiceOpen(false)}
+                />
+
+                {/* modal */}
+                <div className="absolute inset-0 flex items-center justify-center p-4">
+                  <div className="relative w-full max-w-3xl max-h-[90vh] overflow-auto rounded-2xl bg-white shadow-2xl">
+                    <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+                      <div className="font-semibold">Hóa đơn</div>
+                      <button
+                        onClick={() => setInvoiceOpen(false)}
+                        className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200"
+                      >
+                        Đóng
+                      </button>
+                    </div>
+
+                    <div className="p-4">
+                      <CompleteBillComponent invoiceId={selectedInvoiceId} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
