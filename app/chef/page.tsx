@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, Suspense, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useCustomRouter } from '@/lib/custom-router';
 
 // Types
@@ -22,6 +22,7 @@ import { KitchenSidebarByTable } from '@/components/kitchen/KitchenSidebarByTabl
 import { OrdersContent } from '@/components/kitchen/OrdersContent';
 import { InfoModal } from '@/components/kitchen/InfoModal';
 import { SearchResultsModal } from '@/components/kitchen/SearchResultsModal';
+import { MatchSuggestionModal, MatchSuggestion } from '@/components/kitchen/MatchSuggestionModal';
 import { chefService } from '@/service/chef/chefService';
 
 const formatCurrentDateTime = (date: Date): string => {
@@ -60,6 +61,9 @@ function ChiefPageContent() {
   const [selectedGroups, setSelectedGroups] = useState<{ itemName: string; tableNumber: number; id: number }[][]>([]);
   const [hasManualSelection, setHasManualSelection] = useState(false);
   const [leftPanelTab, setLeftPanelTab] = useState<LeftPanelTab>('byDish');
+  const [matchSuggestions, setMatchSuggestions] = useState<MatchSuggestion[] | null>(null);
+  const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+  const matchSuggestionSignatureRef = useRef<string | null>(null);
   
   // Animation state for disappearing items
   const [animatingOutIds, setAnimatingOutIds] = useState<Set<number>>(new Set());
@@ -205,6 +209,24 @@ function ChiefPageContent() {
 
   type SelectionItem = { itemName: string; tableNumber: number; id: number };
   type LeftPanelTab = 'byDish' | 'byTable';
+
+  const ALLOWED_MATCH_CATEGORIES = useMemo(() => new Set(['Món chính', 'Đồ uống']), []);
+  const normalizeValue = useCallback((value?: string | null) => (value ? value.trim().toLowerCase() : ''), []);
+  const normalizeToppings = useCallback((toppings?: string[]) => {
+    if (!toppings || toppings.length === 0) return '';
+    return toppings
+      .map(topping => topping.trim().toLowerCase())
+      .sort()
+      .join('|');
+  }, []);
+  const buildMatchKey = useCallback((order: Order) => {
+    return [
+      normalizeValue(order.itemName),
+      normalizeValue(order.sizeName),
+      normalizeValue(order.note),
+      normalizeToppings(order.toppings),
+    ].join('::');
+  }, [normalizeValue, normalizeToppings]);
 
   // ============================================================================
   // TABLE-AWARE WARNING LOGIC (Updated for Context-Aware Priority)
@@ -639,6 +661,25 @@ function ChiefPageContent() {
     setSelectedOrderKey(null); // Clear individual selection when groups are selected
   };
 
+  const appendSelectionItems = useCallback((items: SelectionItem[]) => {
+    if (!items || items.length === 0) return;
+    setHasManualSelection(true);
+    setSelectedGroups(prev => {
+      const existingIds = new Set(prev.flat().map(item => item.id));
+      const deduped = items.filter(item => !existingIds.has(item.id));
+      if (deduped.length === 0) {
+        return prev;
+      }
+
+      const nextGroups = [...prev, deduped];
+      const proposedSelection = new Set(nextGroups.flat().map(item => item.id));
+      maybeWarnForMainSelection(deduped, proposedSelection);
+      maybeWarnForDessertSelection(deduped, proposedSelection);
+      setLastCheckedGroup(deduped);
+      return nextGroups;
+    });
+  }, [maybeWarnForMainSelection, maybeWarnForDessertSelection]);
+
   // Function to automatically select the first 3 groups based on context-aware category priority
   const autoSelectFirstGroups = useCallback(() => {
     // Only auto-select for relevant tabs, not for serve tab, and only if user hasn't made manual selection
@@ -836,6 +877,157 @@ function ChiefPageContent() {
       .sort((a, b) => a.tableNumber - b.tableNumber);
   }, [filteredGroupedOrdersForSearch]);
 
+  useEffect(() => {
+    if (leftPanelTab !== 'byTable' || activeTab !== 'đang chờ') {
+      setMatchSuggestions(null);
+      setIsMatchModalOpen(false);
+      matchSuggestionSignatureRef.current = null;
+      return;
+    }
+
+    if (!selectedGroups || selectedGroups.length === 0) {
+      setMatchSuggestions(null);
+      setIsMatchModalOpen(false);
+      matchSuggestionSignatureRef.current = null;
+      return;
+    }
+
+    const selectedIds = new Set(selectedGroups.flat().map(item => item.id));
+    if (selectedIds.size === 0) {
+      setMatchSuggestions(null);
+      setIsMatchModalOpen(false);
+      matchSuggestionSignatureRef.current = null;
+      return;
+    }
+
+    const pendingOrders = orders.filter(order => order.status === 'đang chờ');
+    const selectedOrders = pendingOrders.filter(order => selectedIds.has(order.id));
+    if (selectedOrders.length === 0) {
+      setMatchSuggestions(null);
+      setIsMatchModalOpen(false);
+      matchSuggestionSignatureRef.current = null;
+      return;
+    }
+
+    const baseMap = new Map<string, { representative: Order; baseTables: Set<number> }>();
+    selectedOrders.forEach(order => {
+      if (!ALLOWED_MATCH_CATEGORIES.has(order.category)) return;
+      const key = buildMatchKey(order);
+      if (!baseMap.has(key)) {
+        baseMap.set(key, { representative: order, baseTables: new Set([order.tableNumber]) });
+      } else {
+        baseMap.get(key)!.baseTables.add(order.tableNumber);
+      }
+    });
+
+    if (baseMap.size === 0) {
+      setMatchSuggestions(null);
+      setIsMatchModalOpen(false);
+      matchSuggestionSignatureRef.current = null;
+      return;
+    }
+
+    const selectedTables = new Set(selectedOrders.map(order => order.tableNumber));
+    const suggestionBuilders = new Map<
+      string,
+      { representative: Order; baseTables: Set<number>; candidates: Map<number, Order[]> }
+    >();
+
+    pendingOrders.forEach(order => {
+      if (selectedIds.has(order.id)) return;
+      if (!ALLOWED_MATCH_CATEGORIES.has(order.category)) return;
+      if (selectedTables.has(order.tableNumber)) return;
+      const key = buildMatchKey(order);
+      const baseEntry = baseMap.get(key);
+      if (!baseEntry) return;
+      const builder =
+        suggestionBuilders.get(key) || {
+          representative: baseEntry.representative,
+          baseTables: baseEntry.baseTables,
+          candidates: new Map<number, Order[]>(),
+        };
+      if (!builder.candidates.has(order.tableNumber)) {
+        builder.candidates.set(order.tableNumber, []);
+      }
+      builder.candidates.get(order.tableNumber)!.push(order);
+      suggestionBuilders.set(key, builder);
+    });
+
+    const builtSuggestions: MatchSuggestion[] = Array.from(suggestionBuilders.entries())
+      .map(([key, builder]) => ({
+        id: key,
+        itemName: builder.representative.itemName,
+        sizeName: builder.representative.sizeName,
+        category: builder.representative.category,
+        note: builder.representative.note,
+        toppings: builder.representative.toppings,
+        baseTables: Array.from(builder.baseTables).sort((a, b) => a - b),
+        candidates: Array.from(builder.candidates.entries())
+          .map(([tableNumber, tableOrders]) => ({
+            tableNumber,
+            orders: tableOrders
+              .sort((a, b) => a.id - b.id)
+              .map(order => ({
+                id: order.id,
+                itemName: order.itemName,
+                tableNumber: order.tableNumber,
+                sizeName: order.sizeName,
+                note: order.note,
+                toppings: order.toppings,
+                createdTime: order.createdTime || order.orderTime,
+                estimatedTime: order.estimatedTime,
+              })),
+          }))
+          .sort((a, b) => a.tableNumber - b.tableNumber),
+      }))
+      .filter(suggestion => suggestion.candidates.length > 0);
+
+    if (builtSuggestions.length === 0) {
+      setMatchSuggestions(null);
+      setIsMatchModalOpen(false);
+      matchSuggestionSignatureRef.current = null;
+      return;
+    }
+
+    const suggestionIds = builtSuggestions
+      .flatMap(suggestion =>
+        suggestion.candidates.flatMap(candidate => candidate.orders.map(order => order.id))
+      )
+      .sort((a, b) => a - b);
+    const selectionSignature = Array.from(selectedIds)
+      .sort((a, b) => a - b)
+      .join(',');
+    const candidateSignature = suggestionIds.join(',');
+    const signature = `${selectionSignature}__${candidateSignature}`;
+
+    if (matchSuggestionSignatureRef.current !== signature) {
+      matchSuggestionSignatureRef.current = signature;
+      setMatchSuggestions(builtSuggestions);
+      setIsMatchModalOpen(true);
+    }
+  }, [
+    selectedGroups,
+    leftPanelTab,
+    orders,
+    activeTab,
+    ALLOWED_MATCH_CATEGORIES,
+    buildMatchKey,
+  ]);
+
+  const handleMatchModalCancel = useCallback(() => {
+    setIsMatchModalOpen(false);
+  }, []);
+
+  const handleMatchModalConfirm = useCallback(
+    (items: SelectionItem[]) => {
+      if (items.length > 0) {
+        appendSelectionItems(items);
+      }
+      setMatchSuggestions(null);
+      setIsMatchModalOpen(false);
+    },
+    [appendSelectionItems]
+  );
   // ============================================================================
   // NOTE: getTableCategoryContext and getContextualPriority have been MOVED UP
   // to line 482 and line 499 to fix hoisting error.
@@ -1011,6 +1203,13 @@ function ChiefPageContent() {
           }
           setIsDessertPriorityInfoOpen(false);
         }}
+      />
+
+      <MatchSuggestionModal
+        isOpen={isMatchModalOpen}
+        suggestions={matchSuggestions}
+        onCancel={handleMatchModalCancel}
+        onConfirm={handleMatchModalConfirm}
       />
 
       {/* Search Results Modal */}
