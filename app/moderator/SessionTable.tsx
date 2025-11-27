@@ -81,12 +81,12 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
       : sessions.filter((session: Session) => {
           const name = (session.customerName ?? "").toLowerCase();
           const phone = session.phoneNumber ?? ""; // giữ nguyên vì phone thường là số/ký tự
-          const id = String(session.id ?? "").toLowerCase();
+          const sessionCode = String(session.sessionCode ?? "").toLowerCase();
 
           return (
             name.includes(q) ||
             phone.includes(searchTerm ?? "") || // hoặc phone.includes(q) nếu bạn muốn normalize luôn
-            id.includes(q)
+            sessionCode.includes(q)
           );
         });
 
@@ -217,7 +217,7 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
                       >
                         <td className="px-6 py-4">
                           <span className="font-semibold text-indigo-600">
-                            {session.id}
+                            {session.sessionCode || "-"}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-gray-700">
@@ -368,6 +368,7 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
                   ?.tableName || ""
               }
               sessionId={selectedSession?.id || null}
+              sessionCode={selectedSession?.sessionCode || null}
               customerName={selectedSession?.customerName || null}
             />
 

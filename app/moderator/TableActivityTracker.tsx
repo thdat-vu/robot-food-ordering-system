@@ -10,11 +10,13 @@ const ACTIVITIES_PER_PAGE = 10;
 
 export type TableActivityTrackerProps = {
   propSessionId: string | null;
+  propSessionCode: string | null;
   variant?: "page" | "embedded"; // ✅ thêm mode để nhúng modal
 };
 
 export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   propSessionId,
+  propSessionCode,
   variant = "page",
 }) => {
   const [activities, setActivities] = useState<TableActivityLog[]>([]);

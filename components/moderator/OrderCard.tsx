@@ -446,7 +446,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                     <div className="relative">
                       <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
                         <span className="text-white font-bold text-lg">
-                          #{orderWithGroups.id.substring(6, 8)}
+                          #{orderWithGroups.orderCode}
                         </span>
                       </div>
                       <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -455,7 +455,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-bold text-gray-900 text-lg mb-2">
-                        Đơn Hàng #{orderWithGroups.id.substring(0, 8)}...
+                        Đơn Hàng #{orderWithGroups.orderCode}...
                       </h4>
                       <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                         <div
