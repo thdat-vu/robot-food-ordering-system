@@ -29,11 +29,14 @@ export interface MatchSuggestion {
   }>;
 }
 
+type MatchMode = 'prepare' | 'serve';
+
 interface MatchSuggestionModalProps {
   isOpen: boolean;
   suggestions: MatchSuggestion[] | null;
   onConfirm: (selectedOrders: SelectionItem[]) => void;
   onCancel: () => void;
+  mode?: MatchMode;
 }
 
 export function MatchSuggestionModal({
@@ -41,6 +44,7 @@ export function MatchSuggestionModal({
   suggestions,
   onConfirm,
   onCancel,
+  mode = 'prepare',
 }: MatchSuggestionModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
@@ -146,6 +150,16 @@ export function MatchSuggestionModal({
     </div>
   );
 
+  const modeDescription =
+    mode === 'serve'
+      ? 'Đã chọn bàn hiện tại có sẵn món trùng với bàn khác. Xem chi tiết trước khi chuyển sang “Bắt đầu phục vụ”.'
+      : 'Đã chọn bàn hiện tại có sẵn món trùng với bàn khác. Xem chi tiết trước khi bắt đầu nấu.';
+  const tableHelper =
+    mode === 'serve'
+      ? 'Tự động chọn để chuyển sang trạng thái "Bắt đầu phục vụ"'
+      : 'Tự động chọn để chuyển sang trạng thái "Đang thực hiện"';
+  const confirmLabel = mode === 'serve' ? 'Xác nhận phục vụ cùng lúc' : 'Xác nhận gộp món';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
       <div className="fixed inset-0 bg-gray-900 bg-opacity-40" onClick={onCancel} />
@@ -154,7 +168,7 @@ export function MatchSuggestionModal({
           <div>
             <h3 className="text-xl font-semibold text-gray-900">Gợi ý gộp món cùng bàn</h3>
             <p className="text-sm text-gray-500">
-              {`Đã chọn bàn hiện tại có sẵn món trùng với bàn khác. Xem chi tiết và xác nhận trước khi bắt đầu nấu.`}
+              {modeDescription}
             </p>
           </div>
           <Button variant="ghost" onClick={onCancel} aria-label="Đóng">
@@ -217,7 +231,7 @@ export function MatchSuggestionModal({
                               {`Bàn ${candidate.tableNumber} • ${tableOrders.length} món`}
                             </p>
                             <p className="text-xs text-gray-500">
-                              Tự động chọn để chuyển sang trạng thái "Đang thực hiện"
+                              {tableHelper}
                             </p>
                           </div>
                         </div>
@@ -268,7 +282,7 @@ export function MatchSuggestionModal({
             Bỏ qua
           </Button>
           <Button onClick={handleConfirm} disabled={selectedIds.size === 0}>
-            Xác nhận gộp ({selectedIds.size})
+            {confirmLabel} ({selectedIds.size})
           </Button>
         </div>
       </div>

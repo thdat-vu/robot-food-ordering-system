@@ -878,7 +878,8 @@ function ChiefPageContent() {
   }, [filteredGroupedOrdersForSearch]);
 
   useEffect(() => {
-    if (leftPanelTab !== 'byTable' || activeTab !== 'đang chờ') {
+    const eligibleTabs = new Set<OrderStatus>(['đang chờ', 'đang thực hiện']);
+    if (leftPanelTab !== 'byTable' || !eligibleTabs.has(activeTab)) {
       setMatchSuggestions(null);
       setIsMatchModalOpen(false);
       matchSuggestionSignatureRef.current = null;
@@ -900,8 +901,8 @@ function ChiefPageContent() {
       return;
     }
 
-    const pendingOrders = orders.filter(order => order.status === 'đang chờ');
-    const selectedOrders = pendingOrders.filter(order => selectedIds.has(order.id));
+    const statusFilteredOrders = orders.filter(order => order.status === activeTab);
+    const selectedOrders = statusFilteredOrders.filter(order => selectedIds.has(order.id));
     if (selectedOrders.length === 0) {
       setMatchSuggestions(null);
       setIsMatchModalOpen(false);
@@ -933,7 +934,7 @@ function ChiefPageContent() {
       { representative: Order; baseTables: Set<number>; candidates: Map<number, Order[]> }
     >();
 
-    pendingOrders.forEach(order => {
+    statusFilteredOrders.forEach(order => {
       if (selectedIds.has(order.id)) return;
       if (!ALLOWED_MATCH_CATEGORIES.has(order.category)) return;
       if (selectedTables.has(order.tableNumber)) return;
@@ -998,7 +999,7 @@ function ChiefPageContent() {
       .sort((a, b) => a - b)
       .join(',');
     const candidateSignature = suggestionIds.join(',');
-    const signature = `${selectionSignature}__${candidateSignature}`;
+    const signature = `${activeTab}__${selectionSignature}__${candidateSignature}`;
 
     if (matchSuggestionSignatureRef.current !== signature) {
       matchSuggestionSignatureRef.current = signature;
@@ -1210,6 +1211,7 @@ function ChiefPageContent() {
         suggestions={matchSuggestions}
         onCancel={handleMatchModalCancel}
         onConfirm={handleMatchModalConfirm}
+        mode={activeTab === 'đang thực hiện' ? 'serve' : 'prepare'}
       />
 
       {/* Search Results Modal */}
