@@ -194,7 +194,7 @@ const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
               <div className="inline-block bg-gray-100 px-4 py-2 rounded-lg">
                 <p className="text-xs text-gray-500">Số phiếu</p>
                 <p className="text-lg font-bold text-gray-800">
-                  BH{receiptNumber}
+                  {billData.invoiceCode}
                 </p>
               </div>
             </div>
