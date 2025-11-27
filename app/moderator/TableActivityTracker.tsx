@@ -526,7 +526,6 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                           <div className="text-sm text-gray-700 space-y-2">
                             {data.tableName && (
                               <div>
-                                Bàn:{" "}
                                 <span className="font-medium">
                                   {data.tableName}
                                 </span>
@@ -535,9 +534,11 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
                             {data.orderId && (
                               <div>
-                                Đơn hàng:{" "}
+                                Mã Đơn hàng:{" "}
                                 <span className="font-medium">
-                                  {String(data.orderId).substring(0, 16)}...
+                                  {data.orderCode ||
+                                    String(data.orderId).substring(0, 16)}
+                                  ...
                                 </span>
                               </div>
                             )}

@@ -19,6 +19,7 @@ export interface Topping {
     tableId: string;
     tableName: string;
     createdTime: string;
+    invoiceCode: string;
     paymentMethod: string | number;   // ✅ quan trọng
     totalAmount: number;
     discount: number;
@@ -34,6 +35,5 @@ export interface Topping {
     statusCode: number;
     code?: string;
   };
-  interface CompleteBillComponentProps {
-    invoiceId: string;
-  }
+  
+ 
