@@ -3,6 +3,7 @@ import { Order } from '@/types/kitchen';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
+import LateDishWarning from '@/components/moderator/LateDishWarning';
 
 type SelectionItem = { itemName: string; tableNumber: number; id: number };
 
@@ -20,6 +21,7 @@ interface KitchenSidebarByTableProps {
   selectedGroups: SelectionItem[][];
   onMultipleGroupSelection: (groups: SelectionItem[][]) => void;
   itemNameToCategory?: Record<string, string>; // For context-aware sorting
+  tableDataMap?: Record<number, any>; // Map tableNumber -> TableData for late dish warnings
   className?: string;
 }
 
@@ -198,6 +200,7 @@ export function KitchenSidebarByTable({
   selectedGroups,
   onMultipleGroupSelection,
   itemNameToCategory,
+  tableDataMap = {},
   className,
 }: KitchenSidebarByTableProps) {
   // Collect all orders from all tables for context analysis
@@ -354,13 +357,17 @@ export function KitchenSidebarByTable({
             const isMultiSelected = isTableGroupSelected(tableNumber);
             const groupedOrders = groupedTableMap.get(tableNumber) || [];
 
+            const tableData = tableDataMap[tableNumber];
+
             return (
               <div
                 key={tableNumber}
-                className={`bg-white rounded-2xl shadow-sm border transition-all duration-200 ${
+                className={`relative bg-white rounded-2xl shadow-sm border transition-all duration-200 ${
                   isSelected || isMultiSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
                 }`}
               >
+                {/* Late dish warning overlay */}
+                {tableData && <LateDishWarning table={tableData} borderRadius="rounded-2xl" />}
                 <div
                   className="flex items-center justify-between px-4 py-3 cursor-pointer"
                   onClick={() => onGroupSelection(tableSelection)}

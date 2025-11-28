@@ -5,9 +5,10 @@ import { TableData } from "@/entites/moderator/FeedbackModole";
 
 interface LateDishWarningProps {
   table: TableData;
+  borderRadius?: string; // Custom border radius (default: rounded-3xl for moderator)
 }
 
-const LateDishWarning: React.FC<LateDishWarningProps> = ({ table }) => {
+const LateDishWarning: React.FC<LateDishWarningProps> = ({ table, borderRadius = "rounded-3xl" }) => {
   const { isWaitingDish, waitingDurationInMinutes, pendingItems = 0 } = table;
 
   // Nếu không đang chờ món → không hiển thị gì
@@ -24,7 +25,7 @@ const LateDishWarning: React.FC<LateDishWarningProps> = ({ table }) => {
 
   return (
     <div
-      className={`absolute inset-0 pointer-events-none rounded-3xl overflow-hidden ${
+      className={`absolute inset-0 pointer-events-none ${borderRadius} overflow-hidden ${
         isCritical
           ? "animate-pulse ring-4 ring-red-500 ring-opacity-70"
           : "animate-[ping_2s_ease-in-out_infinite]"
@@ -32,7 +33,7 @@ const LateDishWarning: React.FC<LateDishWarningProps> = ({ table }) => {
     >
       {/* Viền đỏ nhấp nháy */}
       <div
-        className={`absolute inset-0 rounded-3xl border-4 ${
+        className={`absolute inset-0 ${borderRadius} border-4 ${
           isCritical
             ? "border-red-500 shadow-2xl shadow-red-500/50"
             : "border-orange-400 shadow-2xl shadow-orange-400/50"

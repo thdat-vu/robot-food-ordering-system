@@ -12,6 +12,7 @@ import { CATEGORIES } from '@/constants/kitchen-data';
 // Hooks
 import { useKitchenOrders } from '@/hooks/use-kitchen-orders';
 import { useToastKitchen } from '@/hooks/use-toast-kitchen';
+import { useGetAllFeedbackHome } from '@/hooks/moderator/useFeedbackHooks';
 
 // Components
 import { ToastContainer } from '@/components/kitchen/ToastContainer';
@@ -94,6 +95,70 @@ function ChiefPageContent() {
 
 
   const { toasts, addToast, removeToast } = useToastKitchen();
+
+  // Fetch table data for late dish warnings
+  const { run: fetchTableData } = useGetAllFeedbackHome();
+  const [tableDataMap, setTableDataMap] = useState<Record<number, any>>({});
+
+  // Extract table number from tableName (e.g., "Bàn 4" -> 4)
+  const extractTableNumber = (tableName: string): number | null => {
+    const match = tableName.match(/Bàn\s*(\d+)/i);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
+  // Fetch table data periodically for late dish warnings
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTableData = async () => {
+      try {
+        const res = await fetchTableData();
+        if (!res || typeof res !== "object") return;
+
+        const tableData = (res as any).data;
+        if (!tableData || typeof tableData !== "object") return;
+
+        if (!isMounted) return;
+
+        // Map tableName -> TableData to tableNumber -> TableData
+        // Same logic as moderator screen
+        const map: Record<number, any> = {};
+        Object.values(tableData).forEach((table: any) => {
+          if (table?.tableName) {
+            const tableNumber = extractTableNumber(table.tableName);
+            if (tableNumber !== null) {
+              // Ensure we have all required fields for LateDishWarning
+              // isWaitingDish, waitingDurationInMinutes, pendingItems should come from API
+              map[tableNumber] = {
+                ...table,
+                // Ensure these fields exist (they should come from API)
+                isWaitingDish: table.isWaitingDish ?? false,
+                waitingDurationInMinutes: table.waitingDurationInMinutes ?? null,
+                pendingItems: table.pendingItems ?? 0,
+              };
+            }
+          }
+        });
+
+        setTableDataMap(prev => {
+          // Only update if data actually changed to avoid unnecessary re-renders
+          const prevStr = JSON.stringify(prev);
+          const newStr = JSON.stringify(map);
+          return prevStr === newStr ? prev : map;
+        });
+      } catch (error) {
+        console.error("Error loading table data for late dish warnings:", error);
+      }
+    };
+
+    loadTableData();
+    // Poll every 3 seconds like moderator
+    const interval = setInterval(loadTableData, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [fetchTableData]);
 
   // Dynamic search functionality
   const getSearchableProducts = useCallback(() => {
@@ -1285,6 +1350,7 @@ function ChiefPageContent() {
                 selectedGroups={selectedGroups}
                 onMultipleGroupSelection={handleMultipleGroupSelection}
                 itemNameToCategory={itemNameToCategory} // For context-aware sorting
+                tableDataMap={tableDataMap} // For late dish warnings
                 className="bg-transparent h-full"
               />
             )}
