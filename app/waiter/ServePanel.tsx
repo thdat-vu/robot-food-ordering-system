@@ -23,6 +23,7 @@ interface ServePanelProps {
   useRobotDelivery: boolean; // Robot delivery mode
   robotTrayLimit: number; // Max dishes for robot (3 trays)
   onToggleRobotMode: (enabled: boolean) => void; // Toggle robot mode
+  tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
 }
 
 /* Legacy MapPanel with iframe embed is kept for reference.
@@ -39,6 +40,7 @@ interface MapPanelProps {
   isRobotMode: boolean;
   legacyMapUrl: string | null;
   dishes?: WaiterDish[];
+  tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
 }
 
 const MapPanel = ({
@@ -49,6 +51,7 @@ const MapPanel = ({
   isRobotMode,
   legacyMapUrl,
   dishes = [],
+  tableLastUpdateTimes = {},
 }: MapPanelProps) => {
   const [showMap, setShowMap] = useState(false);
 
@@ -101,6 +104,7 @@ const MapPanel = ({
             tableSequence={tableSequence}
             isRobotMode={isRobotMode}
             dishes={dishes}
+            tableLastUpdateTimes={tableLastUpdateTimes}
           />
 
           {/* Legacy iframe embed kept for fallback reference */}
@@ -148,6 +152,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   useRobotDelivery,
   robotTrayLimit,
   onToggleRobotMode,
+  tableLastUpdateTimes = {},
 }) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   // Remake action is now handled in the left sidebar (DishList)
@@ -479,6 +484,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
               isRobotMode={useRobotDelivery}
               legacyMapUrl={mapUrl}
               dishes={dishes}
+              tableLastUpdateTimes={tableLastUpdateTimes}
             />
           ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
@@ -552,6 +558,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
                   isRobotMode={useRobotDelivery}
                   dishes={dishes}
+                  tableLastUpdateTimes={tableLastUpdateTimes}
                 />
               </div>
             )
