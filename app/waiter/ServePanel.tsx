@@ -40,6 +40,7 @@ interface MapPanelProps {
   isRobotMode: boolean;
   legacyMapUrl: string | null;
   dishes?: WaiterDish[];
+  tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
 }
 
 const MapPanel = ({
@@ -50,6 +51,7 @@ const MapPanel = ({
   isRobotMode,
   legacyMapUrl,
   dishes = [],
+  tableLastUpdateTimes = {},
 }: MapPanelProps) => {
   const [showMap, setShowMap] = useState(false);
 
@@ -482,6 +484,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
               isRobotMode={useRobotDelivery}
               legacyMapUrl={mapUrl}
               dishes={dishes}
+              tableLastUpdateTimes={tableLastUpdateTimes}
             />
           ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
