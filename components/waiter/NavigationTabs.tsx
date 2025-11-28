@@ -51,6 +51,7 @@ export function NavigationTabs({
         <nav className="flex space-x-2">
           {TAB_ORDER.map((tab) => {
             const isActive = activeTab === tab;
+            const tabCount = getTabCount(tab);
             return (
               <Button
                 key={tab}
@@ -59,14 +60,16 @@ export function NavigationTabs({
                 size="sm"
               >
                 <span>{TAB_DISPLAY_NAMES[tab]}</span>
-                <span
-                  className={`inline-flex items-center justify-center px-2 py-1 text-xs font-bold rounded-full ml-2 ${getBadgeColor(
-                    tab,
-                    isActive
-                  )}`}
-                >
-                  {getTabCount(tab)}
-                </span>
+                {tabCount > 0 && (
+                  <span
+                    className={`inline-flex items-center justify-center px-2 py-1 text-xs font-bold rounded-full ml-2 ${getBadgeColor(
+                      tab,
+                      isActive
+                    )}`}
+                  >
+                    {tabCount}
+                  </span>
+                )}
               </Button>
             );
           })}
