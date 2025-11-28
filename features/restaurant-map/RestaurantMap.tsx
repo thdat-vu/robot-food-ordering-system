@@ -11,10 +11,13 @@ import { ClusterBoundingBox, Position } from "./types";
 import { computeOptimizedPath } from "./pathfinding";
 
 interface Dish {
+  id?: string;
+  name?: string;
   tableNumber: number;
   status: string;
   orderTime?: string;
   createdTime?: string;
+  quantity?: number;
 }
 
 interface RestaurantMapProps {
@@ -25,6 +28,7 @@ interface RestaurantMapProps {
   isRobotMode?: boolean;
   onTableClick?: (tableId: number) => void;
   dishes?: Dish[]; // Add dishes prop for table stats
+  tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
 }
 
 interface Cluster {
@@ -227,6 +231,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   isRobotMode = false,
   onTableClick,
   dishes = [],
+  tableLastUpdateTimes = {},
 }) => {
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const staffPosition: Position = isRobotMode ? { x: 90, y: 120 } : { x: 90, y: 300 };
@@ -261,18 +266,28 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
       if (dish.status === "đã phục vụ") {
         stats[tableId].served++;
       }
+    });
 
-      // Get latest update time
-      const updateTime = dish.createdTime || dish.orderTime;
-      if (updateTime) {
-        if (!stats[tableId].lastUpdateTime || updateTime > stats[tableId].lastUpdateTime) {
-          stats[tableId].lastUpdateTime = updateTime;
+    // Use lastOrderUpdatedTime from API if available, otherwise fallback to dish times
+    Object.keys(stats).forEach((tableIdStr) => {
+      const tableId = Number(tableIdStr);
+      // Priority: API lastOrderUpdatedTime > dish times
+      if (tableLastUpdateTimes[tableId]) {
+        stats[tableId].lastUpdateTime = tableLastUpdateTimes[tableId];
+      } else {
+        // Fallback: Get latest update time from dishes
+        const tableDishes = dishes.filter(d => d.tableNumber === tableId);
+        const updateTimes = tableDishes
+          .map(d => d.createdTime || d.orderTime)
+          .filter((t): t is string => !!t);
+        if (updateTimes.length > 0) {
+          stats[tableId].lastUpdateTime = updateTimes.sort().reverse()[0];
         }
       }
     });
 
     return stats;
-  }, [dishes]);
+  }, [dishes, tableLastUpdateTimes]);
 
   const handleTableClick = (tableId: number) => {
     if (onTableClick) {
@@ -343,6 +358,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
                   preparingCount={tableStats[tableId].preparing}
                   servedCount={tableStats[tableId].served}
                   lastUpdateTime={tableStats[tableId].lastUpdateTime}
+                  dishes={dishes.filter(d => d.tableNumber === tableId)}
                   onClose={() => setSelectedTableId(null)}
                 />
               )}
