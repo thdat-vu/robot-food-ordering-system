@@ -5,6 +5,9 @@ import { Clock, Users, QrCode, CheckCircle, Activity } from "lucide-react";
 
 import { TableActivityLog } from "@/entites/moderator/TableActivityLog";
 import { tableService } from "@/service/moderator/TableService";
+import { translateReasonVI } from "@/components/moderator/translateReasonVI";
+import { humanizeAutoReleaseNoOrderTimeout } from "@/components/moderator/AutoReleaseNoOrderTimeout";
+import { ActivityNote } from "@/components/moderator/ActivityNote";
 
 const ACTIVITIES_PER_PAGE = 10;
 
@@ -391,7 +394,8 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
           />
         </svg>
       ),
-      AutoRelease: <Clock className="w-5 h-5 text-slate-500" />,
+      AutoRelease: <Clock className="w-5 h-5 text-amber-500" />,
+      AutoReleaseNoOrderTimeout: <Clock className="w-5 h-5 text-orange-500" />,
       AttachDeviceFromModerator: (
         <svg
           className="w-5 h-5 text-violet-500"
@@ -414,22 +418,37 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
   const getActivityColor = (type: string) => {
     const colors: Record<string, string> = {
-      CheckIn: "bg-green-50 border-green-200",
-      ScanAgain: "bg-blue-50 border-blue-200",
-      CreateOrder: "bg-purple-50 border-purple-200",
+      // ✅ Onboarding / entry
+      CheckIn: "bg-emerald-50 border-emerald-200",
+      ScanAgain: "bg-sky-50 border-sky-200",
+
+      // ✅ Order flow
+      CreateOrder: "bg-violet-50 border-violet-200",
       AddOrderItems: "bg-indigo-50 border-indigo-200",
-      UpdateOrderItemStatus: "bg-emerald-50 border-emerald-200",
-      PartialPayment: "bg-yellow-50 border-yellow-200",
-      FullPayment: "bg-green-100 border-green-300",
+      UpdateOrderItemStatus: "bg-teal-50 border-teal-200",
+
+      // ✅ Payment
+      PartialPayment: "bg-amber-50 border-amber-200",
+      FullPayment: "bg-lime-50 border-lime-200",
+
+      // ✅ Table operations
       MoveTable: "bg-orange-50 border-orange-200",
+      AttachDeviceFromModerator: "bg-fuchsia-50 border-fuchsia-200",
+
+      // ✅ Sharing
       ShareStart: "bg-cyan-50 border-cyan-200",
-      ShareJoin: "bg-teal-50 border-teal-200",
-      ShareStop: "bg-red-50 border-red-200",
-      RequestCheckout: "bg-amber-50 border-amber-200",
-      CloseSession: "bg-gray-50 border-gray-300",
-      AutoRelease: "bg-slate-50 border-slate-200",
-      AttachDeviceFromModerator: "bg-violet-50 border-violet-200",
+      ShareJoin: "bg-blue-50 border-blue-200",
+      ShareStop: "bg-rose-50 border-rose-200",
+
+      // ✅ Checkout / session lifecycle
+      RequestCheckout: "bg-yellow-50 border-yellow-200",
+      CloseSession: "bg-slate-50 border-slate-300",
+
+      // ✅ Auto / system
+      AutoRelease: "bg-zinc-50 border-zinc-200",
+      AutoReleaseNoOrderTimeout: "bg-red-50 border-red-200",
     };
+
     return colors[type] || "bg-gray-50 border-gray-200";
   };
 
@@ -449,12 +468,33 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
     CloseSession: "Đóng phiên bàn",
     AutoRelease: "Tự động giải phóng",
     AttachDeviceFromModerator: "Moderator gán thiết bị",
+    AutoReleaseNoOrderTimeout: "Tự động giải phóng (không đơn)",
   };
 
   const getActivityLabel = (type: string) => activityLabels[type] || type;
 
   const formatDateTime = (dateString: string) => {
     return dateString;
+  };
+
+  // Tách prefix + nội dung sau dấu ":" để xuống dòng đẹp
+  type ReasonObj = { code?: unknown; text?: unknown };
+  type ReasonInput = string | ReasonObj | null | undefined;
+  // Có thể đặt ở constants/reasons.ts
+
+  const ReasonTextVI: Record<string, string> = {
+    // Mã lỗi chung
+    TIMEOUT: "Hết thời gian chờ của phiên bàn.",
+    MANUAL_CLOSE: "Phiên bàn đã được đóng thủ công bởi điều phối.",
+    CUSTOMER_REQUEST: "Khách hàng yêu cầu đóng phiên bàn.",
+    NO_SHOW: "Khách hàng không xuất hiện sau thời gian chờ.",
+    ORDER_COMPLETED: "Đơn hàng đã hoàn tất và phiên bàn được đóng.",
+    PAYMENT_RECEIVED: "Đã nhận thanh toán và đóng phiên bàn.",
+
+    // Ví dụ mở rộng
+    DEVICE_DISCONNECTED: "Thiết bị khách hàng đã ngắt kết nối.",
+    MODERATOR_ACTION: "Điều phối đã thực hiện hành động đóng phiên bàn.",
+    CLEANUP_TASK: "Hệ thống đã tự động dọn dẹp phiên bàn không hoạt động.",
   };
 
   return (
@@ -538,7 +578,6 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                 <span className="font-medium">
                                   {data.orderCode ||
                                     String(data.orderId).substring(0, 16)}
-                                  ...
                                 </span>
                               </div>
                             )}
@@ -615,6 +654,65 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                 )}
                               </div>
                             )}
+                            {activity.type === "CloseSession" &&
+                              (() => {
+                                const invoiceId = data?.snapshot?.invoiceId;
+                                const actorType = data?.actor?.type ?? "System";
+                                const sourceLabel =
+                                  actorType === "System"
+                                    ? "Hệ thống"
+                                    : "Điều phối";
+
+                                if (invoiceId) {
+                                  return (
+                                    <ActivityNote
+                                      tone="emerald"
+                                      title="Đóng phiên (Checkout)"
+                                      message="Đã thanh toán và đóng phiên."
+                                      badges={["Đã thanh toán"]} // ✅ array
+                                      footer={`InvoiceId: ${String(invoiceId)}`}
+                                    />
+                                  );
+                                }
+
+                                const { body } = translateReasonVI(
+                                  data?.reason
+                                );
+
+                                return (
+                                  <ActivityNote
+                                    tone="rose"
+                                    title={
+                                      actorType === "System"
+                                        ? "Đóng phiên (Tự động)"
+                                        : "Đóng phiên (Điều phối)"
+                                    }
+                                    message={body}
+                                    badges={[`Nguồn: ${sourceLabel}`]} // ✅ array
+                                  />
+                                );
+                              })()}
+
+                            {activity.type === "AutoReleaseNoOrderTimeout" &&
+                              (() => {
+                                const msg =
+                                  humanizeAutoReleaseNoOrderTimeout(data);
+                                const minutes = data?.autoReleaseMinutes;
+
+                                return (
+                                  <ActivityNote
+                                    tone="amber"
+                                    title="Tự động giải phóng bàn"
+                                    message={msg}
+                                    badges={[
+                                      "Nguồn: Hệ thống",
+                                      ...(typeof minutes === "number"
+                                        ? [`${minutes} phút`]
+                                        : []),
+                                    ]} // ✅ 2 badges cùng hàng
+                                  />
+                                );
+                              })()}
 
                             {data.paidAmount !== undefined && (
                               <div className="text-green-700 font-medium">
