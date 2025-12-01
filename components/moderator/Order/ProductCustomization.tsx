@@ -1,3 +1,4 @@
+import React from "react";
 import {
   ProductDetails,
   Size,
@@ -18,7 +19,8 @@ interface ProductCustomizationProps {
   onAddToCart: () => void;
   calculateItemPrice: () => number;
 }
-const ProductCustomization: React.FC<ProductCustomizationProps> = ({
+
+const ProductCustomization = ({
   productDetails,
   sizes,
   toppings,
@@ -28,12 +30,39 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
   onToppingToggle,
   onAddToCart,
   calculateItemPrice,
-}) => {
+}: ProductCustomizationProps) => {
   if (!productDetails) return null;
 
   return (
     <div className="mb-6">
-      <h3 className="text-xl font-bold mb-2">{productDetails?.productName}</h3>
+      <div className="flex items-start gap-3 mb-2">
+        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border bg-white">
+          {productDetails.urlImg ? (
+            <img
+              src={productDetails.urlImg}
+              alt={productDetails.name ?? "Product image"}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
+              No img
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0">
+          <h3 className="text-xl font-bold leading-snug truncate">
+            {productDetails.name}
+          </h3>
+          {typeof productDetails.price === "number" && (
+            <div className="text-sm text-gray-500">
+              Base: {formatVNNumber(productDetails.price)}
+            </div>
+          )}
+        </div>
+      </div>
 
       <SizeSelector
         sizes={sizes}
@@ -55,7 +84,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
         </div>
         <button
           onClick={onAddToCart}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          className="w-full bg-green-700  text-white py-3 rounded-lg hover:bg-green-700  transition-colors"
         >
           Add to Cart
         </button>
@@ -63,4 +92,5 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
     </div>
   );
 };
+
 export default ProductCustomization;

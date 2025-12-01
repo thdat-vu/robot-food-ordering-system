@@ -8,10 +8,14 @@ export interface Product {
     durationTime: number;
   }
   
- export interface ProductDetails extends Product {
+  export interface ProductDetails  {
+    id: string;
+    name: string;
+    price: number;
     description: string;
+    urlImg: string | null;
     sizes: Size[];
-  }
+  };
   export interface ProductDto {
     id: string;
     name: string;
@@ -49,6 +53,7 @@ export interface Product {
   }
   
 export  interface OrderData {
+    tableId: string;
     customerName: string;
     tableNumber: string;
     items: CartItem[];

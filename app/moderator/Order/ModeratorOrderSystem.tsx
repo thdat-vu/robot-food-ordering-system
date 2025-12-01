@@ -1,10 +1,10 @@
+import { useEffect, useState } from "react";
 import CartPanel from "@/components/moderator/Order/CartPanel";
 import FloatingCartButton from "@/components/moderator/Order/FloatingCartButton";
 import ProductList from "@/components/moderator/Order/ProductList";
 import SearchBar from "@/components/moderator/Order/SearchBar";
 import {
   CartItem,
-  GetProductToppingsData,
   ModeratorOrderApi,
   OrderData,
   Product,
@@ -12,10 +12,16 @@ import {
   Size,
   Topping,
 } from "@/entites/moderator/ProductOrder";
-import { productsApi } from "@/lib/api/products";
-import { useEffect, useState } from "react";
 
-const ModeratorOrderSystem: React.FC = () => {
+type ModeratorOrderSystemProps = {
+  tableId: string;
+  tableName: string;
+};
+
+const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
+  tableId,
+  tableName,
+}) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productDetails, setProductDetails] = useState<ProductDetails | null>(
@@ -30,11 +36,15 @@ const ModeratorOrderSystem: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [cartExpanded, setCartExpanded] = useState<boolean>(false);
   const [customerName, setCustomerName] = useState<string>("");
-  const [tableNumber, setTableNumber] = useState<string>("");
+
+  // (giữ lại nếu bạn vẫn muốn input table sửa được; nếu không thì bỏ state này)
+  const [tableNumber, setTableNumber] = useState<string>(tableName);
+  useEffect(() => setTableNumber(tableName), [tableName]);
 
   useEffect(() => {
     loadProducts();
   }, []);
+
   const loadProducts = async (): Promise<void> => {
     setLoading(true);
     try {
@@ -60,7 +70,9 @@ const ModeratorOrderSystem: React.FC = () => {
       setProductDetails(details.data);
       setSizes(details.data.sizes);
       setToppings(toppingsData ?? []);
-      setSelectedSize(sizes[0]);
+
+      // ✅ tránh dính state cũ
+      setSelectedSize(details.data.sizes?.[0] ?? null);
       setSelectedToppings([]);
     } catch (error) {
       console.error("Error loading product details:", error);
@@ -71,30 +83,21 @@ const ModeratorOrderSystem: React.FC = () => {
   const handleToppingToggle = (topping: Topping): void => {
     setSelectedToppings((prev) => {
       const exists = prev.find((t) => t.id === topping.id);
-      if (exists) {
-        return prev.filter((t) => t.id !== topping.id);
-      } else {
-        return [...prev, topping];
-      }
+      return exists
+        ? prev.filter((t) => t.id !== topping.id)
+        : [...prev, topping];
     });
   };
 
   const calculateItemPrice = (): number => {
     if (!productDetails || !selectedSize) return 0;
-    const sizePrice = selectedSize.price;
     const toppingsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0);
-    return sizePrice + toppingsPrice;
+    return selectedSize.price + toppingsPrice;
   };
 
   const addToCart = (): void => {
     if (!productDetails || !selectedSize) return;
 
-    console.log(
-      "Adding to cart:",
-      productDetails?.productName,
-      selectedSize.sizeName,
-      selectedToppings
-    );
     const cartItem: CartItem = {
       id: Date.now(),
       product: productDetails,
@@ -125,12 +128,7 @@ const ModeratorOrderSystem: React.FC = () => {
 
   const updateCartNote = (itemId: number, note: string): void => {
     setCart((prev) =>
-      prev.map((item) => {
-        if (item.id === itemId) {
-          return { ...item, note };
-        }
-        return item;
-      })
+      prev.map((item) => (item.id === itemId ? { ...item, note } : item))
     );
   };
 
@@ -148,14 +146,15 @@ const ModeratorOrderSystem: React.FC = () => {
       return;
     }
 
-    // if (!customerName || !tableNumber) {
-    //   alert("Please enter customer name and table number");
-    //   return;
-    // }
+    if (!tableId || !tableName) {
+      alert("Missing table info!");
+      return;
+    }
 
     setLoading(true);
     try {
       const orderData: OrderData = {
+        tableId,
         customerName,
         tableNumber,
         items: cart,
@@ -163,36 +162,37 @@ const ModeratorOrderSystem: React.FC = () => {
         timestamp: new Date().toISOString(),
       };
 
-      // const result = await mockAPI.submitOrder(orderData);
-
-      // if (result.success) {
-      //   alert(`Order #${result.orderId} submitted successfully!`);
-      //   setCart([]);
-      //   setCustomerName("");
-      //   setTableNumber("");
-      //   setCartExpanded(false);
-      // }
+      // TODO: call API submit order của bạn ở đây
+      // await ModeratorOrderApi.submitOrder(orderData);
     } catch (error) {
       console.error("Error submitting order:", error);
       alert("Failed to submit order");
     }
     setLoading(false);
   };
+
   const closeProductCustomization = () => {
     setProductDetails(null);
     setSelectedToppings([]);
     setSelectedSize(null);
   };
-  const filteredProducts = products.filter(
-    (p) => p.productName.toLowerCase().includes(searchTerm.toLowerCase())
-    // p.category.toLowerCase().includes(searchTerm.toLowerCase())
+
+  const filteredProducts = products.filter((p) =>
+    p.productName.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
   const shouldShowCart = productDetails !== null || cart.length > 0;
+
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Left Panel - Products */}
       <div className="flex-1 p-6 overflow-y-auto">
-        <h1 className="text-3xl font-bold mb-6">Order Management</h1>
+        <h1 className="text-3xl font-bold mb-6">Quản lý đơn hàng</h1>
+
+        {/* nếu muốn hiển thị bàn đang thao tác */}
+        <div className="mb-3 text-sm text-gray-600">
+          <span className="font-semibold">{tableName}</span>
+        </div>
+
         <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
         <ProductList
           products={filteredProducts}
@@ -201,7 +201,6 @@ const ModeratorOrderSystem: React.FC = () => {
         />
       </div>
 
-      {/* === CART PANEL – CHỈ HIỆN KHI CẦN === */}
       <div
         className={`absolute lg:relative inset-y-0 right-0 bg-white border-l shadow-2xl transition-all duration-500 ease-in-out ${
           shouldShowCart
@@ -213,13 +212,13 @@ const ModeratorOrderSystem: React.FC = () => {
           <CartPanel
             cart={cart}
             customerName={customerName}
-            tableNumber={tableNumber}
+            tableNumber={tableNumber} // giữ nếu CartPanel đang dùng cái này
             productDetails={productDetails}
             sizes={sizes}
             toppings={toppings}
             selectedSize={selectedSize}
             selectedToppings={selectedToppings}
-            onClose={closeProductCustomization} // bấm nút X hoặc ngoài → đóng
+            onClose={closeProductCustomization}
             onCustomerNameChange={setCustomerName}
             onTableNumberChange={setTableNumber}
             onSizeSelect={setSelectedSize}
@@ -237,14 +236,14 @@ const ModeratorOrderSystem: React.FC = () => {
         )}
       </div>
 
-      {/* === NÚT NHỎ GỌI CART KHI BỊ ẨN (rất cần cho nhân viên) === */}
       {!shouldShowCart && cart.length > 0 && (
         <FloatingCartButton
           cartLength={cart.length}
-          onClick={() => setProductDetails({} as ProductDetails)} // hack nhỏ: mở cart bằng cách giả lập đang chọn món
+          onClick={() => setProductDetails({} as ProductDetails)}
         />
       )}
     </div>
   );
 };
+
 export default ModeratorOrderSystem;

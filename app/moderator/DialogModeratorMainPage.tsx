@@ -103,7 +103,9 @@ export const DialogModeratorMainPage: React.FC<
           {tab === "payment" && <PaymentPage idTable={idTable} />}
           {tab === "change" && <ChangeTable id={idTable} onClose={onClose} />}
           {tab === "activityTracking" && <SessionTable idTable={idTable} />}
-          {tab === "create-order" && <ModeratorOrderSystem />}
+          {tab === "create-order" && (
+            <ModeratorOrderSystem tableId={idTable} tableName={tableName} />
+          )}
         </main>
       </div>
     </div>
