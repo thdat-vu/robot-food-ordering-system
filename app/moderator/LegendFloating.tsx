@@ -69,9 +69,9 @@ const LegendCard: React.FC = () => (
 
     <LegendItem
       label="Có khách"
-      borderClassName="border-slate-400"
-      outerBgClassName="bg-slate-50"
-      icon={<CircleDot className="w-4 h-4 text-slate-500" />}
+      borderClassName="border-cyan-400"
+      outerBgClassName="bg-cyan-50"
+      icon={<CircleDot className="w-4 h-4 text-cyan-600" />}
     />
 
     <LegendItem

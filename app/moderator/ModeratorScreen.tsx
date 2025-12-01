@@ -146,24 +146,45 @@ const ModeratorScreen: React.FC = () => {
       deliveredCount,
       paidCount,
       tableStatus,
+      paymentStatus,
     } = tableData;
 
+    // 1. Bàn trống (chưa có khách)
     if (tableStatus === 0) return "empty";
-    if (tableStatus === 1 && totalItems === 0) return "occupied";
-    if (totalItems > 0 && paidCount === totalItems) return "paid";
 
+    // 2. Có khách nhưng chưa order món
+    if (tableStatus === 1 && totalItems === 0) return "occupied";
+
+    // ✅ FLOW TUẦN TỰ THEO THỨ TỰ MÀU:
+
+    // 3. Đã order (xanh dương) - món đang được xử lý
+    if (totalItems > 0 && deliveredCount < totalItems) {
+      return "ordered"; // 🔵 Xanh dương - Đang xử lý
+    }
+
+    // 4. Bếp đã làm xong hết (vàng/cam) - chờ phục vụ giao
+    if (
+      totalItems > 0 &&
+      deliveredCount === totalItems &&
+      serveredCount < totalItems
+    ) {
+      return "delivered"; // 🟡 Vàng/Cam - Sẵn sàng giao
+    }
+
+    // 5. Đã giao hết món (tím) - chờ thanh toán HOẶC đã thanh toán trước
     if (
       totalItems > 0 &&
       serveredCount === totalItems &&
-      deliveredCount === totalItems &&
-      paidCount === 0
+      deliveredCount === totalItems
     ) {
-      return "served";
+      // ⭐ Nếu đã thanh toán (cả trước và sau) → chuyển sang màu xanh lá
+      if (paymentStatus === 2) {
+        return "paid"; // 🟢 Xanh lá - Đã thanh toán hoàn tất
+      }
+      // Chưa thanh toán → giữ màu tím
+      return "served"; // 🟣 Tím - Đã giao hết, chờ thanh toán
     }
 
-    if (totalItems > 0 && deliveredCount === totalItems && paidCount === 0)
-      return "delivered";
-    if (totalItems > 0) return "ordered";
     return "empty";
   };
 
@@ -173,7 +194,8 @@ const ModeratorScreen: React.FC = () => {
       case "empty":
         return "bg-gradient-to-br from-white to-gray-100 shadow-lg shadow-gray-200/50 border-2 border-gray-200";
       case "occupied":
-        return "bg-gradient-to-br from-gray-100 via-gray-200 to-gray-600 shadow-lg shadow-gray-600/40 border-2 border-gray-400";
+        // ✨ MÀU MỚI: Cyan/Teal - dễ phân biệt hơn
+        return "bg-gradient-to-br from-cyan-400 via-teal-400 to-cyan-500 shadow-lg shadow-cyan-500/40 border-2 border-cyan-300";
       case "ordered":
         return "bg-gradient-to-br from-blue-400 to-blue-500 shadow-lg shadow-blue-500/40 animate-pulse border-2 border-blue-300";
       case "delivered":

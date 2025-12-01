@@ -14,7 +14,8 @@ export type TableActivityType =
   | 'RequestCheckout'
   | 'CloseSession'
   | 'AutoRelease'
-  | 'AttachDeviceFromModerator';
+  | 'AttachDeviceFromModerator'
+  |'AutoReleaseNoOrderTimeout';
 
 // Interface cho 1 activity log
 export interface TableActivityLog {

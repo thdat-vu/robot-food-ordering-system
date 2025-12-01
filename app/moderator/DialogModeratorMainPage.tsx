@@ -15,6 +15,7 @@ import { PaymentPage } from "@/app/moderator/PaymentPage";
 import TableActivityTracker from "./TableActivityTracker";
 import { ChangeTable } from "@/app/moderator/ChangeTable";
 import { SessionTable } from "./SessionTable";
+import ModeratorOrderSystem from "./Order/ModeratorOrderSystem";
 
 interface DialogModeratorMainPageProps {
   open: boolean;
@@ -52,6 +53,7 @@ export const DialogModeratorMainPage: React.FC<
     { id: "history", label: "Lịch sử", icon: HistoryIcon },
     { id: "change", label: "Đổi bàn", icon: FaExchangeAlt },
     { id: "activityTracking", label: "Hoạt động", icon: HistoryIcon },
+    { id: "create-order", label: "Tạo đơn", icon: HistoryIcon },
   ];
 
   return (
@@ -101,6 +103,7 @@ export const DialogModeratorMainPage: React.FC<
           {tab === "payment" && <PaymentPage idTable={idTable} />}
           {tab === "change" && <ChangeTable id={idTable} onClose={onClose} />}
           {tab === "activityTracking" && <SessionTable idTable={idTable} />}
+          {tab === "create-order" && <ModeratorOrderSystem />}
         </main>
       </div>
     </div>
