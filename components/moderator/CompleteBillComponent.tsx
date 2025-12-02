@@ -31,7 +31,6 @@ const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
 
       const response = await tableService.getInvoiceById(invoiceId);
 
-      console.log(response);
       if (!response) {
         setBillData(null);
         setError("Không có invoiceId");
@@ -63,13 +62,29 @@ const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
     return new Intl.NumberFormat("vi-VN").format(amount);
   };
 
-  const getPaymentMethodName = (method: string | number) => {
-    const methods: { [key: string]: string } = {
+  const getPaymentMethodName = (method?: string | number | null) => {
+    if (method === null || method === undefined) return "Chưa thanh toán";
+
+    const raw = String(method).trim();
+    if (!raw) return "Chưa thanh toán";
+
+    // 1) Map theo code (0/1/2)
+    const byCode: Record<string, string> = {
       "0": "Tiền mặt (COD)",
       "1": "VNPay",
       "2": "PayOS",
     };
-    return methods[method.toString()] || "Chưa thanh toán";
+    if (byCode[raw]) return byCode[raw];
+
+    // 2) Map theo tên (PayOS/VNPay/...)
+    const byName: Record<string, string> = {
+      payos: "PayOS",
+      vnpay: "VNPay",
+      cod: "Tiền mặt (COD)",
+      cash: "Tiền mặt (COD)",
+    };
+
+    return byName[raw.toLowerCase()] || "Chưa thanh toán";
   };
 
   const handlePrint = () => {
