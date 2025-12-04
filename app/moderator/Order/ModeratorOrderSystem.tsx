@@ -12,6 +12,7 @@ import {
   Size,
   Topping,
 } from "@/entites/moderator/ProductOrder";
+import { ToastContainer } from "@/components/kitchen/ToastContainer";
 
 type ModeratorOrderSystemProps = {
   tableId: string;
@@ -155,15 +156,15 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
     try {
       const orderData: OrderData = {
         tableId,
-        customerName,
-        tableNumber,
+        deviceToken: null,
         items: cart,
         total: calculateTotal(),
         timestamp: new Date().toISOString(),
       };
 
       // TODO: call API submit order của bạn ở đây
-      // await ModeratorOrderApi.submitOrder(orderData);
+      await ModeratorOrderApi.submitOrder(orderData);
+      alert("Order submitted successfully!");
     } catch (error) {
       console.error("Error submitting order:", error);
       alert("Failed to submit order");
