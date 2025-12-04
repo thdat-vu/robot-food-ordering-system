@@ -13,6 +13,7 @@ import {
   Topping,
 } from "@/entites/moderator/ProductOrder";
 import { ToastContainer } from "@/components/kitchen/ToastContainer";
+import { useToastKitchen } from "@/hooks/use-toast-kitchen";
 
 type ModeratorOrderSystemProps = {
   tableId: string;
@@ -37,6 +38,8 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [cartExpanded, setCartExpanded] = useState<boolean>(false);
   const [customerName, setCustomerName] = useState<string>("");
+
+  const { toasts, addToast, removeToast } = useToastKitchen();
 
   // (giữ lại nếu bạn vẫn muốn input table sửa được; nếu không thì bỏ state này)
   const [tableNumber, setTableNumber] = useState<string>(tableName);
@@ -143,12 +146,12 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
 
   const handleSubmitOrder = async (): Promise<void> => {
     if (cart.length === 0) {
-      alert("Cart is empty!");
+      addToast("Cart is empty!", "warning");
       return;
     }
 
     if (!tableId || !tableName) {
-      alert("Missing table info!");
+      addToast("Missing table info!", "warning");
       return;
     }
 
@@ -164,10 +167,11 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
 
       // TODO: call API submit order của bạn ở đây
       await ModeratorOrderApi.submitOrder(orderData);
-      alert("Order submitted successfully!");
+
+      addToast("Order submitted successfully!", "success");
     } catch (error) {
-      console.error("Error submitting order:", error);
-      alert("Failed to submit order");
+      // console.error("Error submitting order:", error);
+      addToast("Failed to submit order", "error");
     }
     setLoading(false);
   };

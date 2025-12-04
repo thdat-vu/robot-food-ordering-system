@@ -160,7 +160,6 @@ export const ModeratorOrderApi = {
 
    
    const payload = mapOrderDataToCreateOrderRequest(orderData);
-   console.log("🚀 ~ file: ProductOrder.ts:194 ~ submitOrder ~ payload:", payload);
 
     // NOTE: nếu apiClient đã baseURL = ".../api" thì đổi thành "/Order/handle"
     await apiClient.post("/Order/handle", payload);
