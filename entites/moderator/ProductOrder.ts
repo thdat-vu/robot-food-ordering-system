@@ -1,5 +1,6 @@
 import apiClient from "@/lib/axios";
 import axios from "axios";
+import { mapOrderDataToCreateOrderRequest } from "./mapOrderDataToCreateOrderRequest";
 
 export interface Product {
     id: string;
@@ -54,8 +55,7 @@ export interface Product {
   
 export  interface OrderData {
     tableId: string;
-    customerName: string;
-    tableNumber: string;
+    deviceToken?: string | null;
     items: CartItem[];
     total: number;
     timestamp: string;
@@ -139,31 +139,54 @@ export interface GetProductToppingsDTO {
     imageUrl: string | null;
   }>;
 }
+export interface CreateOrderItemRequest {
+  note: string;
+  productId: string;
+  productSizeId: string;
+  toppingIds: string[];
+}
+
+export interface CreateOrderRequest {
+  tableId: string;
+  deviceToken? : string | null;
+  items: CreateOrderItemRequest[];
+}
+
+export const ModeratorOrderApi = {
+
+  async submitOrder(orderData: OrderData): Promise<void> {
+    if (!orderData.tableId) throw new Error("Missing tableId");
+    if (!orderData.items?.length) throw new Error("Cart is empty");
+
+   
+   const payload = mapOrderDataToCreateOrderRequest(orderData);
+   console.log("🚀 ~ file: ProductOrder.ts:194 ~ submitOrder ~ payload:", payload);
+
+    // NOTE: nếu apiClient đã baseURL = ".../api" thì đổi thành "/Order/handle"
+    await apiClient.post("/Order/handle", payload);
+  },
 
 
 
-  export const ModeratorOrderApi = {
     async getProducts() {  
       const res = await apiClient.get<PaginatedResponse<Product>>("/Product");
       return res.data;
       
     },
   
-    async getProductById(productId: string) {
-      const res = await apiClient.get<ApiBaseResponse<ProductDetails>>(
-        `/Product/${productId}`
-      );
-      return res.data;
-    },
-    async getProductsToppings(productId: string): Promise<Topping[] | null> {
-      const res = await apiClient.get<ApiBaseResponse<GetProductToppingsData>>(
-        `/Product/${productId}/toppings`,
-        { validateStatus: (s) => s === 200 || s === 404 }
-      );
-    
-      if (res.status === 404) return null;
-      return res.data.data?.toppings ?? [];
-    }
-    
-    
+      async getProductById(productId: string) {
+        const res = await apiClient.get<ApiBaseResponse<ProductDetails>>(
+          `/Product/${productId}`
+        );
+        return res.data;
+      },
+      async getProductsToppings(productId: string): Promise<Topping[] | null> {
+        const res = await apiClient.get<ApiBaseResponse<GetProductToppingsData>>(
+          `/Product/${productId}/toppings`,
+          { validateStatus: (s) => s === 200 || s === 404 }
+        );
+      
+        if (res.status === 404) return null;
+        return res.data.data?.toppings ?? [];
+      },
   };
