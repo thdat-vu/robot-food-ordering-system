@@ -265,8 +265,14 @@ const DishList: React.FC<DishListProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [autoSuggestEnabled]);
 
-    // Filter dishes by search query
+    // Filter dishes by search query (for "byDish" view)
     const filteredDishes = useMemo(() => {
+        // When in "byTable" view, don't filter dishes by search query
+        // The table filtering will be handled separately
+        if (viewMode === "byTable") {
+            return allDishesToShow;
+        }
+
         const query = searchQuery.toLowerCase().trim();
         if (!query) return allDishesToShow;
 
@@ -284,7 +290,7 @@ const DishList: React.FC<DishListProps> = ({
                 (dish.note && dish.note.toLowerCase().includes(query))
             );
         });
-    }, [allDishesToShow, searchQuery]);
+    }, [allDishesToShow, searchQuery, viewMode]);
 
     // Group dishes by category
     const groupedDishes = filteredDishes.reduce<Record<string, WaiterDish[]>>(
@@ -303,9 +309,10 @@ const DishList: React.FC<DishListProps> = ({
         return a[0].localeCompare(b[0], "vi", { sensitivity: "accent" });
     });
 
-    const tableGroups = useMemo<TableGroup[]>(() => {
+    // Base table groups (without search filtering)
+    const baseTableGroups = useMemo<TableGroup[]>(() => {
         const map = new Map<number, WaiterDish[]>();
-        filteredDishes.forEach((dish) => {
+        allDishesToShow.forEach((dish) => {
             const current = map.get(dish.tableNumber) || [];
             current.push(dish);
             map.set(dish.tableNumber, current);
@@ -330,7 +337,18 @@ const DishList: React.FC<DishListProps> = ({
                     firstOrderTime: tableDishes[0]?.orderTime,
                 };
             });
-    }, [filteredDishes]);
+    }, [allDishesToShow]);
+
+    // Filter table groups by table number when in "byTable" view
+    const tableGroups = useMemo<TableGroup[]>(() => {
+        if (viewMode === "byTable" && searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            return baseTableGroups.filter((group) =>
+                group.tableNumber.toString().includes(query)
+            );
+        }
+        return baseTableGroups;
+    }, [baseTableGroups, viewMode, searchQuery]);
 
     const viewTabs = useMemo(
         () => [

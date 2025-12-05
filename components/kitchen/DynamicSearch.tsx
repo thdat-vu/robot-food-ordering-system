@@ -31,7 +31,7 @@ export function DynamicSearch({
         <div className={`relative ${className || ''}`}>
           <input
             type="text"
-            placeholder="Tìm kiếm món để huỷ"
+            placeholder="Tìm kiếm món, bàn"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full max-w-[18rem] sm:max-w-[20rem] md:max-w-[16rem] lg:max-w-[18rem] px-3 md:px-4 py-2 pl-9 md:pl-10 pr-3 md:pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"

@@ -332,7 +332,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
           />
         ))}
 
-        <Staff position={staffPosition} />
+        <Staff position={staffPosition} isRobotMode={isRobotMode} />
 
         {Object.entries(TABLE_POSITIONS).map(([id, position]) => {
           const tableId = Number(id);
