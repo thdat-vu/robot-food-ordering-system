@@ -80,7 +80,7 @@ export function useSignalR({ url, hubMethods = {}, groupName }: UseSignalROption
       console.log("⚠️ Connection closed");
       setIsConnected(false);
     });
-
+    console.count("useSignalR mount");
     start();
 
     return () => {
@@ -90,7 +90,7 @@ export function useSignalR({ url, hubMethods = {}, groupName }: UseSignalROption
       });
       connection.stop();
     };
-  }, [url, stableHubMethods, groupName]);
+  }, [url,  groupName]);
 
   const sendMessage = async (method: string, ...args: any[]) => {
     if (connectionRef.current && isConnected) {

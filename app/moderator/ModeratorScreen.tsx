@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Users,
   User,
@@ -16,7 +16,6 @@ import {
   AlarmClock,
 } from "lucide-react";
 
-import { useGetAllFeedbackHome } from "@/hooks/moderator/useFeedbackHooks";
 import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { ToastContainer } from "@/components/moderator/ToastContainer";
 import { DialogModeratorMainPage } from "@/app/moderator/DialogModeratorMainPage";
@@ -27,6 +26,7 @@ import LastUpdateBadge from "@/components/moderator/LastUpdateBadge";
 import ExpandableSearch from "@/components/moderator/ExpandableSearch";
 import { ClockCard } from "@/components/moderator/ClockCard";
 import { StatsCard } from "@/components/moderator/StatsCard";
+import { useModeratorRealtimeTables } from "@/hooks/moderator/useModeratorRealtimeTables";
 
 type FilterStatus =
   | "all"
@@ -38,9 +38,11 @@ type FilterStatus =
   | "paid";
 
 const ModeratorScreen: React.FC = () => {
-  const [data, setData] = useState<Record<string, TableData>>({});
+  // ✅ Sử dụng SignalR hook thay vì useEffect polling
+  const { data, isLoading, error, isRealtimeConnected } =
+    useModeratorRealtimeTables();
+
   const [openDialog, setOpenDialog] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [idTable, setIdTable] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -48,10 +50,16 @@ const ModeratorScreen: React.FC = () => {
   const [initialTab, setInitialTab] = useState<"home" | "feedback">("home");
   const [isLegendFloating, setIsLegendFloating] = useState(false);
 
-  const { run } = useGetAllFeedbackHome();
   const { toasts, addToast, removeToast } = useToastModerator();
 
-  // ✅ Mở dialog theo tab (tránh bị override về "home")
+  // ✅ Hiển thị error từ hook nếu có
+  React.useEffect(() => {
+    if (error) {
+      addToast(error, "error");
+    }
+  }, [error, addToast]);
+
+  // ✅ Mở dialog theo tab
   const openTableDialog = useCallback(
     (tableId: string, tab: "home" | "feedback" = "home") => {
       setIdTable(tableId);
@@ -66,49 +74,8 @@ const ModeratorScreen: React.FC = () => {
     setInitialTab("home");
   }, []);
 
-  /**
-   * 🔄 Poll API mỗi 3 giây
-   */
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadData = async () => {
-      try {
-        const res = await run();
-        if (!res || typeof res !== "object") return;
-
-        const newData = (res as any).data;
-        if (!newData || typeof newData !== "object") return;
-
-        if (!isMounted) return;
-
-        setData((prev) => {
-          const same = JSON.stringify(prev) === JSON.stringify(newData);
-          return same ? prev : (newData as Record<string, TableData>);
-        });
-      } catch (error) {
-        console.error("Error loading data:", error);
-        if (isMounted)
-          addToast(
-            "Có lỗi xảy ra khi tải dữ liệu bàn. Vui lòng thử lại.",
-            "error"
-          );
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadData();
-    const intervalId = setInterval(loadData, 3000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(intervalId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
+  // ✅ Scroll legend floating
+  React.useEffect(() => {
     let lastScrollY = window.scrollY;
     let ticking = false;
 
@@ -144,45 +111,34 @@ const ModeratorScreen: React.FC = () => {
       totalItems,
       serveredCount,
       deliveredCount,
-      paidCount,
       tableStatus,
       paymentStatus,
     } = tableData;
 
-    // 1. Bàn trống (chưa có khách)
     if (tableStatus === 0) return "empty";
-
-    // 2. Có khách nhưng chưa order món
     if (tableStatus === 1 && totalItems === 0) return "occupied";
 
-    // ✅ FLOW TUẦN TỰ THEO THỨ TỰ MÀU:
-
-    // 3. Đã order (xanh dương) - món đang được xử lý
     if (totalItems > 0 && deliveredCount < totalItems) {
-      return "ordered"; // 🔵 Xanh dương - Đang xử lý
+      return "ordered";
     }
 
-    // 4. Bếp đã làm xong hết (vàng/cam) - chờ phục vụ giao
     if (
       totalItems > 0 &&
       deliveredCount === totalItems &&
       serveredCount < totalItems
     ) {
-      return "delivered"; // 🟡 Vàng/Cam - Sẵn sàng giao
+      return "delivered";
     }
 
-    // 5. Đã giao hết món (tím) - chờ thanh toán HOẶC đã thanh toán trước
     if (
       totalItems > 0 &&
       serveredCount === totalItems &&
       deliveredCount === totalItems
     ) {
-      // ⭐ Nếu đã thanh toán (cả trước và sau) → chuyển sang màu xanh lá
       if (paymentStatus === 2) {
-        return "paid"; // 🟢 Xanh lá - Đã thanh toán hoàn tất
+        return "paid";
       }
-      // Chưa thanh toán → giữ màu tím
-      return "served"; // 🟣 Tím - Đã giao hết, chờ thanh toán
+      return "served";
     }
 
     return "empty";
@@ -194,7 +150,6 @@ const ModeratorScreen: React.FC = () => {
       case "empty":
         return "bg-gradient-to-br from-white to-gray-100 shadow-lg shadow-gray-200/50 border-2 border-gray-200";
       case "occupied":
-        // ✨ MÀU MỚI: Cyan/Teal - dễ phân biệt hơn
         return "bg-gradient-to-br from-cyan-400 via-teal-400 to-cyan-500 shadow-lg shadow-cyan-500/40 border-2 border-cyan-300";
       case "ordered":
         return "bg-gradient-to-br from-blue-400 to-blue-500 shadow-lg shadow-blue-500/40 animate-pulse border-2 border-blue-300";
@@ -345,11 +300,20 @@ const ModeratorScreen: React.FC = () => {
           <div className="relative flex justify-center items-center mb-6">
             <div className="inline-flex items-center justify-center bg-white/20 backdrop-blur-lg rounded-full px-8 py-4 border border-white/30">
               <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                {/* ✅ Indicator real-time connection */}
+                <div
+                  className={`w-3 h-3 rounded-full animate-pulse ${
+                    isRealtimeConnected ? "bg-green-400" : "bg-red-400"
+                  }`}
+                ></div>
                 <h1 className="text-white text-2xl md:text-3xl font-bold tracking-wide">
                   BẢNG QUẢN LÝ MODERATOR
                 </h1>
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                <div
+                  className={`w-3 h-3 rounded-full animate-pulse ${
+                    isRealtimeConnected ? "bg-green-400" : "bg-red-400"
+                  }`}
+                ></div>
               </div>
             </div>
 
@@ -390,6 +354,11 @@ const ModeratorScreen: React.FC = () => {
 
           <p className="text-white/90 text-lg font-medium mb-4">
             Theo dõi trạng thái các bàn real-time
+            {!isRealtimeConnected && (
+              <span className="ml-2 text-red-300 text-sm">
+                (Đang kết nối lại...)
+              </span>
+            )}
           </p>
 
           <div className="flex justify-center items-center gap-5 mb-7 pr-6">
@@ -510,7 +479,6 @@ const ModeratorScreen: React.FC = () => {
                   {tableData.tableName}
                 </div>
 
-                {/* ✅ Món ăn + Message sát mép phải */}
                 {tableData.totalItems > 0 ? (
                   <div className="w-full text-center relative px-3">
                     <div
@@ -605,7 +573,6 @@ const ModeratorScreen: React.FC = () => {
                   lastUpdateTime={tableData.lastOrderUpdatedTime}
                 />
 
-                {/* ✅ Overlay không chặn click */}
                 <div className="pointer-events-none absolute inset-0 bg-white/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                 {isHighlighted && (
