@@ -281,8 +281,13 @@ export function MatchSuggestionModal({
                               className="flex items-start gap-3 rounded-md border border-gray-100 px-3 py-2 hover:border-blue-200"
                             >
                               <Checkbox
-                                checked={allChecked}
-                                indeterminate={!allChecked && anyChecked}
+                                checked={
+                                  allChecked
+                                    ? true
+                                    : anyChecked
+                                      ? "indeterminate"
+                                      : false
+                                }
                                 onCheckedChange={() => handleToggleGroup(groupIds)}
                                 aria-label={`Chọn nhóm món ${representative.itemName} ở bàn ${representative.tableNumber}`}
                               />
