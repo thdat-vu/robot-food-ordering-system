@@ -65,6 +65,7 @@ function ChiefPageContent() {
   const [matchSuggestions, setMatchSuggestions] = useState<MatchSuggestion[] | null>(null);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
   const matchSuggestionSignatureRef = useRef<string | null>(null);
+  const tableFetchInFlight = useRef(false);
   
   // Animation state for disappearing items
   const [animatingOutIds, setAnimatingOutIds] = useState<Set<number>>(new Set());
@@ -100,6 +101,11 @@ function ChiefPageContent() {
   const { run: fetchTableData } = useGetAllFeedbackHome();
   const [tableDataMap, setTableDataMap] = useState<Record<number, any>>({});
 
+  const isPageVisible = () => {
+    if (typeof document === 'undefined') return true;
+    return !document.hidden;
+  };
+
   // Extract table number from tableName (e.g., "Bàn 4" -> 4)
   const extractTableNumber = (tableName: string): number | null => {
     const match = tableName.match(/Bàn\s*(\d+)/i);
@@ -111,7 +117,10 @@ function ChiefPageContent() {
     let isMounted = true;
 
     const loadTableData = async () => {
+      if (!isPageVisible()) return;
+      if (tableFetchInFlight.current) return;
       try {
+        tableFetchInFlight.current = true;
         const res = await fetchTableData();
         if (!res || typeof res !== "object") return;
 
@@ -148,12 +157,14 @@ function ChiefPageContent() {
         });
       } catch (error) {
         console.error("Error loading table data for late dish warnings:", error);
+      } finally {
+        tableFetchInFlight.current = false;
       }
     };
 
     loadTableData();
-    // Poll every 3 seconds like moderator
-    const interval = setInterval(loadTableData, 3000);
+    // Poll every 5 seconds with visibility + in-flight guard to avoid spamming API
+    const interval = setInterval(loadTableData, 5000);
     return () => {
       isMounted = false;
       clearInterval(interval);
