@@ -85,6 +85,22 @@ export function MatchSuggestionModal({
     });
   };
 
+  const handleToggleGroup = (orderIds: number[]) => {
+    if (orderIds.length === 0) return;
+    const allSelected = orderIds.every(id => selectedIds.has(id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      orderIds.forEach(id => {
+        if (allSelected) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+      });
+      return next;
+    });
+  };
+
   const handleToggleByTable = (tableOrders: MatchSuggestionOrder[]) => {
     const allSelected = tableOrders.every(order => selectedIds.has(order.id));
     setSelectedIds(prev => {
@@ -115,6 +131,22 @@ export function MatchSuggestionModal({
       }));
 
     onConfirm(selectedOrders);
+  };
+
+  const buildAggregateKey = (order: MatchSuggestionOrder) => {
+    return `${order.itemName.toLowerCase().trim()}__${(order.sizeName || '').toLowerCase().trim()}`;
+  };
+
+  const aggregateOrders = (orders: MatchSuggestionOrder[]) => {
+    const map = new Map<string, { orders: MatchSuggestionOrder[] }>();
+    orders.forEach(order => {
+      const key = buildAggregateKey(order);
+      if (!map.has(key)) {
+        map.set(key, { orders: [] });
+      }
+      map.get(key)!.orders.push(order);
+    });
+    return Array.from(map.values());
   };
 
   const renderOrderMeta = (order: MatchSuggestionOrder) => (
@@ -237,37 +269,50 @@ export function MatchSuggestionModal({
                         </div>
                       </div>
                       <div className="mt-3 space-y-2">
-                        {tableOrders.map(order => (
-                          <label
-                            key={order.id}
-                            className="flex items-start gap-3 rounded-md border border-gray-100 px-3 py-2 hover:border-blue-200"
-                          >
-                            <Checkbox
-                              checked={selectedIds.has(order.id)}
-                              onCheckedChange={() => handleToggle(order.id)}
-                              aria-label={`Chọn món ${order.itemName} ở bàn ${order.tableNumber}`}
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="font-medium text-gray-900">
-                                  {order.itemName}{order.sizeName ? ` (${order.sizeName})` : ''}
-                                </span>
-                                <span className="text-gray-500">Bàn {order.tableNumber}</span>
+                        {aggregateOrders(tableOrders).map(group => {
+                          const groupIds = group.orders.map(o => o.id);
+                          const allChecked = groupIds.every(id => selectedIds.has(id));
+                          const anyChecked = groupIds.some(id => selectedIds.has(id));
+                          const representative = group.orders[0];
+                          const quantity = group.orders.length;
+                          return (
+                            <label
+                              key={`${candidate.tableNumber}-${buildAggregateKey(representative)}`}
+                              className="flex items-start gap-3 rounded-md border border-gray-100 px-3 py-2 hover:border-blue-200"
+                            >
+                              <Checkbox
+                                checked={
+                                  allChecked
+                                    ? true
+                                    : anyChecked
+                                      ? "indeterminate"
+                                      : false
+                                }
+                                onCheckedChange={() => handleToggleGroup(groupIds)}
+                                aria-label={`Chọn nhóm món ${representative.itemName} ở bàn ${representative.tableNumber}`}
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="font-medium text-gray-900">
+                                    {representative.itemName}{representative.sizeName ? ` (${representative.sizeName})` : ''} x{quantity}
+                                  </span>
+                                  <span className="text-gray-500">Bàn {representative.tableNumber}</span>
+                                </div>
+                                {representative.note && (
+                                  <p className="text-xs text-orange-600 mt-1">
+                                    Ghi chú: {representative.note}
+                                  </p>
+                                )}
+                                {representative.toppings && representative.toppings.length > 0 && (
+                                  <p className="text-xs text-green-600">
+                                    Toppings: {representative.toppings.join(', ')}
+                                  </p>
+                                )}
+                                <div className="mt-1">{renderOrderMeta(representative)}</div>
                               </div>
-                              {order.note && (
-                                <p className="text-xs text-orange-600 mt-1">
-                                  Ghi chú: {order.note}
-                                </p>
-                              )}
-                              {order.toppings && order.toppings.length > 0 && (
-                                <p className="text-xs text-green-600">
-                                  Toppings: {order.toppings.join(', ')}
-                                </p>
-                              )}
-                              <div className="mt-1">{renderOrderMeta(order)}</div>
-                            </div>
-                          </label>
-                        ))}
+                            </label>
+                          );
+                        })}
                       </div>
                     </div>
                   );

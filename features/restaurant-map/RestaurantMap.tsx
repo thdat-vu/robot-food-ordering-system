@@ -234,7 +234,8 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   tableLastUpdateTimes = {},
 }) => {
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
-  const staffPosition: Position = isRobotMode ? { x: 90, y: 120 } : { x: 90, y: 300 };
+  // Move robot start point to top-left when robot mode is enabled
+  const staffPosition: Position = isRobotMode ? { x: 90, y: 40 } : { x: 90, y: 300 };
   const readyClusters = useMemo(() => detectClusters(readyTables), [readyTables]);
 
   // Calculate table stats

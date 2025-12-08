@@ -140,13 +140,28 @@ export function useKitchenOrders() {
     });
   }, [orders, activeTab, selectedCategory]);
 
-  // Group filtered orders by item name + size only
+  // Group filtered orders by item name only (sizes are merged)
+  // Previous behavior (kept for reference, do not remove):
+  // const groupedOrders = useMemo((): GroupedOrders => {
+  //   const grouped: GroupedOrders = {};
+  //   
+  //   filteredOrders.forEach(order => {
+  //     const sizeKey = order.sizeName?.trim().toLowerCase() || '__NO_SIZE__';
+  //     const groupKey = `${order.itemName}__${sizeKey}`;
+  //     
+  //     if (!grouped[groupKey]) {
+  //       grouped[groupKey] = [];
+  //     }
+  //     grouped[groupKey].push(order);
+  //   });
+  //   
+  //   return grouped;
+  // }, [filteredOrders]);
   const groupedOrders = useMemo((): GroupedOrders => {
     const grouped: GroupedOrders = {};
     
     filteredOrders.forEach(order => {
-      const sizeKey = order.sizeName?.trim().toLowerCase() || '__NO_SIZE__';
-      const groupKey = `${order.itemName}__${sizeKey}`;
+      const groupKey = order.itemName;
       
       if (!grouped[groupKey]) {
         grouped[groupKey] = [];

@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useCallback, useState} from "react";
 
 type Prop<
     F extends (...args: any[]) => Promise<any>,
@@ -21,7 +21,7 @@ export function useApiHandler<
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<E>(null as any);
 
-    const run = async (...args: Parameters<F>): Promise<any> => {
+    const run = useCallback(async (...args: Parameters<F>): Promise<any> => {
         setLoading(true);
         setError(null as any);
         try {
@@ -33,13 +33,13 @@ export function useApiHandler<
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiFunc]);
 
-    const reset = () => {
+    const reset = useCallback(() => {
         setData(null);
         setError(null as any);
         setLoading(false);
-    };
+    }, []);
 
     return {data, loading, error, run, reset};
 }

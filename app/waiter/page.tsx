@@ -9,6 +9,15 @@ import ServePanel from "./ServePanel";
 import PaymentPanel from "./PaymentPanel";
 import {toast} from "sonner";
 import {PanelLeftClose, PanelLeftOpen} from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 
 const formatCurrentDateTime = (date: Date): string => {
     const weekdayNames = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
@@ -35,6 +44,9 @@ function WaiterPageContent() {
     // ============================================================================
     const [useRobotDelivery, setUseRobotDelivery] = useState(false);
     const ROBOT_TRAY_LIMIT = 3;
+
+    // Invalid table selection dialog
+    const [invalidTable, setInvalidTable] = useState<number | null>(null);
 
     const {
         dishes,
@@ -137,6 +149,13 @@ function WaiterPageContent() {
         const dish = dishes.find(d => d.id === dishId);
         if (!dish) return;
 
+        // Block selecting dishes from tables outside 1-5
+        const allowedTables = new Set([1, 2, 3, 4, 5]);
+        if (!dish.selected && !allowedTables.has(dish.tableNumber)) {
+            setInvalidTable(dish.tableNumber);
+            return;
+        }
+
         // If selecting (not deselecting) and robot mode is ON
         if (!dish.selected && useRobotDelivery && activeTab === "bắt đầu phục vụ") {
             const currentSelectedCount = dishes.filter(d => 
@@ -190,6 +209,7 @@ function WaiterPageContent() {
     }
 
     return (
+        <>
         <div className="flex h-screen bg-gray-50 overflow-hidden">
             {/*{isSidebarOpen && (*/}
             {/*    <div className="flex flex-col gap-4 items-center mr-4 p-4">*/}
@@ -301,6 +321,23 @@ function WaiterPageContent() {
                 )}
             </div>
         </div>
+        <AlertDialog open={invalidTable !== null} onOpenChange={(open) => !open && setInvalidTable(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Không được chọn bàn này</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Không được chọn bàn khác ngoài 1,2,3,4,5. 
+                        {invalidTable ? ` (Bàn ${invalidTable})` : ""}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogAction onClick={() => setInvalidTable(null)}>
+                        Đã hiểu
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     );
 }
 
