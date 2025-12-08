@@ -167,7 +167,6 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
 
       // TODO: call API submit order của bạn ở đây
       await ModeratorOrderApi.submitOrder(orderData);
-
       addToast("Order submitted successfully!", "success");
     } catch (error) {
       // console.error("Error submitting order:", error);
