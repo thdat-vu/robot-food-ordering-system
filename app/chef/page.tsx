@@ -295,14 +295,23 @@ function ChiefPageContent() {
       .sort()
       .join('|');
   }, []);
+  // Match key now only uses item name to allow grouping across sizes/notes/toppings.
+  // Previous logic (kept for reference):
+  // return [
+  //   normalizeValue(order.itemName),
+  //   normalizeValue(order.sizeName),
+  //   normalizeValue(order.note),
+  //   normalizeToppings(order.toppings),
+  // ].join('::');
+  // Last change (ignored size but still used note/toppings):
+  // return [
+  //   normalizeValue(order.itemName),
+  //   normalizeValue(order.note),
+  //   normalizeToppings(order.toppings),
+  // ].join('::');
   const buildMatchKey = useCallback((order: Order) => {
-    return [
-      normalizeValue(order.itemName),
-      normalizeValue(order.sizeName),
-      normalizeValue(order.note),
-      normalizeToppings(order.toppings),
-    ].join('::');
-  }, [normalizeValue, normalizeToppings]);
+    return normalizeValue(order.itemName);
+  }, [normalizeValue]);
 
   // ============================================================================
   // TABLE-AWARE WARNING LOGIC (Updated for Context-Aware Priority)
