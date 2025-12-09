@@ -12,6 +12,7 @@ interface Dish {
   orderTime?: string;
   createdTime?: string;
   quantity?: number;
+  sizeName?: string;
 }
 
 interface TableInfoCardProps {
@@ -102,22 +103,49 @@ export const TableInfoCard: React.FC<TableInfoCardProps> = ({
   const unservedDishes = dishes.filter(d => d.status !== "đã phục vụ");
   const servedDishes = dishes.filter(d => d.status === "đã phục vụ");
   
-  // Lấy tên món, nếu không có thì dùng "Món không tên"
-  const getDishDisplayName = (dish: Dish): string => {
-    if (dish.name) return dish.name;
-    return "Món không tên";
+  // Nhóm món theo tên và size
+  const groupDishesByNameAndSize = (dishList: Dish[]): Array<{ name: string; sizeName?: string; count: number; status: string }> => {
+    const grouped = new Map<string, { name: string; sizeName?: string; count: number; status: string }>();
+    
+    dishList.forEach(dish => {
+      const name = dish.name || "Món không tên";
+      const sizeName = dish.sizeName;
+      const key = `${name}::${sizeName || '__NO_SIZE__'}`;
+      
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          name,
+          sizeName,
+          count: 0,
+          status: dish.status
+        });
+      }
+      const group = grouped.get(key)!;
+      group.count += dish.quantity || 1;
+    });
+    
+    return Array.from(grouped.values());
   };
   
-  // Format quantity
-  const formatQuantity = (dish: Dish): string => {
-    const qty = dish.quantity || 1;
-    return qty > 1 ? ` (${qty})` : "";
+  const groupedUnserved = groupDishesByNameAndSize(unservedDishes);
+  const groupedServed = groupDishesByNameAndSize(servedDishes);
+  
+  // Lấy tên món với size, nếu không có thì dùng "Món không tên"
+  const getDishDisplayName = (group: { name: string; sizeName?: string; count: number }): string => {
+    let display = group.name;
+    if (group.sizeName) {
+      display += ` (${group.sizeName})`;
+    }
+    if (group.count > 1) {
+      display += ` x${group.count}`;
+    }
+    return display;
   };
 
   // Calculate card position to ensure it stays within map bounds
   // Card dimensions: ~280px width, dynamic height based on content
   const cardWidth = 280;
-  const estimatedCardHeight = 220 + (unservedDishes.length + servedDishes.length) * 24;
+  const estimatedCardHeight = 220 + (groupedUnserved.length + groupedServed.length) * 24;
   const cardHeight = estimatedCardHeight;
   const mapPadding = 32; // Padding from RestaurantMap container (p-8 = 32px)
   const tableOffset = 60; // Offset from table center
@@ -217,13 +245,13 @@ export const TableInfoCard: React.FC<TableInfoCardProps> = ({
           </div>
 
           {/* Món chưa xong - moved to top */}
-          {unservedDishes.length > 0 && (
+          {groupedUnserved.length > 0 && (
             <div className="mb-3">
               <div className="text-sm font-bold text-purple-800 mb-2">Món chưa xong:</div>
               <div className="space-y-1 max-h-32 overflow-y-auto">
-                {unservedDishes.map((dish, index) => (
-                  <div key={dish.id || index} className="text-xs text-gray-700 pl-2 border-l-2 border-orange-400">
-                    -{getDishDisplayName(dish)}{formatQuantity(dish)}
+                {groupedUnserved.map((group, index) => (
+                  <div key={`${group.name}-${group.sizeName || 'no-size'}-${index}`} className="text-xs text-gray-700 pl-2 border-l-2 border-orange-400">
+                    -{getDishDisplayName(group)}
                   </div>
                 ))}
               </div>
@@ -231,13 +259,13 @@ export const TableInfoCard: React.FC<TableInfoCardProps> = ({
           )}
 
           {/* Món đã xong */}
-          {servedDishes.length > 0 && (
+          {groupedServed.length > 0 && (
             <div>
               <div className="text-sm font-bold text-purple-800 mb-2">Món đã xong:</div>
               <div className="space-y-1 max-h-32 overflow-y-auto">
-                {servedDishes.map((dish, index) => (
-                  <div key={dish.id || index} className="text-xs text-gray-600 pl-2 border-l-2 border-green-400">
-                    -{getDishDisplayName(dish)}{formatQuantity(dish)}
+                {groupedServed.map((group, index) => (
+                  <div key={`${group.name}-${group.sizeName || 'no-size'}-${index}`} className="text-xs text-gray-600 pl-2 border-l-2 border-green-400">
+                    -{getDishDisplayName(group)}
                   </div>
                 ))}
               </div>
@@ -245,7 +273,7 @@ export const TableInfoCard: React.FC<TableInfoCardProps> = ({
           )}
 
         {/* Empty state */}
-        {unservedDishes.length === 0 && servedDishes.length === 0 && (
+        {groupedUnserved.length === 0 && groupedServed.length === 0 && (
           <div className="text-xs text-gray-500 text-center py-2">
             Không có thông tin món ăn
           </div>
