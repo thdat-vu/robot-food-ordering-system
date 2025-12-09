@@ -507,7 +507,23 @@ export function OrdersContent({
             const first = orders[0];
             const groupSelected = selectedIds ? orders.some(o => selectedIds.has(o.id)) : false;
             const anyAnimating = orders.some(o => animatingOutIds.has(o.id));
-            const uniqueTables = Array.from(new Set(orders.map(o => o.tableNumber))).join(', ');
+            
+            // Group orders by table to show quantity per table
+            const ordersByTable = new Map<number, Order[]>();
+            orders.forEach(order => {
+              const tableNum = order.tableNumber;
+              if (!ordersByTable.has(tableNum)) {
+                ordersByTable.set(tableNum, []);
+              }
+              ordersByTable.get(tableNum)!.push(order);
+            });
+            
+            // Format: "Bàn 2: x2, Bàn 5: x1"
+            const tableInfo = Array.from(ordersByTable.entries())
+              .sort(([a], [b]) => a - b)
+              .map(([tableNum, tableOrders]) => `Bàn ${tableNum}: x${tableOrders.length}`)
+              .join(', ');
+            
             return (
               <Card
                 key={`${itemName}-${noteKey}`}
@@ -524,7 +540,7 @@ export function OrdersContent({
                           {' '}({first.sizeName.charAt(0).toUpperCase()})
                         </span>
                       )}
-                      {' '}x{orders.length} - Bàn: {uniqueTables}
+                      {' '}x{orders.length} - {tableInfo}
                     </h3>
                     
                     {/* Secondary Info: Note & Toppings - More prominent */}
@@ -595,6 +611,23 @@ export function OrdersContent({
             const groupSelected = selectedIds ? orders.some(o => selectedIds!.has(o.id)) : false;
             const anyAnimating = orders.some(o => animatingOutIds.has(o.id));
             const representative = orders[0];
+            
+            // Group orders by table to show quantity per table
+            const ordersByTable = new Map<number, Order[]>();
+            orders.forEach(order => {
+              const tableNum = order.tableNumber;
+              if (!ordersByTable.has(tableNum)) {
+                ordersByTable.set(tableNum, []);
+              }
+              ordersByTable.get(tableNum)!.push(order);
+            });
+            
+            // Format: "Bàn 2: x2, Bàn 5: x1"
+            const tableInfo = Array.from(ordersByTable.entries())
+              .sort(([a], [b]) => a - b)
+              .map(([tableNum, tableOrders]) => `Bàn ${tableNum}: x${tableOrders.length}`)
+              .join(', ');
+            
             return (
               <Card key={`${itemName}-${noteKey}`} className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''} ${anyAnimating ? 'animating-out' : ''}`}>
                 <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
@@ -608,7 +641,7 @@ export function OrdersContent({
                           {' '}({representative.sizeName.charAt(0).toUpperCase()})
                         </span>
                       )}
-                      {' '}x{orders.length} - Bàn: {orders.map(order => order.tableNumber).join(', ')}
+                      {' '}x{orders.length} - {tableInfo}
                     </h3>
                     
                     {/* Secondary Info: Note & Toppings - More prominent */}

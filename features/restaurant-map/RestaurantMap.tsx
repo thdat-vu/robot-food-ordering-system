@@ -18,6 +18,7 @@ interface Dish {
   orderTime?: string;
   createdTime?: string;
   quantity?: number;
+  sizeName?: string;
 }
 
 interface RestaurantMapProps {

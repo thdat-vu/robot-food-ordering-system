@@ -130,7 +130,7 @@ function WaiterPageContent() {
             });
             // Reset robot delivery mode when switching tabs
             setUseRobotDelivery(false);
-            toast.info("Đã xóa tất cả các món đã chọn.");
+            // toast.info("Đã xóa tất cả các món đã chọn.");
         }
         setActiveTab(newTab);
     };
@@ -149,11 +149,13 @@ function WaiterPageContent() {
         const dish = dishes.find(d => d.id === dishId);
         if (!dish) return;
 
-        // Block selecting dishes from tables outside 1-5
-        const allowedTables = new Set([1, 2, 3, 4, 5]);
-        if (!dish.selected && !allowedTables.has(dish.tableNumber)) {
-            setInvalidTable(dish.tableNumber);
-            return;
+        // If check robot: allow table 1-> 5 only
+        if (useRobotDelivery) {
+            const allowedTables = new Set([1, 2, 3, 4, 5]);
+            if (!dish.selected && !allowedTables.has(dish.tableNumber)) {
+                setInvalidTable(dish.tableNumber);
+                return;
+            }
         }
 
         // If selecting (not deselecting) and robot mode is ON
