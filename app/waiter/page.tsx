@@ -130,7 +130,7 @@ function WaiterPageContent() {
             });
             // Reset robot delivery mode when switching tabs
             setUseRobotDelivery(false);
-            toast.info("Đã xóa tất cả các món đã chọn.");
+            // toast.info("Đã xóa tất cả các món đã chọn.");
         }
         setActiveTab(newTab);
     };
