@@ -126,7 +126,7 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
             <h1 className="text-4xl font-bold text-gray-800">Quản Lý Phiên</h1>
             {idTable && (
               <span className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold text-lg">
-                {sessions[0]?.tableName || idTable}
+                {sessions[0]?.tableName}
               </span>
             )}
           </div>

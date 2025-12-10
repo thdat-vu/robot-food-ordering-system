@@ -308,13 +308,11 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
               <ReasonCard
                 reason={reason}
                 onReasonChange={setReason}
-                reasonSuggestions={reasonSuggestions}
-                placeholder={reasonPlaceholder}
-                title={reasonTitle}
-                subtitle={reasonSubtitle}
-                showCharacterCount={true}
-                maxLength={500}
-                required={true}
+                required
+                fromStatus={table.status} // "occupied" | "available"
+                toStatus={newStatus} // "occupied" | "available"
+                title="Lý do thay đổi trạng thái"
+                subtitle="Vui lòng chọn hoặc nhập lý do (bắt buộc)"
               />
             </div>
           </div>

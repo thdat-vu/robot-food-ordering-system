@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/orders";
 import {tablesApi, ApiTableResponse} from "@/lib/api/tables";
 import {Payment, paymentsApi} from "@/lib/api/payments";
+import { groupPaymentItems } from "@/lib/utils/paymentGrouping";
 
 export interface PaymentOrderItem {
     id: string;
@@ -93,34 +94,38 @@ export function usePayment() {
                 );
 
                 if (ordersResponse.data) {
-                    const paymentOrders: PaymentOrder[] = ordersResponse.data.map(
-                        (order) => ({
-                            id: order.id,
-                            tableName: tableName || "Unknown Table", // Use the determined tableName or a fallback
-                            status: order.status,
-                            paymentStatus: order.paymentStatus,
-                            totalPrice: order.totalPrice,
-                            items: order.items.map((item) => {
-                                return {
-                                    id: item.id,
-                                    productName: item.productName,
-                                    sizeName: item.sizeName,
-                                    quantity: 1, // Each API item is individual, so quantity is always 1
-                                    price: item.price, // Use actual price from API (from ProductSize)
-                                    status: item.status,
-                                    toppings: item.toppings.map((topping) => ({
-                                        name: topping.name,
-                                        price: topping.price,
-                                    })),
-                                };
-                            }),
-                        })
-                    );
-                    console.log(ordersResponse.data);
+                    const paymentOrders: PaymentOrder[] = ordersResponse.data.map((order) => {
+                      const rawItems: PaymentOrderItem[] = order.items.map((item) => ({
+                        id: item.id,
+                        productName: item.productName,
+                        sizeName: item.sizeName,
+                        quantity: 1,
+                        price: item.price,
+                        status: item.status,
+                        toppings: item.toppings.map((t) => ({
+                          name: t.name,
+                          price: t.price,
+                        })),
+                      }));
+                  
+                      const groupedItems = groupPaymentItems(rawItems); // ✅ GROUP Ở ĐÂY
+                  
+                      const totalPrice = groupedItems.reduce((s, it) => s + it.totalPrice, 0);
+                  
+                      return {
+                        id: order.id,
+                        tableName: tableName || "Unknown Table",
+                        status: order.status,
+                        paymentStatus: order.paymentStatus,
+                        totalPrice,      // ✅ total theo grouped
+                        items: groupedItems as any, // nếu PaymentOrder.items đang là PaymentOrderItem[], bạn đổi type (bên dưới)
+                      };
+                    });
+                  
                     setTableOrders(paymentOrders);
-                } else {
+                  } else {
                     setTableOrders([]);
-                }
+                  }
             } catch (err) {
                 setTableOrders([]);
                 setSelectedTableName(null);

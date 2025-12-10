@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import axios from "axios";
 import { getApiUrl } from "@/env.config";
 import { TableDetail } from "@/app/moderator/Home";
@@ -25,11 +31,17 @@ const REASON_OPTIONS: string[] = [
 ];
 
 type Props = {
-  id: string; // có thể là tableId hoặc lỡ truyền nhầm sessionId -> đã xử lý fallback
+  id: string; // tableId (khuyến nghị). Nếu lỡ truyền nhầm sessionId thì vẫn cố fallback highlight.
   onClose: () => void;
+
+  onRefreshAfterChange?: () => void;
 };
 
-export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
+export const ChangeTable: React.FC<Props> = ({
+  id,
+  onClose,
+  onRefreshAfterChange,
+}) => {
   const { addToast } = useToastModerator();
   const API_BASE = getApiUrl();
 
@@ -37,24 +49,23 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
   const [listEmptyTable, setListEmptyTable] = useState<item[]>([]);
   const [reason, setReason] = useState<string>("");
   const [newTable, setNewTable] = useState<string>("");
+
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingTables, setIsFetchingTables] = useState(true);
+
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showResultDialog, setShowResultDialog] = useState(false);
-  const [resultMessage, setResultMessage] = useState("");
-  const [resultSuccess, setResultSuccess] = useState(false);
 
   const { run: runGetAllTable } = useGetALlTable();
   const { run: runChangeTable } = useChangeTableApi();
 
   const isReasonValid = reason.trim().length > 0;
 
+  // ✅ chặn fetch lặp (React 18 dev/StrictMode có thể gọi effect 2 lần)
+  const lastLoadedIdRef = useRef<string | null>(null);
+
   // ✅ Chuẩn hoá status để xử lý chắc
   const normalizeTableStatus = (raw: any) => {
-    // hỗ trợ cả số lẫn chữ
-    // ví dụ: 0 = available, 1 = occupied (tuỳ backend bạn)
     if (typeof raw === "number") {
-      // chỉnh mapping theo backend bạn nếu cần
       if (raw === 0) return "available";
       if (raw === 1) return "occupied";
       return "unknown";
@@ -63,6 +74,7 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
     const s = String(raw ?? "")
       .trim()
       .toLowerCase();
+
     if (!s) return "unknown";
     if (s.includes("available") || s.includes("empty") || s === "trống")
       return "available";
@@ -78,37 +90,38 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
     return "unknown";
   };
 
-  const fetchTableDetail = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/Table/${id}`);
-      setTableData(res.data);
-    } catch {
-      addToast("Không thể tải thông tin bàn", "error");
-    }
-  };
+  const fetchTableDetail = useCallback(async () => {
+    const res = await axios.get(`${API_BASE}/Table/${id}`);
+    setTableData(res.data);
+  }, [API_BASE, id]);
 
-  const fetchAllTable = async () => {
+  const fetchAllTable = useCallback(async () => {
+    setIsFetchingTables(true);
     try {
-      setIsFetchingTables(true);
       const res: Response = await runGetAllTable(1, 200);
       setListEmptyTable(res.items);
-    } catch {
-      addToast("Không thể tải danh sách bàn", "error");
     } finally {
       setIsFetchingTables(false);
     }
-  };
+  }, [runGetAllTable]);
 
+  // ✅ Chỉ load 1 lần / mỗi id
   useEffect(() => {
-    fetchTableDetail();
-    fetchAllTable();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    if (!id) return;
+    if (lastLoadedIdRef.current === id) return;
+    lastLoadedIdRef.current = id;
 
-  // ✅ Xác định current table an toàn (fix lỗi không ra màu cam)
+    fetchTableDetail().catch(() =>
+      addToast("Không thể tải thông tin bàn", "error")
+    );
+    fetchAllTable().catch(() =>
+      addToast("Không thể tải danh sách bàn", "error")
+    );
+  }, [id, fetchTableDetail, fetchAllTable, addToast]);
+
+  // ✅ Xác định current table an toàn (để tô cam đúng)
   const currentTableId = useMemo(() => {
     const td: any = tableData ?? {};
-    // ưu tiên id thật từ tableData (tránh trường hợp prop id là sessionId)
     const realId = td.id ?? td.tableId ?? td.TableId ?? null;
     return String(realId ?? id);
   }, [tableData, id]);
@@ -125,28 +138,37 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
     setShowConfirmDialog(true);
   };
 
+  // ✅ CHỈ refresh đúng lúc confirm thành công (KHÔNG refresh nhiều lần)
   const handleChangeTable = async () => {
     setShowConfirmDialog(false);
-    setIsLoading(true);
 
+    if (!newTable) return addToast("Vui lòng chọn bàn mới!", "error");
+    if (!isReasonValid) return addToast("Vui lòng chọn lý do!", "error");
+
+    setIsLoading(true);
     try {
       const res: messss = await runChangeTable(id, newTable, reason.trim());
+
       if (res.statusCode === 200) {
-        setResultSuccess(true);
-        setResultMessage(res.message || "Chuyển bàn thành công!");
+        addToast(res.message || "Chuyển bàn thành công!", "success");
+
+        // ✅ refresh đúng 1 lần tại thời điểm này
+        onRefreshAfterChange?.();
+
+        // reset local
         setReason("");
         setNewTable("");
+
+        // đóng modal
         onClose();
-      } else {
-        setResultSuccess(false);
-        setResultMessage(res.message || "Có lỗi xảy ra");
+        return;
       }
+
+      addToast(res.message || "Có lỗi xảy ra", "error");
     } catch {
-      setResultSuccess(false);
-      setResultMessage("Có lỗi xảy ra. Vui lòng thử lại!");
+      addToast("Có lỗi xảy ra. Vui lòng thử lại!", "error");
     } finally {
       setIsLoading(false);
-      setShowResultDialog(true);
     }
   };
 
@@ -245,7 +267,7 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
               Chọn bàn trống để chuyển đến
             </h2>
 
-            {/* NOTE: Chú thích màu sắc */}
+            {/* Legend */}
             <div className="flex items-center justify-center gap-8 mb-6">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white shadow-sm border text-gray-700">
                 <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow" />
@@ -287,7 +309,6 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
                     const isBlocked = isCurrent || !isAvailable;
                     const isSelected = String(newTable) === String(t.id);
 
-                    // ⭐ DOT màu cam nếu là bàn hiện tại
                     const dotClass = isCurrent
                       ? "bg-orange-500"
                       : !isAvailable
@@ -312,9 +333,6 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
                       setNewTable(String(t.id));
                     };
 
-                    // // ⭐ ẨN bàn hiện tại nếu bàn đó không trống
-                    // if (isCurrent && !isAvailable) return null;
-
                     return (
                       <button
                         key={String(t.id)}
@@ -324,25 +342,22 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
                         }
                         onClick={handlePick}
                         className={`
-                        relative p-8 rounded-3xl font-bold text-xl transition-all transform shadow-xl
-                        ${
-                          isCurrent
-                            ? "bg-orange-100 text-orange-700 ring-4 ring-orange-500 ring-offset-2 ring-offset-white cursor-not-allowed opacity-90 hover:scale-100"
-                            : isSelected && isAvailable
-                            ? "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 text-white ring-4 ring-purple-400 hover:scale-110"
-                            : isAvailable
-                            ? "bg-white/95 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300 hover:scale-110"
-                            : "bg-gray-200/80 text-gray-600 border-2 border-gray-300 hover:bg-gray-200 cursor-not-allowed hover:scale-100"
-                        }
-                      `}
+                          relative p-8 rounded-3xl font-bold text-xl transition-all transform shadow-xl
+                          ${
+                            isCurrent
+                              ? "bg-orange-100 text-orange-700 ring-4 ring-orange-500 ring-offset-2 ring-offset-white cursor-not-allowed opacity-90 hover:scale-100"
+                              : isSelected && isAvailable
+                              ? "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 text-white ring-4 ring-purple-400 hover:scale-110"
+                              : isAvailable
+                              ? "bg-white/95 hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300 hover:scale-110"
+                              : "bg-gray-200/80 text-gray-600 border-2 border-gray-300 hover:bg-gray-200 cursor-not-allowed hover:scale-100"
+                          }
+                        `}
                       >
-                        {/* Dot status */}
                         <span
                           className={`absolute top-3 right-3 w-3 h-3 rounded-full shadow ${dotClass}`}
                         />
-
                         {t.name}
-
                         {isSelected && isAvailable && (
                           <CheckCircle2 className="w-8 h-8 inline-block ml-3" />
                         )}
@@ -404,6 +419,7 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
             <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
               Xác nhận chuyển bàn?
             </h2>
+
             <div className="bg-gray-50 rounded-3xl p-8 space-y-6 mb-8">
               <div className="flex justify-between text-lg">
                 <span className="font-medium text-gray-600">Từ bàn:</span>
@@ -411,12 +427,14 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
                   {(tableData as any)?.name ?? (tableData as any)?.tableName}
                 </span>
               </div>
+
               <div className="flex justify-between text-lg">
                 <span className="font-medium text-gray-600">Sang bàn:</span>
                 <span className="font-bold text-emerald-600 text-xl">
                   {selectedNewTable?.name}
                 </span>
               </div>
+
               <div>
                 <span className="font-medium text-gray-600">Lý do:</span>
                 <p className="mt-2 text-gray-800 font-medium bg-white/80 rounded-2xl p-4">
@@ -424,6 +442,7 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
                 </p>
               </div>
             </div>
+
             <div className="flex gap-6">
               <button
                 onClick={() => setShowConfirmDialog(false)}
@@ -431,6 +450,7 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
               >
                 Hủy
               </button>
+
               <button
                 onClick={handleChangeTable}
                 className="flex-1 py-5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-3xl font-bold hover:opacity-90 transition shadow-lg"
@@ -438,39 +458,6 @@ export const ChangeTable: React.FC<Props> = ({ id, onClose }) => {
                 Xác nhận
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Result Dialog */}
-      {showResultDialog && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl p-12 text-center max-w-md w-full">
-            <div
-              className={`w-28 h-28 mx-auto mb-8 rounded-full flex items-center justify-center ${
-                resultSuccess ? "bg-emerald-100" : "bg-rose-100"
-              }`}
-            >
-              {resultSuccess ? (
-                <CheckCircle2 className="w-20 h-20 text-emerald-600" />
-              ) : (
-                <AlertCircle className="w-20 h-20 text-rose-600" />
-              )}
-            </div>
-            <h2
-              className={`text-4xl font-extrabold mb-6 ${
-                resultSuccess ? "text-emerald-600" : "text-rose-600"
-              }`}
-            >
-              {resultSuccess ? "Thành công!" : "Thất bại!"}
-            </h2>
-            <p className="text-gray-700 text-xl mb-10">{resultMessage}</p>
-            <button
-              onClick={() => setShowResultDialog(false)}
-              className="px-16 py-5 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-xl font-bold rounded-full hover:opacity-90 transition shadow-xl"
-            >
-              Đóng
-            </button>
           </div>
         </div>
       )}

@@ -576,8 +576,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                               <div>
                                 Mã Đơn hàng:{" "}
                                 <span className="font-medium">
-                                  {data.orderCode ||
-                                    String(data.orderId).substring(0, 16)}
+                                  {data.orderCode}
                                 </span>
                               </div>
                             )}
