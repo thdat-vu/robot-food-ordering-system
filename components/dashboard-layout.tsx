@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import {Input} from "@/components/ui/input";
 import {useEffect} from "react";
+import UserMenu from "@/components/common/UserMenu";
 
 type DashboardLayoutProps = {
     children: React.ReactNode;
@@ -188,6 +189,9 @@ export function DashboardLayout({
 
             {/* Main content */}
             <div className="lg:pl-64">
+                <div className="fixed top-4 right-4 z-50">
+                    <UserMenu/>
+                </div>
                 {/*/!* Top bar *!/*/}
                 {/*<header className="sticky top-0 z-30 h-14 sm:h-16 bg-card border-b border-border">*/}
                 {/*  <div className="flex items-center justify-between h-full px-4 sm:px-6">*/}
