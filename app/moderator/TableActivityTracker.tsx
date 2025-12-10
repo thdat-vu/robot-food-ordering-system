@@ -8,6 +8,8 @@ import { tableService } from "@/service/moderator/TableService";
 import { translateReasonVI } from "@/components/moderator/translateReasonVI";
 import { humanizeAutoReleaseNoOrderTimeout } from "@/components/moderator/AutoReleaseNoOrderTimeout";
 import { ActivityNote } from "@/components/moderator/ActivityNote";
+import InvoiceActivityItem from "@/components/moderator/Activity/InvoiceActivityItem";
+import CompleteBillComponent from "@/components/moderator/CompleteBillComponent";
 
 const ACTIVITIES_PER_PAGE = 10;
 
@@ -258,6 +260,21 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
           />
         </svg>
       ),
+      CreateInvoice: (
+        <svg
+          className="w-5 h-5 text-green-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 14l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+          />
+        </svg>
+      ),
       AddOrderItems: (
         <svg
           className="w-5 h-5 text-indigo-500"
@@ -442,6 +459,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
       // ✅ Checkout / session lifecycle
       RequestCheckout: "bg-yellow-50 border-yellow-200",
+      CreateInvoice: "bg-green-50 border-green-200",
       CloseSession: "bg-slate-50 border-slate-300",
 
       // ✅ Auto / system
@@ -465,6 +483,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
     ShareJoin: "Thiết bị tham gia chia sẻ",
     ShareStop: "Dừng chia sẻ bàn",
     RequestCheckout: "Yêu cầu thanh toán",
+    CreateInvoice: "Tạo hóa đơn",
     CloseSession: "Đóng phiên bàn",
     AutoRelease: "Tự động giải phóng",
     AttachDeviceFromModerator: "Moderator gán thiết bị",
@@ -604,6 +623,32 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                 </div>
                               )}
 
+                            {activity.type === "CreateInvoice" &&
+                            (data.invoiceId || data.InvoiceId) ? (
+                              <InvoiceActivityItem
+                                activity={{
+                                  type: "CreateInvoice",
+                                  data: {
+                                    invoiceId: data.invoiceId ?? data.InvoiceId,
+                                    invoiceCode:
+                                      data.invoiceCode ?? data.InvoiceCode,
+                                    totalAmount:
+                                      data.totalAmount ??
+                                      data.TotalAmount ??
+                                      data.InvoiceTotal ??
+                                      0,
+                                    paymentMethod:
+                                      data.paymentMethod ?? data.PaymentMethod,
+                                    paymentStatus:
+                                      data.paymentStatus ?? data.PaymentStatus,
+                                    orderCode: data.orderCode ?? data.OrderCode,
+                                    createdAtUtc:
+                                      data.createdAtUtc ?? data.CreatedAtUtc,
+                                  },
+                                }}
+                                timeStamp={(activity as any).createdTime}
+                              />
+                            ) : null}
                             {(activity.type === "CreateOrder" ||
                               activity.type === "AddOrderItems") &&
                               formatItemsList(activity) && (
@@ -669,7 +714,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                       title="Đóng phiên (Checkout)"
                                       message="Đã thanh toán và đóng phiên."
                                       badges={["Đã thanh toán"]} // ✅ array
-                                      footer={`InvoiceId: ${String(invoiceId)}`}
+                                      footer={`InvoiceCode: {invoiceCode}`}
                                     />
                                   );
                                 }

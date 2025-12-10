@@ -3,6 +3,7 @@ export type TableActivityType =
   | 'CheckIn'
   | 'ScanAgain'
   | 'CreateOrder'
+  | 'CreateInvoice'
   | 'AddOrderItems'
   | 'PartialPayment'
   |'UpdateOrderItemStatus'
