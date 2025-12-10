@@ -7,3 +7,4 @@ export const API_ADMIN = `/Admin`
 export const API_PRODUCTION = `/Product`
 export const API_CATEGORY = `/Category`
 export const API_TOPPING = `/Topping`
+export const API_DASHBOARD = `/Dashboard`

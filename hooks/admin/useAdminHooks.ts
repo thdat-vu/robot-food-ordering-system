@@ -1,5 +1,5 @@
 import {
-    CategoryApi, DeleteTable, DeleteTopping,
+    CategoryApi, DashboadApi, DeleteTable, DeleteTopping,
     DishsApi,
     GetExportExcel, GetTableApi,
     PostFileExcel, PostFileExcelTable, PostFileExcelTopping,
@@ -48,4 +48,7 @@ export const useDeleteTable = () => {
 
 export const usePostFileExcelTopping = () => {
     return useApiHandler(PostFileExcelTopping)
+}
+export const useDashboadApi = () => {
+    return useApiHandler(DashboadApi)
 }

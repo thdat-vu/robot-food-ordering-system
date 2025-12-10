@@ -1,6 +1,6 @@
 import {BaseEntity, BaseEntityDataError} from "@/entites/BaseEntity";
 import api from "@/api/api";
-import {API_ADMIN, API_CATEGORY, API_PRODUCTION, API_TABLE_V2, API_TOPPING} from "@/api-endpoint-env";
+import {API_ADMIN, API_CATEGORY, API_DASHBOARD, API_PRODUCTION, API_TABLE_V2, API_TOPPING} from "@/api-endpoint-env";
 
 export const PostFileExcel = async (
     file: File
@@ -192,7 +192,39 @@ export const GetTableApi = async (): Promise<BaseEntity<Table[]>> => {
     return res.data;
 }
 
-export const DeleteTable = async (id: string): Promise<any> => {
+
+
+export const DeleteTable = async (id: string): Promise<BaseEntityDataError<any>> => {
     const res = await api.delete(`${API_TABLE_V2}/${id}`)
+    return res.data;
+}
+
+
+export interface topMostOrderedProducts {
+    totalUsers: number;
+    totalProducts: number;
+    mostOrderedProduct: topMostOrderedProduct;
+    leastOrderedProduct: topMostOrderedProduct;
+    totalCancelledItems: number;
+    totalComplains: number;
+    totalComplainsPending: number;
+    totalComplainsHandled: number;
+    totalRemakeItems: number;
+    totalOrderItems: number;
+    top5MostOrderedProducts: topMostOrderedProducts[];
+}
+
+export interface topMostOrderedProduct {
+    productId: string;
+    productName: string;
+    orderCount: number;
+}export const DashboadApi = async (Year?:string,Month?:string,Day?:string):Promise<BaseEntityDataError<topMostOrderedProducts>> => {
+    const res = await api.get(`${API_DASHBOARD}`, {
+        params:{
+            Year,
+            Month,
+            Day
+        }
+    })
     return res.data;
 }
