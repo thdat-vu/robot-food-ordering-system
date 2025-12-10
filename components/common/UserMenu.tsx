@@ -102,13 +102,13 @@ export function UserMenu({ onProfile, profileHref = '/profile', className }: Use
     <div className={`relative ${className ?? ''}`}>
       <button
         aria-label="User menu"
-        className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 shadow-sm hover:shadow-md transition"
+        className="flex items-center gap-3 rounded-full border border-gray-300 bg-white px-3 py-2 shadow-sm hover:shadow-md transition min-h-[48px] min-w-[220px]"
         onClick={() => setOpen((prev) => !prev)}
       >
         <UserIcon />
-        <div className="text-left text-sm leading-tight hidden sm:block">
-          <div className="font-semibold text-gray-900">Chào mừng trở lại, {displayName}</div>
-          <div className="text-gray-500 text-xs">{roleLabel}</div>
+        <div className="text-left text-sm leading-tight hidden sm:block w-full">
+          <div className="font-semibold text-gray-900 truncate">Chào mừng trở lại, {displayName}</div>
+          <div className="text-gray-500 text-xs truncate">{roleLabel}</div>
         </div>
       </button>
 
