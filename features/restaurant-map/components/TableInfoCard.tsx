@@ -36,27 +36,25 @@ export const TableInfoCard: React.FC<TableInfoCardProps> = ({
   dishes = [],
   onClose,
 }) => {
-  // Parse time string và trả về Date object
+  // Parse time string và trả về Date object (ưu tiên dd/MM/yyyy HH:mm:ss)
   const parseTime = (timeStr?: string | null): Date | null => {
     if (!timeStr) return null;
-    
     try {
-      const date = new Date(timeStr);
-      if (!isNaN(date.getTime())) {
-        return date;
-      }
-      
-      // Thử parse format "dd/MM/yyyy HH:mm:ss"
+      // Thử parse format "dd/MM/yyyy HH:mm:ss" trước để tránh nhầm với MM/dd
       const parts = timeStr.split(" ");
       if (parts.length >= 2) {
         const [datePart, timePart] = parts;
         const [day, month, year] = datePart.split("/").map(Number);
         const [hour, minute, second] = timePart.split(":").map(Number);
-        const parsedDate = new Date(year, month - 1, day, hour, minute, second);
-        if (!isNaN(parsedDate.getTime())) {
-          return parsedDate;
+        if ([day, month, year, hour, minute, second].every((v) => !isNaN(v))) {
+          const parsedDate = new Date(year, month - 1, day, hour, minute, second);
+          if (!isNaN(parsedDate.getTime())) return parsedDate;
         }
       }
+
+      // Fallback: để Date tự parse nếu format khác
+      const date = new Date(timeStr);
+      if (!isNaN(date.getTime())) return date;
     } catch {
       // Ignore
     }
