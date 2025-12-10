@@ -11,6 +11,7 @@ type UserInfo = {
   email?: string;
   roleName?: string;
   Role?: string;
+  Name?: string;
 };
 
 const USER_STORAGE_KEYS = [
