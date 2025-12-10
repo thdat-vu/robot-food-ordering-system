@@ -3,6 +3,8 @@ import {useState, useEffect, Suspense} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import ModeratorScreen from './ModeratorScreen';
 import ModeratorTableManagement from './ModeratorTableManagement';
+import UserMenu from '@/components/common/UserMenu';
+import AuthGuard from '@/components/common/AuthGuard';
 
 function ModeratorPageContent() {
     const router = useRouter();
@@ -37,7 +39,11 @@ function ModeratorPageContent() {
     };
 
     return (
+        <AuthGuard allowRoles={["Moderator"]}>
         <div className="flex min-h-screen bg-gray-100">
+            <div className="fixed top-4 right-4 z-50">
+                <UserMenu />
+            </div>
             {/*/!* Sidebar *!/*/}
             {/*<ModeratorSidebar*/}
             {/*    activeTab={activeTab}*/}
@@ -50,6 +56,7 @@ function ModeratorPageContent() {
                 <ModeratorScreen/>
             </div>
         </div>
+        </AuthGuard>
     );
 }
 

@@ -52,6 +52,7 @@ import {ProductionPage} from "@/components/admin/ProductionPage";
 import {AccountPage} from "@/components/admin/AccountPage";
 import {ConfigPage} from "@/components/admin/ConfigPage";
 import {TableManagerPage} from "@/components/admin/TableManagerPage";
+import AuthGuard from "@/components/common/AuthGuard";
 
 
 export default function AdminDashboard() {
@@ -93,13 +94,14 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <DashboardLayout
-            secondaryNav={secondaryNav}
-            activeSecondary={activeTab}
-            onSecondaryChange={(k) => setActiveTab(k as any)}
-            hidePrimaryNav
-        >
-            <div className="space-y-6 sm:space-y-8">
+        <AuthGuard allowRoles={["Admin"]}>
+            <DashboardLayout
+                secondaryNav={secondaryNav}
+                activeSecondary={activeTab}
+                onSecondaryChange={(k) => setActiveTab(k as any)}
+                hidePrimaryNav
+            >
+                <div className="space-y-6 sm:space-y-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
@@ -128,70 +130,6 @@ export default function AdminDashboard() {
                     {/*    </Button>*/}
                     {/*</div>*/}
                 </div>
-
-                {/*<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">*/}
-                {/*    <Card className="border-l-4 border-l-primary">*/}
-                {/*        <CardHeader className="flex flex-row items-center justify-between pb-2">*/}
-                {/*            <CardTitle className="text-sm font-medium text-muted-foreground">*/}
-                {/*                Tổng Tài Khoản*/}
-                {/*            </CardTitle>*/}
-                {/*            <Users className="w-4 h-4 text-primary"/>*/}
-                {/*        </CardHeader>*/}
-                {/*        <CardContent>*/}
-                {/*            <div className="text-2xl font-bold text-foreground">24</div>*/}
-                {/*            <div className="flex items-center gap-1 mt-1">*/}
-                {/*                <TrendingUp className="w-3 h-3 text-green-500"/>*/}
-                {/*                <p className="text-xs text-green-500">+4 tuần này</p>*/}
-                {/*            </div>*/}
-                {/*        </CardContent>*/}
-                {/*    </Card>*/}
-
-                {/*    <Card className="border-l-4 border-l-orange-500">*/}
-                {/*        <CardHeader className="flex flex-row items-center justify-between pb-2">*/}
-                {/*            <CardTitle className="text-sm font-medium text-muted-foreground">*/}
-                {/*                Món Ăn*/}
-                {/*            </CardTitle>*/}
-                {/*            <UtensilsCrossed className="w-4 h-4 text-orange-500"/>*/}
-                {/*        </CardHeader>*/}
-                {/*        <CardContent>*/}
-                {/*            <div className="text-2xl font-bold text-foreground">87</div>*/}
-                {/*            <div className="flex items-center gap-1 mt-1">*/}
-                {/*                <TrendingUp className="w-3 h-3 text-green-500"/>*/}
-                {/*                <p className="text-xs text-green-500">+12 tháng này</p>*/}
-                {/*            </div>*/}
-                {/*        </CardContent>*/}
-                {/*    </Card>*/}
-
-                {/*    <Card className="border-l-4 border-l-blue-500">*/}
-                {/*        <CardHeader className="flex flex-row items-center justify-between pb-2">*/}
-                {/*            <CardTitle className="text-sm font-medium text-muted-foreground">*/}
-                {/*                Thời Gian Chuẩn Bị TB*/}
-                {/*            </CardTitle>*/}
-                {/*            <Clock className="w-4 h-4 text-blue-500"/>*/}
-                {/*        </CardHeader>*/}
-                {/*        <CardContent>*/}
-                {/*            <div className="text-2xl font-bold text-foreground">18 phút</div>*/}
-                {/*            <p className="text-xs text-muted-foreground mt-1">*/}
-                {/*                Trung bình tất cả món*/}
-                {/*            </p>*/}
-                {/*        </CardContent>*/}
-                {/*    </Card>*/}
-
-                {/*    <Card className="border-l-4 border-l-green-500">*/}
-                {/*        <CardHeader className="flex flex-row items-center justify-between pb-2">*/}
-                {/*            <CardTitle className="text-sm font-medium text-muted-foreground">*/}
-                {/*                Doanh Thu Hôm Nay*/}
-                {/*            </CardTitle>*/}
-                {/*            <DollarSign className="w-4 h-4 text-green-500"/>*/}
-                {/*        </CardHeader>*/}
-                {/*        <CardContent>*/}
-                {/*            <div className="text-2xl font-bold text-foreground">12.5M ₫</div>*/}
-                {/*            <p className="text-xs text-muted-foreground mt-1">*/}
-                {/*                Từ 156 đơn hàng*/}
-                {/*            </p>*/}
-                {/*        </CardContent>*/}
-                {/*    </Card>*/}
-                {/*</div>*/}
 
                 <Card>
                     <CardHeader className="pb-3"/>
@@ -225,6 +163,7 @@ export default function AdminDashboard() {
 
 
             </div>
-        </DashboardLayout>
+            </DashboardLayout>
+        </AuthGuard>
     );
 }

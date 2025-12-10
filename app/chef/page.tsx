@@ -24,6 +24,8 @@ import { OrdersContent } from '@/components/kitchen/OrdersContent';
 import { InfoModal } from '@/components/kitchen/InfoModal';
 import { SearchResultsModal } from '@/components/kitchen/SearchResultsModal';
 import { MatchSuggestionModal, MatchSuggestion } from '@/components/kitchen/MatchSuggestionModal';
+import UserMenu from '@/components/common/UserMenu';
+import AuthGuard from '@/components/common/AuthGuard';
 import { chefService } from '@/service/chef/chefService';
 
 const formatCurrentDateTime = (date: Date): string => {
@@ -1234,7 +1236,11 @@ function ChiefPageContent() {
   }
 
   return (
+    <AuthGuard allowRoles={['Chef']}>
     <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <div className="fixed top-4 right-4 z-50">
+        <UserMenu />
+      </div>
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
 
@@ -1378,14 +1384,9 @@ function ChiefPageContent() {
         </div>
 
         <div className="flex w-1/2 min-h-0 flex-col bg-white">
-          <div className="px-6 py-4 border-b border-gray-200 bg-white">
-            <div className="flex flex-col">
-              <h1 className="text-2xl font-semibold text-gray-800">
-                Chào mừng bếp trưởng trở lại
-              </h1>
-              <span className="mt-1 text-sm text-gray-500">
-                {currentDateTime}
-              </span>
+          <div className="px-6 py-3 border-b border-gray-200 bg-white">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">{currentDateTime}</span>
             </div>
           </div>
 
@@ -1619,6 +1620,7 @@ function ChiefPageContent() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }
 

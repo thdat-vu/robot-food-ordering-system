@@ -18,6 +18,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle
 } from "@/components/ui/alert-dialog";
+import UserMenu from "@/components/common/UserMenu";
+import AuthGuard from "@/components/common/AuthGuard";
 
 const formatCurrentDateTime = (date: Date): string => {
     const weekdayNames = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
@@ -211,8 +213,11 @@ function WaiterPageContent() {
     }
 
     return (
-        <>
+        <AuthGuard allowRoles={["Waiter"]}>
         <div className="flex h-screen bg-gray-50 overflow-hidden">
+            <div className="fixed top-4 right-4 z-50">
+                <UserMenu />
+            </div>
             {/*{isSidebarOpen && (*/}
             {/*    <div className="flex flex-col gap-4 items-center mr-4 p-4">*/}
             {/*        <button*/}
@@ -239,12 +244,9 @@ function WaiterPageContent() {
             {/*)}*/}
 
             <div className="flex-1 flex flex-col">
-                <div className="px-6 py-4 border-b border-gray-200 bg-white">
-                    <div className="flex flex-col">
-                        <h1 className="text-2xl font-semibold text-gray-800">
-                            Chào mừng phục vụ trưởng trở lại
-                        </h1>
-                        <span className="mt-1 text-sm text-gray-500">
+                <div className="px-6 py-3 border-b border-gray-200 bg-white">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
                             {currentDateTime}
                         </span>
                     </div>
@@ -339,7 +341,7 @@ function WaiterPageContent() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
-        </>
+        </AuthGuard>
     );
 }
 
