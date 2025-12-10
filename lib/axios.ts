@@ -3,6 +3,11 @@ import { getApiUrl } from '@/env.config';
 
 const API_BASE_URL = getApiUrl();
 
+const getAccessToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('accessToken');
+};
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -14,9 +19,11 @@ const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
-    console.log('API Base URL:', API_BASE_URL);
-    // Add any auth tokens here if needed
+    const token = getAccessToken();
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
