@@ -3,7 +3,7 @@ import React, {useState, Suspense, useEffect, useMemo} from "react";
 import {OrderStatus} from "@/types/kitchen";
 import {NavigationTabs} from "@/components/waiter/NavigationTabs";
 import {useWaiterOrders} from "@/hooks/use-waiter-orders";
-import {useGetAllFeedbackHome} from "@/hooks/moderator/useFeedbackHooks";
+import {useModeratorRealtimeTables} from "@/hooks/moderator/useModeratorRealtimeTables";
 import DishList from "./DishList";
 import ServePanel from "./ServePanel";
 import PaymentPanel from "./PaymentPanel";
@@ -65,8 +65,8 @@ function WaiterPageContent() {
         getDishesByStatus,
     } = useWaiterOrders();
 
-    // Fetch table last update times from API
-    const { run: fetchTableData } = useGetAllFeedbackHome();
+    // Realtime table updates (complain/status) via SignalR
+    const { data: realtimeTables } = useModeratorRealtimeTables();
     const [tableLastUpdateTimes, setTableLastUpdateTimes] = useState<Record<number, string | null>>({});
 
     // Extract table number from tableName (e.g., "Bàn 4" -> 4)
@@ -75,38 +75,20 @@ function WaiterPageContent() {
         return match ? parseInt(match[1], 10) : null;
     };
 
-    // Fetch table data periodically
+    // Map realtime table data -> last update times
     useEffect(() => {
-        const loadTableData = async () => {
-            try {
-                const res = await fetchTableData();
-                if (!res || typeof res !== "object") return;
-
-                const tableData = (res as any).data;
-                if (!tableData || typeof tableData !== "object") return;
-
-                // Map tableName -> lastOrderUpdatedTime to tableNumber -> lastOrderUpdatedTime
-                const timesMap: Record<number, string | null> = {};
-                Object.values(tableData).forEach((table: any) => {
-                    if (table?.tableName && table?.lastOrderUpdatedTime !== undefined) {
-                        const tableNumber = extractTableNumber(table.tableName);
-                        if (tableNumber !== null) {
-                            timesMap[tableNumber] = table.lastOrderUpdatedTime;
-                        }
-                    }
-                });
-
-                setTableLastUpdateTimes(timesMap);
-            } catch (error) {
-                console.error("Error loading table data:", error);
+        if (!realtimeTables || typeof realtimeTables !== "object") return;
+        const timesMap: Record<number, string | null> = {};
+        Object.values(realtimeTables).forEach((table: any) => {
+            if (table?.tableName && table?.lastOrderUpdatedTime !== undefined) {
+                const tableNumber = extractTableNumber(table.tableName);
+                if (tableNumber !== null) {
+                    timesMap[tableNumber] = table.lastOrderUpdatedTime;
+                }
             }
-        };
-
-        loadTableData();
-        // Poll every 3 seconds like moderator
-        const interval = setInterval(loadTableData, 3000);
-        return () => clearInterval(interval);
-    }, [fetchTableData]);
+        });
+        setTableLastUpdateTimes(timesMap);
+    }, [realtimeTables]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
