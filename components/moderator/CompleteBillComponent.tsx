@@ -13,6 +13,7 @@ import { Bill } from "@/entites/moderator/BillModel";
 interface CompleteBillComponentProps {
   invoiceId: string;
 }
+
 // Main Component
 const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
   const [billData, setBillData] = useState<Bill | null>(null);
@@ -143,7 +144,10 @@ const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
     );
   }
 
-  const totalItems = billData.details.length;
+  const totalItems = billData.details.reduce(
+    (sum, item) => sum + (item.quantity || 1),
+    0
+  );
   const finalAmount =
     billData.finalAmount > 0
       ? billData.finalAmount
@@ -234,10 +238,6 @@ const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
                   {billData.tableName}
                 </span>
               </div>
-              {/* <div className="flex justify-between">
-                <span className="text-gray-600"></span>
-                <span className="font-semibold text-gray-800">Tại quầy</span>
-              </div> */}
             </div>
 
             {/* Divider */}
@@ -250,31 +250,43 @@ const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
               <span className="w-24 text-right">Tổng</span>
             </div>
 
-            {/* Items List */}
+            {/* Items List - GROUPED */}
             <div className="space-y-3 mb-4">
-              {billData.details.map((item, index) => (
-                <div
-                  key={item.orderItemId}
-                  className="hover:bg-gray-50 p-2 rounded-lg transition-colors"
-                >
-                  <div className="flex justify-between text-sm">
-                    <span className="flex-1 font-medium text-gray-800">
-                      {item.productName}
-                    </span>
-                    <span className="w-16 text-center text-gray-700">
-                      {item.quantity || 1}
-                    </span>
-                    <span className="w-24 text-right font-semibold text-gray-800">
-                      {formatCurrency(item.totalMoney)}
-                    </span>
-                  </div>
-                  {/* {item.toppings?.length > 0  && (
-                    <div className="text-xs text-gray-500 ml-2 mt-1">
-                      + {item.toppings.}
+              {(() => {
+                // Group items by productName
+                const groupedItems = billData.details.reduce((acc, item) => {
+                  const key = item.productName;
+                  if (!acc[key]) {
+                    acc[key] = {
+                      productName: item.productName,
+                      quantity: 0,
+                      totalMoney: 0,
+                    };
+                  }
+                  acc[key].quantity += item.quantity || 1;
+                  acc[key].totalMoney += item.totalMoney;
+                  return acc;
+                }, {} as Record<string, { productName: string; quantity: number; totalMoney: number }>);
+
+                return Object.values(groupedItems).map((item, index) => (
+                  <div
+                    key={index}
+                    className="hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                  >
+                    <div className="flex justify-between text-sm">
+                      <span className="flex-1 font-medium text-gray-800">
+                        {item.productName}
+                      </span>
+                      <span className="w-16 text-center text-gray-700">
+                        {item.quantity}
+                      </span>
+                      <span className="w-24 text-right font-semibold text-gray-800">
+                        {formatCurrency(item.totalMoney)}
+                      </span>
                     </div>
-                  )} */}
-                </div>
-              ))}
+                  </div>
+                ));
+              })()}
             </div>
 
             {/* Divider */}
@@ -381,8 +393,7 @@ const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
           }
           .shadow-2xl {
             box-shadow: none !important;
-          }import { Response } from '@/api/moderator/TableApi';
-
+          }
           .print-area {
             max-width: 80mm;
             margin: 0 auto;

@@ -8,11 +8,8 @@ export const authsApi = {
               username,
               password
             });
-           console.log("Sign-in response1:", response.data.data.accessToken);
       
            const data = response.data?.data;
-           console.log("✅ accessToken:", data?.accessToken);
-           
       
             // Save tokens locally
             if (data?.accessToken) {
@@ -28,7 +25,6 @@ export const authsApi = {
               statusCode: 200,
             };
           } catch (error: any) {
-            console.error("Sign-in error:", error);
             return {
               success: false,
               data: null,
