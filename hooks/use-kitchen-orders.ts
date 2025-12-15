@@ -30,13 +30,9 @@ export function useKitchenOrders() {
       setError(null);
       
       const { orders } = await chefService.fetchOrders(1, 100);
-      if (orders && orders.length > 0) {
-        setOrders(orders);
-        setIdMappings([]);
-      } else {
-        console.error('Failed to fetch orders: No data received');
-        setError('Failed to fetch orders');
-      }
+      // Treat an empty payload as a valid state (no orders) instead of an error
+      setOrders(orders);
+      setIdMappings([]);
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError('Error fetching orders');
@@ -54,10 +50,9 @@ export function useKitchenOrders() {
       setError(null);
       
       const { orders } = await chefService.fetchOrders(1, 100);
-      if (orders && orders.length > 0) {
-        setOrders(orders);
-        setIdMappings([]);
-      }
+      // Always sync to latest payload, even when empty, so UI shows "không có món"
+      setOrders(orders);
+      setIdMappings([]);
     } catch (err) {
       console.error('Error silently fetching orders:', err);
       // Don't set error for silent refresh to avoid UI disruption
