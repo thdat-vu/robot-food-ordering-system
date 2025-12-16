@@ -7,7 +7,6 @@ export interface FeedbackgGetTableId {
     feedBack: string;
     isPending: boolean;
     createData: Date;
-  
     resolutionNote?: string; // Note from moderator, includes "Yêu cầu nhanh:" prefix when quick-serve is sent (camelCase)
     ResolutionNote?: string; // Note from moderator (PascalCase from backend) - handle both formats
 }
