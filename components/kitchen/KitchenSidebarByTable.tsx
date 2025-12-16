@@ -341,12 +341,31 @@ export function KitchenSidebarByTable({
     return raw;
   };
 
+  // Get category accent color
+  const getCategoryAccent = (categoryName?: string) => {
+    switch (categoryName) {
+      case 'Đồ uống':
+        return { bg: 'from-cyan-500 to-blue-500', badge: 'bg-cyan-100 text-cyan-700 border-cyan-200' };
+      case 'Món chính':
+        return { bg: 'from-orange-500 to-red-500', badge: 'bg-orange-100 text-orange-700 border-orange-200' };
+      case 'Tráng miệng':
+        return { bg: 'from-pink-500 to-purple-500', badge: 'bg-pink-100 text-pink-700 border-pink-200' };
+      default:
+        return { bg: 'from-gray-500 to-gray-600', badge: 'bg-gray-100 text-gray-700 border-gray-200' };
+    }
+  };
+
   return (
     <div className={`flex flex-col h-full bg-transparent ${className || ''}`}>
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 space-y-4">
         {tables.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-gray-400">
-            Không có món nào trong danh sách.
+          <div className="flex flex-col h-full items-center justify-center py-16">
+            <div className="w-16 h-16 bg-gradient-to-r from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center mb-4 shadow-inner">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <p className="text-gray-500 font-medium">Không có món nào trong danh sách</p>
           </div>
         ) : (
           tables.map(({ tableNumber, orders }) => {
@@ -362,17 +381,23 @@ export function KitchenSidebarByTable({
             return (
               <div
                 key={tableNumber}
-                className={`relative bg-white rounded-2xl shadow-sm border transition-all duration-200 ${
-                  isSelected || isMultiSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
+                className={`relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border-2 ${
+                  isSelected || isMultiSelected 
+                    ? 'border-blue-500 ring-2 ring-blue-200 shadow-blue-100' 
+                    : 'border-transparent hover:border-blue-300'
                 }`}
               >
                 {/* Late dish warning overlay */}
                 {tableData && <LateDishWarning table={tableData} borderRadius="rounded-2xl" />}
+                
+                {/* Header with gradient */}
                 <div
-                  className="flex items-center justify-between px-4 py-3 cursor-pointer"
+                  className={`flex items-center justify-between px-4 py-4 cursor-pointer transition-colors ${
+                    isSelected || isMultiSelected ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : 'hover:bg-gray-50'
+                  }`}
                   onClick={() => onGroupSelection(tableSelection)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     <Checkbox
                       checked={tableCheckboxState}
                       onCheckedChange={checked => {
@@ -380,12 +405,18 @@ export function KitchenSidebarByTable({
                         handleTableCheckboxChange(tableNumber, value);
                       }}
                       onClick={event => event.stopPropagation()}
-                      className="size-5 md:size-6 border-2 border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white"
+                      className="size-6 md:size-7 rounded-lg border-2 border-blue-500 text-blue-600 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm transition-all duration-200"
                       aria-label={`Chọn toàn bộ món bàn ${tableNumber}`}
                     />
-                    <div className="flex flex-col">
-                      <span className="text-base font-semibold text-gray-800">Bàn {tableNumber}</span>
-                      <span className="text-xs text-gray-500">{orders.length} món</span>
+                    <div className="flex items-center gap-3">
+                      {/* Table icon with gradient */}
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <span className="text-white font-bold text-lg">{tableNumber}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-lg font-bold text-gray-800">Bàn {tableNumber}</span>
+                        <span className="text-sm text-gray-500 font-medium">{orders.length} món đang chờ</span>
+                      </div>
                     </div>
                   </div>
                   <button
@@ -397,15 +428,19 @@ export function KitchenSidebarByTable({
                         [tableNumber]: !(prev[tableNumber] ?? true),
                       }));
                     }}
-                    className="h-8 w-8 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-100"
+                    className={`h-10 w-10 flex items-center justify-center rounded-xl border-2 transition-all duration-300 ${
+                      isExpanded 
+                        ? 'bg-gray-100 border-gray-200 text-gray-600' 
+                        : 'bg-blue-50 border-blue-200 text-blue-600'
+                    } hover:scale-105`}
                     aria-label={isExpanded ? 'Thu gọn bàn' : 'Mở rộng bàn'}
                   >
-                    {isExpanded ? <IconMinus size={16} /> : <IconPlus size={16} />}
+                    {isExpanded ? <IconMinus size={18} /> : <IconPlus size={18} />}
                   </button>
                 </div>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 flex flex-col gap-2">
+                  <div className="px-4 pb-4 pt-2 flex flex-col gap-3">
                     {groupedOrders.map(group => {
                       const selectionItems = toSelectionItems(group.orders);
                       const selectedCount = group.orders.filter(order => isItemSelected(order.id)).length;
@@ -433,66 +468,94 @@ export function KitchenSidebarByTable({
                       const representativeOrder = group.orders[0];
                       const totalQuantity =
                         group.quantity > 0 ? group.quantity : group.orders.length;
+                      
+                      // Get category info for styling
+                      const category = itemNameToCategory?.[group.itemName];
+                      const categoryAccent = getCategoryAccent(category);
 
                       return (
                         <div
                           key={group.key}
-                          className={`flex items-start gap-3 rounded-xl border p-3 transition-colors ${
-                            isHighlighted ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                          className={`relative overflow-hidden flex items-start gap-3 rounded-xl border-2 p-3 transition-all duration-300 cursor-pointer hover:shadow-md ${
+                            isHighlighted 
+                              ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm' 
+                              : 'border-gray-100 bg-gray-50 hover:border-blue-200'
                           }`}
+                          onClick={() => {
+                            if (representativeOrder) {
+                              onSidebarItemClick(toSelectionItem(representativeOrder));
+                              onGroupSelection(selectionItems);
+                            }
+                          }}
                         >
+                          {/* Left accent bar */}
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${categoryAccent.bg}`}></div>
+                          
                           <Checkbox
                             checked={checkboxState}
                             onCheckedChange={checked => {
                               const value = checked === true;
                               handleOrdersGroupCheckboxChange(group.orders, value);
                             }}
-                            className="mt-0.5 size-5 border-2 border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white"
+                            onClick={event => event.stopPropagation()}
+                            className="mt-1 ml-2 size-5 rounded-md border-2 border-blue-500 text-blue-600 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm"
                             aria-label={`Chọn món ${group.itemName}`}
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="flex-1 justify-start text-left h-auto bg-transparent hover:bg-white"
-                            onClick={() => {
-                              if (representativeOrder) {
-                                onSidebarItemClick(toSelectionItem(representativeOrder));
-                                onGroupSelection(selectionItems);
-                              }
-                            }}
-                          >
-                            <div className="w-full rounded-lg bg-white px-3 py-2 shadow-sm">
-                              <p className="text-sm font-semibold text-gray-800 leading-tight break-words">
-                                {group.itemName}
-                                {group.sizeName && (
-                                  <span className="text-blue-600 ml-1">
-                                    ({group.sizeName.charAt(0).toUpperCase()})
-                                  </span>
-                                )}
-                                <span className="ml-2 text-gray-600 font-medium">
-                                  x{totalQuantity}
+                          
+                          <div className="flex-1 min-w-0 ml-1">
+                            {/* Item name and badges */}
+                            <h4 className="text-sm font-bold text-gray-900 leading-tight mb-2">
+                              {group.itemName}
+                            </h4>
+                            
+                            <div className="flex flex-wrap items-center gap-2">
+                              {/* Size badge */}
+                              {group.sizeName && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                                  Size {group.sizeName.charAt(0).toUpperCase()}
                                 </span>
-                                {group.hasVariations && (
-                                  <span className="ml-2 inline-flex items-center gap-1 text-xs text-orange-600 font-medium">
-                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                                    </svg>
-                                    Có ghi chú
-                                  </span>
-                                )}
-                              </p>
-                              {(() => {
-                                if (!representativeOrder) return null;
-                                const timestamp = formatOrderDateTime(representativeOrder);
-                                if (!timestamp) return null;
-                                return (
-                                  <div className="mt-1 text-xs font-medium text-gray-400">
-                                    {timestamp}
-                                  </div>
-                                );
-                              })()}
+                              )}
+                              
+                              {/* Quantity badge */}
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${categoryAccent.badge} border`}>
+                                x{totalQuantity}
+                              </span>
+                              
+                              {/* Note indicator */}
+                              {group.hasVariations && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                                  </svg>
+                                  Ghi chú
+                                </span>
+                              )}
                             </div>
-                          </Button>
+                            
+                            {/* Timestamp */}
+                            {(() => {
+                              if (!representativeOrder) return null;
+                              const timestamp = formatOrderDateTime(representativeOrder);
+                              if (!timestamp) return null;
+                              return (
+                                <div className="mt-2 flex items-center gap-1 text-xs font-medium text-gray-400">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  {timestamp}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          
+                          {/* Arrow indicator */}
+                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
+                            isHighlighted ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+                          }`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
                         </div>
                       );
                     })}
