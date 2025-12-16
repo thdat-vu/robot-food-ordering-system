@@ -122,17 +122,40 @@ export function OrdersContent({
 
   // Visual badges for status and time to improve scanning
   const renderStatusBadge = (status: OrderStatus) => {
-    const styleMap: Record<OrderStatus, string> = {
-      'đang chờ': 'bg-amber-100 text-amber-800',
-      'đang thực hiện': 'bg-blue-100 text-blue-800',
-      'bắt đầu phục vụ': 'bg-green-100 text-green-800',
-      'phục vụ nhanh': 'bg-purple-100 text-purple-800',
-      'yêu cầu làm lại': 'bg-red-100 text-red-800',
-      'đã phục vụ': 'bg-gray-100 text-gray-800',
-      'đã huỷ': 'bg-gray-200 text-gray-700',
+    const styleMap: Record<OrderStatus, { classes: string; icon: React.ReactNode }> = {
+      'đang chờ': { 
+        classes: 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200 shadow-sm',
+        icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      },
+      'đang thực hiện': { 
+        classes: 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200 shadow-sm',
+        icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      },
+      'bắt đầu phục vụ': { 
+        classes: 'bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border border-emerald-200 shadow-sm',
+        icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+      },
+      'phục vụ nhanh': { 
+        classes: 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200 shadow-sm',
+        icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      },
+      'yêu cầu làm lại': { 
+        classes: 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border border-red-200 shadow-sm',
+        icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+      },
+      'đã phục vụ': { 
+        classes: 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-700 border border-gray-200 shadow-sm',
+        icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      },
+      'đã huỷ': { 
+        classes: 'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-600 border border-gray-300 shadow-sm',
+        icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+      },
     };
+    const style = styleMap[status];
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${styleMap[status]}`}>
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${style.classes}`}>
+        {style.icon}
         {status}
       </span>
     );
@@ -140,14 +163,22 @@ export function OrdersContent({
 
   const renderTimeBadge = (estimatedTime: string) => {
     const minutes = Number.parseInt(estimatedTime);
-    let classes = 'bg-green-100 text-green-800';
+    let classes = 'bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border border-emerald-200';
+    let iconColor = 'text-emerald-500';
     if (!Number.isNaN(minutes)) {
-      if (minutes > 20) classes = 'bg-red-100 text-red-800';
-      else if (minutes > 10) classes = 'bg-amber-100 text-amber-800';
+      if (minutes > 20) {
+        classes = 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border border-red-200';
+        iconColor = 'text-red-500';
+      } else if (minutes > 10) {
+        classes = 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200';
+        iconColor = 'text-amber-500';
+      }
     }
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${classes}`}>
-        {renderClockIcon()}
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${classes}`}>
+        <svg className={`w-3.5 h-3.5 ${iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         {estimatedTime}
       </span>
     );
@@ -292,10 +323,14 @@ export function OrdersContent({
   if (Object.keys(groupedOrders).length === 0) {
     return (
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="text-center py-12">
-          <div className="text-gray-400 text-lg">
-            Không có đơn hàng nào trong trạng thái "{activeTab}"
+        <div className="text-center py-16">
+          <div className="w-20 h-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
           </div>
+          <h3 className="text-xl font-bold text-gray-600 mb-2">Không có đơn hàng</h3>
+          <p className="text-gray-400">Không có đơn hàng nào trong trạng thái "{activeTab}"</p>
         </div>
       </div>
     );
@@ -307,48 +342,86 @@ export function OrdersContent({
     const [itemName, orderGroup] = Object.entries(groupedOrders)[0];
     const order = orderGroup[0];
     const isSelectedSingle = selectedIds ? selectedIds.has(order.id) : false;
+    
+    // Get category accent color
+    const getCategoryGradient = (category?: string) => {
+      switch (category) {
+        case 'Đồ uống': return 'from-cyan-500 to-blue-500';
+        case 'Món chính': return 'from-orange-500 to-red-500';
+        case 'Tráng miệng': return 'from-pink-500 to-purple-500';
+        default: return 'from-gray-500 to-gray-600';
+      }
+    };
+    
     return (
       <div className="flex-1 p-6 overflow-y-auto">
-        {/* Top CTA moved to header; keep bottom sticky button only */}
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${isSelectedSingle ? 'bg-gray-100 border border-gray-300' : ''} ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
+        <Card className={`relative overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 ${
+          isSelectedSingle ? 'border-blue-500 shadow-blue-100 ring-2 ring-blue-200' : 'border-transparent'
+        } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
         >
-          <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
-            {renderOrderImage(order)}
-            <div className="flex-1">
-              {/* Primary Info: Title + Size + Quantity + Table on same line */}
-              <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
+          {/* Top gradient accent bar */}
+          <div className={`h-1.5 bg-gradient-to-r ${getCategoryGradient(order.category)}`}></div>
+          
+          <CardHeader className="flex flex-row items-center gap-4 p-5" onClick={() => onGroupClick(itemName)}>
+            {/* Enhanced image with ring effect */}
+            <div className="relative flex-shrink-0">
+              <img
+                src={order.image}
+                alt={order.itemName}
+                className="w-20 h-20 rounded-2xl object-cover bg-gray-200 ring-2 ring-gray-100 shadow-md"
+                onError={handleImageError}
+              />
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              {/* Primary Info: Title + Size + Table on same line */}
+              <h3 className="text-xl font-bold text-gray-900 leading-tight mb-3">
                 {order.itemName}
                 {order.sizeName && (
-                  <span className="text-blue-600">
-                    {' '}({order.sizeName.charAt(0).toUpperCase()})
+                  <span className="ml-2 px-2.5 py-0.5 text-sm font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
+                    {order.sizeName.charAt(0).toUpperCase()}
                   </span>
                 )}
-                {' '}x{order.quantity > 0 ? order.quantity : 1} - Bàn {order.tableNumber}
+                <span className="text-gray-400 font-normal mx-2">-</span>
+                <span className="text-lg font-semibold text-gray-600">
+                  Bàn {order.tableNumber}: x{order.quantity > 0 ? order.quantity : 1}
+                </span>
               </h3>
               
-              {/* Secondary Info: Note & Toppings - More prominent */}
+              {/* Note & Toppings with modern styling */}
               {order.note && (
-                <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
-                  <span className="font-semibold">Ghi chú:</span> {order.note}
+                <div className="mt-3 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-2.5 rounded-xl border border-amber-200 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                    </svg>
+                    <span><span className="font-semibold">Ghi chú:</span> {order.note}</span>
+                  </div>
                 </div>
               )}
               {order.toppings && order.toppings.length > 0 && (
-                <div className="mt-2 text-sm text-green-700 bg-green-100 px-3 py-2 rounded-md border-l-4 border-green-500">
-                  <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
+                <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-4 py-2.5 rounded-xl border border-emerald-200 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                    </svg>
+                    <span><span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}</span>
+                  </div>
                 </div>
               )}
               
-              {/* Tertiary Info: Time & Date - Subtle */}
-              <div className="flex items-center gap-3 mt-2.5">
+              {/* Time badges with improved styling */}
+              <div className="flex items-center gap-3 mt-4">
                 {renderTimeBadge(order.estimatedTime)}
                 {order.createdTime && (
-                  <div className="flex items-center gap-1 text-gray-400">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
                     {renderCalendarIcon()}
-                    <span className="text-xs"> {order.createdTime}</span>
-                  </div>
+                    {order.createdTime}
+                  </span>
                 )}
               </div>
             </div>
+            
             {/* Action buttons */}
             {onCancelClick && (
               <CardAction>
@@ -359,26 +432,46 @@ export function OrdersContent({
             )}
             {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && (
               <CardAction>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={e => { e.stopPropagation(); onAcceptRedoClick(order.id, order.itemName); }}
-                    variant="default"
-                    size="sm"
-                  >
-                    Bắt đầu làm lại
-                  </Button>
-                </div>
+                <Button 
+                  onClick={e => { e.stopPropagation(); onAcceptRedoClick(order.id, order.itemName); }}
+                  className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-lg"
+                  size="sm"
+                >
+                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Bắt đầu làm lại
+                </Button>
               </CardAction>
             )}
           </CardHeader>
         </Card>
-        {/* Bottom sticky CTA to mirror the top toolbar */}
-        <div className="sticky bottom-0 z-10 mt-6 py-3 flex justify-center">
+        
+        {/* Bottom sticky CTA with improved styling */}
+        <div className="sticky bottom-0 z-10 mt-6 py-4 flex justify-center">
           {activeTab === 'đang chờ' && isSelectedSingle && (
-            <Button onClick={() => onPrepareClick(order.id, order.itemName)} size="lg" className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white">Thực hiện</Button>
+            <Button 
+              onClick={() => onPrepareClick(order.id, order.itemName)} 
+              size="lg" 
+              className="font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transform hover:scale-105 transition-all duration-300"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Thực hiện món
+            </Button>
           )}
           {activeTab === 'đang thực hiện' && (
-            <Button onClick={() => onServeClick(order)} size="lg" className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-orange-600 hover:bg-orange-700 text-white">Bắt đầu phục vụ</Button>
+            <Button 
+              onClick={() => onServeClick(order)} 
+              size="lg" 
+              className="font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white transform hover:scale-105 transition-all duration-300"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Bắt đầu phục vụ
+            </Button>
           )}
         </div>
       </div>
@@ -392,13 +485,28 @@ export function OrdersContent({
     const sortedOrders = [...allOrders].sort(
       (a, b) => categoryPriority(a.category) - categoryPriority(b.category)
     );
+    
+    // Get category accent color
+    const getCategoryGradient = (category?: string) => {
+      switch (category) {
+        case 'Đồ uống': return 'from-cyan-500 to-blue-500';
+        case 'Món chính': return 'from-orange-500 to-red-500';
+        case 'Tráng miệng': return 'from-pink-500 to-purple-500';
+        default: return 'from-gray-500 to-gray-600';
+      }
+    };
+    
     if (allOrders.length === 0) {
       return (
         <div className="flex-1 p-6 overflow-y-auto">
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-lg">
-              Không có đơn hàng nào trong trạng thái "bắt đầu phục vụ"
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
             </div>
+            <h3 className="text-xl font-bold text-gray-600 mb-2">Không có món nào</h3>
+            <p className="text-gray-400">Chưa có đơn hàng nào sẵn sàng phục vụ</p>
           </div>
         </div>
       );
@@ -406,53 +514,69 @@ export function OrdersContent({
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="space-y-4">
-          {sortedOrders.map((order) => (
-            <Card
+          {sortedOrders.map((order, index) => (
+            <div
               key={order.id}
-              className={`hover:shadow-md transition-shadow duration-200 ${selectedIds && selectedIds.has(order.id) ? 'bg-gray-100 border border-gray-300' : ''} ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
+              className={`relative overflow-hidden bg-white rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
+                selectedIds && selectedIds.has(order.id) 
+                  ? 'border-emerald-500 shadow-emerald-200 ring-2 ring-emerald-200' 
+                  : 'border-gray-100 hover:border-emerald-300'
+              } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
             >
-              <CardHeader className="flex flex-row items-center gap-4">
-                {renderOrderImage(order)}
-                <div className="flex-1">
-                  {/* Primary Info: Title + Size + Quantity + Table on same line */}
-                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
+              {/* Left gradient accent bar */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(order.category)}`}></div>
+              
+              <div className="flex items-center gap-4 p-4 pl-5">
+                {/* Image with fixed size */}
+                <div className="relative flex-shrink-0">
+                  <img
+                    src={order.image}
+                    alt={order.itemName}
+                    className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-gray-100 shadow-lg"
+                    onError={handleImageError}
+                  />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  {/* Primary Info: Name + Size + Table on same line */}
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
                     {order.itemName}
                     {order.sizeName && (
-                      <span className="text-blue-600">
-                        {' '}({order.sizeName.charAt(0).toUpperCase()})
+                      <span className="ml-2 px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
+                        {order.sizeName.charAt(0).toUpperCase()}
                       </span>
                     )}
-                    {' '}x{order.quantity > 0 ? order.quantity : 1} - Bàn {order.tableNumber}
+                    <span className="text-gray-400 font-normal mx-2">-</span>
+                    <span className="text-base font-semibold text-gray-600">
+                      Bàn {order.tableNumber}: x{order.quantity > 0 ? order.quantity : 1}
+                    </span>
                   </h3>
                   
-                  {/* Secondary Info: Note & Toppings - More prominent */}
+                  {/* Note & Toppings */}
                   {order.note && (
-                    <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
+                    <div className="mt-2 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2 rounded-xl border border-amber-200">
                       <span className="font-semibold">Ghi chú:</span> {order.note}
                     </div>
                   )}
                   {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-2 text-sm text-green-700 bg-green-100 px-3 py-2 rounded-md border-l-4 border-green-500">
+                    <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-2 rounded-xl border border-emerald-200">
                       <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
                     </div>
                   )}
                   
-                  {/* Tertiary Info: Time & Date - Subtle */}
-                  <div className="flex items-center gap-3 mt-2.5">
-                    <div className="flex items-center gap-1 text-gray-500">
-                      {renderClockIcon()}
-                      <span className="text-xs">{order.estimatedTime}</span>
-                    </div>
+                  {/* Time badges */}
+                  <div className="flex items-center gap-3 mt-2">
+                    {renderTimeBadge(order.estimatedTime)}
                     {order.createdTime && (
-                      <div className="flex items-center gap-1 text-gray-400">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
                         {renderCalendarIcon()}
-                        <span className="text-xs">{order.createdTime}</span>
-                      </div>
+                        {order.createdTime}
+                      </span>
                     )}
                   </div>
                 </div>
-              </CardHeader>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -468,13 +592,28 @@ export function OrdersContent({
     );
     // Only consider selected orders for bulk actions
     const selectedSortedOrders = selectedIds ? sortedOrders.filter(order => selectedIds.has(order.id)) : [];
+    
+    // Get category accent color
+    const getCategoryGradient = (category?: string) => {
+      switch (category) {
+        case 'Đồ uống': return 'from-cyan-500 to-blue-500';
+        case 'Món chính': return 'from-orange-500 to-red-500';
+        case 'Tráng miệng': return 'from-pink-500 to-purple-500';
+        default: return 'from-gray-500 to-gray-600';
+      }
+    };
+    
     if (allOrders.length === 0) {
       return (
         <div className="flex-1 p-6 overflow-y-auto">
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-lg">
-              Không có món ăn nào được chọn
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
             </div>
+            <h3 className="text-xl font-bold text-gray-600 mb-2">Chưa có món được chọn</h3>
+            <p className="text-gray-400">Vui lòng chọn món từ danh sách bên trái</p>
           </div>
         </div>
       );
@@ -500,8 +639,6 @@ export function OrdersContent({
 
     return (
       <div className="flex-1 p-6 overflow-y-auto">
-        {/* Top bulk actions moved to header; keep bottom sticky button only */}
-
         <div className="space-y-4">
           {groupedByName.map(({ itemName, orders, displayNote, noteKey }) => {
             const first = orders[0];
@@ -518,59 +655,100 @@ export function OrdersContent({
               ordersByTable.get(tableNum)!.push(order);
             });
             
-            // Format: "Bàn 2: x2, Bàn 5: x1"
-            const tableInfo = Array.from(ordersByTable.entries())
-              .sort(([a], [b]) => a - b)
-              .map(([tableNum, tableOrders]) => `Bàn ${tableNum}: x${tableOrders.length}`)
-              .join(', ');
+            // Format table badges
+            const tableBadges = Array.from(ordersByTable.entries())
+              .sort(([a], [b]) => a - b);
             
             return (
-              <Card
+              <div
                 key={`${itemName}-${noteKey}`}
-                className={`hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''} ${anyAnimating ? 'animating-out' : ''}`}
+                className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
+                  groupSelected 
+                    ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
+                    : 'border-gray-100 hover:border-blue-300'
+                } ${anyAnimating ? 'animating-out' : ''}`}
+                onClick={() => onGroupClick(itemName)}
               >
-                <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
-                  {renderOrderImage(first)}
-                  <div className="flex-1">
-                    {/* Primary Info: Title + Size + Quantity + Tables */}
-                    <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
+                {/* Left gradient accent bar */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(first.category)}`}></div>
+                
+                <div className="flex items-center gap-4 p-4 pl-5">
+                  {/* Enhanced image */}
+                  <div className="relative flex-shrink-0">
+                    <img
+                      src={first.image}
+                      alt={first.itemName}
+                      className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-gray-100 shadow-lg"
+                      onError={handleImageError}
+                    />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    {/* Primary Info: Name + Size + Table info on same line */}
+                    <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
                       {itemName}
                       {first.sizeName && (
-                        <span className="text-blue-600">
-                          {' '}({first.sizeName.charAt(0).toUpperCase()})
+                        <span className="ml-2 px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
+                          {first.sizeName.charAt(0).toUpperCase()}
                         </span>
                       )}
-                      {' '}x{orders.length} - {tableInfo}
+                      <span className="text-gray-400 font-normal mx-2">-</span>
+                      {tableBadges.map(([tableNum, tableOrders], idx) => (
+                        <span key={tableNum} className="text-base font-semibold text-gray-600">
+                          {idx > 0 && <span className="text-gray-400">, </span>}
+                          Bàn {tableNum}: x{tableOrders.length}
+                        </span>
+                      ))}
                     </h3>
                     
-                    {/* Secondary Info: Note & Toppings - More prominent */}
+                    {/* Note */}
                     {displayNote && (
-                      <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
-                        <span className="font-semibold">Ghi chú:</span> {displayNote}
+                      <div className="mt-2 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2 rounded-xl border border-amber-200">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                          </svg>
+                          <span><span className="font-semibold">Ghi chú:</span> {displayNote}</span>
+                        </div>
                       </div>
                     )}
                     
-                    {/* Tertiary Info: Time & Date - Subtle */}
-                    <div className="flex items-center gap-3 mt-2.5">
-                      <div className="flex items-center gap-1 text-gray-500">
-                        {renderClockIcon()}
-                        <span className="text-xs">{first.estimatedTime}</span>
-                      </div>
+                    {/* Time badges */}
+                    <div className="flex items-center gap-3 mt-2">
+                      {renderTimeBadge(first.estimatedTime)}
                       {first.createdTime && (
-                        <div className="flex items-center gap-1 text-gray-400">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
                           {renderCalendarIcon()}
-                          <span className="text-xs">{first.createdTime}</span>
-                        </div>
+                          {first.createdTime}
+                        </span>
                       )}
                     </div>
                   </div>
-                </CardHeader>
-              </Card>
+                  
+                  {/* Selection indicator */}
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    groupSelected 
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg' 
+                      : 'bg-gray-100'
+                  }`}>
+                    {groupSelected ? (
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </div>
             );
           })}
         </div>
-        {/* Bottom sticky CTA to mirror the top bulk actions */}
-        <div className="sticky bottom-0 z-10 py-3 mt-6 flex justify-center">
+        
+        {/* Bottom sticky CTA with improved styling */}
+        <div className="sticky bottom-0 z-10 py-4 mt-6 flex justify-center">
           {activeTab === 'đang chờ' && selectedSortedOrders.length > 0 && onPrepareMultipleOrders && (
             <Button 
               onClick={() => onPrepareMultipleOrders(selectedSortedOrders.map(order => ({
@@ -579,9 +757,12 @@ export function OrdersContent({
                 id: order.id
               })))}
               size="lg"
-              className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white"
+              className="font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transform hover:scale-105 transition-all duration-300"
             >
-              Thực hiện ({selectedSortedOrders.length})
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Thực hiện ({selectedSortedOrders.length} món)
             </Button>
           )}
           {activeTab === 'đang thực hiện' && selectedSortedOrders.length > 0 && onServeMultipleOrders && (
@@ -592,15 +773,28 @@ export function OrdersContent({
                 id: order.id
               })))}
               size="lg"
-              className="font-semibold text-lg px-6 py-3 rounded-full shadow-lg bg-orange-600 hover:bg-orange-700 text-white"
+              className="font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white transform hover:scale-105 transition-all duration-300"
             >
-              Bắt đầu phục vụ ({selectedSortedOrders.length})
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Bắt đầu phục vụ ({selectedSortedOrders.length} món)
             </Button>
           )}
         </div>
       </div>
     );
   }
+
+  // Get category accent color
+  const getCategoryGradient = (category?: string) => {
+    switch (category) {
+      case 'Đồ uống': return 'from-cyan-500 to-blue-500';
+      case 'Món chính': return 'from-orange-500 to-red-500';
+      case 'Tráng miệng': return 'from-pink-500 to-purple-500';
+      default: return 'from-gray-500 to-gray-600';
+    }
+  };
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">
@@ -622,53 +816,88 @@ export function OrdersContent({
               ordersByTable.get(tableNum)!.push(order);
             });
             
-            // Format: "Bàn 2: x2, Bàn 5: x1"
-            const tableInfo = Array.from(ordersByTable.entries())
-              .sort(([a], [b]) => a - b)
-              .map(([tableNum, tableOrders]) => `Bàn ${tableNum}: x${tableOrders.length}`)
-              .join(', ');
+            // Format table badges
+            const tableBadges = Array.from(ordersByTable.entries())
+              .sort(([a], [b]) => a - b);
             
             return (
-              <Card key={`${itemName}-${noteKey}`} className={`cursor-pointer hover:shadow-md transition-shadow duration-200 ${groupSelected ? 'bg-gray-100 border border-gray-300' : ''} ${anyAnimating ? 'animating-out' : ''}`}>
-                <CardHeader className="flex flex-row items-center gap-4" onClick={() => onGroupClick(itemName)}>
-                  {renderOrderImage(representative)}
-                  <div className="flex-1">
-                    {/* Primary Info: Title + Size + Quantity + Tables */}
-                    <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
+              <div 
+                key={`${itemName}-${noteKey}`} 
+                className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
+                  groupSelected 
+                    ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
+                    : 'border-gray-100 hover:border-blue-300'
+                } ${anyAnimating ? 'animating-out' : ''}`}
+              >
+                {/* Left gradient accent bar */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(representative.category)}`}></div>
+                
+                <div className="flex items-center gap-4 p-4 pl-5" onClick={() => onGroupClick(itemName)}>
+                  {/* Enhanced image */}
+                  <div className="relative flex-shrink-0">
+                    <img
+                      src={representative.image}
+                      alt={representative.itemName}
+                      className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-gray-100 shadow-lg"
+                      onError={handleImageError}
+                    />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    {/* Primary Info: Name + Size + Table info on same line */}
+                    <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
                       {itemName}
                       {representative.sizeName && (
-                        <span className="text-blue-600">
-                          {' '}({representative.sizeName.charAt(0).toUpperCase()})
+                        <span className="ml-2 px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
+                          {representative.sizeName.charAt(0).toUpperCase()}
                         </span>
                       )}
-                      {' '}x{orders.length} - {tableInfo}
+                      <span className="text-gray-400 font-normal mx-2">-</span>
+                      {tableBadges.map(([tableNum, tableOrders], idx) => (
+                        <span key={tableNum} className="text-base font-semibold text-gray-600">
+                          {idx > 0 && <span className="text-gray-400">, </span>}
+                          Bàn {tableNum}: x{tableOrders.length}
+                        </span>
+                      ))}
                     </h3>
                     
-                    {/* Secondary Info: Note & Toppings - More prominent */}
+                    {/* Note & Toppings */}
                     {displayNote && (
-                      <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
-                        <span className="font-semibold">Ghi chú:</span> {displayNote}
+                      <div className="mt-2 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2 rounded-xl border border-amber-200">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                          </svg>
+                          <span><span className="font-semibold">Ghi chú:</span> {displayNote}</span>
+                        </div>
                       </div>
                     )}
                     {representative.toppings && representative.toppings.length > 0 && (
-                      <div className="mt-2 text-sm text-green-700 bg-green-100 px-3 py-2 rounded-md border-l-4 border-green-500">
-                        <span className="font-semibold">Toppings:</span> {representative.toppings.join(', ')}
+                      <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-2 rounded-xl border border-emerald-200">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                          </svg>
+                          <span><span className="font-semibold">Toppings:</span> {representative.toppings.join(', ')}</span>
+                        </div>
                       </div>
                     )}
                     
-                    {/* Tertiary Info: Time & Date - Subtle */}
-                    <div className="flex items-center gap-3 mt-2.5">
+                    {/* Time badges */}
+                    <div className="flex items-center gap-3 mt-2">
                       {renderTimeBadge(getGroupEstimatedTime(orders))}
                       {representative.createdTime && (
-                        <div className="flex items-center gap-1 text-gray-400">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
                           {renderCalendarIcon()}
-                          <span className="text-xs">{representative.createdTime}</span>
-                        </div>
+                          {representative.createdTime}
+                        </span>
                       )}
                     </div>
                   </div>
+                  
+                  {/* Action button with modern styling */}
                   {activeTab === 'đang chờ' && (
-                    <CardAction>
+                    <div className="flex-shrink-0">
                       <Button 
                         onClick={e => {
                           e.stopPropagation();
@@ -682,14 +911,17 @@ export function OrdersContent({
                             }
                           }
                         }}
-                        variant="default"
+                        className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl px-4 py-2"
                       >
+                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
                         Thực hiện
                       </Button>
-                    </CardAction>
+                    </div>
                   )}
-                </CardHeader>
-              </Card>
+                </div>
+              </div>
             );
           });
         })}

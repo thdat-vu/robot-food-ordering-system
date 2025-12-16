@@ -220,38 +220,81 @@ export function KitchenSidebar({
       className={`bg-gray-200 flex flex-col h-screen relative flex-shrink-0 ${className || ''}`}
     >
       {/* Fixed Header */}
-      <div className="flex-shrink-0 p-4 md:p-6 pb-3 md:pb-4">
-        <h2 className="text-lg md:text-xl font-bold text-gray-800">Danh mục món ăn</h2>
+      <div className="flex-shrink-0 p-4 md:p-6 pb-3 md:pb-4 bg-gradient-to-r from-blue-600 to-indigo-600">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
+            <IconList className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg md:text-xl font-bold text-white">Danh mục món ăn</h2>
+            <p className="text-sm text-white/70">Chọn món để thực hiện</p>
+          </div>
+        </div>
       </div>
       
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6">
         <div className="flex flex-col gap-4 md:gap-6">
           {/* Category Filters */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <h3 className="font-semibold mb-3 text-gray-700">Bộ lọc</h3>
+          <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                <IconList className="w-4 h-4 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-800">Bộ lọc danh mục</h3>
+            </div>
             <div className="flex flex-col gap-2">
               {categories.map(category => {
                 let IconComponent = IconList;
-                if (category.name === 'Đồ uống') IconComponent = IconCup;
-                else if (category.name === 'Món chính') IconComponent = IconSoup;
-                else if (category.name === 'Tráng miệng') IconComponent = IconIceCream;
+                let gradientClass = 'from-gray-500 to-gray-600';
+                let selectedBg = 'bg-gray-600';
+                
+                if (category.name === 'Đồ uống') {
+                  IconComponent = IconCup;
+                  gradientClass = 'from-cyan-500 to-blue-500';
+                  selectedBg = 'bg-gradient-to-r from-cyan-500 to-blue-500';
+                } else if (category.name === 'Món chính') {
+                  IconComponent = IconSoup;
+                  gradientClass = 'from-orange-500 to-red-500';
+                  selectedBg = 'bg-gradient-to-r from-orange-500 to-red-500';
+                } else if (category.name === 'Tráng miệng') {
+                  IconComponent = IconIceCream;
+                  gradientClass = 'from-pink-500 to-purple-500';
+                  selectedBg = 'bg-gradient-to-r from-pink-500 to-purple-500';
+                } else if (category.name === 'Tất cả') {
+                  gradientClass = 'from-blue-500 to-indigo-600';
+                  selectedBg = 'bg-gradient-to-r from-blue-500 to-indigo-600';
+                }
+                
+                const isSelected = selectedCategory === category.name;
+                const count = categoryCounts[category.name] ?? 0;
+                
                 return (
-                  <Button
+                  <button
                     key={category.id}
                     onClick={() => onCategorySelect(category.name)}
-                    variant="outline"
-                    size="sm"
-                    className="justify-between"
+                    className={`relative overflow-hidden flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-300 ${
+                      isSelected 
+                        ? `${selectedBg} text-white shadow-lg transform scale-[1.02]`
+                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700 hover:shadow-md'
+                    }`}
                   >
-                    <span className="flex items-center">
-                      <IconComponent className="mr-2 h-4 w-4" />
-                      {category.name}
+                    <span className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        isSelected ? 'bg-white/20' : `bg-gradient-to-r ${gradientClass}`
+                      }`}>
+                        <IconComponent className={`h-4 w-4 ${isSelected ? 'text-white' : 'text-white'}`} />
+                      </div>
+                      <span className="font-medium">{category.name}</span>
                     </span>
-                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-gray-200 text-gray-900">
-                      {categoryCounts[category.name] ?? 0}
+                    <span className={`inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 text-xs font-bold rounded-full ${
+                      isSelected 
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-gray-200 text-gray-700'
+                    }`}>
+                      {count}
                     </span>
-                  </Button>
+                  </button>
                 );
               })}
             </div>
@@ -364,12 +407,29 @@ export function KitchenSidebar({
                   const isSelected = isGroupSelected(group.selectionItems);
                   const isInMultipleSelection = isGroupInMultipleSelection(group.selectionItems);
                   const totalQuantity = group.orders.length;
+                  
+                  // Get category color for accent
+                  const getCategoryAccent = (category: string) => {
+                    switch (category) {
+                      case 'Đồ uống':
+                        return { bg: 'from-cyan-500 to-blue-500', badge: 'bg-cyan-100 text-cyan-700 border-cyan-200' };
+                      case 'Món chính':
+                        return { bg: 'from-orange-500 to-red-500', badge: 'bg-orange-100 text-orange-700 border-orange-200' };
+                      case 'Tráng miệng':
+                        return { bg: 'from-pink-500 to-purple-500', badge: 'bg-pink-100 text-pink-700 border-pink-200' };
+                      default:
+                        return { bg: 'from-gray-500 to-gray-600', badge: 'bg-gray-100 text-gray-700 border-gray-200' };
+                    }
+                  };
+                  const categoryAccent = getCategoryAccent(group.category);
 
                   return (
                     <div
                       key={`sidebar-group-${group.groupKey}-${groupIdx}`}
-                      className={`bg-gray-100 rounded-xl shadow p-2.5 md:p-3 cursor-pointer transition-all duration-200 ${
-                        isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                      className={`relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-[1.02] border-2 ${
+                        isInMultipleSelection 
+                          ? 'border-blue-500 ring-2 ring-blue-200 shadow-blue-100' 
+                          : 'border-transparent hover:border-blue-300'
                       }`}
                       onClick={() => {
                         onGroupSelection(group.selectionItems);
@@ -389,48 +449,77 @@ export function KitchenSidebar({
                         }
                       }}
                     >
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          checked={isInMultipleSelection}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              onMultipleGroupSelection([...(selectedGroups || []), group.selectionItems]);
-                            } else {
-                              const newSelectedGroups = (selectedGroups || []).filter(selectedGroup => {
-                                if (selectedGroup.length !== group.selectionItems.length) return true;
-                                return !selectedGroup.every((item, index) => 
-                                  item.itemName === group.selectionItems[index].itemName &&
-                                  item.tableNumber === group.selectionItems[index].tableNumber &&
-                                  item.id === group.selectionItems[index].id
-                                );
-                              });
-                              onMultipleGroupSelection(newSelectedGroups);
-                            }
-                          }}
-                          onClick={(e) => handleCheckboxClick(e, group.selectionItems)}
-                          className="size-5 md:size-6 border-2 border-blue-600 text-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:ring-2 data-[state=checked]:ring-blue-200 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm"
-                          aria-label="Chọn nhóm"
-                        />
-                        <div className="flex-1 bg-white rounded-lg px-3 py-2 shadow-sm">
-                          <p className="text-sm font-semibold text-gray-800 leading-tight">
-                            {group.itemName}
-                            {group.sizeName && (
-                              <span className="text-blue-600 ml-1">
-                                ({group.sizeName.charAt(0).toUpperCase()})
+                      {/* Top gradient accent bar */}
+                      <div className={`h-1.5 bg-gradient-to-r ${categoryAccent.bg}`}></div>
+                      
+                      <div className="p-3 md:p-4">
+                        <div className="flex items-center gap-3">
+                          {/* Checkbox with improved styling */}
+                          <div className="flex-shrink-0">
+                            <Checkbox
+                              checked={isInMultipleSelection}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  onMultipleGroupSelection([...(selectedGroups || []), group.selectionItems]);
+                                } else {
+                                  const newSelectedGroups = (selectedGroups || []).filter(selectedGroup => {
+                                    if (selectedGroup.length !== group.selectionItems.length) return true;
+                                    return !selectedGroup.every((item, index) => 
+                                      item.itemName === group.selectionItems[index].itemName &&
+                                      item.tableNumber === group.selectionItems[index].tableNumber &&
+                                      item.id === group.selectionItems[index].id
+                                    );
+                                  });
+                                  onMultipleGroupSelection(newSelectedGroups);
+                                }
+                              }}
+                              onClick={(e) => handleCheckboxClick(e, group.selectionItems)}
+                              className="size-6 md:size-7 rounded-lg border-2 border-blue-500 text-blue-600 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-600 data-[state=checked]:border-blue-600 data-[state=checked]:ring-2 data-[state=checked]:ring-blue-200 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm transition-all duration-200"
+                              aria-label="Chọn nhóm"
+                            />
+                          </div>
+                          
+                          {/* Content area */}
+                          <div className="flex-1 min-w-0">
+                            {/* Item name */}
+                            <h4 className="font-bold text-gray-900 text-base leading-tight truncate">
+                              {group.itemName}
+                            </h4>
+                            
+                            {/* Badges row */}
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              {/* Size badge */}
+                              {group.sizeName && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                                  Size {group.sizeName.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                              
+                              {/* Quantity badge */}
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${categoryAccent.badge} border`}>
+                                x{totalQuantity}
                               </span>
-                            )}
-                            <span className="ml-2 text-gray-600 font-medium">
-                              x{totalQuantity}
-                            </span>
-                            {group.hasVariations && (
-                              <span className="ml-2 inline-flex items-center gap-1 text-xs text-orange-600 font-medium">
-                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                                </svg>
-                                Có ghi chú
-                              </span>
-                            )}
-                          </p>
+                              
+                              {/* Note indicator */}
+                              {group.hasVariations && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                                  </svg>
+                                  Ghi chú
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Arrow indicator */}
+                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
+                            isInMultipleSelection ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+                          }`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
                         </div>
                       </div>
                     </div>
