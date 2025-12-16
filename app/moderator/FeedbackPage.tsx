@@ -13,7 +13,7 @@ import {
   Send,
   Lightbulb,
 } from "lucide-react";
-import { FeedbackgGetTableId, dto } from "@/entites/moderator/FeedbackModole";
+import { FeedbackgGetTableId } from "@/entites/moderator/FeedbackModole";
 import { CheckSS } from "@/api/moderator/FeedbackApi";
 import {
   useCheckSS,
@@ -360,9 +360,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
       searchQuery === "" ||
       item.feedBack.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.complainId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.dtos.some((dto) =>
-        dto.orderItemName.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      item.idTable.toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesFilter && matchesSearch;
   });
@@ -722,89 +720,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                         </div>
 
                         {/* Related Dishes */}
-                        {feedback.dtos && feedback.dtos.length > 0 && (
-                          <div className="mb-4">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Package className="w-4 h-4 text-gray-600" />
-                              <h4 className="text-base font-semibold text-gray-700">
-                                Món ăn liên quan ({feedback.dtos.length})
-                              </h4>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                              {(() => {
-                                const groupedItems = feedback.dtos.reduce(
-                                  (
-                                    acc: {
-                                      [key: string]: {
-                                        item: dto;
-                                        count: number;
-                                      };
-                                    },
-                                    item: dto
-                                  ) => {
-                                    if (acc[item.orderItemName]) {
-                                      acc[item.orderItemName].count++;
-                                    } else {
-                                      acc[item.orderItemName] = {
-                                        item,
-                                        count: 1,
-                                      };
-                                    }
-                                    return acc;
-                                  },
-                                  {}
-                                );
-
-                                return Object.values(groupedItems).map(
-                                  ({ item, count }) => {
-                                    const statusInfo = getStatusInfo(
-                                      item.status
-                                    );
-
-                                    return (
-                                      <div
-                                        key={item.orderItemId}
-                                        className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
-                                      >
-                                        <div className="flex items-center space-x-3">
-                                          {item.imageUrl && (
-                                            <img
-                                              src={item.imageUrl}
-                                              alt={item.orderItemName}
-                                              className="w-12 h-12 rounded-lg object-cover border border-gray-200"
-                                            />
-                                          )}
-                                          <div className="flex-1 min-w-0">
-                                            <h5 className="font-semibold text-gray-800 text-sm mb-1">
-                                              <span
-                                                dangerouslySetInnerHTML={{
-                                                  __html: highlightSearchText(
-                                                    item.orderItemName,
-                                                    searchQuery
-                                                  ),
-                                                }}
-                                              />
-                                              {count > 1 && (
-                                                <span className="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
-                                                  x{count}
-                                                </span>
-                                              )}
-                                            </h5>
-                                            <div
-                                              className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}
-                                            >
-                                              <span>{statusInfo.label}</span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                );
-                              })()}
-                            </div>
-                          </div>
-                        )}
 
                         {/* Feedback Content */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
