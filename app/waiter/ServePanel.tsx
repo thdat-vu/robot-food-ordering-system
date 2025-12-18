@@ -267,14 +267,56 @@ const ServePanel: React.FC<ServePanelProps> = ({
     return sequence;
   }, [allSelectedDishes]);
 
+  // Robot table sequence: Prioritize by OLDEST ORDER TIME, then optimize by row/position
   const robotTableSequence = React.useMemo(() => {
+    // Get the oldest order time for each selected table
+    const tableOldestOrderTime = new Map<number, number>();
+    
+    allSelectedDishes.forEach((dish) => {
+      const tableNum = dish.tableNumber;
+      // Parse DD/MM/YYYY HH:mm:ss format or ISO format
+      let orderTimeMs = Number.MAX_SAFE_INTEGER;
+      if (dish.orderTime) {
+        const ddmmyyyyMatch = dish.orderTime.match(
+          /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/
+        );
+        if (ddmmyyyyMatch) {
+          const [, day, month, year, hours, minutes, seconds] = ddmmyyyyMatch;
+          orderTimeMs = new Date(
+            parseInt(year, 10),
+            parseInt(month, 10) - 1,
+            parseInt(day, 10),
+            parseInt(hours, 10),
+            parseInt(minutes, 10),
+            parseInt(seconds, 10)
+          ).getTime();
+        } else {
+          const parsed = new Date(dish.orderTime).getTime();
+          if (!isNaN(parsed)) orderTimeMs = parsed;
+        }
+      }
+      
+      const current = tableOldestOrderTime.get(tableNum);
+      if (current === undefined || orderTimeMs < current) {
+        tableOldestOrderTime.set(tableNum, orderTimeMs);
+      }
+    });
+
     return [...tableNumbersByStatus.selected].sort((a, b) => {
+      // 1. Primary sort: by oldest order time (FIFO - serve older orders first)
+      const timeA = tableOldestOrderTime.get(a) ?? Number.MAX_SAFE_INTEGER;
+      const timeB = tableOldestOrderTime.get(b) ?? Number.MAX_SAFE_INTEGER;
+      if (timeA !== timeB) return timeA - timeB;
+      
+      // 2. Secondary sort: by row (group tables in same row together)
       const rowA = Math.floor((a - 1) / 5);
       const rowB = Math.floor((b - 1) / 5);
       if (rowA !== rowB) return rowA - rowB;
+      
+      // 3. Tertiary sort: by table number within the same row
       return a - b;
     });
-  }, [tableNumbersByStatus.selected]);
+  }, [tableNumbersByStatus.selected, allSelectedDishes]);
 
   // Generate map URL with table statuses
   const mapUrl = React.useMemo(() => {
