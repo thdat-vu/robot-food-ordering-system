@@ -86,6 +86,67 @@ interface TableGroup {
     firstOrderTime?: string;
 }
 
+interface TableCluster {
+    tables: number[];
+    tableGroups: TableGroup[];
+    totalDishes: number;
+    selectedDishes: number;
+}
+
+// Detect clusters of adjacent tables (same logic as RestaurantMap)
+const TABLE_POSITIONS: Record<number, { x: number; y: number }> = {
+    1: { x: 250, y: 160 }, 2: { x: 410, y: 160 }, 3: { x: 570, y: 160 }, 4: { x: 730, y: 160 }, 5: { x: 890, y: 160 },
+    6: { x: 250, y: 280 }, 7: { x: 410, y: 280 }, 8: { x: 570, y: 280 }, 9: { x: 730, y: 280 }, 10: { x: 890, y: 280 },
+    11: { x: 250, y: 400 }, 12: { x: 410, y: 400 }, 13: { x: 570, y: 400 }, 14: { x: 730, y: 400 }, 15: { x: 890, y: 400 },
+    16: { x: 250, y: 520 }, 17: { x: 410, y: 520 }, 18: { x: 570, y: 520 }, 19: { x: 730, y: 520 }, 20: { x: 890, y: 520 },
+};
+
+const areTablesAdjacent = (id1: number, id2: number): boolean => {
+    const pos1 = TABLE_POSITIONS[id1];
+    const pos2 = TABLE_POSITIONS[id2];
+    if (!pos1 || !pos2) return false;
+    // Same row, adjacent columns (160 pixels apart)
+    if (pos1.y === pos2.y && Math.abs(pos1.x - pos2.x) === 160) return true;
+    // Same column, adjacent rows (120 pixels apart)
+    if (pos1.x === pos2.x && Math.abs(pos1.y - pos2.y) === 120) return true;
+    return false;
+};
+
+const detectTableClusters = (tableNumbers: number[]): number[][] => {
+    if (tableNumbers.length === 0) return [];
+    
+    const visited = new Set<number>();
+    const clusters: number[][] = [];
+    
+    const findCluster = (startId: number): number[] => {
+        const cluster: number[] = [];
+        const queue: number[] = [startId];
+        visited.add(startId);
+        
+        while (queue.length > 0) {
+            const currentId = queue.shift()!;
+            cluster.push(currentId);
+            
+            for (const otherId of tableNumbers) {
+                if (!visited.has(otherId) && areTablesAdjacent(currentId, otherId)) {
+                    visited.add(otherId);
+                    queue.push(otherId);
+                }
+            }
+        }
+        
+        return cluster.sort((a, b) => a - b);
+    };
+    
+    for (const tableId of tableNumbers) {
+        if (!visited.has(tableId)) {
+            clusters.push(findCluster(tableId));
+        }
+    }
+    
+    return clusters;
+};
+
 const REMAKE_SUGGESTIONS: string[] = [
     "Món ăn quá mặn",
     "Món ăn quá nhạt",
@@ -349,6 +410,62 @@ const DishList: React.FC<DishListProps> = ({
         }
         return baseTableGroups;
     }, [baseTableGroups, viewMode, searchQuery]);
+
+    // Group tables into clusters for "byTable" view
+    const tableClusters = useMemo<TableCluster[]>(() => {
+        const tableNumbers = tableGroups.map(g => g.tableNumber);
+        const clusterArrays = detectTableClusters(tableNumbers);
+        
+        return clusterArrays.map(clusterTables => {
+            const clusterGroups = clusterTables
+                .map(tableNum => tableGroups.find(g => g.tableNumber === tableNum))
+                .filter((g): g is TableGroup => g !== undefined);
+            
+            return {
+                tables: clusterTables,
+                tableGroups: clusterGroups,
+                totalDishes: clusterGroups.reduce((sum, g) => sum + g.totalCount, 0),
+                selectedDishes: clusterGroups.reduce((sum, g) => sum + g.selectedCount, 0),
+            };
+        });
+    }, [tableGroups]);
+
+    // Toggle all dishes in a cluster
+    const toggleClusterSelection = (clusterTables: number[]) => {
+        const clusterDishes = dishesForTab.filter(d => clusterTables.includes(d.tableNumber));
+        const allSelected = clusterDishes.every(d => d.selected);
+        
+        if (allSelected) {
+            // Deselect all
+            clusterDishes.filter(d => d.selected).forEach(d => safeToggle(d.id));
+            toast.info(`Đã bỏ chọn cụm bàn ${clusterTables.join(", ")}`);
+        } else {
+            // Select all unselected
+            const unselected = clusterDishes.filter(d => !d.selected);
+            
+            // Check robot limit
+            if (useRobotDelivery && activeTab === "bắt đầu phục vụ") {
+                const unselectedQuantity = unselected.reduce((sum, d) => sum + (d.quantity || 1), 0);
+                if (selectedCount + unselectedQuantity > robotTrayLimit) {
+                    toast.error(`🤖 Vượt quá giới hạn robot (${robotTrayLimit} món)`);
+                    return;
+                }
+            }
+            
+            unselected.forEach(d => safeToggle(d.id));
+            toast.success(`Đã chọn cụm bàn ${clusterTables.join(", ")}`);
+        }
+    };
+
+    // Get cluster selection status
+    const getClusterSelectionStatus = (clusterTables: number[]): "none" | "partial" | "all" => {
+        const clusterDishes = dishesForTab.filter(d => clusterTables.includes(d.tableNumber));
+        const selectedCount = clusterDishes.filter(d => d.selected).length;
+        
+        if (selectedCount === 0) return "none";
+        if (selectedCount === clusterDishes.length) return "all";
+        return "partial";
+    };
 
     const viewTabs = useMemo(
         () => [
@@ -758,152 +875,198 @@ const DishList: React.FC<DishListProps> = ({
                     })}
 
                 {filteredDishes.length > 0 && viewMode === "byTable" &&
-                    tableGroups.map((group) => {
-                        const tableSelectionStatus = getTableSelectionStatus(group.tableNumber);
-                        const checkboxState =
-                            tableSelectionStatus === "all"
-                                ? true
-                                : tableSelectionStatus === "partial"
-                                    ? "indeterminate"
-                                    : false;
-                        const isExpanded = expandedTables.has(group.tableNumber);
+                    tableClusters.map((cluster, clusterIndex) => {
+                        const isMultiTableCluster = cluster.tables.length > 1;
+                        const clusterStatus = getClusterSelectionStatus(cluster.tables);
+                        const clusterCheckboxState = clusterStatus === "all" ? true : clusterStatus === "partial" ? "indeterminate" : false;
 
                         return (
-                            <div
-                                key={group.tableNumber}
-                                className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
-                            >
-                                <div className="px-4 py-3 flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <Checkbox
-                                            checked={checkboxState}
-                                            onCheckedChange={() => toggleTableSelection(group.tableNumber)}
-                                            className="size-5 border-2 border-blue-600 data-[state=checked]:bg-blue-600"
-                                        />
-                                        <div>
-                                            <div className="text-sm font-semibold text-gray-900">
-                                                Bàn {group.tableNumber}
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                                {group.totalCount} món · {group.selectedCount} món đã chọn
+                            <div key={`cluster-${clusterIndex}`} className="space-y-3">
+                                {/* Cluster Header - only show for multi-table clusters */}
+                                {isMultiTableCluster && (
+                                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-300 p-3 shadow-sm">
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                checked={clusterCheckboxState}
+                                                onCheckedChange={() => toggleClusterSelection(cluster.tables)}
+                                                className="size-5 shrink-0 border-2 border-purple-600 data-[state=checked]:bg-purple-600"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-sm font-bold text-purple-900 truncate">
+                                                        Cụm {cluster.tables.join("+")}
+                                                    </span>
+                                                    {clusterStatus === "all" && (
+                                                        <span className="text-[10px] bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap shrink-0">
+                                                            ✓ Chọn
+                                                        </span>
+                                                    )}
+                                                    {clusterStatus === "partial" && (
+                                                        <span className="text-[10px] bg-orange-200 text-orange-800 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap shrink-0">
+                                                            1 phần
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-purple-700">
+                                                    {cluster.totalDishes} món · {cluster.selectedDishes} chọn
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <button
-                                        type="button"
-                                        className="flex items-center justify-center h-8 w-8 rounded-full border border-gray-200 hover:bg-gray-100"
-                                        onClick={() => toggleTableExpansion(group.tableNumber)}
-                                        aria-label={isExpanded ? "Thu gọn" : "Mở rộng"}
-                                    >
-                                        {isExpanded ? (
-                                            <ChevronDown className="w-4 h-4" />
-                                        ) : (
-                                            <ChevronRight className="w-4 h-4" />
-                                        )}
-                                    </button>
-                                </div>
-                                {isExpanded && (
-                                    <div className="px-4 pb-4 space-y-3">
-                                        {group.dishes.map((dish) => {
-                                            const style = getCategoryStyle(dish.categoryName || "Khác");
-                                            const tableStatus = getTableSelectionStatus(dish.tableNumber);
-                                            const isTablePartiallySelected = tableStatus === "partial";
-                                            const isTableFullySelected = tableStatus === "all";
-                                            const isRobotLimitReached =
-                                                useRobotDelivery &&
-                                                activeTab === "bắt đầu phục vụ" &&
-                                                selectedCount >= robotTrayLimit;
-                                            const cannotSelectDish = !dish.selected && isRobotLimitReached;
-
-                                            return (
-                                                <div
-                                                    key={dish.id}
-                                                    className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} ${
-                                                        cannotSelectDish
-                                                            ? "opacity-50 cursor-not-allowed"
-                                                            : "cursor-pointer transition-all hover:bg-accent"
-                                                    } ${
-                                                        dish.selected
-                                                            ? "ring-2 ring-green-500 ring-offset-2 bg-green-50 border-green-300"
-                                                            : isTablePartiallySelected
-                                                                ? "ring-1 ring-yellow-400 ring-offset-1 bg-yellow-50 border-yellow-200"
-                                                                : cannotSelectDish
-                                                                    ? "bg-gray-100 border-gray-300"
-                                                                    : ""
-                                                    }`}
-                                                    onClick={() => !cannotSelectDish && handleDishClick(dish)}
-                                                    title={
-                                                        cannotSelectDish
-                                                            ? "🤖 Đã đạt giới hạn robot (3 món)"
-                                                            : undefined
-                                                    }
-                                                >
-                                                    <div
-                                                        className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${
-                                                            cannotSelectDish
-                                                                ? "cursor-not-allowed bg-gray-200 border-gray-400"
-                                                                : "cursor-pointer"
-                                                        } transition-colors ${
-                                                            dish.selected
-                                                                ? "bg-green-500 border-green-700"
-                                                                : isTablePartiallySelected
-                                                                    ? "bg-yellow-200 border-yellow-400"
-                                                                    : cannotSelectDish
-                                                                        ? "bg-gray-200 border-gray-400"
-                                                                        : "bg-white border-gray-300 hover:border-gray-400"
-                                                        }`}
-                                                        onClick={(e) => !cannotSelectDish && handleIndividualToggle(dish, e)}
-                                                    >
-                                                        {dish.selected && (
-                                                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path
-                                                                    fillRule="evenodd"
-                                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                                    clipRule="evenodd"
-                                                                />
-                                                            </svg>
-                                                        )}
-                                                        {isTablePartiallySelected && !dish.selected && (
-                                                            <div className="w-3 h-3 bg-yellow-600 rounded-full"></div>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="text-sm font-medium text-foreground">
-                                                                {dish.name} - Bàn {dish.tableNumber}{" "}
-                                                                {dish.quantity > 1 && `(${dish.quantity})`}
-                                                            </div>
-                                                            {isTableFullySelected && (
-                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                                                    Toàn bàn
-                                                                </span>
-                                                            )}
-                                                            {isTablePartiallySelected && (
-                                                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                                                                    Một phần
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        {dish.orderTime && (
-                                                            <div className="text-xs text-muted-foreground">Đặt lúc: {dish.orderTime}</div>
-                                                        )}
-                                                        {dish.note && (
-                                                            <div className="text-xs text-orange-600 mt-1">Ghi chú: {dish.note}</div>
-                                                        )}
-                                                        {dish.sizeName && (
-                                                            <div className="text-xs text-blue-600">Size: {dish.sizeName}</div>
-                                                        )}
-                                                        {dish.toppings && dish.toppings.length > 0 && (
-                                                            <div className="text-xs text-purple-600">
-                                                                Toppings: {dish.toppings.join(", ")}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
                                 )}
+
+                                {/* Tables in this cluster */}
+                                <div className={isMultiTableCluster ? "pl-4 space-y-3 border-l-4 border-purple-200" : "space-y-3"}>
+                                    {cluster.tableGroups.map((group) => {
+                                        const tableSelectionStatus = getTableSelectionStatus(group.tableNumber);
+                                        const checkboxState =
+                                            tableSelectionStatus === "all"
+                                                ? true
+                                                : tableSelectionStatus === "partial"
+                                                    ? "indeterminate"
+                                                    : false;
+                                        const isExpanded = expandedTables.has(group.tableNumber);
+
+                                        return (
+                                            <div
+                                                key={group.tableNumber}
+                                                className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+                                            >
+                                                <div className="px-4 py-3 flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <Checkbox
+                                                            checked={checkboxState}
+                                                            onCheckedChange={() => toggleTableSelection(group.tableNumber)}
+                                                            className="size-5 border-2 border-blue-600 data-[state=checked]:bg-blue-600"
+                                                        />
+                                                        <div>
+                                                            <div className="text-sm font-semibold text-gray-900">
+                                                                Bàn {group.tableNumber}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">
+                                                                {group.totalCount} món · {group.selectedCount} món đã chọn
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="flex items-center justify-center h-8 w-8 rounded-full border border-gray-200 hover:bg-gray-100"
+                                                        onClick={() => toggleTableExpansion(group.tableNumber)}
+                                                        aria-label={isExpanded ? "Thu gọn" : "Mở rộng"}
+                                                    >
+                                                        {isExpanded ? (
+                                                            <ChevronDown className="w-4 h-4" />
+                                                        ) : (
+                                                            <ChevronRight className="w-4 h-4" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                {isExpanded && (
+                                                    <div className="px-4 pb-4 space-y-3">
+                                                        {group.dishes.map((dish) => {
+                                                            const style = getCategoryStyle(dish.categoryName || "Khác");
+                                                            const tableStatus = getTableSelectionStatus(dish.tableNumber);
+                                                            const isTablePartiallySelected = tableStatus === "partial";
+                                                            const isTableFullySelected = tableStatus === "all";
+                                                            const isRobotLimitReached =
+                                                                useRobotDelivery &&
+                                                                activeTab === "bắt đầu phục vụ" &&
+                                                                selectedCount >= robotTrayLimit;
+                                                            const cannotSelectDish = !dish.selected && isRobotLimitReached;
+
+                                                            return (
+                                                                <div
+                                                                    key={dish.id}
+                                                                    className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} ${
+                                                                        cannotSelectDish
+                                                                            ? "opacity-50 cursor-not-allowed"
+                                                                            : "cursor-pointer transition-all hover:bg-accent"
+                                                                    } ${
+                                                                        dish.selected
+                                                                            ? "ring-2 ring-green-500 ring-offset-2 bg-green-50 border-green-300"
+                                                                            : isTablePartiallySelected
+                                                                                ? "ring-1 ring-yellow-400 ring-offset-1 bg-yellow-50 border-yellow-200"
+                                                                                : cannotSelectDish
+                                                                                    ? "bg-gray-100 border-gray-300"
+                                                                                    : ""
+                                                                    }`}
+                                                                    onClick={() => !cannotSelectDish && handleDishClick(dish)}
+                                                                    title={
+                                                                        cannotSelectDish
+                                                                            ? "🤖 Đã đạt giới hạn robot (3 món)"
+                                                                            : undefined
+                                                                    }
+                                                                >
+                                                                    <div
+                                                                        className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${
+                                                                            cannotSelectDish
+                                                                                ? "cursor-not-allowed bg-gray-200 border-gray-400"
+                                                                                : "cursor-pointer"
+                                                                        } transition-colors ${
+                                                                            dish.selected
+                                                                                ? "bg-green-500 border-green-700"
+                                                                                : isTablePartiallySelected
+                                                                                    ? "bg-yellow-200 border-yellow-400"
+                                                                                    : cannotSelectDish
+                                                                                        ? "bg-gray-200 border-gray-400"
+                                                                                        : "bg-white border-gray-300 hover:border-gray-400"
+                                                                        }`}
+                                                                        onClick={(e) => !cannotSelectDish && handleIndividualToggle(dish, e)}
+                                                                    >
+                                                                        {dish.selected && (
+                                                                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path
+                                                                                    fillRule="evenodd"
+                                                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                                                    clipRule="evenodd"
+                                                                                />
+                                                                            </svg>
+                                                                        )}
+                                                                        {isTablePartiallySelected && !dish.selected && (
+                                                                            <div className="w-3 h-3 bg-yellow-600 rounded-full"></div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="text-sm font-medium text-foreground">
+                                                                                {dish.name} - Bàn {dish.tableNumber}{" "}
+                                                                                {dish.quantity > 1 && `(${dish.quantity})`}
+                                                                            </div>
+                                                                            {isTableFullySelected && (
+                                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                                                                    Toàn bàn
+                                                                                </span>
+                                                                            )}
+                                                                            {isTablePartiallySelected && (
+                                                                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                                                                                    Một phần
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        {dish.orderTime && (
+                                                                            <div className="text-xs text-muted-foreground">Đặt lúc: {dish.orderTime}</div>
+                                                                        )}
+                                                                        {dish.note && (
+                                                                            <div className="text-xs text-orange-600 mt-1">Ghi chú: {dish.note}</div>
+                                                                        )}
+                                                                        {dish.sizeName && (
+                                                                            <div className="text-xs text-blue-600">Size: {dish.sizeName}</div>
+                                                                        )}
+                                                                        {dish.toppings && dish.toppings.length > 0 && (
+                                                                            <div className="text-xs text-purple-600">
+                                                                                Toppings: {dish.toppings.join(", ")}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         );
                     })}

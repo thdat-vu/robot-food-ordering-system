@@ -16,7 +16,7 @@ const TAB_ORDER: OrderStatus[] = [
   // "đang thực hiện", // Commented out per requirement
   "bắt đầu phục vụ",
   "phục vụ nhanh",
-  "yêu cầu làm lại",
+  // "yêu cầu làm lại", // Hidden per requirement
   "đã phục vụ",
 ];
 
@@ -80,7 +80,7 @@ export function NavigationTabs({
           <div className="relative">
             <input
               type="text"
-              placeholder="Tìm món ăn..."
+              placeholder="Tìm món ăn hoặc bàn..."
               value={searchQuery}
               onChange={(e) => onSearchChange?.(e.target.value)}
               className="w-64 px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"

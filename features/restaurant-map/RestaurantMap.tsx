@@ -254,6 +254,30 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
     return tablesWithDishes;
   }, [dishes, activeTab]);
 
+  // Detect clusters of SELECTABLE tables (for cluster checkbox feature)
+  const selectableClusters = useMemo(() => {
+    const selectableArray = Array.from(selectableTables);
+    return detectClusters(selectableArray).filter(cluster => cluster.tables.length > 1);
+  }, [selectableTables]);
+
+  // Check if all tables in a cluster are selected
+  const isClusterFullySelected = (clusterTables: number[]): boolean => {
+    return clusterTables.every(tableId => selectedTables.includes(tableId));
+  };
+
+  // Check if any table in a cluster is selected
+  const isClusterPartiallySelected = (clusterTables: number[]): boolean => {
+    return clusterTables.some(tableId => selectedTables.includes(tableId)) && 
+           !isClusterFullySelected(clusterTables);
+  };
+
+  // Handle cluster checkbox click
+  const handleClusterCheckboxClick = (clusterTables: number[]) => {
+    if (onTableSelect) {
+      onTableSelect(clusterTables);
+    }
+  };
+
   // Calculate table stats
   const tableStats = useMemo(() => {
     const stats: Record<number, {
@@ -367,15 +391,73 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
           />
         </div>
 
+        {/* Highlight areas for ready table clusters */}
         {readyClusters.map((cluster, index) => (
           <HighlightArea
-            key={`cluster-${index}`}
+            key={`ready-cluster-${index}`}
             x={cluster.boundingBox.x}
             y={cluster.boundingBox.y}
             width={cluster.boundingBox.width}
             height={cluster.boundingBox.height}
           />
         ))}
+
+        {/* Cluster checkboxes for selectable clusters with 2+ tables */}
+        {selectableClusters.map((cluster, index) => {
+          const isFullySelected = isClusterFullySelected(cluster.tables);
+          const isPartiallySelected = isClusterPartiallySelected(cluster.tables);
+          const sortedTables = [...cluster.tables].sort((a, b) => a - b);
+          const clusterLabel = `Bàn ${sortedTables.join(", ")}`;
+          
+          return (
+            <div
+              key={`cluster-checkbox-${index}`}
+              className="absolute z-30"
+              style={{
+                left: cluster.boundingBox.x,
+                top: cluster.boundingBox.y - cluster.boundingBox.height / 2 - 20,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg cursor-pointer transition-all duration-200 ${
+                  isFullySelected
+                    ? "bg-red-500 text-white hover:bg-red-600"
+                    : isPartiallySelected
+                    ? "bg-orange-400 text-white hover:bg-orange-500"
+                    : "bg-white text-gray-700 hover:bg-blue-50 border border-gray-300"
+                }`}
+                onClick={() => handleClusterCheckboxClick(cluster.tables)}
+                title={isFullySelected ? "Bỏ chọn cả cụm" : "Chọn tất cả bàn trong cụm"}
+              >
+                {/* Checkbox icon */}
+                <div
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                    isFullySelected
+                      ? "bg-white border-white text-red-500"
+                      : isPartiallySelected
+                      ? "bg-white border-white text-orange-500"
+                      : "bg-white border-gray-400"
+                  }`}
+                >
+                  {isFullySelected && (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {isPartiallySelected && (
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                      <rect x="4" y="11" width="16" height="2" />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-xs font-semibold whitespace-nowrap">
+                  Chọn cụm ({cluster.tables.length} bàn)
+                </span>
+              </div>
+            </div>
+          );
+        })}
 
         <Staff position={staffPosition} isRobotMode={isRobotMode} />
 
