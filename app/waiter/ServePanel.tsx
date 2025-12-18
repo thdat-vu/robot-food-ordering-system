@@ -24,6 +24,7 @@ interface ServePanelProps {
   robotTrayLimit: number; // Max dishes for robot (3 trays)
   onToggleRobotMode: (enabled: boolean) => void; // Toggle robot mode
   tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
+  onTableSelect?: (tableNumbers: number[]) => void; // Select dishes by clicking on table in map
 }
 
 /* Legacy MapPanel with iframe embed is kept for reference.
@@ -41,6 +42,8 @@ interface MapPanelProps {
   legacyMapUrl: string | null;
   dishes?: WaiterDish[];
   tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
+  onTableSelect?: (tableNumbers: number[]) => void; // Select dishes by clicking on table
+  activeTab?: string; // Current tab for filtering selectable tables
 }
 
 const MapPanel = ({
@@ -52,6 +55,8 @@ const MapPanel = ({
   legacyMapUrl,
   dishes = [],
   tableLastUpdateTimes = {},
+  onTableSelect,
+  activeTab = "bắt đầu phục vụ",
 }: MapPanelProps) => {
   const [showMap, setShowMap] = useState(false);
 
@@ -105,6 +110,8 @@ const MapPanel = ({
             isRobotMode={isRobotMode}
             dishes={dishes}
             tableLastUpdateTimes={tableLastUpdateTimes}
+            onTableSelect={onTableSelect}
+            activeTab={activeTab}
           />
 
           {/* Legacy iframe embed kept for fallback reference */}
@@ -153,6 +160,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   robotTrayLimit,
   onToggleRobotMode,
   tableLastUpdateTimes = {},
+  onTableSelect,
 }) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   // Remake action is now handled in the left sidebar (DishList)
@@ -267,14 +275,56 @@ const ServePanel: React.FC<ServePanelProps> = ({
     return sequence;
   }, [allSelectedDishes]);
 
+  // Robot table sequence: Prioritize by OLDEST ORDER TIME, then optimize by row/position
   const robotTableSequence = React.useMemo(() => {
+    // Get the oldest order time for each selected table
+    const tableOldestOrderTime = new Map<number, number>();
+    
+    allSelectedDishes.forEach((dish) => {
+      const tableNum = dish.tableNumber;
+      // Parse DD/MM/YYYY HH:mm:ss format or ISO format
+      let orderTimeMs = Number.MAX_SAFE_INTEGER;
+      if (dish.orderTime) {
+        const ddmmyyyyMatch = dish.orderTime.match(
+          /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/
+        );
+        if (ddmmyyyyMatch) {
+          const [, day, month, year, hours, minutes, seconds] = ddmmyyyyMatch;
+          orderTimeMs = new Date(
+            parseInt(year, 10),
+            parseInt(month, 10) - 1,
+            parseInt(day, 10),
+            parseInt(hours, 10),
+            parseInt(minutes, 10),
+            parseInt(seconds, 10)
+          ).getTime();
+        } else {
+          const parsed = new Date(dish.orderTime).getTime();
+          if (!isNaN(parsed)) orderTimeMs = parsed;
+        }
+      }
+      
+      const current = tableOldestOrderTime.get(tableNum);
+      if (current === undefined || orderTimeMs < current) {
+        tableOldestOrderTime.set(tableNum, orderTimeMs);
+      }
+    });
+
     return [...tableNumbersByStatus.selected].sort((a, b) => {
+      // 1. Primary sort: by oldest order time (FIFO - serve older orders first)
+      const timeA = tableOldestOrderTime.get(a) ?? Number.MAX_SAFE_INTEGER;
+      const timeB = tableOldestOrderTime.get(b) ?? Number.MAX_SAFE_INTEGER;
+      if (timeA !== timeB) return timeA - timeB;
+      
+      // 2. Secondary sort: by row (group tables in same row together)
       const rowA = Math.floor((a - 1) / 5);
       const rowB = Math.floor((b - 1) / 5);
       if (rowA !== rowB) return rowA - rowB;
+      
+      // 3. Tertiary sort: by table number within the same row
       return a - b;
     });
-  }, [tableNumbersByStatus.selected]);
+  }, [tableNumbersByStatus.selected, allSelectedDishes]);
 
   // Generate map URL with table statuses
   const mapUrl = React.useMemo(() => {
@@ -379,99 +429,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
         </p> */}
 
         <div className="w-full mb-6">
-          {/* Quick Serve Requests Panel - Only show when NOT in quick-serve tab */}
-          {requests.length > 0 && activeTab !== "phục vụ nhanh" && (
-            <div className="w-full mb-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-xl border-2 border-blue-300 overflow-hidden">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                      <Send className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-white">Yêu cầu phục vụ nhanh</h3>
-                      <p className="text-xs text-blue-100">
-                        {requests.length} yêu cầu đang chờ xử lý
-                      </p>
-                    </div>
-                  </div>
-                  {loading && (
-                    <div className="flex items-center space-x-2 bg-white/20 rounded-full px-3 py-1">
-                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                      <span className="text-xs font-medium text-white">Đang tải...</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Request List */}
-              <div className="p-4 space-y-3">
-                {requests.map((r, index) => (
-                  <div 
-                    key={r.complainId} 
-                    className="bg-white rounded-xl shadow-md border border-blue-200 overflow-hidden hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-                  >
-                    <div className="flex items-center justify-between p-4">
-                      {/* Request Info */}
-                      <div className="flex items-center space-x-4 flex-1">
-                        <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full text-white font-bold text-lg shadow-md">
-                          {index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-bold text-gray-900 text-base">
-                              {r.tableName}
-                            </span>
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
-                              Bàn
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Package className="w-4 h-4 text-gray-400" />
-                            <span className="text-gray-700 font-medium capitalize">
-                              {r.productName}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action Button */}
-                      <Button
-                        size="lg"
-                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-3 rounded-xl"
-                        onClick={async () => {
-                          try {
-                            await serveQuickRequest(r);
-                            toast.success("Đã thêm món phục vụ nhanh", { 
-                              description: `${r.tableName} - ${r.productName}`,
-                              duration: 3000,
-                            });
-                            fetchQuickRequestsForActiveTables();
-                          } catch (e) {
-                            toast.error("Lỗi", { 
-                              description: "Không thể phục vụ nhanh. Vui lòng thử lại.",
-                              duration: 3000,
-                            });
-                          }
-                        }}
-                      >
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Phục vụ ngay
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Footer hint */}
-              <div className="bg-blue-600/10 px-5 py-2 border-t border-blue-200">
-                <p className="text-xs text-blue-700 text-center">
-                  💡 Bấm "Phục vụ ngay" để tự động thêm món vào order và đánh dấu đã xử lý
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Quick Serve Requests Panel - Hidden per requirement */}
 
           {/* Robot delivery mode UI has been moved to DishList (left sidebar) */}
           
@@ -480,11 +438,13 @@ const ServePanel: React.FC<ServePanelProps> = ({
               readyTables={tableNumbersByStatus.ready}
               servedTables={tableNumbersByStatus.served}
               selectedTables={tableNumbersByStatus.selected}
-            tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
+              tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
               isRobotMode={useRobotDelivery}
               legacyMapUrl={mapUrl}
               dishes={dishes}
               tableLastUpdateTimes={tableLastUpdateTimes}
+              onTableSelect={onTableSelect}
+              activeTab={activeTab}
             />
           ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
@@ -559,6 +519,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   isRobotMode={useRobotDelivery}
                   dishes={dishes}
                   tableLastUpdateTimes={tableLastUpdateTimes}
+                  onTableSelect={onTableSelect}
+                  activeTab={activeTab}
                 />
               </div>
             )
