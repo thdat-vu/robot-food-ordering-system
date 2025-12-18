@@ -24,6 +24,7 @@ interface ServePanelProps {
   robotTrayLimit: number; // Max dishes for robot (3 trays)
   onToggleRobotMode: (enabled: boolean) => void; // Toggle robot mode
   tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
+  onTableSelect?: (tableNumbers: number[]) => void; // Select dishes by clicking on table in map
 }
 
 /* Legacy MapPanel with iframe embed is kept for reference.
@@ -41,6 +42,8 @@ interface MapPanelProps {
   legacyMapUrl: string | null;
   dishes?: WaiterDish[];
   tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
+  onTableSelect?: (tableNumbers: number[]) => void; // Select dishes by clicking on table
+  activeTab?: string; // Current tab for filtering selectable tables
 }
 
 const MapPanel = ({
@@ -52,6 +55,8 @@ const MapPanel = ({
   legacyMapUrl,
   dishes = [],
   tableLastUpdateTimes = {},
+  onTableSelect,
+  activeTab = "bắt đầu phục vụ",
 }: MapPanelProps) => {
   const [showMap, setShowMap] = useState(false);
 
@@ -105,6 +110,8 @@ const MapPanel = ({
             isRobotMode={isRobotMode}
             dishes={dishes}
             tableLastUpdateTimes={tableLastUpdateTimes}
+            onTableSelect={onTableSelect}
+            activeTab={activeTab}
           />
 
           {/* Legacy iframe embed kept for fallback reference */}
@@ -153,6 +160,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   robotTrayLimit,
   onToggleRobotMode,
   tableLastUpdateTimes = {},
+  onTableSelect,
 }) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   // Remake action is now handled in the left sidebar (DishList)
@@ -522,11 +530,13 @@ const ServePanel: React.FC<ServePanelProps> = ({
               readyTables={tableNumbersByStatus.ready}
               servedTables={tableNumbersByStatus.served}
               selectedTables={tableNumbersByStatus.selected}
-            tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
+              tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
               isRobotMode={useRobotDelivery}
               legacyMapUrl={mapUrl}
               dishes={dishes}
               tableLastUpdateTimes={tableLastUpdateTimes}
+              onTableSelect={onTableSelect}
+              activeTab={activeTab}
             />
           ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
@@ -601,6 +611,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   isRobotMode={useRobotDelivery}
                   dishes={dishes}
                   tableLastUpdateTimes={tableLastUpdateTimes}
+                  onTableSelect={onTableSelect}
+                  activeTab={activeTab}
                 />
               </div>
             )

@@ -28,8 +28,10 @@ interface RestaurantMapProps {
   tableSequence?: number[];
   isRobotMode?: boolean;
   onTableClick?: (tableId: number) => void;
+  onTableSelect?: (tableNumbers: number[]) => void; // New: Select/toggle dishes for table(s)
   dishes?: Dish[]; // Add dishes prop for table stats
   tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
+  activeTab?: string; // Current active tab to filter selectable tables
 }
 
 interface Cluster {
@@ -231,13 +233,26 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   tableSequence,
   isRobotMode = false,
   onTableClick,
+  onTableSelect,
   dishes = [],
   tableLastUpdateTimes = {},
+  activeTab = "bắt đầu phục vụ",
 }) => {
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   // Move robot start point to top-left when robot mode is enabled
   const staffPosition: Position = isRobotMode ? { x: 90, y: 40 } : { x: 90, y: 300 };
   const readyClusters = useMemo(() => detectClusters(readyTables), [readyTables]);
+
+  // Get tables that have dishes in the current tab (can be selected)
+  const selectableTables = useMemo(() => {
+    const tablesWithDishes = new Set<number>();
+    dishes.forEach((dish) => {
+      if (dish.status === activeTab) {
+        tablesWithDishes.add(dish.tableNumber);
+      }
+    });
+    return tablesWithDishes;
+  }, [dishes, activeTab]);
 
   // Calculate table stats
   const tableStats = useMemo(() => {
@@ -291,7 +306,35 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
     return stats;
   }, [dishes, tableLastUpdateTimes]);
 
-  const handleTableClick = (tableId: number) => {
+  // Find cluster containing a table (for selecting neighboring tables)
+  const getClusterForTable = (tableId: number): number[] => {
+    for (const cluster of readyClusters) {
+      if (cluster.tables.includes(tableId)) {
+        return cluster.tables;
+      }
+    }
+    return [tableId];
+  };
+
+  // Handle checkbox click - toggle dish selection
+  const handleCheckboxChange = (tableId: number, checked: boolean) => {
+    if (onTableSelect && selectableTables.has(tableId)) {
+      onTableSelect([tableId]);
+    }
+  };
+
+  // Handle table body click - show info card (or select if shift-click)
+  const handleTableClick = (tableId: number, event?: React.MouseEvent) => {
+    // Shift+Click on selectable table - select entire cluster
+    if (event?.shiftKey && onTableSelect && selectableTables.has(tableId)) {
+      const clusterTables = getClusterForTable(tableId).filter(t => selectableTables.has(t));
+      if (clusterTables.length > 0) {
+        onTableSelect(clusterTables);
+      }
+      return;
+    }
+    
+    // Normal click - show info card
     if (onTableClick) {
       onTableClick(tableId);
     }
@@ -341,6 +384,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
           const isActive = selectedTables.includes(tableId);
           const isReady = readyTables.includes(tableId) && !isActive;
           const isServed = servedTables.includes(tableId) && !isActive;
+          const isSelectable = selectableTables.has(tableId);
 
           return (
             <React.Fragment key={id}>
@@ -350,7 +394,9 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
                 isActive={isActive}
                 isReady={isReady}
                 isServed={isServed}
+                isSelectable={isSelectable}
                 onClick={handleTableClick}
+                onCheckboxChange={handleCheckboxChange}
               />
               {selectedTableId === tableId && tableStats[tableId] && (
                 <TableInfoCard

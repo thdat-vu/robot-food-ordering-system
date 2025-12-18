@@ -161,6 +161,66 @@ function WaiterPageContent() {
         toggleDish(dishId);
     };
 
+    // ============================================================================
+    // TABLE SELECTION FROM MAP
+    // ============================================================================
+    // When clicking on a table in the map, toggle all dishes for that table(s)
+    const handleTableSelect = (tableNumbers: number[]) => {
+        // Get all dishes for the specified tables in the current tab
+        const dishesForTables = dishes.filter(
+            (dish) => tableNumbers.includes(dish.tableNumber) && dish.status === activeTab
+        );
+
+        if (dishesForTables.length === 0) {
+            toast.info("Bàn này không có món nào trong tab hiện tại");
+            return;
+        }
+
+        // Check if ALL dishes for these tables are already selected
+        const allSelected = dishesForTables.every((dish) => dish.selected);
+
+        // Robot mode check
+        if (useRobotDelivery && !allSelected) {
+            const allowedTables = new Set([1, 2, 3, 4, 5]);
+            const invalidTables = tableNumbers.filter(t => !allowedTables.has(t));
+            if (invalidTables.length > 0) {
+                setInvalidTable(invalidTables[0]);
+                return;
+            }
+
+            // Check robot tray limit
+            const currentSelectedCount = dishes.filter(d => d.selected && d.status === activeTab).length;
+            const newDishesCount = dishesForTables.filter(d => !d.selected).length;
+            
+            if (currentSelectedCount + newDishesCount > ROBOT_TRAY_LIMIT) {
+                toast.error(
+                    `🤖 Chế độ robot chỉ cho phép chọn tối đa ${ROBOT_TRAY_LIMIT} món/lượt. ` +
+                    `Đang chọn ${currentSelectedCount} món, muốn thêm ${newDishesCount} món.`,
+                    { duration: 4000 }
+                );
+                return;
+            }
+        }
+
+        // Toggle: if all selected -> deselect all, else select all unselected
+        if (allSelected) {
+            // Deselect all dishes for these tables
+            dishesForTables.forEach((dish) => {
+                if (dish.selected) {
+                    toggleDish(dish.id);
+                }
+            });
+            toast.info(`Đã bỏ chọn ${dishesForTables.length} món của bàn ${tableNumbers.join(", ")}`);
+        } else {
+            // Select all unselected dishes for these tables
+            const unselectedDishes = dishesForTables.filter((dish) => !dish.selected);
+            unselectedDishes.forEach((dish) => {
+                toggleDish(dish.id);
+            });
+            toast.success(`Đã chọn ${unselectedDishes.length} món của bàn ${tableNumbers.join(", ")}`);
+        }
+    };
+
     const handlePaymentComplete = () => {
         refreshOrders();
         setPanel("control");
@@ -298,6 +358,7 @@ function WaiterPageContent() {
                                     robotTrayLimit={ROBOT_TRAY_LIMIT}
                                     onToggleRobotMode={handleToggleRobotMode}
                                     tableLastUpdateTimes={tableLastUpdateTimes}
+                                    onTableSelect={handleTableSelect}
                                 />
                             </div>
                         </div>
