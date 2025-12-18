@@ -167,10 +167,10 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
 
       // TODO: call API submit order của bạn ở đây
       await ModeratorOrderApi.submitOrder(orderData);
-      addToast("Order submitted successfully!", "success");
+      addToast("Bạn đã order tại bàn thành công!", "success");
     } catch (error) {
       // console.error("Error submitting order:", error);
-      addToast("Failed to submit order", "error");
+      addToast("Lỗi trong khi tạo Order", "error");
     }
     setLoading(false);
   };
@@ -191,7 +191,7 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
     <div className="flex h-screen bg-gray-100">
       <div className="flex-1 p-6 overflow-y-auto">
         <h1 className="text-3xl font-bold mb-6">Quản lý đơn hàng</h1>
-
+        <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
         {/* nếu muốn hiển thị bàn đang thao tác */}
         <div className="mb-3 text-sm text-gray-600">
           <span className="font-semibold">{tableName}</span>
