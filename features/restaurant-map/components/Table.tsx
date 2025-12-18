@@ -12,7 +12,47 @@ interface TableProps {
   isSelectable?: boolean; // Has dishes that can be selected
   onClick?: (id: number, event?: React.MouseEvent) => void;
   onCheckboxChange?: (id: number, checked: boolean) => void; // Separate handler for checkbox
+  lastUpdateTime?: string | null; // Last order update time for this table
 }
+
+// Parse DD/MM/YYYY HH:mm:ss format to Date
+const parseDateTime = (dateStr: string): Date | null => {
+  const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+  if (match) {
+    const [, day, month, year, hours, minutes, seconds] = match;
+    return new Date(
+      parseInt(year, 10),
+      parseInt(month, 10) - 1,
+      parseInt(day, 10),
+      parseInt(hours, 10),
+      parseInt(minutes, 10),
+      parseInt(seconds, 10)
+    );
+  }
+  const parsed = new Date(dateStr);
+  return isNaN(parsed.getTime()) ? null : parsed;
+};
+
+// Calculate relative time (e.g., "5 phút trước")
+const getRelativeTime = (dateStr: string | null | undefined): string | null => {
+  if (!dateStr) return null;
+  
+  const date = parseDateTime(dateStr);
+  if (!date) return null;
+  
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return "Vừa xong";
+  if (diffMins < 60) return `${diffMins} phút trước`;
+  
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} ngày trước`;
+};
 
 export const Table: React.FC<TableProps> = ({
   id,
@@ -23,6 +63,7 @@ export const Table: React.FC<TableProps> = ({
   isSelectable = false,
   onClick,
   onCheckboxChange,
+  lastUpdateTime,
 }) => {
   const getTableStyle = () => {
     if (isActive) {
@@ -126,6 +167,16 @@ export const Table: React.FC<TableProps> = ({
         {isSelectable && !isActive && (
           <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-semibold whitespace-nowrap">
             Click chọn
+          </div>
+        )}
+
+        {/* Show last update time for selectable tables */}
+        {isSelectable && lastUpdateTime && (
+          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-1 text-[9px] text-gray-600 whitespace-nowrap">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{getRelativeTime(lastUpdateTime)}</span>
           </div>
         )}
       </div>

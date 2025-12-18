@@ -467,6 +467,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
           const isReady = readyTables.includes(tableId) && !isActive;
           const isServed = servedTables.includes(tableId) && !isActive;
           const isSelectable = selectableTables.has(tableId);
+          const tableLastUpdate = tableStats[tableId]?.lastUpdateTime || tableLastUpdateTimes[tableId];
 
           return (
             <React.Fragment key={id}>
@@ -479,6 +480,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
                 isSelectable={isSelectable}
                 onClick={handleTableClick}
                 onCheckboxChange={handleCheckboxChange}
+                lastUpdateTime={isSelectable ? tableLastUpdate : undefined}
               />
               {selectedTableId === tableId && tableStats[tableId] && (
                 <TableInfoCard
