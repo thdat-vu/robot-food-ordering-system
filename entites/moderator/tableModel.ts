@@ -11,7 +11,28 @@ export interface TableItem {
   status: string | number;
   qrCode: string;
 }
-
+type Props = {
+  rows: FeedbackRow[];
+  searchQuery: string;
+  selectedIds: Set<string>;
+  selectablePendingIds: string[];
+  isChecking: boolean;
+  responses: Record<string, string>;
+  showSuggestions: Record<string, boolean>;
+  responseSuggestions: string[];
+  isQuickRequest: (row: FeedbackRow) => boolean;
+  hasSentQuickRequest: (row: FeedbackRow) => boolean;
+  formatDate: (d: string | Date) => string;
+  getRelativeTime: (d: string | Date) => string;
+  highlightSearchText: (text: string, search: string) => string;
+  onToggleSelect: (id: string, isPending: boolean) => void;
+  onSelectAll: () => void;
+  onResponseChange: (id: string, value: string) => void;
+  onToggleSuggestions: (id: string) => void;
+  onSuggestionPick: (id: string, suggestion: string) => void;
+  onSingleCheck: (id: string) => void;
+  onSendQuickRequest: (id: string, feedbackText: string) => void;
+};
 export interface OrderData {
   id: string;
   tableId: string;
