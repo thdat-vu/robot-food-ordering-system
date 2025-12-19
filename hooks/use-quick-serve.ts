@@ -3,8 +3,6 @@ import {categoriesApi, ApiProductCategoryResponse} from "@/lib/api/categories";
 import {tablesApi} from "@/lib/api/tables";
 import {GetFeedbackByIdtable, CheckSS} from "@/api/moderator/FeedbackApi";
 import {FeedbackgGetTableId} from "@/entites/moderator/FeedbackModole";
-import {productsApi} from "@/lib/api/products";
-import {ordersApi} from "@/lib/api/orders";
 import { useSignalR } from "@/hooks/useSignalR";
 import { getApiUrl } from "@/env.config";
 
@@ -109,59 +107,80 @@ export function useQuickServe() {
             
             console.log('[QuickServe] Found quick-serve request in', t.name);
             
-            // Extract product name from original feedBack
+            // Extract product names from original feedBack
             const feedBackText = (c.feedBack || "").toLowerCase();
             
-            // Try to match with product map first
-            let matched = Object.keys(productMap).find((name) => feedBackText.includes(name));
-            let matchedProductId: string | undefined = matched ? productMap[matched] : undefined;
-            let matchedProductName: string | undefined = matched;
+            // Common quick-serve product keywords (for fallback matching)
+            const keywordMap: Record<string, string> = {
+              "nước mắm": "Nước mắm",
+              "nuoc mam": "Nước mắm",
+              "nước tương": "Nước tương",
+              "nuoc tuong": "Nước tương",
+              "nước chấm": "Nước mắm",
+              "nuoc cham": "Nước mắm",
+              "tương ớt": "Tương ớt",
+              "tuong ot": "Tương ớt",
+              "muối": "Muối",
+              "muoi": "Muối",
+              "tiêu": "Tiêu",
+              "tieu": "Tiêu",
+              "đũa": "Đũa",
+              "dua": "Đũa",
+              "thìa": "Thìa",
+              "thia": "Thìa",
+              "khăn giấy": "Khăn giấy",
+              "khan giay": "Khăn giấy",
+              "giấy ăn": "Khăn giấy",
+              "giay an": "Khăn giấy",
+            };
             
-            // Fallback: If no match in product map, try to match common keywords
-            if (!matched) {
-              console.log('[QuickServe] No match in product map, trying fallback keywords...');
-              
-              // Common quick-serve product keywords
-              const keywordMap: Record<string, string> = {
-                "nước mắm": "nước mắm",
-                "nuoc mam": "nước mắm",
-                "nước tương": "nước tương",
-                "nuoc tuong": "nước tương",
-                "nước chấm": "nước mắm",
-                "nuoc cham": "nước mắm",
-              };
-              
-              // Find matching keyword
-              const matchedKeyword = Object.keys(keywordMap).find((keyword) => 
-                feedBackText.includes(keyword)
-              );
-              
-              if (matchedKeyword) {
-                matchedProductName = keywordMap[matchedKeyword];
-                console.log('[QuickServe] Matched keyword:', matchedKeyword, '→ product:', matchedProductName);
-                
-                // Try to find product ID from product map by normalized name
-                const normalizedName = matchedProductName.toLowerCase();
-                matchedProductId = productMap[normalizedName];
-                
-                if (!matchedProductId) {
-                  console.warn('[QuickServe] Product name found but no ID in map. Product map keys:', Object.keys(productMap));
-                  // Still add to results but without productId - will need to handle in UI
-                }
+            // Collect all matched product names (avoid duplicates)
+            const matchedProductNames = new Set<string>();
+            
+            // 1. First, match with product map (exact matches from database)
+            Object.keys(productMap).forEach((productName) => {
+              if (feedBackText.includes(productName)) {
+                // Capitalize first letter for display
+                const displayName = productName.charAt(0).toUpperCase() + productName.slice(1);
+                matchedProductNames.add(displayName);
+                console.log('[QuickServe] Matched from product map:', productName);
               }
-            }
+            });
             
-            if (matchedProductName) {
-              console.log('[QuickServe] Matched product:', matchedProductName, 'for table', t.name, 'productId:', matchedProductId);
+            // 2. Fallback: Match with common keywords for products not in map
+            Object.keys(keywordMap).forEach((keyword) => {
+              if (feedBackText.includes(keyword)) {
+                const displayName = keywordMap[keyword];
+                matchedProductNames.add(displayName);
+                console.log('[QuickServe] Matched from keyword fallback:', keyword, '→', displayName);
+              }
+            });
+            
+            console.log('[QuickServe] Matched products for this feedback:', [...matchedProductNames]);
+            
+            // Create ONE QuickRequest with combined product names
+            if (matchedProductNames.size > 0) {
+              // Combine all product names with " + "
+              const combinedProductName = [...matchedProductNames].join(" + ");
+              
+              console.log('[QuickServe] Creating single request for:', combinedProductName, 'table:', t.name);
+              results.push({
+                complainId: c.complainId, // Keep original complainId (single record)
+                tableId: t.id,
+                tableName: t.name,
+                productId: "", // Empty - will handle serving differently for combined items
+                productName: combinedProductName,
+              });
+            } else {
+              // Fallback: Use original feedback text if no products matched
+              console.warn('[QuickServe] No product match found, using original feedback:', c.feedBack);
               results.push({
                 complainId: c.complainId,
                 tableId: t.id,
                 tableName: t.name,
-                productId: matchedProductId || "", // Empty string if not found, will need to handle
-                productName: matchedProductName,
+                productId: "",
+                productName: c.feedBack || "Yêu cầu phục vụ",
               });
-            } else {
-              console.warn('[QuickServe] No product match found for feedback:', c.feedBack, 'Available product map keys:', Object.keys(productMap));
             }
           });
         } catch (e) {
@@ -176,47 +195,20 @@ export function useQuickServe() {
   }, [productMap, productMapReady]);
 
   const serveQuickRequest = useCallback(async (req: QuickRequest) => {
-    // 1. Get product size (small or first)
-    const prod = await productsApi.getProductById(req.productId);
-    const sizes = (prod.data as any)?.sizes || [];
-    const small = sizes.find((s: any) => String(s.sizeName || "").toLowerCase().startsWith("s")) || sizes[0];
-    if (!small) throw new Error("No size for product");
-
-    // 2. Get current order for the table to read device token
-    const ordersRes = await ordersApi.getOrdersByTableIdOnly(req.tableId, null, null);
-    const orders = (ordersRes.data?.data || []) as any[];
-    if (!orders || orders.length === 0) throw new Error("No order found for table");
-    const currentOrder = orders[0]; // newest should be first from API (assumption)
-    const deviceToken = (currentOrder as any).deviderId || (currentOrder as any).deviceTokenId || "";
-    if (!deviceToken) throw new Error("Missing device token for table order");
-
-    // 3. Add item via handle
-    await ordersApi.handleOrder({
-      tableId: req.tableId,
-      deviceToken,
-      items: [
-        {
-          productId: req.productId,
-          productSizeId: small.id,
-          toppingIds: [],
-        },
-      ],
-    });
-
-    // 4. Find the newly added item and set status to Ready (3)
-    const delivering = await ordersApi.getOrdersByTableIdWithStatus(req.tableId, "Delivering");
-    const deliverOrders = (delivering.data || []) as any[];
-    if (deliverOrders && deliverOrders.length > 0) {
-      const lastOrder = deliverOrders[0];
-      const item = (lastOrder.items || []).find((i: any) => String(i.productId).toLowerCase() === req.productId.toLowerCase());
-      if (item) {
-        await ordersApi.updateOrderItemStatus(lastOrder.id, item.id, 3, "Quick-serve ready");
-      }
-    }
-
-    // 5. Mark complain processed
-    // Temporarily disable complain status update per requirement
-    // await CheckSS(req.tableId, [req.complainId], "Đã phục vụ nhanh");
+    // For quick-serve items (condiments, utensils, etc.), we don't add them to the order
+    // We just mark the complaint as processed
+    
+    console.log('[QuickServe] Serving request:', req.productName, 'for table:', req.tableName);
+    
+    // Extract original complainId (remove any _index suffix if present from old logic)
+    const originalComplainId = req.complainId.includes('_') 
+      ? req.complainId.split('_')[0] 
+      : req.complainId;
+    
+    // Mark complaint as processed
+    await CheckSS(req.tableId, [originalComplainId], `Đã phục vụ: ${req.productName}`, false);
+    
+    console.log('[QuickServe] Marked complaint as processed:', originalComplainId);
   }, []);
 
   const triggerRealtimeRefresh = useCallback(async () => {
