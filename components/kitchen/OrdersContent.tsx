@@ -1,6 +1,5 @@
 import React from 'react';
 import { Order, OrderStatus, GroupedOrders } from '@/types/kitchen';
-import { DEFAULT_IMAGE_PLACEHOLDER } from '@/constants/kitchen-data';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -45,20 +44,6 @@ export function OrdersContent({
   selectedIds,
   animatingOutIds = new Set()
 }: OrdersContentProps) {
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const target = e.target as HTMLImageElement;
-    target.src = DEFAULT_IMAGE_PLACEHOLDER;
-  };
-
-  const renderOrderImage = (order: Order, additionalClasses: string = "") => (
-    <img
-      src={order.image}
-      alt={order.itemName}
-      className={`w-16 h-16 rounded-lg object-cover bg-gray-200 ${additionalClasses}`}
-      onError={handleImageError}
-    />
-  );
-
   const renderClockIcon = () => (
     <svg 
       className="w-4 h-4 text-black opacity-90" 
@@ -261,7 +246,6 @@ export function OrdersContent({
               className={`hover:shadow-md transition-shadow duration-200 ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
             >
               <CardHeader className="flex flex-row items-center gap-4">
-                {renderOrderImage(order)}
                 <div className="flex-1">
                   {/* Primary Info: Title + Size + Quantity + Table on same line */}
                   <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1.5">
@@ -363,16 +347,6 @@ export function OrdersContent({
           <div className={`h-1.5 bg-gradient-to-r ${getCategoryGradient(order.category)}`}></div>
           
           <CardHeader className="flex flex-row items-center gap-4 p-5" onClick={() => onGroupClick(itemName)}>
-            {/* Enhanced image with ring effect */}
-            <div className="relative flex-shrink-0">
-              <img
-                src={order.image}
-                alt={order.itemName}
-                className="w-20 h-20 rounded-2xl object-cover bg-gray-200 ring-2 ring-gray-100 shadow-md"
-                onError={handleImageError}
-              />
-            </div>
-            
             <div className="flex-1 min-w-0">
               {/* Primary Info: Title + Size + Table on same line */}
               <h3 className="text-xl font-bold text-gray-900 leading-tight mb-3">
@@ -527,16 +501,6 @@ export function OrdersContent({
               <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(order.category)}`}></div>
               
               <div className="flex items-center gap-4 p-4 pl-5">
-                {/* Image with fixed size */}
-                <div className="relative flex-shrink-0">
-                  <img
-                    src={order.image}
-                    alt={order.itemName}
-                    className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-gray-100 shadow-lg"
-                    onError={handleImageError}
-                  />
-                </div>
-                
                 <div className="flex-1 min-w-0">
                   {/* Primary Info: Name + Size + Table on same line */}
                   <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
@@ -618,15 +582,17 @@ export function OrdersContent({
         </div>
       );
     }
-    // Group by item name so identical dishes collapse into a single card with quantity
-    const groupedByName: { itemName: string; noteKey: string; displayNote: string | null; orders: Order[] }[] = (() => {
-      const map = new Map<string, { itemName: string; noteKey: string; displayNote: string | null; orders: Order[] }>();
+    // Group by item name + size + note so identical dishes collapse into a single card with quantity
+    const groupedByName: { itemName: string; sizeName: string; noteKey: string; displayNote: string | null; orders: Order[] }[] = (() => {
+      const map = new Map<string, { itemName: string; sizeName: string; noteKey: string; displayNote: string | null; orders: Order[] }>();
       for (const order of sortedOrders) {
         const noteKey = normalizeNoteKey(order.note);
-        const key = `${order.itemName}::${noteKey}`;
+        const sizeKey = order.sizeName || '';
+        const key = `${order.itemName}::${sizeKey}::${noteKey}`;
         if (!map.has(key)) {
           map.set(key, {
             itemName: order.itemName,
+            sizeName: order.sizeName || '',
             noteKey,
             displayNote: order.note?.trim() || null,
             orders: [],
@@ -640,7 +606,7 @@ export function OrdersContent({
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="space-y-4">
-          {groupedByName.map(({ itemName, orders, displayNote, noteKey }) => {
+          {groupedByName.map(({ itemName, sizeName, orders, displayNote, noteKey }) => {
             const first = orders[0];
             const groupSelected = selectedIds ? orders.some(o => selectedIds.has(o.id)) : false;
             const anyAnimating = orders.some(o => animatingOutIds.has(o.id));
@@ -661,7 +627,7 @@ export function OrdersContent({
             
             return (
               <div
-                key={`${itemName}-${noteKey}`}
+                key={`${itemName}-${sizeName}-${noteKey}`}
                 className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
                   groupSelected 
                     ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
@@ -673,16 +639,6 @@ export function OrdersContent({
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(first.category)}`}></div>
                 
                 <div className="flex items-center gap-4 p-4 pl-5">
-                  {/* Enhanced image */}
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={first.image}
-                      alt={first.itemName}
-                      className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-gray-100 shadow-lg"
-                      onError={handleImageError}
-                    />
-                  </div>
-                  
                   <div className="flex-1 min-w-0">
                     {/* Primary Info: Name + Size + Table info on same line */}
                     <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
@@ -822,7 +778,7 @@ export function OrdersContent({
             
             return (
               <div 
-                key={`${itemName}-${noteKey}`} 
+                key={`${itemName}-${representative.sizeName || ''}-${noteKey}`} 
                 className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
                   groupSelected 
                     ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
@@ -833,16 +789,6 @@ export function OrdersContent({
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(representative.category)}`}></div>
                 
                 <div className="flex items-center gap-4 p-4 pl-5" onClick={() => onGroupClick(itemName)}>
-                  {/* Enhanced image */}
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={representative.image}
-                      alt={representative.itemName}
-                      className="w-20 h-20 rounded-2xl object-cover bg-gray-100 ring-2 ring-gray-100 shadow-lg"
-                      onError={handleImageError}
-                    />
-                  </div>
-                  
                   <div className="flex-1 min-w-0">
                     {/* Primary Info: Name + Size + Table info on same line */}
                     <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
