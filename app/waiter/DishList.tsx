@@ -76,6 +76,27 @@ const STATUS_BADGES: Record<OrderStatus, { label: string; className: string }> =
     "đã huỷ": { label: "Đã huỷ", className: "bg-gray-200 text-gray-700" },
 };
 
+// Parse DD/MM/YYYY HH:mm:ss format to timestamp for sorting
+const parseOrderTime = (timeStr: string | undefined): number => {
+    if (!timeStr) return Number.MAX_SAFE_INTEGER;
+    
+    const match = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+    if (match) {
+        const [, day, month, year, hours, minutes, seconds] = match;
+        return new Date(
+            parseInt(year, 10),
+            parseInt(month, 10) - 1,
+            parseInt(day, 10),
+            parseInt(hours, 10),
+            parseInt(minutes, 10),
+            parseInt(seconds, 10)
+        ).getTime();
+    }
+    
+    const parsed = new Date(timeStr).getTime();
+    return isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+};
+
 interface TableGroup {
     tableNumber: number;
     dishes: WaiterDish[];
@@ -364,6 +385,15 @@ const DishList: React.FC<DishListProps> = ({
         {}
     );
 
+    // Sort items within each category by order time (oldest first - FIFO)
+    Object.keys(groupedDishes).forEach((category) => {
+        groupedDishes[category].sort((a, b) => {
+            const timeA = parseOrderTime(a.orderTime);
+            const timeB = parseOrderTime(b.orderTime);
+            return timeA - timeB; // Oldest first
+        });
+    });
+
     const sortedCategoryEntries = Object.entries(groupedDishes).sort((a, b) => {
         const priorityDiff = getCategoryPriority(a[0]) - getCategoryPriority(b[0]);
         if (priorityDiff !== 0) return priorityDiff;
@@ -380,13 +410,18 @@ const DishList: React.FC<DishListProps> = ({
         });
 
         return Array.from(map.entries())
-            .sort(([tableA], [tableB]) => tableA - tableB)
             .map(([tableNumber, tableDishes]) => {
+                // Sort dishes within each table by order time (oldest first)
+                tableDishes.sort((a, b) => parseOrderTime(a.orderTime) - parseOrderTime(b.orderTime));
+                
                 const selectedDishes = tableDishes.filter((dish) => dish.selected);
                 const selectedCount = selectedDishes.length;
                 const totalCount = tableDishes.length;
                 const selectedQuantity = selectedDishes.reduce((sum, dish) => sum + (dish.quantity || 1), 0);
                 const totalQuantity = tableDishes.reduce((sum, dish) => sum + (dish.quantity || 1), 0);
+                
+                // Get oldest order time for this table
+                const oldestOrderTime = tableDishes[0]?.orderTime;
 
                 return {
                     tableNumber,
@@ -395,8 +430,15 @@ const DishList: React.FC<DishListProps> = ({
                     totalCount,
                     selectedQuantity,
                     totalQuantity,
-                    firstOrderTime: tableDishes[0]?.orderTime,
+                    firstOrderTime: oldestOrderTime,
                 };
+            })
+            // Sort tables by oldest order time first (FIFO)
+            .sort((a, b) => {
+                const timeA = parseOrderTime(a.firstOrderTime);
+                const timeB = parseOrderTime(b.firstOrderTime);
+                if (timeA !== timeB) return timeA - timeB; // Oldest first
+                return a.tableNumber - b.tableNumber; // Same time, sort by table number
             });
     }, [allDishesToShow]);
 
