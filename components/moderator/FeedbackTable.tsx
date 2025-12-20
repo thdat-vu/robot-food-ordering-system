@@ -28,7 +28,10 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
     const groups = new Map<string, GroupedFeedbackRow>();
 
     rows.forEach((row) => {
-      const key = row.feedBack.trim();
+      const feedbackKey = row.feedBack.trim();
+      const statusKey = row.isPending ? "PENDING" : "DONE";
+      const key = `${feedbackKey}__${statusKey}`;
+
       if (!groups.has(key)) {
         groups.set(key, {
           ...row,
@@ -36,34 +39,31 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
           originalIds: [row.complainId],
           handledByNames: row.handledBy ? [row.handledBy] : [],
         });
-      } else {
-        const existing = groups.get(key)!;
-        existing.groupCount += 1;
-        existing.originalIds.push(row.complainId);
+        return;
+      }
 
-        if (row.isPending) existing.isPending = true;
+      const existing = groups.get(key)!;
+      existing.groupCount += 1;
+      existing.originalIds.push(row.complainId);
 
-        if (row.handledBy) {
-          existing.handledByNames = existing.handledByNames ?? [];
-          if (!existing.handledByNames.includes(row.handledBy)) {
-            existing.handledByNames.push(row.handledBy);
-          }
-
-          const tExisting = new Date(existing.createData).getTime();
-          const tNew = new Date(row.createData).getTime();
-          if (tNew >= tExisting) {
-            existing.createData = row.createData;
-            existing.handledBy = row.handledBy;
-          }
-        } else {
-          const tExisting = new Date(existing.createData).getTime();
-          const tNew = new Date(row.createData).getTime();
-          if (tNew >= tExisting) existing.createData = row.createData;
+      if (row.handledBy) {
+        existing.handledByNames = existing.handledByNames ?? [];
+        if (!existing.handledByNames.includes(row.handledBy)) {
+          existing.handledByNames.push(row.handledBy);
         }
+      }
+
+      // cập nhật createData theo record mới nhất trong cùng group
+      const tExisting = new Date(existing.createData).getTime();
+      const tNew = new Date(row.createData).getTime();
+      if (tNew >= tExisting) {
+        existing.createData = row.createData;
+        existing.handledBy = row.handledBy ?? existing.handledBy;
       }
     });
 
     return Array.from(groups.values()).sort((a, b) => {
+      // pending lên trước
       if (a.isPending !== b.isPending) return a.isPending ? -1 : 1;
       return (
         new Date(b.createData).getTime() - new Date(a.createData).getTime()
