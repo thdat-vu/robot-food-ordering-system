@@ -767,6 +767,40 @@ function ChiefPageContent() {
     });
   }, [maybeWarnForMainSelection, maybeWarnForDessertSelection]);
 
+  // Handler to toggle selection by order IDs (for main content checkboxes)
+  const handleToggleSelection = useCallback((orderIds: number[], selected: boolean) => {
+    setHasManualSelection(true);
+    
+    // Find orders matching these IDs
+    const matchingOrders = orders.filter(o => orderIds.includes(o.id));
+    if (matchingOrders.length === 0) return;
+    
+    // Build selection items from orders
+    const selectionItems = matchingOrders.map(order => ({
+      itemName: order.itemName,
+      tableNumber: order.tableNumber,
+      id: order.id
+    }));
+    
+    if (selected) {
+      // Add to selection
+      setSelectedGroups(prev => {
+        const existingIds = new Set(prev.flat().map(item => item.id));
+        const newItems = selectionItems.filter(item => !existingIds.has(item.id));
+        if (newItems.length === 0) return prev;
+        return [...prev, newItems];
+      });
+    } else {
+      // Remove from selection
+      setSelectedGroups(prev => {
+        const removeIds = new Set(orderIds);
+        return prev
+          .map(group => group.filter(item => !removeIds.has(item.id)))
+          .filter(group => group.length > 0);
+      });
+    }
+  }, [orders]);
+
   // Function to automatically select the first 3 groups based on context-aware category priority
   const autoSelectFirstGroups = useCallback(() => {
     // Only auto-select for relevant tabs, not for serve tab, and only if user hasn't made manual selection
@@ -1476,6 +1510,7 @@ function ChiefPageContent() {
                       onRejectRedoClick={handleRejectRedoClickWrapper}
                       selectedIds={selectedIds}
                       animatingOutIds={animatingOutIds}
+                      onToggleSelection={handleToggleSelection}
                     />
                   );
                 }
@@ -1495,124 +1530,39 @@ function ChiefPageContent() {
                       onRejectRedoClick={handleRejectRedoClickWrapper}
                       selectedIds={selectedIds}
                       animatingOutIds={animatingOutIds}
+                      onToggleSelection={handleToggleSelection}
                     />
                   );
                 }
 
-                if (!hasSelection) {
-                  const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
+                // Always show all items - selection state is handled by selectedIds
+                // Items are not filtered based on selection - all items remain visible
+                const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
+                
+                if (Object.keys(sortedDefault).length === 0) {
                   return (
-                    <OrdersContent
-                      groupedOrders={sortedDefault}
-                      activeTab={activeTab}
-                      onGroupClick={handleGroupClick}
-                      onPrepareClick={handlePrepareClick}
-                      onServeClick={handleServeClick}
-                      onServeMultipleOrders={handleServeMultipleOrders}
-                      onAcceptRedoClick={handleAcceptRedoClick}
-                      onRejectRedoClick={handleRejectRedoClickWrapper}
-                      selectedIds={selectedIds}
-                      showIndividualCards={true}
-                      animatingOutIds={animatingOutIds}
-                    />
+                    <div className="flex h-full items-center justify-center text-gray-400 text-xl">
+                      Không có đơn hàng nào
+                    </div>
                   );
                 }
-
-                if (selectedGroups.length > 0) {
-                  const filtered = (() => {
-                    const filtered: Record<string, Order[]> = {};
-                    const selectedIds = new Set(selectedGroups.flat().map(item => item.id));
-                    
-                    // Iterate through all grouped orders and find matching ones by id
-                    Object.entries(filteredGroupedOrdersForSearch as Record<string, Order[]>).forEach(([groupKey, orderList]) => {
-                      orderList.forEach(order => {
-                        if (selectedIds.has(order.id)) {
-                          if (!filtered[groupKey]) filtered[groupKey] = [];
-                          filtered[groupKey].push(order);
-                        }
-                      });
-                    });
-                    
-                    return filtered;
-                  })();
-
-                  const sortedSelectedGroups = sortGroupedByCategoryPriority(filtered);
-                  return (
-                    <OrdersContent
-                      groupedOrders={sortedSelectedGroups}
-                      activeTab={activeTab}
-                      onGroupClick={handleGroupClick}
-                      onPrepareClick={handlePrepareClick}
-                      onServeClick={handleServeClick}
-                      onPrepareMultipleOrders={handlePrepareMultipleOrders}
-                      onServeMultipleOrders={handleServeMultipleOrders}
-                      showIndividualCards={true}
-                      onAcceptRedoClick={handleAcceptRedoClick}
-                      onRejectRedoClick={handleRejectRedoClickWrapper}
-                      selectedIds={selectedIds}
-                      animatingOutIds={animatingOutIds}
-                    />
-                  );
-                }
-
-                if (selectedGroup) {
-                  const filtered = (() => {
-                    const filtered: Record<string, Order[]> = {};
-                    const selectedIdsSet = new Set(selectedGroup.map(item => item.id));
-                    
-                    // Iterate through all grouped orders and find matching ones by id
-                    Object.entries(filteredGroupedOrdersForSearch as Record<string, Order[]>).forEach(([groupKey, orderList]) => {
-                      orderList.forEach(order => {
-                        if (selectedIdsSet.has(order.id)) {
-                          if (!filtered[groupKey]) filtered[groupKey] = [];
-                          filtered[groupKey].push(order);
-                        }
-                      });
-                    });
-                    
-                    return filtered;
-                  })();
-
-                  const sortedSelectedGroup = sortGroupedByCategoryPriority(filtered);
-                  return (
-                    <OrdersContent
-                      groupedOrders={sortedSelectedGroup}
-                      activeTab={activeTab}
-                      onGroupClick={handleGroupClick}
-                      onPrepareClick={handlePrepareClick}
-                      onServeClick={handleServeClick}
-                      onPrepareMultipleOrders={handlePrepareMultipleOrders}
-                      onServeMultipleOrders={handleServeMultipleOrders}
-                      showIndividualCards={true}
-                      onAcceptRedoClick={handleAcceptRedoClick}
-                      onRejectRedoClick={handleRejectRedoClickWrapper}
-                      selectedIds={selectedIds}
-                      animatingOutIds={animatingOutIds}
-                    />
-                  );
-                }
-
-                if (selectedOrderKey) {
-                  const sortedSelectedOrder = sortGroupedByCategoryPriority(filteredGroupedOrders);
-                  return (
-                    <OrdersContent
-                      groupedOrders={sortedSelectedOrder}
-                      activeTab={activeTab}
-                      onGroupClick={handleGroupClick}
-                      onPrepareClick={handlePrepareClick}
-                      onServeClick={handleServeClick}
-                      onAcceptRedoClick={handleAcceptRedoClick}
-                      onRejectRedoClick={handleRejectRedoClickWrapper}
-                      selectedIds={selectedIds}
-                      animatingOutIds={animatingOutIds}
-                    />
-                  );
-                }
-
+                
                 return (
-                  <div className="flex h-full items-center justify-center text-gray-400 text-xl">
-                    Chọn một món ăn để xem chi tiết
-                  </div>
+                  <OrdersContent
+                    groupedOrders={sortedDefault}
+                    activeTab={activeTab}
+                    onGroupClick={handleGroupClick}
+                    onPrepareClick={handlePrepareClick}
+                    onServeClick={handleServeClick}
+                    onPrepareMultipleOrders={handlePrepareMultipleOrders}
+                    onServeMultipleOrders={handleServeMultipleOrders}
+                    onAcceptRedoClick={handleAcceptRedoClick}
+                    onRejectRedoClick={handleRejectRedoClickWrapper}
+                    selectedIds={selectedIds}
+                    showIndividualCards={true}
+                    animatingOutIds={animatingOutIds}
+                    onToggleSelection={handleToggleSelection}
+                  />
                 );
               })()}
             </div>
