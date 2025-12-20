@@ -481,6 +481,9 @@ function ChiefPageContent() {
       setSelectedGroups([]);
       setSelectedGroup(null);
       setSelectedOrderKey(null);
+      
+      // Auto switch to "Đang thực hiện" tab after preparing order
+      setActiveTab('đang thực hiện');
     } catch (error) {
       addToast(`Lỗi khi cập nhật trạng thái: ${itemName}`, 'error');
     }
@@ -531,6 +534,9 @@ function ChiefPageContent() {
       try {
         await handleServeOrder(selectedOrder.id);
         addToast(`Đã bắt đầu phục vụ món: ${selectedOrder.itemName}`, 'success');
+        
+        // Auto switch to "Bắt đầu phục vụ" tab after serving order
+        setActiveTab('bắt đầu phục vụ');
       } catch (error) {
         addToast(`Lỗi khi cập nhật trạng thái: ${selectedOrder.itemName}`, 'error');
       }
@@ -912,6 +918,9 @@ function ChiefPageContent() {
       setSelectedGroups([]);
       setSelectedGroup(null);
       setSelectedOrderKey(null);
+      
+      // Auto switch to "Đang thực hiện" tab after preparing orders
+      setActiveTab('đang thực hiện');
     } catch (error) {
       // Clear animation state on error
       setAnimatingOutIds(new Set());
@@ -939,6 +948,9 @@ function ChiefPageContent() {
       setSelectedGroups([]);
       setSelectedGroup(null);
       setSelectedOrderKey(null);
+      
+      // Auto switch to "Bắt đầu phục vụ" tab after serving orders
+      setActiveTab('bắt đầu phục vụ');
     } catch (error) {
       // Clear animation state on error
       setAnimatingOutIds(new Set());
