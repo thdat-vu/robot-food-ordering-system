@@ -1153,14 +1153,30 @@ function ChiefPageContent() {
   }, []);
 
   const handleMatchModalConfirm = useCallback(
-    (items: SelectionItem[]) => {
-      if (items.length > 0) {
-        appendSelectionItems(items);
-      }
+    async (items: SelectionItem[]) => {
       setMatchSuggestions(null);
       setIsMatchModalOpen(false);
+      
+      if (items.length === 0) return;
+      
+      // Combine current selection with new items from modal
+      const currentSelection = selectedGroups.flat();
+      const existingIds = new Set(currentSelection.map(item => item.id));
+      const newItems = items.filter(item => !existingIds.has(item.id));
+      const allItems = [...currentSelection, ...newItems];
+      
+      if (allItems.length === 0) return;
+      
+      // Execute the action based on current tab
+      if (activeTab === 'đang thực hiện') {
+        // Serve mode - call serve API
+        await handleServeMultipleOrders(allItems);
+      } else {
+        // Prepare mode - call prepare API
+        await handlePrepareMultipleOrders(allItems);
+      }
     },
-    [appendSelectionItems]
+    [selectedGroups, activeTab, handlePrepareMultipleOrders, handleServeMultipleOrders]
   );
   // ============================================================================
   // NOTE: getTableCategoryContext and getContextualPriority have been MOVED UP
