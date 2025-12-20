@@ -446,20 +446,22 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
       <div className="h-full">
         <div className="mb-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">
+            {/* Left: name + badges on ONE row */}
+            <div className="flex items-center gap-4 min-w-0">
+              <h2 className="text-3xl font-bold text-gray-800 truncate">
                 {tableData.name}
               </h2>
-              <div className="flex items-center space-x-3">
+
+              <div className="flex items-center gap-3 flex-shrink-0">
                 <span
-                  className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-semibold border-2 ${statusInfo.color}`}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border-2 ${statusInfo.color}`}
                 >
                   <StatusIcon className="w-4 h-4" />
                   <span>{statusInfo.label}</span>
                 </span>
 
                 {tableData.isBlocked && (
-                  <span className="inline-flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-semibold bg-red-100 text-red-800 border-2 border-red-200 animate-pulse">
+                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-red-100 text-red-800 border-2 border-red-200 animate-pulse">
                     <Lock className="w-4 h-4" />
                     <span>Đã khóa</span>
                   </span>
@@ -467,10 +469,11 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
               </div>
             </div>
 
+            {/* Right: refresh */}
             <button
               onClick={fetchTableDetail}
               disabled={loading}
-              className="p-3 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 disabled:opacity-50"
+              className="p-3 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 flex-shrink-0"
             >
               <RefreshCw
                 className={`w-5 h-5 text-gray-600 ${

@@ -1,415 +1,547 @@
-import React, {useCallback, useState} from "react";
-import {ChefHat, Edit, Eye, Search, Shield, Trash2, User, UserPlus} from "lucide-react";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from "@/components/ui/dialog";
-import {Label} from "@/components/ui/label";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {AccountCard} from "@/components/admin/item/AccountCard";
+import { authsApi } from "@/lib/api/auths";
+import { AlertCircle, RefreshCw, Search, User, UserPlus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AccountCard, AccountRow, normalizeRole } from "./item/AccountCard";
 
+export default function AccountPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [addAccountModal, setAddAccountModal] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(
+    null
+  );
+  const [deleteAccountModal, setDeleteAccountModal] = useState(false);
+  const [editAccountModal, setEditAccountModal] = useState(false);
 
-const accounts: AccountCard[] = [
-    {
-        id: "1",
-        name: "John Smith",
-        role: "chef",
-        phone: "+84 123 456 789",
-        status: "active",
-        joinDate: "2024-01-15",
-    },
-    {
-        id: "2",
-        name: "Sarah Johnson",
-        role: "waiter",
-        phone: "+84 987 654 321",
-        status: "active",
-        joinDate: "2024-02-20",
-    },
-    {
-        id: "3",
-        name: "Mike Wilson",
-        role: "moderator",
-        phone: "+84 555 123 456",
-        status: "active",
-        joinDate: "2024-03-10",
-    },
-    {
-        id: "4",
-        name: "Emily Brown",
-        role: "chef",
-        phone: "+84 444 789 012",
-        status: "inactive",
-        joinDate: "2023-12-05",
-    },
-    {
-        id: "5",
-        name: "David Lee",
-        role: "waiter",
-        phone: "+84 333 456 789",
-        status: "active",
-        joinDate: "2024-01-25",
-    },
-];
-export const AccountPage: React.FC = () => {
+  // Data state
+  const [accounts, setAccounts] = useState<AccountRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const [searchQuery, setSearchQuery] = useState<string>("");
-    const [addAccountModal, setAddAccountModal] = useState<boolean>(false);
-    const [selectedAccount, setSelectedAccount] = useState<any>(null);
-    const [deleteAccountModal, setDeleteAccountModal] = useState<boolean>(false);
-    const [editAccountModal, setEditAccountModal] = useState<boolean>(false);
+  // Pagination state (use lowercase to match API response)
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasPrev, setHasPrev] = useState(false);
+  const [hasNext, setHasNext] = useState(false);
 
+  // Fetch users
+  const fetchUsers = useCallback(
+    async (page = 1) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    const getRoleIcon = useCallback((role: string) => {
-        switch (role) {
-            case "chef":
-                return <ChefHat className="w-4 h-4"/>;
-            case "moderator":
-                return <Shield className="w-4 h-4"/>;
-            default:
-                return <User className="w-4 h-4"/>;
-        }
-    }, []);
+        console.log("Fetching users for page:", page);
 
-    const getRoleBadgeColor = useCallback((role: string) => {
-        switch (role) {
-            case "chef":
-                return "bg-orange-500/10 text-orange-500 border-orange-500/20";
-            case "waiter":
-                return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-            case "moderator":
-                return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-            default:
-                return "bg-muted text-muted-foreground";
-        }
-    }, []);
-
-    const [addAccountForm, setAddAccountForm] = useState({
-        name: "",
-        phone: "",
-        role: "waiter",
-        status: "active",
-    });
-
-    const [editFormData, setEditFormData] = useState({
-        name: "",
-        phone: "",
-        role: "",
-        status: "",
-    });
-
-    const handleEditAccount = (account: any) => {
-        setSelectedAccount(account);
-        setEditFormData({
-            name: account.name,
-            phone: account.phone,
-            role: account.role,
-            status: account.status,
+        // API expects PageNumber (capitalized)
+        const res = await authsApi.getAllUsers({
+          PageNumber: page,
+          PageSize: pageSize,
         });
-        setEditAccountModal(true);
-    };
 
-    const handleDeleteAccount = (account: any) => {
-        setSelectedAccount(account);
-        setDeleteAccountModal(true);
-    };
+        console.log("Full API Response:", res);
+        console.log("res.data:", res?.data);
 
-    const handleCreateAccount = () => {
-        console.log("[v0] Creating new account:", addAccountForm);
-        // TODO: Implement actual create logic
-        setAddAccountModal(false);
-        // Reset form
-        setAddAccountForm({
-            name: "",
-            phone: "",
-            role: "waiter",
-            status: "active",
+        // Handle different response structures
+        // Could be res.data or res.data.data
+        let payload = res?.items ?? res?.items;
+
+        const items = payload;
+        console.log("Items count:", items);
+
+        const mapped: AccountRow[] = items.map((u: any) => ({
+          id: u.employmentCode || u.email,
+          name: u.fullName ?? "",
+          role: normalizeRole(u.roleName),
+          phone: u.phoneNumber ?? "",
+          status: "active",
+          joinDate: "",
+          avatar: u.avatar,
+          email: u.email,
+          employmentCode: u.employmentCode,
+        }));
+
+        setAccounts(mapped);
+
+        // API might return pageNumber (lowercase) or PageNumber (uppercase)
+        const currentPage = payload.pageNumber ?? payload.PageNumber ?? page;
+        const totPages = payload.totalPages ?? payload.TotalPages ?? 0;
+        const totCount = payload.totalCount ?? payload.TotalCount ?? 0;
+        const prevPage = Boolean(
+          payload.hasPreviousPage ?? payload.HasPreviousPage
+        );
+        const nextPage = Boolean(payload.hasNextPage ?? payload.HasNextPage);
+
+        console.log("Pagination info:", {
+          currentPage,
+          totPages,
+          totCount,
+          prevPage,
+          nextPage,
         });
-    };
 
-    const handleSaveEdit = () => {
-        console.log("[v0] Saving account:", editFormData);
-        // TODO: Implement actual save logic
-        setEditAccountModal(false);
-    };
+        setPageNumber(currentPage);
+        setTotalPages(totPages);
+        setTotalCount(totCount);
+        setHasPrev(prevPage);
+        setHasNext(nextPage);
 
+        console.log("Successfully loaded accounts");
+      } catch (e: any) {
+        setAccounts([]);
+        console.error("Fetch users error:", e);
+        console.error("Error details:", {
+          message: e?.message,
+          response: e?.response,
+          responseData: e?.response?.data,
+        });
 
-    const handleConfirmDelete = () => {
-        console.log("[v0] Deleting account:", selectedAccount);
-        // TODO: Implement actual delete logic
-        setDeleteAccountModal(false);
-    };
+        setError(
+          e?.response?.data?.message ??
+            e?.message ??
+            "Không tải được danh sách tài khoản"
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [pageSize]
+  );
 
+  useEffect(() => {
+    fetchUsers(1);
+  }, [fetchUsers]);
 
-    return (
-        <>
-            <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                        <Search
-                            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
-                        <Input
-                            placeholder="Tìm theo tên, số điện thoại hoặc vai trò..."
-                            className="pl-10"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
+  // Search filter
+  const filteredAccounts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return accounts;
+    return accounts.filter(
+      (a) =>
+        a.name.toLowerCase().includes(q) ||
+        a.phone.toLowerCase().includes(q) ||
+        a.email?.toLowerCase().includes(q) ||
+        a.role.toLowerCase().includes(q)
+    );
+  }, [accounts, searchQuery]);
 
+  // Form state
+  const [addAccountForm, setAddAccountForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    role: "waiter",
+  });
 
-                    <Button
-                        className="gap-2"
-                        onClick={() => setAddAccountModal(true)}
-                    >
-                        <UserPlus className="w-4 h-4"/>
-                        Thêm Tài Khoản
-                    </Button>
-                </div>
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    role: "",
+  });
 
-                <div className="rounded-lg border border-border overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-muted/50">
-                            <tr>
-                                <th className="text-left p-4 text-sm font-medium text-muted-foreground">
-                                    Người Dùng
-                                </th>
-                                <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden sm:table-cell">
-                                    Liên Hệ
-                                </th>
-                                <th className="text-left p-4 text-sm font-medium text-muted-foreground">
-                                    Vai Trò
-                                </th>
-                                <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden md:table-cell">
-                                    Trạng Thái
-                                </th>
-                                <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden lg:table-cell">
-                                    Ngày Tham Gia
-                                </th>
-                                <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                                    Thao Tác
-                                </th>
-                            </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                            {accounts.map((account) => (
-                                <AccountCard key={account.id} account={account}
-                                             getRoleBadgeColor={getRoleBadgeColor}
-                                             getRoleIcon={getRoleIcon}
-                                             handleDeleteAccount={handleDeleteAccount}
-                                             handleEditAccount={handleEditAccount}
-                                />
-                            ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+  // Actions
+  const handleEditAccount = (account: AccountRow) => {
+    setSelectedAccount(account);
+    setEditFormData({
+      name: account.name,
+      phone: account.phone,
+      email: account.email || "",
+      role: account.role,
+    });
+    setEditAccountModal(true);
+  };
 
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div>Hiển thị 5 trong 24 tài khoản</div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" disabled>
-                            Trước
-                        </Button>
-                        <Button variant="outline" size="sm">
-                            Sau
-                        </Button>
-                    </div>
-                </div>
+  const handleDeleteAccount = (account: AccountRow) => {
+    setSelectedAccount(account);
+    setDeleteAccountModal(true);
+  };
+
+  const handleCreateAccount = async () => {
+    console.log("Creating account:", addAccountForm);
+    setAddAccountModal(false);
+    setAddAccountForm({ name: "", phone: "", email: "", role: "waiter" });
+    await fetchUsers(pageNumber);
+  };
+
+  const handleSaveEdit = async () => {
+    console.log("Saving account:", editFormData);
+    setEditAccountModal(false);
+    await fetchUsers(pageNumber);
+  };
+
+  const handleConfirmDelete = async () => {
+    console.log("Deleting account:", selectedAccount);
+    setDeleteAccountModal(false);
+    await fetchUsers(pageNumber);
+  };
+
+  const handlePrevPage = () => {
+    if (hasPrev) {
+      fetchUsers(pageNumber - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (hasNext) {
+      fetchUsers(pageNumber + 1);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Quản Lý Tài Khoản
+          </h1>
+          <p className="text-gray-600">
+            Quản lý nhân viên và phân quyền trong hệ thống
+          </p>
+        </div>
+
+        {/* Toolbar */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 flex items-center gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button
+            onClick={() => fetchUsers(pageNumber)}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Làm mới"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setAddAccountModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <UserPlus className="w-5 h-5" />
+            Thêm Tài Khoản
+          </button>
+        </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+            <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-600">Đang tải danh sách tài khoản...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-red-800 font-medium">Lỗi tải dữ liệu</p>
+              <p className="text-red-600 text-sm mt-1">{error}</p>
+            </div>
+            <button
+              onClick={() => fetchUsers(pageNumber)}
+              className="text-sm text-red-600 hover:text-red-700 font-medium"
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
+
+        {/* Account List */}
+        {!loading && !error && (
+          <>
+            <div className="space-y-3 mb-6">
+              {filteredAccounts.map((account) => (
+                <AccountCard
+                  key={account.id}
+                  account={account}
+                  onEdit={() => handleEditAccount(account)}
+                  onDelete={() => handleDeleteAccount(account)}
+                />
+              ))}
             </div>
 
+            {filteredAccounts.length === 0 && (
+              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+                <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Không có tài khoản nào phù hợp.</p>
+              </div>
+            )}
 
-            <Dialog open={addAccountModal} onOpenChange={setAddAccountModal}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>Thêm Tài Khoản Mới</DialogTitle>
-                        <DialogDescription>
-                            Tạo tài khoản mới cho nhân viên nhà hàng
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="add-name">Họ và tên *</Label>
-                            <Input
-                                id="add-name"
-                                value={addAccountForm.name}
-                                onChange={(e) =>
-                                    setAddAccountForm({...addAccountForm, name: e.target.value})
-                                }
-                                placeholder="Nhập họ và tên"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="add-phone">Số điện thoại *</Label>
-                            <Input
-                                id="add-phone"
-                                value={addAccountForm.phone}
-                                onChange={(e) =>
-                                    setAddAccountForm({
-                                        ...addAccountForm,
-                                        phone: e.target.value,
-                                    })
-                                }
-                                placeholder="+84 123 456 789"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="add-role">Vai trò *</Label>
-                            <Select
-                                value={addAccountForm.role}
-                                onValueChange={(value) =>
-                                    setAddAccountForm({...addAccountForm, role: value})
-                                }
-                            >
-                                <SelectTrigger id="add-role">
-                                    <SelectValue placeholder="Chọn vai trò"/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="chef">Bếp trưởng</SelectItem>
-                                    <SelectItem value="waiter">Phục vụ</SelectItem>
-                                    <SelectItem value="moderator">Kiểm duyệt</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="add-status">Trạng thái</Label>
-                            <Select
-                                value={addAccountForm.status}
-                                onValueChange={(value) =>
-                                    setAddAccountForm({...addAccountForm, status: value})
-                                }
-                            >
-                                <SelectTrigger id="add-status">
-                                    <SelectValue placeholder="Chọn trạng thái"/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="active">Hoạt động</SelectItem>
-                                    <SelectItem value="inactive">Không hoạt động</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setAddAccountModal(false)}>
-                            Hủy
-                        </Button>
-                        <Button onClick={handleCreateAccount}>Tạo Tài Khoản</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Pagination */}
+            {totalCount > 0 && (
+              <div className="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Hiển thị {(pageNumber - 1) * pageSize + 1} -{" "}
+                  {Math.min(pageNumber * pageSize, totalCount)} trong tổng số{" "}
+                  {totalCount} tài khoản
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={!hasPrev}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Trước
+                  </button>
+                  <div className="text-sm text-gray-600">
+                    Trang {pageNumber} / {totalPages}
+                  </div>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={!hasNext}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Sau
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
+        {/* Add Account Modal */}
+        {addAccountModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Thêm Tài Khoản Mới
+              </h2>
+              <p className="text-gray-600 text-sm mb-6">
+                Tạo tài khoản mới cho nhân viên nhà hàng
+              </p>
 
-            <Dialog open={editAccountModal} onOpenChange={setEditAccountModal}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>Chỉnh Sửa Tài Khoản</DialogTitle>
-                        <DialogDescription>
-                            Cập nhật thông tin tài khoản của {selectedAccount?.name}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-name">Họ và tên</Label>
-                            <Input
-                                id="edit-name"
-                                value={editFormData.name}
-                                onChange={(e) =>
-                                    setEditFormData({...editFormData, name: e.target.value})
-                                }
-                                placeholder="Nhập họ và tên"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-phone">Số điện thoại</Label>
-                            <Input
-                                id="edit-phone"
-                                value={editFormData.phone}
-                                onChange={(e) =>
-                                    setEditFormData({...editFormData, phone: e.target.value})
-                                }
-                                placeholder="Nhập số điện thoại"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-role">Vai trò</Label>
-                            <Select
-                                value={editFormData.role}
-                                onValueChange={(value) =>
-                                    setEditFormData({...editFormData, role: value})
-                                }
-                            >
-                                <SelectTrigger id="edit-role">
-                                    <SelectValue placeholder="Chọn vai trò"/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="chef">Bếp trưởng</SelectItem>
-                                    <SelectItem value="waiter">Phục vụ</SelectItem>
-                                    <SelectItem value="moderator">Kiểm duyệt</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-status">Trạng thái</Label>
-                            <Select
-                                value={editFormData.status}
-                                onValueChange={(value) =>
-                                    setEditFormData({...editFormData, status: value})
-                                }
-                            >
-                                <SelectTrigger id="edit-status">
-                                    <SelectValue placeholder="Chọn trạng thái"/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="active">Hoạt động</SelectItem>
-                                    <SelectItem value="inactive">Không hoạt động</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setEditAccountModal(false)}
-                        >
-                            Hủy
-                        </Button>
-                        <Button onClick={handleSaveEdit}>Lưu Thay Đổi</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Họ và tên *
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nhập họ và tên"
+                    value={addAccountForm.name}
+                    onChange={(e) =>
+                      setAddAccountForm({
+                        ...addAccountForm,
+                        name: e.target.value,
+                      })
+                    }
+                  />
+                </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="email@example.com"
+                    value={addAccountForm.email}
+                    onChange={(e) =>
+                      setAddAccountForm({
+                        ...addAccountForm,
+                        email: e.target.value,
+                      })
+                    }
+                  />
+                </div>
 
-            <Dialog open={deleteAccountModal} onOpenChange={setDeleteAccountModal}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>Xác Nhận Xóa</DialogTitle>
-                        <DialogDescription>
-                            Bạn có chắc chắn muốn xóa tài khoản của{" "}
-                            <span className="font-semibold text-foreground">
-                                {selectedAccount?.name}
-                              </span>
-                            ? Hành động này không thể hoàn tác.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button
-                            variant="outline"
-                            onClick={() => setDeleteAccountModal(false)}
-                        >
-                            Hủy
-                        </Button>
-                        <Button variant="destructive" onClick={handleConfirmDelete}>
-                            Xóa Tài Khoản
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
-    )
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Số điện thoại *
+                  </label>
+                  <input
+                    type="tel"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="+84 123 456 789"
+                    value={addAccountForm.phone}
+                    onChange={(e) =>
+                      setAddAccountForm({
+                        ...addAccountForm,
+                        phone: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vai trò *
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={addAccountForm.role}
+                    onChange={(e) =>
+                      setAddAccountForm({
+                        ...addAccountForm,
+                        role: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="chef">Bếp trưởng</option>
+                    <option value="waiter">Phục vụ</option>
+                    <option value="moderator">Kiểm duyệt</option>
+                    <option value="admin">Quản trị</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setAddAccountModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleCreateAccount}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Tạo Tài Khoản
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Account Modal */}
+        {editAccountModal && selectedAccount && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Chỉnh Sửa Tài Khoản
+              </h2>
+              <p className="text-gray-600 text-sm mb-6">
+                Cập nhật thông tin tài khoản của {selectedAccount.name}
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Họ và tên
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={editFormData.name}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, name: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={editFormData.email}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        email: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Số điện thoại
+                  </label>
+                  <input
+                    type="tel"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={editFormData.phone}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        phone: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vai trò
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={editFormData.role}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, role: e.target.value })
+                    }
+                  >
+                    <option value="chef">Bếp trưởng</option>
+                    <option value="waiter">Phục vụ</option>
+                    <option value="moderator">Kiểm duyệt</option>
+                    <option value="admin">Quản trị</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setEditAccountModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Lưu Thay Đổi
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteAccountModal && selectedAccount && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Xác Nhận Xóa
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Bạn có chắc chắn muốn xóa tài khoản của{" "}
+                <strong>{selectedAccount.name}</strong>? Hành động này không thể
+                hoàn tác.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteAccountModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Xóa Tài Khoản
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

@@ -1,80 +1,159 @@
-"use client";
-import React, { useState, useRef, useEffect } from "react";
-import { Lightbulb, Sparkles } from "lucide-react";
+import { MessageSquare, RefreshCw } from "lucide-react";
+import React from "react";
 
-type PopoverProps = {
+type Props = {
+  value: string;
   suggestions: string[];
-  onSelect: (val: string) => void;
+  onChange: (val: string) => void;
+  onGenerate?: () => Promise<void> | void;
 };
 
-export const ResponsePopover: React.FC<PopoverProps> = ({
+export const ResponsePopover: React.FC<Props> = ({
+  value,
   suggestions,
-  onSelect,
+  onChange,
+  onGenerate,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const btnRef = React.useRef<HTMLButtonElement | null>(null);
 
-  // Đóng khi click ra ngoài
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [pos, setPos] = React.useState<{ top: number; left: number }>({
+    top: 0,
+    left: 0,
+  });
+
+  if (!suggestions?.length) return null;
+
+  const updatePos = React.useCallback(() => {
+    const el = btnRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+
+    const W = 320; // w-80 = 20rem = 320px
+    const GAP = 8;
+
+    // đặt popover "lên trên" button
+    const top = r.top - GAP;
+    const left = Math.min(r.left, window.innerWidth - W - 12);
+
+    setPos({ top, left });
   }, []);
 
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+
+    if (onGenerate) await onGenerate();
+    else await new Promise((resolve) => setTimeout(resolve, 800));
+
+    setIsGenerating(false);
+    updatePos();
+    setIsOpen(true);
+  };
+
+  const handleSelect = (suggestion: string) => {
+    onChange(suggestion);
+    setIsOpen(false);
+  };
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    // khi scroll/resize trong modal/panel, vị trí phải cập nhật
+    const onAnyScroll = () => updatePos();
+    window.addEventListener("scroll", onAnyScroll, true);
+    window.addEventListener("resize", onAnyScroll);
+
+    return () => {
+      window.removeEventListener("scroll", onAnyScroll, true);
+      window.removeEventListener("resize", onAnyScroll);
+    };
+  }, [isOpen, updatePos]);
+
+  // optional: click ra ngoài để đóng
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const btn = btnRef.current;
+      if (!btn) return;
+      // nếu click vào button thì thôi
+      if (btn.contains(e.target as Node)) return;
+      setIsOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [isOpen]);
+
   return (
-    <div className="relative inline-block" ref={popoverRef}>
+    <div className="relative">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all
-          ${
-            isOpen
-              ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-          }`}
+        onClick={handleGenerate}
+        disabled={isGenerating}
+        className="group flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border border-purple-200/50 transition-all active:scale-95 disabled:opacity-50 shadow-sm hover:shadow-md"
       >
-        <Lightbulb className={`w-3.5 h-3.5 ${isOpen ? "animate-pulse" : ""}`} />
-        Gợi ý AI
+        <MessageSquare size={14} className="text-purple-600" />
+        <span className="text-[11px] font-bold text-purple-700">
+          {isGenerating ? "Đang tạo gợi ý..." : "Gợi ý AI"}
+        </span>
+        {isGenerating && (
+          <RefreshCw size={12} className="text-purple-600 animate-spin" />
+        )}
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 bottom-full right-0 mb-3 w-72 origin-bottom-right animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-            {/* Header gợi ý */}
-            <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-blue-100" />
-              <span className="text-white text-[11px] font-bold uppercase tracking-wider">
-                Gợi ý phản hồi nhanh
-              </span>
+        <div
+          className="fixed z-[9999] w-80"
+          style={{
+            top: pos.top,
+            left: pos.left,
+            transform: "translateY(-100%)", // ✅ luôn nằm phía trên button
+          }}
+        >
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare size={14} className="text-purple-600" />
+                <span className="text-xs font-bold text-gray-700">
+                  Gợi ý từ AI
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ✕
+              </button>
             </div>
 
-            {/* List gợi ý */}
-            <div className="p-2 max-h-[300px] overflow-y-auto">
-              {suggestions.map((text, i) => (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {suggestions.map((suggestion, i) => (
                 <button
+                  type="button"
                   key={i}
-                  onClick={() => {
-                    onSelect(text);
-                    setIsOpen(false);
-                  }}
-                  className="w-full text-left p-3 hover:bg-blue-50 rounded-xl transition-colors group mb-1 last:mb-0"
+                  onClick={() => handleSelect(suggestion)}
+                  className="w-full text-left p-3 text-xs bg-gradient-to-br from-gray-50 to-purple-50/30 hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all border border-gray-200 hover:border-purple-300 hover:shadow-md group"
                 >
-                  <p className="text-xs text-gray-600 group-hover:text-blue-700 leading-relaxed italic">
-                    "{text}"
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 text-purple-600 text-[10px] font-bold flex-shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="text-gray-700 leading-relaxed group-hover:text-gray-900 flex-1">
+                      {suggestion}
+                    </span>
+                  </div>
+
+                  {value === suggestion && (
+                    <div className="mt-2 text-[10px] font-bold text-purple-600">
+                      Đang chọn
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
-
-            {/* Mũi tên trỏ xuống */}
-            <div className="absolute -bottom-1 right-6 w-3 h-3 bg-white border-r border-b border-gray-100 rotate-45"></div>
           </div>
         </div>
       )}

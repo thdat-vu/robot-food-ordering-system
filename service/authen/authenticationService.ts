@@ -26,7 +26,7 @@ export default function useAuth() {
 
       // 🔹 Giải mã JWT
       const decoded: DecodedToken = jwtDecode(token);
-      console.log("✅ Decoded token:", decoded);
+     
 
       if (!decoded.Role) {
         throw new Error("Không tìm thấy quyền trong token");

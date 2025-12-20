@@ -67,7 +67,7 @@ export type FeedbackRow = {
   export type FeedbackTableProps = {
     rows: FeedbackRow[];
     searchQuery: string;
-    selectedIds: Set<string>;
+    selectedIds: string[];
     selectablePendingIds: string[];
     isChecking: boolean;
     responses: Record<string, string>;
