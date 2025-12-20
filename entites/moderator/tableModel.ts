@@ -46,3 +46,12 @@ interface Topping {
   price: number;
   imageUrl: string;
 }
+export type FeedbackRow = {
+  complainId: string;
+  idTable: string;
+  feedBack: string;
+  createData: string | Date;
+  isPending: boolean;
+  resolutionNote?: string | null;
+  handledBy?: string | null;
+};

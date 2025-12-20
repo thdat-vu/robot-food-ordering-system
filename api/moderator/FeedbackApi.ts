@@ -1,8 +1,9 @@
 import {BaseEntityData, BaseEntityDataError} from "@/entites/BaseEntity";
 import {FeedbackgGetTableId, TableData} from "@/entites/moderator/FeedbackModole";
-import api from "@/api/api";
+
 import {API_FEEDBACK} from "@/api-endpoint-env";
 import { STATUS_CODES } from "http";
+import apiClient from "@/lib/axios";
 
 export const GetFeedbackByIdtable = async (
     id: string
@@ -13,7 +14,7 @@ export const GetFeedbackByIdtable = async (
         console.log(`[FeedbackApi] Calling GET ${API_FEEDBACK}/${id}`);
       }
   
-      const res = await api.get<BaseEntityDataError<FeedbackgGetTableId[]>>(
+      const res = await apiClient.get<BaseEntityDataError<FeedbackgGetTableId[]>>(
         `${API_FEEDBACK}/${id}?isCustomer=true`
       );
   
@@ -66,7 +67,7 @@ export const GetFeedbackByIdtable = async (
 export const GetAllFeedbackHome = async (): Promise<BaseEntityData<Record<string, TableData[]>>
 > => {
     try {
-        const res = await api.get(`${API_FEEDBACK}`);
+        const res = await apiClient.get(`${API_FEEDBACK}`);
         
         return res.data;
     } catch (e) {
@@ -81,7 +82,7 @@ export const CheckSS = async (id: string, idfb: string[], content: string, isPee
         params.append('isPeeding', String(isPeeding));
         params.append('content', content);
 
-        const res = await api.put(`${API_FEEDBACK}/${id}?${params.toString()}`);
+        const res = await apiClient.put(`${API_FEEDBACK}/${id}?${params.toString()}`);
 
         console.log(res);
         return res.data;
@@ -92,7 +93,7 @@ export const CheckSS = async (id: string, idfb: string[], content: string, isPee
 
 export const CreateComplain = async (payload: { TableId: string; Title: string; ComplainNote: string; OrderItemIds?: string[] }) => {
     try {
-        const res = await api.post(`${API_FEEDBACK}`, payload);
+        const res = await apiClient.post(`${API_FEEDBACK}`, payload);
         return res.data;
     } catch (err) {
         throw err;

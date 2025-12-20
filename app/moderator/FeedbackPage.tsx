@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import {
   X,
@@ -9,10 +10,8 @@ import {
   Search,
   RefreshCw,
   ArrowUpDown,
-  Package,
-  Send,
-  Lightbulb,
 } from "lucide-react";
+
 import { FeedbackgGetTableId } from "@/entites/moderator/FeedbackModole";
 import { CheckSS } from "@/api/moderator/FeedbackApi";
 import {
@@ -21,6 +20,7 @@ import {
 } from "@/hooks/moderator/useFeedbackHooks";
 import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { ToastContainer } from "@/components/moderator/ToastContainer";
+import { FeedbackTable } from "@/components/moderator/FeedbackTable";
 
 interface FeedbackPageProps {
   idTable: string;
@@ -31,6 +31,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
   const [data, setData] = useState<FeedbackgGetTableId[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+
   const [selectedFilter, setSelectedFilter] = useState<
     "all" | "pending" | "processed"
   >("all");
@@ -40,6 +41,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
   );
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [listId, setListId] = useState<string[]>([]);
+
   const [responses, setResponses] = useState<{ [key: string]: string }>({});
   const [showSuggestions, setShowSuggestions] = useState<{
     [key: string]: boolean;
@@ -65,6 +67,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
     if (idTable) {
       loadFeedbackData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idTable]);
 
   useEffect(() => {
@@ -89,16 +92,17 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
         }));
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   const loadFeedbackData = async () => {
     setIsLoading(true);
 
     try {
-      const res = await run(idTable); // { data: FeedbackgGetTableId[], message: string }
+      const res = await run(idTable);
       const list = res?.data ?? [];
+
       if (!list.length) {
-        // ví dụ: 404 = không có complain -> chỉ show info, hoặc im luôn
         if (res.statusCodes && res.statusCodes !== "404" && res.message) {
           addToast(res.message, "error");
         }
@@ -127,65 +131,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
       setData([]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const getStatusInfo = (status: number) => {
-    switch (status) {
-      case 1:
-        return {
-          label: "Chờ xử lý",
-          color:
-            "text-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200",
-        };
-      case 2:
-        return {
-          label: "Đang chuẩn bị",
-          color:
-            "text-orange-700 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200",
-        };
-      case 3:
-        return {
-          label: "Sẵn sàng",
-          color:
-            "text-emerald-700 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200",
-        };
-      case 4:
-        return {
-          label: "Đã phục vụ",
-          color:
-            "text-teal-700 bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200",
-        };
-      case 5:
-        return {
-          label: "Hoàn thành",
-          color:
-            "text-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200",
-        };
-      case 6:
-        return {
-          label: "Đã hủy",
-          color:
-            "text-red-700 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200",
-        };
-      case 7:
-        return {
-          label: "Ghi chú",
-          color:
-            "text-purple-700 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200",
-        };
-      case 8:
-        return {
-          label: "Yêu cầu hủy",
-          color:
-            "text-purple-700 bg-gradient-to-r from-violet-50 to-purple-50 border border-purple-200",
-        };
-      default:
-        return {
-          label: "Không xác định",
-          color:
-            "text-gray-800 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200",
-        };
     }
   };
 
@@ -321,9 +266,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
     return `${days} ngày trước`;
   };
 
-  const clearSearch = () => {
-    setSearchQuery("");
-  };
+  const clearSearch = () => setSearchQuery("");
 
   const highlightSearchText = (text: string, search: string) => {
     if (!search) return text;
@@ -335,13 +278,43 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
   };
 
   // 👉 Xác định feedback là "yêu cầu nhanh"
+  // 👉 Xác định feedback là "yêu cầu nhanh" - PHIÊN BẢN ĐẦY ĐỦ
   const isQuickRequest = (feedback: FeedbackgGetTableId): boolean => {
     const text = (feedback.feedBack || "").toLowerCase();
+
+    // Danh sách các danh từ chỉ đồ dùng/gia vị
+    const quickItems = [
+      "mắm",
+      "tương",
+      "xì dầu",
+      "ớt",
+      "muối",
+      "tiêu",
+      "chanh",
+      "tỏi",
+      "đá",
+      "nước",
+      "khăn",
+      "giấy",
+      "đũa",
+      "muỗng",
+      "thìa",
+      "chén",
+      "bát",
+    ];
+
+    // Danh sách các động từ chỉ yêu cầu
+    const quickActions = ["thêm", "them", "cho", "xin", "lấy", "lay", "mang"];
+
+    // Kiểm tra nếu có sự kết hợp giữa "Hành động" và "Đồ vật"
+    const matchesAction = quickActions.some((action) => text.includes(action));
+    const matchesItem = quickItems.some((item) => text.includes(item));
+
+    // Đặc biệt ưu tiên các câu bắt đầu bằng "thêm" hoặc chứa từ khóa nhạy cảm
     return (
-      text.includes("nước mắm") ||
-      text.includes("nuoc mam") ||
-      text.includes("nước tương") ||
-      text.includes("nuoc tuong")
+      (matchesAction && matchesItem) ||
+      text.includes("gấp") ||
+      text.includes("ngay")
     );
   };
 
@@ -369,20 +342,17 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
   const processedCount = data.filter((item) => !item.isPending).length;
 
   // 👉 Những phản hồi pending mà cho phép chọn (không phải yêu cầu nhanh)
-  const selectablePendingFeedbacks = filteredData.filter(
-    (item) => item.isPending && !isQuickRequest(item)
-  );
+  const selectablePendingIds = filteredData
+    .filter((item) => item.isPending && !isQuickRequest(item))
+    .map((item) => item.complainId);
 
   const handleCheckboxChange = (feedbackId: string, isPending: boolean) => {
     if (!isPending) return;
 
     setSelectedFeedbacks((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(feedbackId)) {
-        newSet.delete(feedbackId);
-      } else {
-        newSet.add(feedbackId);
-      }
+      if (newSet.has(feedbackId)) newSet.delete(feedbackId);
+      else newSet.add(feedbackId);
       return newSet;
     });
   };
@@ -402,12 +372,36 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
   const handleSortToggle = () => {
     const newOrder = sortOrder === "newest" ? "oldest" : "newest";
     setSortOrder(newOrder);
+
     const sorted = [...data].sort((a, b) => {
       return newOrder === "newest"
         ? new Date(b.createData).getTime() - new Date(a.createData).getTime()
         : new Date(a.createData).getTime() - new Date(b.createData).getTime();
     });
+
     setData(sorted);
+  };
+
+  // ✅ handler gửi yêu cầu nhanh (giữ y như code bạn đang làm)
+  const handleSendQuickRequest = async (
+    feedbackId: string,
+    feedbackText: string
+  ) => {
+    setIsChecking(true);
+    try {
+      await CheckSS(
+        idTable,
+        [feedbackId],
+        `Yêu cầu nhanh: ${feedbackText}`,
+        true
+      );
+      addToast("Đã gửi yêu cầu nhanh đến phục vụ", "success");
+      await loadFeedbackData();
+    } catch (e) {
+      addToast("Không thể gửi yêu cầu nhanh", "error");
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   return (
@@ -428,6 +422,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
               Chưa xử lý
             </span>
           </div>
+
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl px-4 py-3 text-center border-2 border-green-200">
             <div className="flex items-center justify-center space-x-2 mb-1">
               <CheckCircle className="w-5 h-5 text-green-600" />
@@ -437,6 +432,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
             </div>
             <span className="text-sm text-green-700 font-medium">Đã xử lý</span>
           </div>
+
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl px-4 py-3 text-center border-2 border-blue-200">
             <div className="flex items-center justify-center space-x-2 mb-1">
               <MessageSquare className="w-5 h-5 text-blue-600" />
@@ -470,6 +466,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
                   </button>
                 )}
               </div>
+
               {searchQuery && (
                 <div className="mt-2 text-sm text-gray-600">
                   Tìm thấy{" "}
@@ -588,7 +585,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
           {isLoading ? (
             <div className="flex items-center justify-center p-16">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-500 mx-auto mb-6"></div>
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-500 mx-auto mb-6" />
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">
                   Đang tải phản hồi...
                 </h3>
@@ -618,282 +615,28 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              {selectablePendingFeedbacks.length > 0 && (
-                <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-                  <label className="flex items-center space-x-4 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={
-                        selectedFeedbacks.size ===
-                          selectablePendingFeedbacks.length &&
-                        selectablePendingFeedbacks.length > 0
-                      }
-                      onChange={handleSelectAll}
-                      className="w-5 h-5 text-blue-600 rounded border-2 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="font-semibold text-gray-700">
-                      Chọn tất cả phản hồi chưa xử lý
-                      <span className="text-blue-600">
-                        {" "}
-                        ({selectablePendingFeedbacks.length})
-                      </span>
-                    </span>
-                  </label>
-                </div>
-              )}
-
-              {filteredData.map((feedback, index) => {
-                const isQuick = isQuickRequest(feedback);
-                const alreadySentQuick = hasSentQuickRequest(feedback);
-
-                return (
-                  <div
-                    key={feedback.complainId}
-                    className={`border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg ${
-                      feedback.isPending
-                        ? "border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50 hover:border-orange-300"
-                        : "border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 hover:border-green-300"
-                    } ${
-                      selectedFeedbacks.has(feedback.complainId)
-                        ? "ring-4 ring-blue-400 shadow-lg"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-start space-x-4">
-                      <div className="flex-shrink-0 pt-1">
-                        <input
-                          type="checkbox"
-                          checked={selectedFeedbacks.has(feedback.complainId)}
-                          onChange={() =>
-                            handleCheckboxChange(
-                              feedback.complainId,
-                              feedback.isPending
-                            )
-                          }
-                          disabled={
-                            !feedback.isPending || isChecking || isQuick
-                          }
-                          className={`w-5 h-5 text-blue-600 rounded border-2 border-gray-300 focus:ring-blue-500 transition-all duration-200 ${
-                            !feedback.isPending || isChecking || isQuick
-                              ? "opacity-40 cursor-not-allowed"
-                              : "cursor-pointer hover:scale-110"
-                          }`}
-                        />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            <span className="bg-white px-3 py-1 rounded-full text-sm font-bold text-gray-600 shadow-sm">
-                              #{index + 1}
-                            </span>
-                            <div
-                              className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-bold shadow-sm ${
-                                feedback.isPending
-                                  ? "bg-orange-100 text-orange-800 border border-orange-200"
-                                  : "bg-green-100 text-green-800 border border-green-200"
-                              }`}
-                            >
-                              {feedback.isPending ? (
-                                <AlertCircle className="w-4 h-4" />
-                              ) : (
-                                <CheckCircle className="w-4 h-4" />
-                              )}
-                              <span>
-                                {feedback.isPending ? "Chưa xử lý" : "Đã xử lý"}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col items-end space-y-1">
-                            <div className="flex items-center space-x-2 text-gray-500">
-                              <Calendar className="w-4 h-4" />
-                              <span className="text-sm font-medium">
-                                {formatDate(feedback.createData)}
-                              </span>
-                            </div>
-                            <span className="text-xs text-gray-400 font-medium">
-                              {getRelativeTime(feedback.createData)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Related Dishes */}
-
-                        {/* Feedback Content */}
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-2">
-                              <MessageSquare className="w-4 h-4 text-gray-600" />
-                              <h4 className="font-semibold text-gray-700 text-sm">
-                                Nội dung phản hồi:
-                              </h4>
-                            </div>
-
-                            {/* Quick-serve status indicator */}
-                            {isQuick && alreadySentQuick && (
-                              <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
-                                <Send className="w-3.5 h-3.5 text-blue-600" />
-                                <span className="text-xs font-semibold text-blue-700">
-                                  Đã gửi phục vụ nhanh
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <p
-                            className="text-gray-800 leading-relaxed text-base"
-                            dangerouslySetInnerHTML={{
-                              __html: highlightSearchText(
-                                feedback.feedBack,
-                                searchQuery
-                              ),
-                            }}
-                          />
-                        </div>
-
-                        {/* Response Input Section */}
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-2">
-                              <Send className="w-4 h-4 text-gray-600" />
-                              <h4 className="font-semibold text-gray-700 text-sm">
-                                Phản hồi cho khách hàng:
-                              </h4>
-                            </div>
-                            <button
-                              onClick={() =>
-                                toggleSuggestions(feedback.complainId)
-                              }
-                              className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all duration-200 text-sm font-medium"
-                            >
-                              <Lightbulb className="w-4 h-4" />
-                              <span>Gợi ý</span>
-                            </button>
-                          </div>
-
-                          {showSuggestions[feedback.complainId] && (
-                            <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                              <h5 className="font-medium text-blue-800 mb-2 flex items-center space-x-2 text-sm">
-                                <Lightbulb className="w-4 h-4" />
-                                <span>Các gợi ý phản hồi:</span>
-                              </h5>
-                              <div className="grid grid-cols-1 gap-2">
-                                {responseSuggestions.map((suggestion, idx) => (
-                                  <button
-                                    key={`${feedback.complainId}-${idx}`}
-                                    onClick={() =>
-                                      handleSuggestionClick(
-                                        feedback.complainId,
-                                        suggestion
-                                      )
-                                    }
-                                    className="text-left p-2 bg-white hover:bg-blue-50 rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200 text-sm text-gray-700 hover:text-blue-800"
-                                  >
-                                    {suggestion}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          <textarea
-                            value={responses[feedback.complainId] || ""}
-                            onChange={(e) =>
-                              handleResponseChange(
-                                feedback.complainId,
-                                e.target.value
-                              )
-                            }
-                            placeholder="Nhập phản hồi cho khách hàng..."
-                            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none text-sm"
-                            rows={3}
-                          />
-                        </div>
-
-                        {/* Buttons */}
-                        {feedback.isPending && (
-                          <div className="flex justify-end gap-3">
-                            {/* Nút GỬI YÊU CẦU NHANH (chỉ hiện cho feedback nhanh) */}
-                            {isQuick && (
-                              <button
-                                onClick={async () => {
-                                  if (alreadySentQuick) return;
-                                  try {
-                                    await CheckSS(
-                                      idTable,
-                                      [feedback.complainId],
-                                      `Yêu cầu nhanh: ${feedback.feedBack}`,
-                                      true // giữ isPending = true
-                                    );
-                                    addToast(
-                                      "Đã gửi yêu cầu nhanh đến phục vụ",
-                                      "success"
-                                    );
-                                    await loadFeedbackData();
-                                  } catch (e) {
-                                    addToast(
-                                      "Không thể gửi yêu cầu nhanh",
-                                      "error"
-                                    );
-                                  }
-                                }}
-                                disabled={alreadySentQuick}
-                                className={`px-5 py-2.5 rounded-xl transition-all duration-200 shadow-sm flex items-center space-x-2 font-semibold text-sm
-                                  ${
-                                    alreadySentQuick
-                                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                      : "bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md transform hover:scale-105"
-                                  }`}
-                              >
-                                {alreadySentQuick ? (
-                                  <>
-                                    <CheckCircle className="w-4 h-4" />
-                                    <span>Đã gửi phục vụ nhanh</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Send className="w-4 h-4" />
-                                    <span>Gửi yêu cầu nhanh</span>
-                                  </>
-                                )}
-                              </button>
-                            )}
-
-                            {/* ❌ Ẩn nút đánh dấu xử lý nếu là yêu cầu nhanh */}
-                            {!isQuick && (
-                              <button
-                                onClick={() =>
-                                  handleSingleCheck(feedback.complainId)
-                                }
-                                disabled={isChecking}
-                                className="px-5 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-200 flex items-center space-x-2 shadow-sm hover:shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                              >
-                                {isChecking ? (
-                                  <>
-                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                    <span className="font-semibold text-sm">
-                                      Đang xử lý...
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="w-4 h-4" />
-                                    <span className="font-semibold text-sm">
-                                      Đánh dấu đã xử lý
-                                    </span>
-                                  </>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <FeedbackTable
+              rows={filteredData}
+              searchQuery={searchQuery}
+              selectedIds={selectedFeedbacks}
+              selectablePendingIds={selectablePendingIds}
+              isChecking={isChecking}
+              responses={responses}
+              showSuggestions={showSuggestions}
+              responseSuggestions={responseSuggestions}
+              isQuickRequest={isQuickRequest as any}
+              hasSentQuickRequest={hasSentQuickRequest as any}
+              formatDate={formatDate}
+              getRelativeTime={getRelativeTime}
+              highlightSearchText={highlightSearchText}
+              onToggleSelect={handleCheckboxChange}
+              onSelectAll={handleSelectAll}
+              onResponseChange={handleResponseChange}
+              onToggleSuggestions={toggleSuggestions}
+              onSuggestionPick={handleSuggestionClick}
+              onSingleCheck={handleSingleCheck}
+              onSendQuickRequest={handleSendQuickRequest}
+            />
           )}
         </div>
       </div>
