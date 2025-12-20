@@ -1,6 +1,7 @@
 import React from 'react';
 import { Order, OrderStatus, GroupedOrders } from '@/types/kitchen';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Card,
   CardHeader,
@@ -26,6 +27,7 @@ interface OrdersContentProps {
   showIndividualCards?: boolean;
   selectedIds?: Set<number>;
   animatingOutIds?: Set<number>;
+  onToggleSelection?: (orderIds: number[], selected: boolean) => void;
 }
 
 export function OrdersContent({
@@ -42,7 +44,8 @@ export function OrdersContent({
   onServeMultipleOrders,
   showIndividualCards,
   selectedIds,
-  animatingOutIds = new Set()
+  animatingOutIds = new Set(),
+  onToggleSelection
 }: OrdersContentProps) {
   const renderClockIcon = () => (
     <svg 
@@ -625,6 +628,9 @@ export function OrdersContent({
             const tableBadges = Array.from(ordersByTable.entries())
               .sort(([a], [b]) => a - b);
             
+            // Get all order IDs in this group
+            const orderIds = orders.map(o => o.id);
+            
             return (
               <div
                 key={`${itemName}-${sizeName}-${noteKey}`}
@@ -633,12 +639,37 @@ export function OrdersContent({
                     ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
                     : 'border-gray-100 hover:border-blue-300'
                 } ${anyAnimating ? 'animating-out' : ''}`}
-                onClick={() => onGroupClick(itemName)}
+                onClick={() => {
+                  // Toggle selection when clicking on the card
+                  if (onToggleSelection) {
+                    onToggleSelection(orderIds, !groupSelected);
+                  }
+                  onGroupClick(itemName);
+                }}
               >
                 {/* Left gradient accent bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(first.category)}`}></div>
                 
                 <div className="flex items-center gap-4 p-4 pl-5">
+                  {/* Checkbox for selection */}
+                  <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={groupSelected}
+                      onCheckedChange={(checked) => {
+                        if (onToggleSelection) {
+                          onToggleSelection(orderIds, checked as boolean);
+                        }
+                      }}
+                      className="size-6 rounded-lg border-2 border-blue-500 text-blue-600 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-600 data-[state=checked]:border-blue-600 shadow-sm transition-all duration-200"
+                      aria-label="Chọn món"
+                    />
+                  </div>
+                  
+                  {/* Total quantity badge - large number */}
+                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-white text-xl font-bold">{orders.length}</span>
+                  </div>
+                  
                   <div className="flex-1 min-w-0">
                     {/* Primary Info: Name + Size + Table info on same line */}
                     <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
@@ -681,7 +712,7 @@ export function OrdersContent({
                     </div>
                   </div>
                   
-                  {/* Selection indicator */}
+                  {/* Arrow indicator */}
                   <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                     groupSelected 
                       ? 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg' 
