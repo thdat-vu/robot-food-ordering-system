@@ -465,6 +465,8 @@ const ModeratorScreen: React.FC = () => {
             const isHighlighted = highlightedTable === tableId;
             const textColor = getTextColor(tableData);
             const cardColor = getTableColor(tableData);
+            const totalItems = tableData.totalItems || 0;
+            const isEmpty = totalItems === 0;
 
             return (
               <div
@@ -504,7 +506,7 @@ const ModeratorScreen: React.FC = () => {
                             className="text-orange-500 drop-shadow-[0_0_6px_rgba(255,165,0,0.8)]"
                             strokeWidth={2.5}
                           />
-                          <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[8px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center shadow-lg border border-white">
+                          <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[16px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center shadow-lg border border-white">
                             {tableData.counter}
                           </span>
                         </div>
@@ -520,44 +522,83 @@ const ModeratorScreen: React.FC = () => {
                 ) : null}
 
                 {tableData.tableStatus !== 0 && (
-                  <div className="flex items-center gap-1 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm flex-shrink-0">
-                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm">
-                      <ChefHat size={12} className="flex-shrink-0" />
-                      <span>
-                        {tableData.deliveredCount || 0}/
-                        {tableData.totalItems || 0}
+                  <div
+                    className={[
+                      "flex items-center gap-1 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm flex-shrink-0",
+                      isEmpty
+                        ? "text-base px-2.5 py-1.5"
+                        : "text-xs px-1.5 py-0.5",
+                    ].join(" ")}
+                  >
+                    <div
+                      className={[
+                        "flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm",
+                        isEmpty
+                          ? "text-base px-2.5 py-1.5"
+                          : "text-xs px-1.5 py-0.5",
+                      ].join(" ")}
+                    >
+                      <ChefHat
+                        size={isEmpty ? 18 : 12}
+                        className="flex-shrink-0"
+                      />
+                      <span className={isEmpty ? "leading-none" : ""}>
+                        {tableData.deliveredCount || 0}/{totalItems}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm">
-                      <UserCheck size={12} className="flex-shrink-0" />
-                      <span>
-                        {tableData.serveredCount || 0}/
-                        {tableData.totalItems || 0}
+
+                    <div
+                      className={[
+                        "flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm",
+                        isEmpty
+                          ? "text-base px-2.5 py-1.5"
+                          : "text-xs px-1.5 py-0.5",
+                      ].join(" ")}
+                    >
+                      <UserCheck
+                        size={isEmpty ? 18 : 12}
+                        className="flex-shrink-0"
+                      />
+                      <span className={isEmpty ? "leading-none" : ""}>
+                        {tableData.serveredCount || 0}/{totalItems}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold rounded px-1.5 py-0.5 shadow-sm flex-shrink-0">
+
+                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm px-1.5 py-0.5 flex-shrink-0">
                       {(() => {
                         switch (tableData.paymentStatus) {
                           case 1:
                             return (
                               <>
-                                <Wallet className="w-4 h-4" />
-                                <Clock10Icon className="w-4 h-4" />
+                                <Wallet
+                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
+                                />
+                                <Clock10Icon
+                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
+                                />
                               </>
                             );
                           case 2:
                             return (
                               <>
-                                <Wallet className="w-4 h-4" />
-                                <CheckCircle2 className="w-4 h-4" />
+                                <Wallet
+                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
+                                />
+                                <CheckCircle2
+                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
+                                />
                               </>
                             );
                           case 3:
                           case 4:
                             return (
                               <>
-                                <Wallet className="w-4 h-4" />
-                                <XCircle className="w-4 h-4" />
+                                <Wallet
+                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
+                                />
+                                <XCircle
+                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
+                                />
                               </>
                             );
                           default:

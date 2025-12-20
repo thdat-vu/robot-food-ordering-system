@@ -4,16 +4,16 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PiPicnicTableBold } from "react-icons/pi";
-import { UtensilsCrossed, Settings } from "lucide-react";
+import { UtensilsCrossed, Settings, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getPaymentPolicy } from "@/lib/api/settings";
 import { ProductionPage } from "@/components/admin/ProductionPage";
-import { AccountPage } from "@/components/admin/AccountPage";
 import { ConfigPage } from "@/components/admin/ConfigPage";
 import { TableManagerPage } from "@/components/admin/TableManagerPage";
 import AuthGuard from "@/components/common/AuthGuard";
 import { CiViewTable } from "react-icons/ci";
 import DashboardPage from "@/components/admin/item/Dashboad";
+import AccountPage from "@/components/admin/AccountPage";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<
@@ -50,7 +50,7 @@ export default function AdminDashboard() {
   const [addDishModal, setAddDishModal] = useState(false);
 
   const secondaryNav = [
-    // {key: "accounts", label: "Tài Khoản", icon: Users},
+    { key: "accounts", label: "Tài Khoản", icon: Users },
     { key: "dishes", label: "Món Ăn", icon: UtensilsCrossed },
     { key: "table", label: "Cấu hình bàn", icon: PiPicnicTableBold },
     { key: "config", label: "Cấu Hình", icon: Settings },

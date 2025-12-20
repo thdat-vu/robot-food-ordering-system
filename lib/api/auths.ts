@@ -41,4 +41,8 @@ export const authsApi = {
         const response = await apiClient.post('/Auth/logout');
         return response.data;
     },
+    async getAllUsers(params?: { PageNumber?: number; PageSize?: number }) {
+      const response = await apiClient.get("Auths/users", { params });
+      return response.data; // ✅ trả full: {items, pageNumber, totalPages,...}
+    }
 };

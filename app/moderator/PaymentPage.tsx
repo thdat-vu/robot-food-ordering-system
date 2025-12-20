@@ -552,7 +552,7 @@ export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
                             className="w-full h-14 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl shadow-md"
                           >
                             <CreditCard className="w-5 h-5 mr-2" />
-                            Chuyển khoản VNPay
+                            Chuyển khoản PayOs
                           </Button>
                         </>
                       )}

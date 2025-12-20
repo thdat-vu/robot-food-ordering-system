@@ -409,41 +409,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
 
       <div className="h-full flex flex-col">
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl px-4 py-3 text-center border-2 border-yellow-200">
-            <div className="flex items-center justify-center space-x-2 mb-1">
-              <AlertCircle className="w-5 h-5 text-yellow-600" />
-              <span className="text-2xl font-bold text-yellow-700">
-                {pendingCount}
-              </span>
-            </div>
-            <span className="text-sm text-yellow-700 font-medium">
-              Chưa xử lý
-            </span>
-          </div>
-
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl px-4 py-3 text-center border-2 border-green-200">
-            <div className="flex items-center justify-center space-x-2 mb-1">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-2xl font-bold text-green-700">
-                {processedCount}
-              </span>
-            </div>
-            <span className="text-sm text-green-700 font-medium">Đã xử lý</span>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl px-4 py-3 text-center border-2 border-blue-200">
-            <div className="flex items-center justify-center space-x-2 mb-1">
-              <MessageSquare className="w-5 h-5 text-blue-600" />
-              <span className="text-2xl font-bold text-blue-700">
-                {filteredData.length}
-              </span>
-            </div>
-            <span className="text-sm text-blue-700 font-medium">Hiển thị</span>
-          </div>
-        </div>
-
         {/* Controls Bar */}
         <div className="mb-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
@@ -618,7 +583,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
             <FeedbackTable
               rows={filteredData}
               searchQuery={searchQuery}
-              selectedIds={selectedFeedbacks}
+              selectedIds={Array.from(selectedFeedbacks)}
               selectablePendingIds={selectablePendingIds}
               isChecking={isChecking}
               responses={responses}

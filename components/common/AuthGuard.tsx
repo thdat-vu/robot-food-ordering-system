@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState, ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState, ReactNode } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 type Props = {
   allowRoles: string[];
@@ -14,13 +14,13 @@ export default function AuthGuard({ allowRoles, children }: Props) {
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const accessToken = localStorage.getItem('accessToken');
-    const refreshToken = localStorage.getItem('refreshToken');
-    const refreshTokenExpired = localStorage.getItem('refreshTokenExpired');
-    const raw = localStorage.getItem('userInfo');
+    if (typeof window === "undefined") return;
+    const accessToken = localStorage.getItem("accessToken");
+    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshTokenExpired = localStorage.getItem("refreshTokenExpired");
+    const raw = localStorage.getItem("userInfo");
     if (!raw || !accessToken || !refreshToken || !refreshTokenExpired) {
-      router.replace('/login');
+      router.replace("/login");
       return;
     }
     try {
@@ -30,7 +30,7 @@ export default function AuthGuard({ allowRoles, children }: Props) {
         // accept numeric timestamp or date string
         const n = Number(refreshTokenExpired);
         if (!Number.isNaN(n) && n > 0) return new Date(n);
-        
+
         // Parse DD/MM/YYYY HH:mm:ss format (e.g., "13/12/2026 10:06:47")
         const ddmmyyyyMatch = refreshTokenExpired.match(
           /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/
@@ -46,23 +46,28 @@ export default function AuthGuard({ allowRoles, children }: Props) {
             parseInt(seconds, 10)
           );
         }
-        
+
         const d = new Date(refreshTokenExpired);
         return isNaN(d.getTime()) ? null : d;
       })();
 
       if (!expiresAt || expiresAt.getTime() <= Date.now()) {
-        router.replace('/login');
+        router.replace("/login");
         return;
       }
 
-      if (!role || !allowRoles.map((r) => r.toLowerCase()).includes(String(role).toLowerCase())) {
-        router.replace('/login');
+      if (
+        !role ||
+        !allowRoles
+          .map((r) => r.toLowerCase())
+          .includes(String(role).toLowerCase())
+      ) {
+        router.replace("/login");
         return;
       }
       setAuthorized(true);
     } catch {
-      router.replace('/login');
+      router.replace("/login");
     }
   }, [allowRoles, router, pathname]);
 

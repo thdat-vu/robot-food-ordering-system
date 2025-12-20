@@ -54,17 +54,24 @@ export interface ResponseType {
     statusCode: number;
     code: string;
 }
-export type FeedbackRow = {
+export interface FeedbackRow {
     complainId: string;
-    idTable: string;
     feedBack: string;
-    createData: string | Date;
     isPending: boolean;
-    resolutionNote?: string | null;
-    handledBy?: string | null;
-  };
+    createData: string;
+    handledBy?: string;
+    resolutionNote?: string; // ← Quan trọng cho hasSentQuickRequest
+  }
   
-  export type FeedbackTableProps = {
+  // Grouped version - dùng trong table sau khi group
+  export interface GroupedFeedbackRow extends FeedbackRow {
+    groupCount: number;
+    originalIds: string[];
+    handledByNames?: string[];
+  }
+  
+  // Props cho FeedbackTable component
+  export interface FeedbackTableProps {
     rows: FeedbackRow[];
     searchQuery: string;
     selectedIds: Set<string>;
@@ -72,23 +79,22 @@ export type FeedbackRow = {
     isChecking: boolean;
     responses: Record<string, string>;
     showSuggestions: Record<string, boolean>;
-    responseSuggestions: string[];
-    isQuickRequest: (row: FeedbackRow) => boolean;
-    hasSentQuickRequest: (row: FeedbackRow) => boolean;
-    formatDate: (d: string | Date) => string;
-    getRelativeTime: (d: string | Date) => string;
-    highlightSearchText: (text: string, search: string) => string;
+    responseSuggestions: Record<string, string[]>;
+    
+    // Union type để accept cả base và grouped
+    isQuickRequest: (row: FeedbackRow | GroupedFeedbackRow) => boolean;
+    hasSentQuickRequest: (row: FeedbackRow | GroupedFeedbackRow) => boolean;
+    
+    formatDate: (date: string) => string;
+    getRelativeTime: (date: string) => string;
+    highlightSearchText: (text: string) => React.ReactNode;
+    
     onToggleSelect: (id: string, isPending: boolean) => void;
     onSelectAll: () => void;
     onResponseChange: (id: string, value: string) => void;
     onToggleSuggestions: (id: string) => void;
-    onSuggestionPick: (id: string, suggestion: string) => void;
+    onSuggestionPick: (id: string, value: string) => void;
     onSingleCheck: (id: string) => void;
-    onSendQuickRequest: (id: string, feedbackText: string) => void;
-  };
-  export interface GroupedFeedbackRow extends FeedbackRow {
-    groupCount: number;
-    originalIds: string[];
-    handledByNames?: string[];
+    onSendQuickRequest: (id: string, feedback: string) => void;
   }
 

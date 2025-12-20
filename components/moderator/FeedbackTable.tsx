@@ -1,16 +1,9 @@
-import React, { useMemo } from "react";
 import {
   FeedbackTableProps,
   GroupedFeedbackRow,
 } from "@/entites/moderator/FeedbackModole";
-import {
-  AlertCircle,
-  CheckCircle,
-  MessageSquare,
-  RefreshCw,
-  Send,
-  Users,
-} from "lucide-react";
+import { AlertCircle, CheckCircle, RefreshCw, Send, Users } from "lucide-react";
+import { useMemo } from "react";
 import { ResponsePopover } from "./ResponsePopover";
 
 export const FeedbackTable: React.FC<FeedbackTableProps> = ({
@@ -36,7 +29,6 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
 
     rows.forEach((row) => {
       const key = row.feedBack.trim();
-
       if (!groups.has(key)) {
         groups.set(key, {
           ...row,
@@ -46,20 +38,17 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
         });
       } else {
         const existing = groups.get(key)!;
-        console.log("🔍 Merging feedback:", existing, row);
         existing.groupCount += 1;
         existing.originalIds.push(row.complainId);
 
-        // nếu 1 cái trong group pending => group pending
         if (row.isPending) existing.isPending = true;
 
-        // ✅ gom handledBy unique
         if (row.handledBy) {
           existing.handledByNames = existing.handledByNames ?? [];
           if (!existing.handledByNames.includes(row.handledBy)) {
             existing.handledByNames.push(row.handledBy);
           }
-          // optional: hiển thị người xử lý “mới nhất” (nếu row đang là bản ghi mới hơn)
+
           const tExisting = new Date(existing.createData).getTime();
           const tNew = new Date(row.createData).getTime();
           if (tNew >= tExisting) {
@@ -67,7 +56,6 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
             existing.handledBy = row.handledBy;
           }
         } else {
-          // vẫn cập nhật thời gian nếu record mới hơn (dù handledBy null)
           const tExisting = new Date(existing.createData).getTime();
           const tNew = new Date(row.createData).getTime();
           if (tNew >= tExisting) existing.createData = row.createData;
@@ -85,28 +73,24 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
 
   const renderHandledByCell = (row: GroupedFeedbackRow) => {
     if (row.isPending) {
-      return (
-        <span className="text-[11px] text-gray-400 font-semibold whitespace-nowrap">
-          —
-        </span>
-      );
+      return <span className="text-xs text-gray-400 font-medium">—</span>;
     }
 
     const names = row.handledByNames ?? [];
     if (names.length > 1) {
       return (
         <div className="flex flex-wrap gap-1.5">
-          {names.slice(0, 2).map((name) => (
+          {names.slice(0, 2).map((name, i) => (
             <span
-              key={name}
-              title={name}
-              className="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700 text-[10px] font-bold whitespace-nowrap"
+              key={i}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100/50 text-[10px] font-semibold text-indigo-700"
             >
+              <Users size={10} />
               {name}
             </span>
           ))}
           {names.length > 2 && (
-            <span className="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-500 text-[10px] font-bold whitespace-nowrap">
+            <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 text-[10px] font-bold text-gray-600">
               +{names.length - 2}
             </span>
           )}
@@ -115,171 +99,144 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
     }
 
     return (
-      <span className="text-[11px] text-gray-700 font-semibold whitespace-nowrap">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100/50 text-[10px] font-semibold text-indigo-700">
+        <Users size={10} />
         {row.handledBy || names[0] || "—"}
       </span>
     );
   };
 
   return (
-    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-2xl overflow-hidden">
-      <table className="w-full border-separate border-spacing-0">
-        <thead className="bg-gray-50/50">
-          <tr className="text-[12px] font-semibold text-gray-600 uppercase tracking-wide">
-            <th className="px-4 py-4 text-center" style={{ width: "50px" }}>
+    <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
+      <table className="w-full">
+        <thead>
+          <tr className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200">
+            <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
               #
             </th>
-
-            <th className="px-4 py-4 text-left" style={{ width: "160px" }}>
+            <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
               Trạng thái / Nhóm
             </th>
-
-            {/* ✅ NEW COLUMN */}
-            <th className="px-4 py-4 text-left" style={{ width: "170px" }}>
+            <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
               Xử lý bởi
             </th>
-
-            <th
-              className="px-4 py-4 text-left"
-              style={{ width: "auto", minWidth: "250px" }}
-            >
+            <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
               Nội dung yêu cầu
             </th>
-
-            <th className="px-4 py-4 text-left" style={{ width: "320px" }}>
+            <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
               Phản hồi khách
             </th>
-
-            <th className="px-4 py-4 text-right" style={{ width: "140px" }}>
+            <th className="px-6 py-4 text-right text-[11px] font-bold text-gray-600 uppercase tracking-wide">
               Thao tác
             </th>
           </tr>
         </thead>
-
-        <tbody className="divide-y divide-gray-50">
+        <tbody className="divide-y divide-gray-100">
           {groupedRows.map((row, idx) => {
             const isQuick = isQuickRequest(row);
             const alreadySentQuick = hasSentQuickRequest(row);
             const shouldShowUrgentBadge =
               row.isPending && isQuick && !alreadySentQuick;
+            const isSelected = selectedIds.includes(row.complainId);
 
             return (
               <tr
                 key={row.complainId}
-                className={`group transition-all ${
-                  selectedIds.has(row.complainId)
-                    ? "bg-blue-50/40"
-                    : "hover:bg-gray-50/30"
-                }`}
+                className="group hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-transparent transition-all duration-200"
               >
                 {/* # + checkbox */}
-                <td className="px-4 py-5 align-top text-center">
-                  <div className="flex flex-col items-center gap-2">
+                <td className="px-6 py-4 align-top">
+                  <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(row.complainId)}
+                      checked={isSelected}
                       onChange={() =>
                         onToggleSelect(row.complainId, row.isPending)
                       }
                       disabled={!row.isPending}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300 disabled:opacity-20"
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 disabled:opacity-20 transition-all cursor-pointer"
                     />
-                    <span className="text-[10px] text-gray-300 font-bold">
+                    <span className="text-xs font-bold text-gray-400 group-hover:text-gray-600 transition-colors">
                       {idx + 1}
                     </span>
                   </div>
                 </td>
 
                 {/* Status / Group / time */}
-                <td className="px-4 py-5 align-top">
+                <td className="px-6 py-4 align-top">
                   <div className="flex flex-col gap-2">
                     {row.isPending ? (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-100 uppercase w-fit whitespace-nowrap">
-                        <AlertCircle size={12} /> Chờ xử lý
+                      <span className="inline-flex items-center gap-1.5 w-fit px-3 py-1.5 rounded-full bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/50 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="text-[10px] font-bold text-amber-700">
+                          Chờ xử lý
+                        </span>
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase w-fit whitespace-nowrap">
-                        <CheckCircle size={12} /> Đã xong
+                      <span className="inline-flex items-center gap-1.5 w-fit px-3 py-1.5 rounded-full bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200/50">
+                        <CheckCircle size={10} className="text-emerald-600" />
+                        <span className="text-[10px] font-bold text-emerald-700">
+                          Đã xong
+                        </span>
                       </span>
                     )}
 
                     {row.groupCount > 1 && (
-                      <div className="flex items-center gap-1 text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md w-fit uppercase whitespace-nowrap">
-                        <Users size={10} /> {row.groupCount} yêu cầu
+                      <div className="inline-flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50">
+                        <Users size={10} className="text-blue-600" />
+                        <span className="text-[10px] font-bold text-blue-700">
+                          {row.groupCount} yêu cầu
+                        </span>
                       </div>
                     )}
 
-                    <div className="text-[11px] text-gray-700 font-medium whitespace-nowrap">
-                      {formatDate(row.createData)}
-                    </div>
-                    <div className="text-[10px] text-gray-400 italic whitespace-nowrap">
-                      {getRelativeTime(row.createData)}
+                    <div className="flex flex-col gap-0.5 mt-1">
+                      <span className="text-[11px] font-semibold text-gray-700">
+                        {formatDate(row.createData)}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-medium">
+                        {getRelativeTime(row.createData)}
+                      </span>
                     </div>
                   </div>
                 </td>
 
-                {/* ✅ NEW: handledBy */}
-                <td className="px-4 py-5 align-top">
-                  <div className="flex flex-col gap-2">
-                    {renderHandledByCell(row)}
-                  </div>
+                {/* Handled by */}
+                <td className="px-6 py-4 align-top">
+                  {renderHandledByCell(row)}
                 </td>
 
                 {/* Content */}
-                <td className="px-4 py-5 align-top">
-                  <div className="flex gap-3">
-                    <div className="mt-1 p-2 bg-gray-50 rounded-xl text-gray-400 group-hover:text-blue-500 transition-colors shadow-sm h-fit flex-shrink-0">
-                      <MessageSquare size={16} />
-                    </div>
-
-                    <div className="flex flex-col gap-2 min-w-0">
-                      <p
-                        className="text-sm text-gray-700 leading-relaxed font-medium break-words"
-                        dangerouslySetInnerHTML={{
-                          __html: highlightSearchText(
-                            row.feedBack,
-                            searchQuery
-                          ),
-                        }}
-                      />
-
-                      {shouldShowUrgentBadge && (
-                        <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300 flex-wrap">
-                          <span className="px-2 py-0.5 rounded bg-red-50 text-red-600 text-[10px] font-black uppercase whitespace-nowrap">
-                            Cần gấp
-                          </span>
-                          <span className="px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-black uppercase whitespace-nowrap">
-                            Phục vụ nhanh
-                          </span>
-                        </div>
-                      )}
-
-                      {row.isPending && alreadySentQuick && (
-                        <span className="text-[10px] font-bold text-blue-500 uppercase flex items-center gap-1 whitespace-nowrap">
-                          <Send size={10} /> Đã chuyển
+                <td className="px-6 py-4 align-top">
+                  <div className="space-y-2 max-w-md">
+                    {shouldShowUrgentBadge && (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200/50 shadow-sm">
+                        <AlertCircle className="w-3.5 h-3.5 text-orange-600" />
+                        <span className="text-[10px] font-bold text-orange-700">
+                          Cần gấp
                         </span>
-                      )}
-                    </div>
+                        <span className="text-[10px] font-semibold text-red-600 ml-1">
+                          Phục vụ nhanh
+                        </span>
+                      </div>
+                    )}
+                    {row.isPending && alreadySentQuick && (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200">
+                        <Send size={10} className="text-blue-600" />
+                        <span className="text-[10px] font-bold text-blue-700">
+                          Đã chuyển
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-700 leading-relaxed font-medium">
+                      {highlightSearchText(row.feedBack, searchQuery)}
+                    </p>
                   </div>
                 </td>
 
                 {/* Response */}
-                <td className="px-4 py-5 align-top">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex justify-between items-center h-6">
-                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest whitespace-nowrap">
-                        Phản hồi
-                      </span>
-                      {row.isPending && (
-                        <ResponsePopover
-                          suggestions={responseSuggestions}
-                          onSelect={(val) =>
-                            onSuggestionPick(row.complainId, val)
-                          }
-                        />
-                      )}
-                    </div>
-
+                <td className="px-6 py-4 align-top">
+                  <div className="space-y-2 max-w-sm">
                     <textarea
                       value={responses[row.complainId] || ""}
                       onChange={(e) =>
@@ -289,13 +246,23 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
                       placeholder={
                         row.isPending ? "Nhập phản hồi..." : "Đã hoàn tất"
                       }
-                      className="w-full p-3 text-xs bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-100 transition-all min-h-[80px] disabled:opacity-50 resize-none shadow-inner"
+                      className="w-full p-3 text-xs bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all min-h-[80px] disabled:opacity-50 disabled:bg-gray-50 resize-none shadow-inner placeholder:text-gray-400"
                     />
+
+                    {row.isPending && (
+                      <ResponsePopover
+                        value={responses[row.complainId] || ""}
+                        suggestions={responseSuggestions || []}
+                        onChange={(val) =>
+                          onSuggestionPick(row.complainId, val)
+                        }
+                      />
+                    )}
                   </div>
                 </td>
 
                 {/* Actions */}
-                <td className="px-4 py-5 align-top text-right">
+                <td className="px-6 py-4 align-top text-right">
                   {row.isPending ? (
                     <button
                       onClick={() =>
@@ -304,12 +271,12 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
                           : onSingleCheck(row.complainId)
                       }
                       disabled={isChecking || alreadySentQuick}
-                      className={`w-full py-2.5 rounded-2xl flex items-center justify-center gap-2 font-bold text-[11px] transition-all active:scale-95 ${
+                      className={`w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-[11px] transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
                         isQuick
                           ? alreadySentQuick
-                            ? "bg-gray-100 text-gray-400 border border-gray-200"
-                            : "bg-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700"
-                          : "bg-emerald-600 text-white shadow-lg shadow-emerald-100 hover:bg-emerald-700"
+                            ? "bg-gray-100 text-gray-400 border-2 border-gray-200 shadow-none"
+                            : "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-blue-200 hover:shadow-xl hover:from-blue-700 hover:to-blue-800"
+                          : "bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-emerald-200 hover:shadow-xl hover:from-emerald-700 hover:to-emerald-800"
                       }`}
                     >
                       {isChecking ? (
@@ -317,7 +284,6 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
                       ) : (
                         <Send size={14} />
                       )}
-
                       <span className="whitespace-nowrap">
                         {isQuick
                           ? alreadySentQuick
@@ -327,9 +293,9 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
                       </span>
                     </button>
                   ) : (
-                    <div className="py-2.5 px-3 rounded-2xl border-2 border-dashed border-gray-100 flex items-center justify-center gap-2">
+                    <div className="py-2.5 px-4 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center gap-2 bg-gray-50/50">
                       <CheckCircle size={14} className="text-emerald-500" />
-                      <span className="text-[10px] font-bold text-gray-300 uppercase whitespace-nowrap">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">
                         Xong
                       </span>
                     </div>
