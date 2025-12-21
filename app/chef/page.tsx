@@ -28,7 +28,27 @@ import UserMenu from '@/components/common/UserMenu';
 import AuthGuard from '@/components/common/AuthGuard';
 import { chefService } from '@/service/chef/chefService';
 
-const formatCurrentDateTime = (date: Date): string => {
+// OLD formatCurrentDateTime - returns combined string
+// const formatCurrentDateTime = (date: Date): string => {
+//   const weekdayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+//   const weekday = weekdayNames[date.getDay()] ?? '';
+//   const day = date.getDate().toString().padStart(2, '0');
+//   const month = (date.getMonth() + 1).toString().padStart(2, '0');
+//   const year = date.getFullYear();
+//   const hours = date.getHours().toString().padStart(2, '0');
+//   const minutes = date.getMinutes().toString().padStart(2, '0');
+//   return `${weekday} - ${day}/${month}/${year} - ${hours}:${minutes}`;
+// };
+
+// NEW: Returns object with separate date and time for better header display
+interface FormattedDateTime {
+  weekday: string;
+  date: string;
+  time: string;
+  full: string;
+}
+
+const formatCurrentDateTime = (date: Date): FormattedDateTime => {
   const weekdayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
   const weekday = weekdayNames[date.getDay()] ?? '';
   const day = date.getDate().toString().padStart(2, '0');
@@ -36,7 +56,14 @@ const formatCurrentDateTime = (date: Date): string => {
   const year = date.getFullYear();
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${weekday} - ${day}/${month}/${year} - ${hours}:${minutes}`;
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+  
+  return {
+    weekday,
+    date: `${day}/${month}/${year}`,
+    time: `${hours}:${minutes}:${seconds}`,
+    full: `${weekday} - ${day}/${month}/${year} - ${hours}:${minutes}`,
+  };
 };
 
 function ChiefPageContent() {
@@ -49,7 +76,14 @@ function ChiefPageContent() {
   const [isPriorityInfoOpen, setIsPriorityInfoOpen] = useState(false);
   const [isDessertPriorityInfoOpen, setIsDessertPriorityInfoOpen] = useState(false);
   const [lastCheckedGroup, setLastCheckedGroup] = useState<{ itemName: string; tableNumber: number; id: number }[] | null>(null);
-  const [currentDateTime, setCurrentDateTime] = useState<string>(() => formatCurrentDateTime(new Date()));
+  // OLD: const [currentDateTime, setCurrentDateTime] = useState<string>(() => formatCurrentDateTime(new Date()));
+  // Initialize with empty values to avoid SSR hydration mismatch, then update on client
+  const [currentDateTime, setCurrentDateTime] = useState<FormattedDateTime>({
+    weekday: '',
+    date: '',
+    time: '',
+    full: '',
+  });
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -260,7 +294,11 @@ function ChiefPageContent() {
   }, [selectedGroups, selectedGroup, selectedOrderKey]);
   const selectedIds = getCurrentlySelectedIds();
 
+  // Update datetime immediately on mount and then every second
   useEffect(() => {
+    // Set immediately on mount to avoid empty display
+    setCurrentDateTime(formatCurrentDateTime(new Date()));
+    
     const interval = setInterval(() => {
       setCurrentDateTime(formatCurrentDateTime(new Date()));
     }, 1000);
@@ -1380,75 +1418,95 @@ function ChiefPageContent() {
       />
 
       <div className="flex flex-1 min-h-0">
-        <div
-          className={`flex w-1/2 min-h-0 flex-col border-r border-gray-200 bg-white ${isServeTab ? 'pointer-events-none opacity-50' : ''}`}
-        >
-          {/* <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800">Chờ chế biến</h2>
-          </div> */}
+        {/* ============================================================================
+         * FULL SCREEN LAYOUT - No left panel, main content takes full width
+         * Tab buttons are shown in the header to switch between byDish and byTable views
+         * 
+         * OLD LEFT PANEL CODE HAS BEEN REMOVED - Views are now toggled in main content
+         * OLD CODE was: Left panel with KitchenSidebar/KitchenSidebarByTable (w-1/2)
+         * ============================================================================ */}
 
-          <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-200 bg-gray-50">
-            {leftPanelTabs.map(tab => {
-              const isActive = leftPanelTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setLeftPanelTab(tab.key)}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    isActive ? 'bg-blue-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">
-            {leftPanelTab === 'byDish' && (
-              <div className="h-full">
-                <KitchenSidebar
-                  categories={CATEGORIES}
-                  selectedCategory={selectedCategory}
-                  onCategorySelect={setSelectedCategory}
-                  remainingItems={remainingItems}
-                  shouldShowInSidebar={shouldShowInSidebar}
-                  itemNameToCategory={itemNameToCategory}
-                  selectedOrderKey={selectedOrderKey}
-                  onSidebarItemClick={handleSidebarItemClick}
-                  selectedGroup={selectedGroup}
-                  onGroupSelection={handleGroupSelection}
-                  groupedOrders={filteredGroupedOrdersForSearch}
-                  selectedGroups={selectedGroups}
-                  onMultipleGroupSelection={handleMultipleGroupSelection}
-                  orders={orders}
-                  className="bg-transparent h-full"
-                  fluid
-                />
-              </div>
-            )}
-
-            {leftPanelTab === 'byTable' && (
-              <KitchenSidebarByTable
-                tables={tablesByNumber}
-                selectedOrderKey={selectedOrderKey}
-                onSidebarItemClick={handleSidebarItemClick}
-                selectedGroup={selectedGroup}
-                onGroupSelection={handleGroupSelection}
-                selectedGroups={selectedGroups}
-                onMultipleGroupSelection={handleMultipleGroupSelection}
-                itemNameToCategory={itemNameToCategory} // For context-aware sorting
-                tableDataMap={tableDataMap} // For late dish warnings
-                className="bg-transparent h-full"
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="flex w-1/2 min-h-0 flex-col bg-white">
-          <div className="px-6 py-3 border-b border-gray-200 bg-white">
+        {/* Main panel - Always full width */}
+        <div className="flex w-full min-h-0 flex-col bg-white">
+          {/* Enhanced Header with datetime and tab buttons */}
+          <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-gray-50">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{currentDateTime}</span>
+              {/* LEFT side: Tab buttons + DateTime */}
+              <div className="flex items-center gap-4">
+                {/* Tab buttons for switching between byDish and byTable */}
+                <div className="flex items-center gap-1 p-1 bg-white rounded-xl shadow-sm border border-gray-200">
+                  {leftPanelTabs.map(tab => {
+                    const isActive = leftPanelTab === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        onClick={() => setLeftPanelTab(tab.key)}
+                        className={`relative px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
+                          isActive 
+                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 transform scale-[1.02]' 
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          {tab.key === 'byDish' ? (
+                            /* Icon cho "Theo món" - clipboard/list */
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                          ) : (
+                            /* Icon cho "Theo bàn" - table/dining icon */
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 10v8a1 1 0 001 1h16a1 1 0 001-1v-8M3 10l2-6h14l2 6M7 19v2M17 19v2" />
+                            </svg>
+                          )}
+                          {tab.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* Divider */}
+                <div className="h-8 w-px bg-gray-300"></div>
+                
+                {/* DateTime display - next to tabs */}
+                <div className="flex items-center gap-3">
+                  {/* Date section */}
+                  <div className="flex items-center gap-2.5 px-3.5 py-2 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-sm">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Ngày</span>
+                      <span className="text-sm font-bold text-gray-800">
+                        {currentDateTime.weekday && currentDateTime.date 
+                          ? `${currentDateTime.weekday}, ${currentDateTime.date}` 
+                          : '...'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Time section */}
+                  <div className="flex items-center gap-2.5 px-3.5 py-2 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg shadow-sm">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Giờ</span>
+                      <span className="text-sm font-bold text-gray-800 tabular-nums tracking-wide">
+                        {currentDateTime.time || '...'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* RIGHT side - empty for now, can add other actions later */}
+              <div></div>
             </div>
           </div>
 
@@ -1521,79 +1579,157 @@ function ChiefPageContent() {
           />
 
           <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">
-            <div className="h-full overflow-y-auto">
-              {(() => {
-                const hasSelection = selectedGroups.length > 0 || selectedGroup || selectedOrderKey;
+            {/* ============================================================================
+             * LAYOUT SWITCH: Full screen toggle between byDish and byTable views
+             * - byDish: Show OrdersContent (grouped by dish) - full width
+             * - byTable: Show KitchenSidebarByTable content - full width
+             * OLD CODE (side-by-side layout) has been removed per user request
+             * ============================================================================ */}
+            
+            {/* byDish view: OrdersContent grouped by dish - FULL WIDTH */}
+            {leftPanelTab === 'byDish' && (
+              <div className="h-full overflow-y-auto">
+                {(() => {
+                  if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
+                    const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
+                    return (
+                      <OrdersContent
+                        groupedOrders={sortedForServe}
+                        activeTab={activeTab}
+                        onGroupClick={handleGroupClick}
+                        onPrepareClick={handlePrepareClick}
+                        onServeClick={handleServeClick}
+                        onAcceptRedoClick={handleAcceptRedoClick}
+                        onRejectRedoClick={handleRejectRedoClickWrapper}
+                        selectedIds={selectedIds}
+                        animatingOutIds={animatingOutIds}
+                        onToggleSelection={handleToggleSelection}
+                      />
+                    );
+                  }
 
-                if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
-                  const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
+                  if (isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0) {
+                    const sortedInProgress = sortGroupedByCategoryPriority(filteredInProgressGroupedOrders);
+                    return (
+                      <OrdersContent
+                        groupedOrders={sortedInProgress}
+                        activeTab={activeTab}
+                        onGroupClick={handleGroupClick}
+                        onPrepareClick={handlePrepareClick}
+                        onServeClick={handleServeClick}
+                        onServeMultipleOrders={handleServeMultipleOrders}
+                        showIndividualCards={true}
+                        onAcceptRedoClick={handleAcceptRedoClick}
+                        onRejectRedoClick={handleRejectRedoClickWrapper}
+                        selectedIds={selectedIds}
+                        animatingOutIds={animatingOutIds}
+                        onToggleSelection={handleToggleSelection}
+                      />
+                    );
+                  }
+
+                  const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
+                  
+                  if (Object.keys(sortedDefault).length === 0) {
+                    return (
+                      <div className="flex h-full items-center justify-center text-gray-400 text-xl">
+                        Không có đơn hàng nào
+                      </div>
+                    );
+                  }
+                  
                   return (
                     <OrdersContent
-                      groupedOrders={sortedForServe}
+                      groupedOrders={sortedDefault}
                       activeTab={activeTab}
                       onGroupClick={handleGroupClick}
                       onPrepareClick={handlePrepareClick}
                       onServeClick={handleServeClick}
-                      onAcceptRedoClick={handleAcceptRedoClick}
-                      onRejectRedoClick={handleRejectRedoClickWrapper}
-                      selectedIds={selectedIds}
-                      animatingOutIds={animatingOutIds}
-                      onToggleSelection={handleToggleSelection}
-                    />
-                  );
-                }
-
-                if (isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0) {
-                  const sortedInProgress = sortGroupedByCategoryPriority(filteredInProgressGroupedOrders);
-                  return (
-                    <OrdersContent
-                      groupedOrders={sortedInProgress}
-                      activeTab={activeTab}
-                      onGroupClick={handleGroupClick}
-                      onPrepareClick={handlePrepareClick}
-                      onServeClick={handleServeClick}
+                      onPrepareMultipleOrders={handlePrepareMultipleOrders}
                       onServeMultipleOrders={handleServeMultipleOrders}
-                      showIndividualCards={true}
                       onAcceptRedoClick={handleAcceptRedoClick}
                       onRejectRedoClick={handleRejectRedoClickWrapper}
                       selectedIds={selectedIds}
+                      showIndividualCards={true}
                       animatingOutIds={animatingOutIds}
                       onToggleSelection={handleToggleSelection}
                     />
                   );
-                }
-
-                // Always show all items - selection state is handled by selectedIds
-                // Items are not filtered based on selection - all items remain visible
-                const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
-                
-                if (Object.keys(sortedDefault).length === 0) {
-                  return (
-                    <div className="flex h-full items-center justify-center text-gray-400 text-xl">
-                      Không có đơn hàng nào
-                    </div>
-                  );
-                }
-                
-                return (
-                  <OrdersContent
-                    groupedOrders={sortedDefault}
-                    activeTab={activeTab}
-                    onGroupClick={handleGroupClick}
-                    onPrepareClick={handlePrepareClick}
-                    onServeClick={handleServeClick}
-                    onPrepareMultipleOrders={handlePrepareMultipleOrders}
-                    onServeMultipleOrders={handleServeMultipleOrders}
-                    onAcceptRedoClick={handleAcceptRedoClick}
-                    onRejectRedoClick={handleRejectRedoClickWrapper}
-                    selectedIds={selectedIds}
-                    showIndividualCards={true}
-                    animatingOutIds={animatingOutIds}
-                    onToggleSelection={handleToggleSelection}
+                })()}
+              </div>
+            )}
+            
+            {/* byTable view: KitchenSidebarByTable - FULL WIDTH */}
+            {leftPanelTab === 'byTable' && (
+              <div className="h-full relative">
+                {/* Content area - scrollable */}
+                <div className="h-full overflow-y-auto">
+                  <KitchenSidebarByTable
+                    tables={tablesByNumber}
+                    selectedOrderKey={selectedOrderKey}
+                    onSidebarItemClick={handleSidebarItemClick}
+                    selectedGroup={selectedGroup}
+                    onGroupSelection={handleGroupSelection}
+                    selectedGroups={selectedGroups}
+                    onMultipleGroupSelection={handleMultipleGroupSelection}
+                    itemNameToCategory={itemNameToCategory}
+                    tableDataMap={tableDataMap}
+                    className="bg-transparent"
+                    hideCheckboxes={isServeTab} /* Hide checkboxes for serve tab */
                   />
-                );
-              })()}
-            </div>
+                  
+                  {/* Spacer for CTA button */}
+                  {!isServeTab && (selectedGroups.length > 0 || selectedGroup || selectedOrderKey) && (
+                    <div className="h-24"></div>
+                  )}
+                </div>
+                
+                {/* CTA Button for byTable view - floating at bottom, transparent background */}
+                {!isServeTab && (() => {
+                  const selectedOrders = selectedGroups.length > 0
+                    ? selectedGroups.flat()
+                    : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
+                  
+                  if (selectedOrders.length === 0) return null;
+                  
+                  if (activeTab === 'đang chờ') {
+                    return (
+                      <div className="absolute bottom-0 left-0 right-0 z-10 py-4 flex justify-center pointer-events-none">
+                        <button
+                          onClick={() => handlePrepareMultipleOrders(selectedOrders)}
+                          className="pointer-events-auto flex items-center justify-center gap-2 font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transform hover:scale-105 transition-all duration-300"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Thực hiện ({selectedOrders.length} món)
+                        </button>
+                      </div>
+                    );
+                  }
+                  
+                  if (activeTab === 'đang thực hiện') {
+                    return (
+                      <div className="absolute bottom-0 left-0 right-0 z-10 py-4 flex justify-center pointer-events-none">
+                        <button
+                          onClick={() => handleServeMultipleOrders(selectedOrders)}
+                          className="pointer-events-auto flex items-center justify-center gap-2 font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white transform hover:scale-105 transition-all duration-300"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Bắt đầu phục vụ ({selectedOrders.length} món)
+                        </button>
+                      </div>
+                    );
+                  }
+                  
+                  return null;
+                })()}
+              </div>
+            )}
+            
+            {/* END of layout switch */}
           </div>
         </div>
       </div>

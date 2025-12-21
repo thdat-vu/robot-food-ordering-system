@@ -23,6 +23,7 @@ interface KitchenSidebarByTableProps {
   itemNameToCategory?: Record<string, string>; // For context-aware sorting
   tableDataMap?: Record<number, any>; // Map tableNumber -> TableData for late dish warnings
   className?: string;
+  hideCheckboxes?: boolean; // Hide checkboxes for serve tab (view-only mode)
 }
 
 const toSelectionItem = (order: Order): SelectionItem => ({
@@ -202,6 +203,7 @@ export function KitchenSidebarByTable({
   itemNameToCategory,
   tableDataMap = {},
   className,
+  hideCheckboxes = false,
 }: KitchenSidebarByTableProps) {
   // Collect all orders from all tables for context analysis
   const allOrders = useMemo(() => {
@@ -398,16 +400,19 @@ export function KitchenSidebarByTable({
                   onClick={() => onGroupSelection(tableSelection)}
                 >
                   <div className="flex items-center gap-4">
-                    <Checkbox
-                      checked={tableCheckboxState}
-                      onCheckedChange={checked => {
-                        const value = checked === true;
-                        handleTableCheckboxChange(tableNumber, value);
-                      }}
-                      onClick={event => event.stopPropagation()}
-                      className="size-6 md:size-7 rounded-lg border-2 border-blue-500 text-blue-600 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm transition-all duration-200"
-                      aria-label={`Chọn toàn bộ món bàn ${tableNumber}`}
-                    />
+                    {/* Table checkbox - hidden when hideCheckboxes is true */}
+                    {!hideCheckboxes && (
+                      <Checkbox
+                        checked={tableCheckboxState}
+                        onCheckedChange={checked => {
+                          const value = checked === true;
+                          handleTableCheckboxChange(tableNumber, value);
+                        }}
+                        onClick={event => event.stopPropagation()}
+                        className="size-6 md:size-7 rounded-lg border-2 border-blue-500 text-blue-600 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm transition-all duration-200"
+                        aria-label={`Chọn toàn bộ món bàn ${tableNumber}`}
+                      />
+                    )}
                     <div className="flex items-center gap-3">
                       {/* Table icon with gradient */}
                       <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -491,18 +496,21 @@ export function KitchenSidebarByTable({
                           {/* Left accent bar */}
                           <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${categoryAccent.bg}`}></div>
                           
-                          <Checkbox
-                            checked={checkboxState}
-                            onCheckedChange={checked => {
-                              const value = checked === true;
-                              handleOrdersGroupCheckboxChange(group.orders, value);
-                            }}
-                            onClick={event => event.stopPropagation()}
-                            className="mt-1 ml-2 size-5 rounded-md border-2 border-blue-500 text-blue-600 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm"
-                            aria-label={`Chọn món ${group.itemName}`}
-                          />
+                          {/* Item checkbox - hidden when hideCheckboxes is true */}
+                          {!hideCheckboxes && (
+                            <Checkbox
+                              checked={checkboxState}
+                              onCheckedChange={checked => {
+                                const value = checked === true;
+                                handleOrdersGroupCheckboxChange(group.orders, value);
+                              }}
+                              onClick={event => event.stopPropagation()}
+                              className="mt-1 ml-2 size-5 rounded-md border-2 border-blue-500 text-blue-600 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-600 data-[state=checked]:border-blue-600 data-[state=checked]:[&>[data-slot=checkbox-indicator]]:text-white shadow-sm"
+                              aria-label={`Chọn món ${group.itemName}`}
+                            />
+                          )}
                           
-                          <div className="flex-1 min-w-0 ml-1">
+                          <div className={`flex-1 min-w-0 ${hideCheckboxes ? 'ml-3' : 'ml-1'}`}>
                             {/* Item name and badges */}
                             <h4 className="text-sm font-bold text-gray-900 leading-tight mb-2">
                               {group.itemName}
