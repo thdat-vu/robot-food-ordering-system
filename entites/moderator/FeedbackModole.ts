@@ -90,5 +90,6 @@ export type FeedbackRow = {
     groupCount: number;
     originalIds: string[];
     handledByNames?: string[];
+    groupKey: string;
   }
 

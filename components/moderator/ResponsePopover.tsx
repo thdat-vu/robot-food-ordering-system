@@ -15,6 +15,7 @@ export const ResponsePopover: React.FC<Props> = ({
   onGenerate,
 }) => {
   const btnRef = React.useRef<HTMLButtonElement | null>(null);
+  const popoverRef = React.useRef<HTMLDivElement | null>(null);
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -59,7 +60,6 @@ export const ResponsePopover: React.FC<Props> = ({
   React.useEffect(() => {
     if (!isOpen) return;
 
-    // khi scroll/resize trong modal/panel, vị trí phải cập nhật
     const onAnyScroll = () => updatePos();
     window.addEventListener("scroll", onAnyScroll, true);
     window.addEventListener("resize", onAnyScroll);
@@ -70,16 +70,24 @@ export const ResponsePopover: React.FC<Props> = ({
     };
   }, [isOpen, updatePos]);
 
-  // optional: click ra ngoài để đóng
+  // ✅ click ra ngoài để đóng (nhưng click trong popover thì KHÔNG đóng)
   React.useEffect(() => {
     if (!isOpen) return;
+
     const onDown = (e: MouseEvent) => {
       const btn = btnRef.current;
-      if (!btn) return;
-      // nếu click vào button thì thôi
-      if (btn.contains(e.target as Node)) return;
+      const pop = popoverRef.current;
+      const target = e.target as Node;
+
+      // click vào button => không đóng
+      if (btn && btn.contains(target)) return;
+
+      // ✅ click vào popover => không đóng
+      if (pop && pop.contains(target)) return;
+
       setIsOpen(false);
     };
+
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [isOpen]);
@@ -104,11 +112,12 @@ export const ResponsePopover: React.FC<Props> = ({
 
       {isOpen && (
         <div
+          ref={popoverRef} // ✅ gắn ref để click-inside không bị đóng
           className="fixed z-[9999] w-80"
           style={{
             top: pos.top,
             left: pos.left,
-            transform: "translateY(-100%)", // ✅ luôn nằm phía trên button
+            transform: "translateY(-100%)",
           }}
         >
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -134,7 +143,11 @@ export const ResponsePopover: React.FC<Props> = ({
                 <button
                   type="button"
                   key={i}
-                  onClick={() => handleSelect(suggestion)}
+                  // ✅ dùng mousedown để chắc chắn ăn trước handler đóng
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(suggestion);
+                  }}
                   className="w-full text-left p-3 text-xs bg-gradient-to-br from-gray-50 to-purple-50/30 hover:from-purple-50 hover:to-blue-50 rounded-xl transition-all border border-gray-200 hover:border-purple-300 hover:shadow-md group"
                 >
                   <div className="flex items-start gap-2">
