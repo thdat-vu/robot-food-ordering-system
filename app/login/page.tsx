@@ -46,7 +46,7 @@ export default function LoginPage() {
               🤖 Robot phục vụ
             </span>
             <span className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium border border-white/30 shadow-md">
-              📱 Đặt món trực tuyến
+              📱 Đặt món qua điện thoại
             </span>
             <span className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium border border-white/30 shadow-md">
               ⚡ Xử lý nhanh chóng
