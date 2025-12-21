@@ -420,7 +420,12 @@ export function KitchenSidebarByTable({
                       </div>
                       <div className="flex flex-col">
                         <span className="text-lg font-bold text-gray-800">Bàn {tableNumber}</span>
-                        <span className="text-sm text-gray-500 font-medium">{orders.length} món đang chờ</span>
+                        {/* Show count with status-appropriate text, hide for "bắt đầu phục vụ" */}
+                        {orders[0]?.status !== 'bắt đầu phục vụ' && (
+                          <span className="text-sm text-gray-500 font-medium">
+                            {orders.length} món {orders[0]?.status === 'đang thực hiện' ? 'đang thực hiện' : 'đang chờ'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
