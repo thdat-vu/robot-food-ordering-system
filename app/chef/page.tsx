@@ -845,10 +845,11 @@ function ChiefPageContent() {
     }
   }, [orders]);
 
-  // Function to automatically select the first 3 groups based on context-aware category priority
-  const autoSelectFirstGroups = useCallback(() => {
-    // Only auto-select for relevant tabs, not for serve tab, and only if user hasn't made manual selection
-    if (activeTab === 'bắt đầu phục vụ' || hasManualSelection || leftPanelTab !== 'byDish') {
+  // Function to automatically select the first 3 groups from PENDING orders (left panel)
+  // This uses orders directly instead of groupedOrders (which is filtered by activeTab)
+  const autoSelectFirstPendingGroups = useCallback(() => {
+    // Only auto-select if user hasn't made manual selection and we're in byDish mode
+    if (hasManualSelection || leftPanelTab !== 'byDish') {
       return;
     }
 
@@ -858,20 +859,28 @@ function ChiefPageContent() {
       return itemNameToCategory[itemName] === selectedCategory;
     };
 
-    // Process grouped orders - each group is already grouped by itemName+size+note+toppings
-    const displayGroups = Object.entries(groupedOrders)
+    // Group pending orders by itemName
+    const pendingGrouped: Record<string, Order[]> = {};
+    orders
+      .filter(order => order.status === 'đang chờ')
+      .forEach(order => {
+        if (!pendingGrouped[order.itemName]) {
+          pendingGrouped[order.itemName] = [];
+        }
+        pendingGrouped[order.itemName].push(order);
+      });
+
+    // Process grouped orders
+    const displayGroups = Object.entries(pendingGrouped)
       .map(([groupKey, ordersInGroup]) => {
         const representative = ordersInGroup[0];
         if (!representative) return null;
-        
-        const filtered = ordersInGroup.filter(order => order.status !== 'bắt đầu phục vụ');
-        if (filtered.length === 0) return null;
 
         return {
           itemName: representative.itemName,
           category: representative.category,
           tableNumber: representative.tableNumber, // For context-aware priority
-          selectionItems: filtered.map(order => ({ 
+          selectionItems: ordersInGroup.map(order => ({ 
             itemName: order.itemName, 
             tableNumber: order.tableNumber, 
             id: order.id 
@@ -910,27 +919,27 @@ function ChiefPageContent() {
         handleMultipleGroupSelection(groupsToSelect, true); // Pass true for automatic selection
       }
     }
-  }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection, leftPanelTab, getContextualPriority]);
+  }, [orders, selectedCategory, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection, leftPanelTab, getContextualPriority]);
 
-  // Auto-select first group when page loads or significant data changes
+  // Auto-select first 3 pending groups when page loads or orders change
   useEffect(() => {
-    // Small delay to ensure selections are cleared first
+    // Small delay to ensure component is ready
     const timeoutId = setTimeout(() => {
-      autoSelectFirstGroups();
+      autoSelectFirstPendingGroups();
     }, 100);
     
     return () => clearTimeout(timeoutId);
-  }, [autoSelectFirstGroups, groupedOrders, selectedCategory]);
+  }, [autoSelectFirstPendingGroups, orders, selectedCategory]);
 
-  // Auto-select first group when switching tabs (after selections are cleared)
+  // Re-run auto-select when leftPanelTab changes back to byDish
   useEffect(() => {
-    // Delay to ensure the clear selections effect runs first
-    const timeoutId = setTimeout(() => {
-      autoSelectFirstGroups();
-    }, 150);
-    
-    return () => clearTimeout(timeoutId);
-  }, [activeTab, autoSelectFirstGroups]);
+    if (leftPanelTab === 'byDish' && !hasManualSelection) {
+      const timeoutId = setTimeout(() => {
+        autoSelectFirstPendingGroups();
+      }, 150);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [leftPanelTab, autoSelectFirstPendingGroups, hasManualSelection]);
 
   // Handle preparing multiple orders at once
   const handlePrepareMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
@@ -1028,6 +1037,46 @@ function ChiefPageContent() {
   const filteredServeTabGroupedOrders = filterOrdersBySearch(serveTabGroupedOrders);
   const filteredInProgressGroupedOrders = filteredGroupedOrdersForSearch;
 
+  // ============================================================================
+  // PENDING ORDERS - Always group orders with status "đang chờ" regardless of activeTab
+  // This is used for the LEFT panel which always shows pending orders
+  // ============================================================================
+  const pendingGroupedOrdersAll = useMemo(() => {
+    const grouped: Record<string, Order[]> = {};
+    orders
+      .filter(order => order.status === 'đang chờ')
+      .forEach(order => {
+        const groupKey = order.itemName;
+        if (!grouped[groupKey]) {
+          grouped[groupKey] = [];
+        }
+        grouped[groupKey].push(order);
+      });
+    return grouped;
+  }, [orders]);
+
+  // Tables grouped by number for LEFT panel (pending orders only)
+  const pendingTablesByNumber = useMemo(() => {
+    const tableMap = new Map<number, Order[]>();
+    
+    orders
+      .filter(order => order.status === 'đang chờ')
+      .forEach(order => {
+        if (!tableMap.has(order.tableNumber)) {
+          tableMap.set(order.tableNumber, []);
+        }
+        tableMap.get(order.tableNumber)!.push(order);
+      });
+
+    return Array.from(tableMap.entries())
+      .map(([tableNumber, tableOrders]) => ({
+        tableNumber,
+        orders: [...tableOrders].sort((a, b) => a.id - b.id),
+      }))
+      .sort((a, b) => a.tableNumber - b.tableNumber);
+  }, [orders]);
+
+  // Tables grouped by number for RIGHT panel (based on activeTab)
   const tablesByNumber = useMemo(() => {
     const tableMap = new Map<number, Order[]>();
 
@@ -1510,6 +1559,10 @@ function ChiefPageContent() {
             </div>
           </div>
 
+          {/* ============================================================================
+           * OLD NavigationTabs - commented out for split-screen layout
+           * ============================================================================ */}
+          {/* 
           <NavigationTabs
             activeTab={activeTab as OrderStatus}
             onTabChange={handleTabChange as (tab: OrderStatus) => void}
@@ -1520,99 +1573,199 @@ function ChiefPageContent() {
             showSearchDropdown={showSearchDropdown}
             onProductSelect={handleProductSelect}
             onSearchDropdownClose={() => setShowSearchDropdown(false)}
-            rightAction={
-              /*
-              (() => {
-                if (activeTab === 'đang chờ') {
-                  const selectedOrders = selectedGroups.length > 0
-                    ? selectedGroups.flat()
-                    : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
-                  if (selectedOrders.length > 0) {
-                    return (
-                      <button
-                        onClick={() => {
-                          if (selectedGroups.length > 0) {
-                            handlePrepareMultipleOrders(selectedOrders);
-                          } else if (selectedGroup) {
-                            handlePrepareMultipleOrders(selectedGroup);
-                          } else if (selectedOrderKey) {
-                            handlePrepareClick(selectedOrderKey.id, selectedOrderKey.itemName);
-                          }
-                        }}
-                        className="font-medium text-sm px-4 py-2 rounded-full shadow bg-green-600 hover:bg-green-700 text-white whitespace-nowrap"
-                      >
-                        {`Thực hiện${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
-                      </button>
-                    );
-                  }
-                }
-                if (activeTab === 'đang thực hiện') {
-                  const selectedOrders = selectedGroups.length > 0
-                    ? selectedGroups.flat()
-                    : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
-                  if (selectedOrders.length > 0) {
-                    return (
-                      <button
-                        onClick={() => {
-                          if (selectedGroups.length > 0) {
-                            handleServeMultipleOrders(selectedOrders);
-                          } else if (selectedGroup) {
-                            handleServeMultipleOrders(selectedGroup);
-                          } else if (selectedOrderKey) {
-                            const all = Object.values(groupedOrders as Record<string, Order[]>).flat();
-                            const found = all.find(o => o.id === selectedOrderKey!.id);
-                            if (found) handleServeClick(found);
-                          }
-                        }}
-                        className="font-medium text-sm px-4 py-2 rounded-full shadow bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
-                      >
-                        {`Bắt đầu phục vụ${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
-                      </button>
-                    );
-                  }
-                }
-                return null;
-              })()
-              */
-              null
-            }
+            rightAction={null}
           />
+          */}
 
-          <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">
-            {/* ============================================================================
-             * LAYOUT SWITCH: Full screen toggle between byDish and byTable views
-             * - byDish: Show OrdersContent (grouped by dish) - full width
-             * - byTable: Show KitchenSidebarByTable content - full width
-             * OLD CODE (side-by-side layout) has been removed per user request
-             * ============================================================================ */}
+          {/* ============================================================================
+           * SPLIT SCREEN LAYOUT:
+           * - Left side (50%): "Đang chờ" (pending) orders
+           * - Right side (50%): "Đang thực hiện" + "Bắt đầu phục vụ" orders
+           * ============================================================================ */}
+          <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 flex">
             
-            {/* byDish view: OrdersContent grouped by dish - FULL WIDTH */}
-            {leftPanelTab === 'byDish' && (
-              <div className="h-full overflow-y-auto">
-                {(() => {
-                  if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
-                    const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
+            {/* ==================== LEFT PANEL: ĐANG CHỜ ==================== */}
+            <div className="w-1/2 h-full flex flex-col border-r border-gray-200">
+              {/* Left panel header */}
+              <div className="px-4 py-3 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-800">Đang chờ</h2>
+                      <p className="text-xs text-gray-500">Các món đang chờ thực hiện</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1.5 bg-amber-500 text-white text-sm font-bold rounded-full shadow">
+                      {getTabCount('đang chờ')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Left panel content */}
+              <div className="flex-1 min-h-0 overflow-y-auto relative">
+                {leftPanelTab === 'byDish' ? (
+                  (() => {
+                    // Use pendingGroupedOrdersAll which is always filtered by "đang chờ" status
+                    const sortedPending = sortGroupedByCategoryPriority(pendingGroupedOrdersAll);
+                    
+                    if (Object.keys(sortedPending).length === 0) {
+                      return (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-lg">
+                          <div className="text-center">
+                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            Không có món đang chờ
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <OrdersContent
-                        groupedOrders={sortedForServe}
-                        activeTab={activeTab}
+                        groupedOrders={sortedPending}
+                        activeTab={'đang chờ'}
                         onGroupClick={handleGroupClick}
                         onPrepareClick={handlePrepareClick}
                         onServeClick={handleServeClick}
+                        onPrepareMultipleOrders={handlePrepareMultipleOrders}
                         onAcceptRedoClick={handleAcceptRedoClick}
                         onRejectRedoClick={handleRejectRedoClickWrapper}
                         selectedIds={selectedIds}
+                        showIndividualCards={true}
                         animatingOutIds={animatingOutIds}
                         onToggleSelection={handleToggleSelection}
                       />
                     );
-                  }
-
-                  if (isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0) {
-                    const sortedInProgress = sortGroupedByCategoryPriority(filteredInProgressGroupedOrders);
+                  })()
+                ) : (
+                  (() => {
+                    // Use pendingTablesByNumber which is always filtered by "đang chờ" status
+                    if (pendingTablesByNumber.length === 0) {
+                      return (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-lg">
+                          <div className="text-center">
+                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 10v8a1 1 0 001 1h16a1 1 0 001-1v-8M3 10l2-6h14l2 6" />
+                            </svg>
+                            Không có bàn nào đang chờ
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <KitchenSidebarByTable
+                        tables={pendingTablesByNumber}
+                        selectedOrderKey={selectedOrderKey}
+                        onSidebarItemClick={handleSidebarItemClick}
+                        selectedGroup={selectedGroup}
+                        onGroupSelection={handleGroupSelection}
+                        selectedGroups={selectedGroups}
+                        onMultipleGroupSelection={handleMultipleGroupSelection}
+                        itemNameToCategory={itemNameToCategory}
+                        tableDataMap={tableDataMap}
+                        className="bg-transparent"
+                        hideCheckboxes={false}
+                      />
+                    );
+                  })()
+                )}
+                
+                {/* CTA Button removed - OrdersContent handles it */}
+              </div>
+            </div>
+            
+            {/* ==================== RIGHT PANEL: ĐANG THỰC HIỆN + BẮT ĐẦU PHỤC VỤ ==================== */}
+            <div className="w-1/2 h-full flex flex-col">
+              {/* Right panel header with sub-tabs */}
+              <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-800">Đang xử lý</h2>
+                      <p className="text-xs text-gray-500">Đang thực hiện & phục vụ</p>
+                    </div>
+                  </div>
+                  
+                  {/* Sub-tabs for right panel */}
+                  <div className="flex items-center gap-1 p-1 bg-white rounded-lg shadow-sm border border-gray-200">
+                    <button
+                      onClick={() => handleTabChange('đang thực hiện')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        activeTab === 'đang thực hiện'
+                          ? 'bg-blue-500 text-white shadow'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      Đang thực hiện
+                      <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
+                        activeTab === 'đang thực hiện' ? 'bg-white/20' : 'bg-gray-200'
+                      }`}>
+                        {getTabCount('đang thực hiện')}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => handleTabChange('bắt đầu phục vụ')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        activeTab === 'bắt đầu phục vụ'
+                          ? 'bg-orange-500 text-white shadow'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      Bắt đầu phục vụ
+                      <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
+                        activeTab === 'bắt đầu phục vụ' ? 'bg-white/20' : 'bg-gray-200'
+                      }`}>
+                        {getTabCount('bắt đầu phục vụ')}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Right panel content */}
+              <div className="flex-1 min-h-0 overflow-y-auto relative">
+                {leftPanelTab === 'byDish' ? (
+                  (() => {
+                    // Filter orders for current right panel tab
+                    const rightPanelGroupedOrders: Record<string, Order[]> = {};
+                    Object.entries(filteredGroupedOrdersForSearch).forEach(([key, orderList]) => {
+                      const filteredOrders = orderList.filter(order => order.status === activeTab);
+                      if (filteredOrders.length > 0) {
+                        rightPanelGroupedOrders[key] = filteredOrders;
+                      }
+                    });
+                    const sortedRightPanel = sortGroupedByCategoryPriority(rightPanelGroupedOrders);
+                    
+                    if (Object.keys(sortedRightPanel).length === 0) {
+                      return (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-lg">
+                          <div className="text-center">
+                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            {activeTab === 'đang thực hiện' ? 'Không có món đang thực hiện' : 'Không có món sẵn sàng phục vụ'}
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <OrdersContent
-                        groupedOrders={sortedInProgress}
+                        groupedOrders={sortedRightPanel}
                         activeTab={activeTab}
                         onGroupClick={handleGroupClick}
                         onPrepareClick={handlePrepareClick}
@@ -1626,110 +1779,51 @@ function ChiefPageContent() {
                         onToggleSelection={handleToggleSelection}
                       />
                     );
-                  }
-
-                  const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
-                  
-                  if (Object.keys(sortedDefault).length === 0) {
+                  })()
+                ) : (
+                  (() => {
+                    // Filter tables for current right panel tab
+                    const rightPanelTablesByNumber = tablesByNumber.map(table => ({
+                      ...table,
+                      orders: table.orders.filter(order => order.status === activeTab)
+                    })).filter(table => table.orders.length > 0);
+                    
+                    if (rightPanelTablesByNumber.length === 0) {
+                      return (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-lg">
+                          <div className="text-center">
+                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 10v8a1 1 0 001 1h16a1 1 0 001-1v-8M3 10l2-6h14l2 6" />
+                            </svg>
+                            {activeTab === 'đang thực hiện' ? 'Không có bàn đang thực hiện' : 'Không có bàn sẵn sàng phục vụ'}
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     return (
-                      <div className="flex h-full items-center justify-center text-gray-400 text-xl">
-                        Không có đơn hàng nào
-                      </div>
+                      <KitchenSidebarByTable
+                        tables={rightPanelTablesByNumber}
+                        selectedOrderKey={selectedOrderKey}
+                        onSidebarItemClick={handleSidebarItemClick}
+                        selectedGroup={selectedGroup}
+                        onGroupSelection={handleGroupSelection}
+                        selectedGroups={selectedGroups}
+                        onMultipleGroupSelection={handleMultipleGroupSelection}
+                        itemNameToCategory={itemNameToCategory}
+                        tableDataMap={tableDataMap}
+                        className="bg-transparent"
+                        hideCheckboxes={isServeTab}
+                      />
                     );
-                  }
-                  
-                  return (
-                    <OrdersContent
-                      groupedOrders={sortedDefault}
-                      activeTab={activeTab}
-                      onGroupClick={handleGroupClick}
-                      onPrepareClick={handlePrepareClick}
-                      onServeClick={handleServeClick}
-                      onPrepareMultipleOrders={handlePrepareMultipleOrders}
-                      onServeMultipleOrders={handleServeMultipleOrders}
-                      onAcceptRedoClick={handleAcceptRedoClick}
-                      onRejectRedoClick={handleRejectRedoClickWrapper}
-                      selectedIds={selectedIds}
-                      showIndividualCards={true}
-                      animatingOutIds={animatingOutIds}
-                      onToggleSelection={handleToggleSelection}
-                    />
-                  );
-                })()}
-              </div>
-            )}
-            
-            {/* byTable view: KitchenSidebarByTable - FULL WIDTH */}
-            {leftPanelTab === 'byTable' && (
-              <div className="h-full relative">
-                {/* Content area - scrollable */}
-                <div className="h-full overflow-y-auto">
-                  <KitchenSidebarByTable
-                    tables={tablesByNumber}
-                    selectedOrderKey={selectedOrderKey}
-                    onSidebarItemClick={handleSidebarItemClick}
-                    selectedGroup={selectedGroup}
-                    onGroupSelection={handleGroupSelection}
-                    selectedGroups={selectedGroups}
-                    onMultipleGroupSelection={handleMultipleGroupSelection}
-                    itemNameToCategory={itemNameToCategory}
-                    tableDataMap={tableDataMap}
-                    className="bg-transparent"
-                    hideCheckboxes={isServeTab} /* Hide checkboxes for serve tab */
-                  />
-                  
-                  {/* Spacer for CTA button */}
-                  {!isServeTab && (selectedGroups.length > 0 || selectedGroup || selectedOrderKey) && (
-                    <div className="h-24"></div>
-                  )}
-                </div>
+                  })()
+                )}
                 
-                {/* CTA Button for byTable view - floating at bottom, transparent background */}
-                {!isServeTab && (() => {
-                  const selectedOrders = selectedGroups.length > 0
-                    ? selectedGroups.flat()
-                    : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
-                  
-                  if (selectedOrders.length === 0) return null;
-                  
-                  if (activeTab === 'đang chờ') {
-                    return (
-                      <div className="absolute bottom-0 left-0 right-0 z-10 py-4 flex justify-center pointer-events-none">
-                        <button
-                          onClick={() => handlePrepareMultipleOrders(selectedOrders)}
-                          className="pointer-events-auto flex items-center justify-center gap-2 font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transform hover:scale-105 transition-all duration-300"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          Thực hiện ({selectedOrders.length} món)
-                        </button>
-                      </div>
-                    );
-                  }
-                  
-                  if (activeTab === 'đang thực hiện') {
-                    return (
-                      <div className="absolute bottom-0 left-0 right-0 z-10 py-4 flex justify-center pointer-events-none">
-                        <button
-                          onClick={() => handleServeMultipleOrders(selectedOrders)}
-                          className="pointer-events-auto flex items-center justify-center gap-2 font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white transform hover:scale-105 transition-all duration-300"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          Bắt đầu phục vụ ({selectedOrders.length} món)
-                        </button>
-                      </div>
-                    );
-                  }
-                  
-                  return null;
-                })()}
+                {/* CTA Button removed - OrdersContent handles it */}
               </div>
-            )}
+            </div>
             
-            {/* END of layout switch */}
+            {/* END of split screen layout */}
           </div>
         </div>
       </div>

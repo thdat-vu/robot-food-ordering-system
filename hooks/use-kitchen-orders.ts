@@ -7,7 +7,7 @@ import { getApiUrl } from '@/env.config';
 
 export function useKitchenOrders() {
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
-  const [activeTab, setActiveTab] = useState<OrderStatus>("đang chờ");
+  const [activeTab, setActiveTab] = useState<OrderStatus>("đang thực hiện");
   const [selectedCategory, setSelectedCategory] = useState<string>("Tất cả");
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSidebarAnimating, setIsSidebarAnimating] = useState(false);
