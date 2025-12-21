@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Order } from '@/types/kitchen';
 import {
   Dialog,
@@ -16,15 +16,45 @@ interface CancelOrderModalProps {
   onClose: () => void;
   onConfirm: (reason: string) => void;
   order: Order | null;
+  remainingCount?: number; // Number of remaining orders to cancel
+  totalCount?: number; // Total number of orders to cancel
+  allPendingOrders?: Order[]; // All pending orders to calculate total quantity for same items
 }
 
 export function CancelOrderModal({
   isOpen,
   onClose,
   onConfirm,
-  order
+  order,
+  remainingCount,
+  totalCount,
+  allPendingOrders = []
 }: CancelOrderModalProps) {
   const [reason, setReason] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  // Reset reason and custom input when order changes (for next order in batch)
+  useEffect(() => {
+    if (order) {
+      setReason('');
+      setShowCustomInput(false);
+    }
+  }, [order?.id]); // Reset when order ID changes
+
+  // Calculate total quantity for orders with same item name and size
+  const totalQuantity = useMemo(() => {
+    if (!order || allPendingOrders.length === 0) {
+      return order?.quantity || 1;
+    }
+    
+    const sameItems = allPendingOrders.filter(
+      o => o.itemName === order.itemName && 
+           o.sizeName === order.sizeName &&
+           o.tableNumber === order.tableNumber
+    );
+    
+    return sameItems.reduce((sum, o) => sum + (o.quantity || 1), 0);
+  }, [order, allPendingOrders]);
 
   // Preset cancellation reasons
   const presetReasons = [
@@ -32,7 +62,8 @@ export function CancelOrderModal({
     'Hết người làm',
     'Dụng cụ làm bếp bị hư',
     'Khách yêu cầu hủy',
-    'Thời gian chế biến quá lâu'
+    'Thời gian chế biến quá lâu',
+    'Lý do khác'
   ];
 
   if (!order) return null;
@@ -43,6 +74,16 @@ export function CancelOrderModal({
   };
 
   const handleReasonButtonClick = (presetReason: string) => {
+    if (presetReason === 'Lý do khác') {
+      setShowCustomInput(true);
+      // Clear any preset reasons when selecting custom reason
+      setReason('');
+      return;
+    }
+    
+    // Hide custom input when selecting preset reason
+    setShowCustomInput(false);
+    
     setReason(prev => {
       const trimmedPrev = prev.trim();
       if (!trimmedPrev) return presetReason;
@@ -54,14 +95,19 @@ export function CancelOrderModal({
   };
 
   const handleConfirm = () => {
-    onConfirm(reason.trim() || 'Không có lý do cụ thể');
-    onClose();
-    setReason(''); // Reset reason when closing
+    const cancelReason = reason.trim() || 'Không có lý do cụ thể';
+    onConfirm(cancelReason);
+    
+    // Don't close modal here - let SearchResultsModal handle it
+    // Reset reason for next order (if any)
+    setReason('');
+    setShowCustomInput(false);
   };
 
   const handleClose = () => {
     onClose();
     setReason(''); // Reset reason when closing
+    setShowCustomInput(false);
   };
 
   return (
@@ -70,6 +116,16 @@ export function CancelOrderModal({
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-red-600">
             Xác nhận huỷ món
+            {totalCount !== undefined && totalCount > 1 && remainingCount !== undefined && (
+              <span className="ml-2 text-base font-normal text-gray-600">
+                ({remainingCount} món còn lại trong tổng {totalCount} món)
+              </span>
+            )}
+            {totalCount === undefined && remainingCount !== undefined && remainingCount > 0 && (
+              <span className="ml-2 text-base font-normal text-gray-600">
+                ({remainingCount} món còn lại)
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
         
@@ -84,7 +140,7 @@ export function CancelOrderModal({
             <div>
               <h3 className="font-semibold text-lg">{order.itemName}</h3>
               <p className="text-gray-600">
-                {order.quantity > 0 ? `x${order.quantity}` : ''} • Bàn: {order.tableNumber}
+                {totalQuantity > 0 ? `x${totalQuantity}` : ''} • Bàn: {order.tableNumber}
                 {order.sizeName && (
                   <span className="ml-2 text-blue-600 font-medium">
                     • {order.sizeName}
@@ -130,7 +186,11 @@ export function CancelOrderModal({
                 <Button
                   key={index}
                   type="button"
-                  variant={reason.split(/\s*;\s*/).includes(presetReason) ? "default" : "outline"}
+                  variant={
+                    presetReason === 'Lý do khác' 
+                      ? (showCustomInput ? "default" : "outline")
+                      : (reason.split(/\s*;\s*/).includes(presetReason) ? "default" : "outline")
+                  }
                   size="sm"
                   onClick={() => handleReasonButtonClick(presetReason)}
                   className="text-xs"
@@ -140,17 +200,20 @@ export function CancelOrderModal({
               ))}
             </div>
             
-            {/* Custom Reason Input */}
-            <div>
-              <input
-                id="cancel-reason"
-                type="text"
-                placeholder="Hoặc nhập lý do khác..."
-                value={reason}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+            {/* Custom Reason Input - Show when "Lý do khác" is selected */}
+            {showCustomInput && (
+              <div>
+                <input
+                  id="cancel-reason"
+                  type="text"
+                  placeholder="Nhập lý do hủy món..."
+                  value={reason}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+            )}
           </div>
         </div>
 

@@ -85,7 +85,10 @@ function ChiefPageContent() {
     full: '',
   });
 
-  // Search state
+  // Search state - General search for dishes/tables
+  const [generalSearchQuery, setGeneralSearchQuery] = useState('');
+  
+  // Search state - Search for canceling orders
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState<string[]>([]);
@@ -100,6 +103,7 @@ function ChiefPageContent() {
   const [leftPanelTab, setLeftPanelTab] = useState<LeftPanelTab>('byDish');
   const [matchSuggestions, setMatchSuggestions] = useState<MatchSuggestion[] | null>(null);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+  const [matchSuggestionMode, setMatchSuggestionMode] = useState<'prepare' | 'serve'>('prepare');
   const matchSuggestionSignatureRef = useRef<string | null>(null);
   const tableFetchInFlight = useRef(false);
   
@@ -294,6 +298,56 @@ function ChiefPageContent() {
   }, [selectedGroups, selectedGroup, selectedOrderKey]);
   const selectedIds = getCurrentlySelectedIds();
 
+  // Separate selectedIds for each panel based on order status
+  // This prevents cross-panel selection highlighting
+  const pendingSelectedIds = useMemo(() => {
+    const ids = new Set<number>();
+    selectedIds.forEach(id => {
+      const order = orders.find(o => o.id === id);
+      if (order && order.status === 'đang chờ') {
+        ids.add(id);
+      }
+    });
+    return ids;
+  }, [selectedIds, orders]);
+
+  const rightPanelSelectedIds = useMemo(() => {
+    const ids = new Set<number>();
+    selectedIds.forEach(id => {
+      const order = orders.find(o => o.id === id);
+      if (order && (order.status === 'đang thực hiện' || order.status === 'bắt đầu phục vụ')) {
+        ids.add(id);
+      }
+    });
+    return ids;
+  }, [selectedIds, orders]);
+
+  // Separate animatingOutIds for each panel based on order status
+  // This prevents cross-panel animation
+  const pendingAnimatingOutIds = useMemo(() => {
+    const ids = new Set<number>();
+    animatingOutIds.forEach(id => {
+      const order = orders.find(o => o.id === id);
+      // Include if order is pending OR if order doesn't exist anymore (was just prepared)
+      if (!order || order.status === 'đang chờ') {
+        ids.add(id);
+      }
+    });
+    return ids;
+  }, [animatingOutIds, orders]);
+
+  const rightPanelAnimatingOutIds = useMemo(() => {
+    const ids = new Set<number>();
+    animatingOutIds.forEach(id => {
+      const order = orders.find(o => o.id === id);
+      // Include if order is in-progress/serving OR if order doesn't exist anymore (was just served)
+      if (!order || order.status === 'đang thực hiện' || order.status === 'bắt đầu phục vụ') {
+        ids.add(id);
+      }
+    });
+    return ids;
+  }, [animatingOutIds, orders]);
+
   // Update datetime immediately on mount and then every second
   useEffect(() => {
     // Set immediately on mount to avoid empty display
@@ -470,7 +524,34 @@ function ChiefPageContent() {
     refreshOrders(false); // Use normal refresh for manual button
   };
 
-  // Filter orders based on search query
+  // Filter orders based on general search query (for dishes/tables)
+  const filterOrdersByGeneralSearch = (orders: Record<string, Order[]>) => {
+    if (!generalSearchQuery.trim()) {
+      return orders;
+    }
+
+    const filtered: Record<string, Order[]> = {};
+    const query = generalSearchQuery.toLowerCase();
+
+    Object.entries(orders).forEach(([itemName, orderList]) => {
+      const filteredOrders = orderList.filter(order => 
+        order.itemName.toLowerCase().includes(query) ||
+        order.tableNumber.toString().includes(query) ||
+        (order.toppings && order.toppings.some(topping => 
+          topping.toLowerCase().includes(query)
+        )) ||
+        (order.sizeName && order.sizeName.toLowerCase().includes(query))
+      );
+
+      if (filteredOrders.length > 0) {
+        filtered[itemName] = filteredOrders;
+      }
+    });
+
+    return filtered;
+  };
+
+  // Filter orders based on cancel search query (for canceling orders)
   const filterOrdersBySearch = (orders: Record<string, Order[]>) => {
     if (!searchQuery.trim()) {
       return orders;
@@ -845,10 +926,11 @@ function ChiefPageContent() {
     }
   }, [orders]);
 
-  // Function to automatically select the first 3 groups based on context-aware category priority
-  const autoSelectFirstGroups = useCallback(() => {
-    // Only auto-select for relevant tabs, not for serve tab, and only if user hasn't made manual selection
-    if (activeTab === 'bắt đầu phục vụ' || hasManualSelection || leftPanelTab !== 'byDish') {
+  // Function to automatically select the first 3 groups from PENDING orders (left panel)
+  // This uses orders directly instead of groupedOrders (which is filtered by activeTab)
+  const autoSelectFirstPendingGroups = useCallback(() => {
+    // Only auto-select if user hasn't made manual selection and we're in byDish mode
+    if (hasManualSelection || leftPanelTab !== 'byDish') {
       return;
     }
 
@@ -858,20 +940,28 @@ function ChiefPageContent() {
       return itemNameToCategory[itemName] === selectedCategory;
     };
 
-    // Process grouped orders - each group is already grouped by itemName+size+note+toppings
-    const displayGroups = Object.entries(groupedOrders)
+    // Group pending orders by itemName
+    const pendingGrouped: Record<string, Order[]> = {};
+    orders
+      .filter(order => order.status === 'đang chờ')
+      .forEach(order => {
+        if (!pendingGrouped[order.itemName]) {
+          pendingGrouped[order.itemName] = [];
+        }
+        pendingGrouped[order.itemName].push(order);
+      });
+
+    // Process grouped orders
+    const displayGroups = Object.entries(pendingGrouped)
       .map(([groupKey, ordersInGroup]) => {
         const representative = ordersInGroup[0];
         if (!representative) return null;
-        
-        const filtered = ordersInGroup.filter(order => order.status !== 'bắt đầu phục vụ');
-        if (filtered.length === 0) return null;
 
         return {
           itemName: representative.itemName,
           category: representative.category,
           tableNumber: representative.tableNumber, // For context-aware priority
-          selectionItems: filtered.map(order => ({ 
+          selectionItems: ordersInGroup.map(order => ({ 
             itemName: order.itemName, 
             tableNumber: order.tableNumber, 
             id: order.id 
@@ -910,89 +1000,97 @@ function ChiefPageContent() {
         handleMultipleGroupSelection(groupsToSelect, true); // Pass true for automatic selection
       }
     }
-  }, [activeTab, selectedCategory, groupedOrders, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection, leftPanelTab, getContextualPriority]);
+  }, [orders, selectedCategory, shouldShowInSidebar, itemNameToCategory, selectedGroups, handleMultipleGroupSelection, hasManualSelection, leftPanelTab, getContextualPriority]);
 
-  // Auto-select first group when page loads or significant data changes
+  // Auto-select first 3 pending groups when page loads or orders change
   useEffect(() => {
-    // Small delay to ensure selections are cleared first
+    // Small delay to ensure component is ready
     const timeoutId = setTimeout(() => {
-      autoSelectFirstGroups();
+      autoSelectFirstPendingGroups();
     }, 100);
     
     return () => clearTimeout(timeoutId);
-  }, [autoSelectFirstGroups, groupedOrders, selectedCategory]);
+  }, [autoSelectFirstPendingGroups, orders, selectedCategory]);
 
-  // Auto-select first group when switching tabs (after selections are cleared)
+  // Re-run auto-select when leftPanelTab changes back to byDish
   useEffect(() => {
-    // Delay to ensure the clear selections effect runs first
-    const timeoutId = setTimeout(() => {
-      autoSelectFirstGroups();
-    }, 150);
-    
-    return () => clearTimeout(timeoutId);
-  }, [activeTab, autoSelectFirstGroups]);
+    if (leftPanelTab === 'byDish' && !hasManualSelection) {
+      const timeoutId = setTimeout(() => {
+        autoSelectFirstPendingGroups();
+      }, 150);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [leftPanelTab, autoSelectFirstPendingGroups, hasManualSelection]);
 
   // Handle preparing multiple orders at once
-  const handlePrepareMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
+  const handlePrepareMultipleOrders = async (ordersToProcess: { itemName: string; tableNumber: number; id: number }[]) => {
     try {
       // Warning for both priority rules on the same table(s)
-      maybeWarnForMainSelection(orders);
-      maybeWarnForDessertSelection(orders);
+      maybeWarnForMainSelection(ordersToProcess);
+      maybeWarnForDessertSelection(ordersToProcess);
+      
+      // Save order IDs before clearing selections
+      const orderIds = ordersToProcess.map(o => o.id);
+      
+      // Clear selections IMMEDIATELY to prevent cross-panel selection issues
+      setSelectedGroups([]);
+      setSelectedGroup(null);
+      setSelectedOrderKey(null);
       
       // Mark all items as animating out
-      const orderIds = orders.map(o => o.id);
       setAnimatingOutIds(new Set(orderIds));
       
       // Wait for animation to complete (300ms for fade-out animation)
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Prepare all orders in parallel using Promise.all
-      await Promise.all(orders.map(order => handlePrepareOrders(order.id)));
+      await Promise.all(orderIds.map(id => handlePrepareOrders(id)));
       
-      addToast(`Đã bắt đầu thực hiện ${orders.length} món cùng lúc`, 'success');
+      addToast(`Đã bắt đầu thực hiện ${ordersToProcess.length} món cùng lúc`, 'success');
       
-      // Clear animations and selections after bulk action
+      // Clear animations after bulk action
       setAnimatingOutIds(new Set());
-      setSelectedGroups([]);
-      setSelectedGroup(null);
-      setSelectedOrderKey(null);
       
-      // Auto switch to "Đang thực hiện" tab after preparing orders
-      setActiveTab('đang thực hiện');
+      // Don't auto switch tab - keep user on current view
+      // setActiveTab('đang thực hiện');
     } catch (error) {
       // Clear animation state on error
       setAnimatingOutIds(new Set());
-      addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
+      addToast(`Lỗi khi cập nhật trạng thái cho ${ordersToProcess.length} món`, 'error');
     }
   };
 
   // Handle serving multiple orders at once
-  const handleServeMultipleOrders = async (orders: { itemName: string; tableNumber: number; id: number }[]) => {
+  const handleServeMultipleOrders = async (ordersToProcess: { itemName: string; tableNumber: number; id: number }[]) => {
     try {
+      // Save order IDs before clearing selections
+      const orderIds = ordersToProcess.map(o => o.id);
+      
+      // Clear selections IMMEDIATELY to prevent cross-panel selection issues
+      setSelectedGroups([]);
+      setSelectedGroup(null);
+      setSelectedOrderKey(null);
+      
       // Mark all items as animating out
-      const orderIds = orders.map(o => o.id);
       setAnimatingOutIds(new Set(orderIds));
       
       // Wait for animation to complete (300ms for fade-out animation)
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Serve all orders in parallel using Promise.all
-      await Promise.all(orders.map(order => handleServeOrder(order.id)));
+      await Promise.all(orderIds.map(id => handleServeOrder(id)));
       
-      addToast(`Đã bắt đầu phục vụ ${orders.length} món cùng lúc`, 'success');
+      addToast(`Đã bắt đầu phục vụ ${ordersToProcess.length} món cùng lúc`, 'success');
       
-      // Clear animations and selections after bulk action
+      // Clear animations after bulk action
       setAnimatingOutIds(new Set());
-      setSelectedGroups([]);
-      setSelectedGroup(null);
-      setSelectedOrderKey(null);
       
       // Auto switch to "Bắt đầu phục vụ" tab after serving orders
       setActiveTab('bắt đầu phục vụ');
     } catch (error) {
       // Clear animation state on error
       setAnimatingOutIds(new Set());
-      addToast(`Lỗi khi cập nhật trạng thái cho ${orders.length} món`, 'error');
+      addToast(`Lỗi khi cập nhật trạng thái cho ${ordersToProcess.length} món`, 'error');
     }
   };
 
@@ -1023,11 +1121,76 @@ function ChiefPageContent() {
     });
   }
 
-  // Apply search filter to all order data
-  const filteredGroupedOrdersForSearch = filterOrdersBySearch(groupedOrders as Record<string, Order[]>);
-  const filteredServeTabGroupedOrders = filterOrdersBySearch(serveTabGroupedOrders);
+  // Apply general search filter to all order data (for displaying orders)
+  const filteredGroupedOrdersForSearch = filterOrdersByGeneralSearch(groupedOrders as Record<string, Order[]>);
+  const filteredServeTabGroupedOrders = filterOrdersByGeneralSearch(serveTabGroupedOrders);
   const filteredInProgressGroupedOrders = filteredGroupedOrdersForSearch;
 
+  // ============================================================================
+  // PENDING ORDERS - Always group orders with status "đang chờ" regardless of activeTab
+  // This is used for the LEFT panel which always shows pending orders
+  // ============================================================================
+  const pendingGroupedOrdersAll = useMemo(() => {
+    const grouped: Record<string, Order[]> = {};
+    const query = generalSearchQuery.trim().toLowerCase();
+    
+    orders
+      .filter(order => {
+        if (order.status !== 'đang chờ') return false;
+        if (!query) return true;
+        return (
+          order.itemName.toLowerCase().includes(query) ||
+          order.tableNumber.toString().includes(query) ||
+          (order.toppings && order.toppings.some(topping => 
+            topping.toLowerCase().includes(query)
+          )) ||
+          (order.sizeName && order.sizeName.toLowerCase().includes(query))
+        );
+      })
+      .forEach(order => {
+        const groupKey = order.itemName;
+        if (!grouped[groupKey]) {
+          grouped[groupKey] = [];
+        }
+        grouped[groupKey].push(order);
+      });
+    return grouped;
+  }, [orders, generalSearchQuery]);
+
+  // Tables grouped by number for LEFT panel (pending orders only)
+  const pendingTablesByNumber = useMemo(() => {
+    const tableMap = new Map<number, Order[]>();
+    const query = generalSearchQuery.trim().toLowerCase();
+    
+    orders
+      .filter(order => {
+        if (order.status !== 'đang chờ') return false;
+        if (!query) return true;
+        return (
+          order.itemName.toLowerCase().includes(query) ||
+          order.tableNumber.toString().includes(query) ||
+          (order.toppings && order.toppings.some(topping => 
+            topping.toLowerCase().includes(query)
+          )) ||
+          (order.sizeName && order.sizeName.toLowerCase().includes(query))
+        );
+      })
+      .forEach(order => {
+        if (!tableMap.has(order.tableNumber)) {
+          tableMap.set(order.tableNumber, []);
+        }
+        tableMap.get(order.tableNumber)!.push(order);
+      });
+
+    return Array.from(tableMap.entries())
+      .map(([tableNumber, tableOrders]) => ({
+        tableNumber,
+        orders: [...tableOrders].sort((a, b) => a.id - b.id),
+      }))
+      .sort((a, b) => a.tableNumber - b.tableNumber);
+  }, [orders, generalSearchQuery]);
+
+  // Tables grouped by number for RIGHT panel (based on activeTab)
   const tablesByNumber = useMemo(() => {
     const tableMap = new Map<number, Order[]>();
 
@@ -1049,8 +1212,8 @@ function ChiefPageContent() {
   }, [filteredGroupedOrdersForSearch]);
 
   useEffect(() => {
-    const eligibleTabs = new Set<OrderStatus>(['đang chờ', 'đang thực hiện']);
-    if (leftPanelTab !== 'byTable' || !eligibleTabs.has(activeTab)) {
+    // Only show match suggestions in byTable mode
+    if (leftPanelTab !== 'byTable') {
       setMatchSuggestions(null);
       setIsMatchModalOpen(false);
       matchSuggestionSignatureRef.current = null;
@@ -1072,7 +1235,30 @@ function ChiefPageContent() {
       return;
     }
 
-    const statusFilteredOrders = orders.filter(order => order.status === activeTab);
+    // Determine the status based on selected orders (not activeTab)
+    // This allows match suggestions to work for both left panel (đang chờ) and right panel (đang thực hiện)
+    const selectedOrdersList = orders.filter(order => selectedIds.has(order.id));
+    if (selectedOrdersList.length === 0) {
+      setMatchSuggestions(null);
+      setIsMatchModalOpen(false);
+      matchSuggestionSignatureRef.current = null;
+      return;
+    }
+
+    // Get the status of selected orders (assume all selected orders have the same status)
+    const selectedStatus = selectedOrdersList[0].status;
+    
+    // Only allow match suggestions for 'đang chờ' and 'đang thực hiện' statuses
+    const eligibleStatuses = new Set<OrderStatus>(['đang chờ', 'đang thực hiện']);
+    if (!eligibleStatuses.has(selectedStatus)) {
+      setMatchSuggestions(null);
+      setIsMatchModalOpen(false);
+      matchSuggestionSignatureRef.current = null;
+      return;
+    }
+
+    // Filter orders by the same status as selected orders
+    const statusFilteredOrders = orders.filter(order => order.status === selectedStatus);
     const selectedOrders = statusFilteredOrders.filter(order => selectedIds.has(order.id));
     if (selectedOrders.length === 0) {
       setMatchSuggestions(null);
@@ -1170,18 +1356,19 @@ function ChiefPageContent() {
       .sort((a, b) => a - b)
       .join(',');
     const candidateSignature = suggestionIds.join(',');
-    const signature = `${activeTab}__${selectionSignature}__${candidateSignature}`;
+    const signature = `${selectedStatus}__${selectionSignature}__${candidateSignature}`;
 
     if (matchSuggestionSignatureRef.current !== signature) {
       matchSuggestionSignatureRef.current = signature;
       setMatchSuggestions(builtSuggestions);
       setIsMatchModalOpen(true);
+      // Set mode based on selected orders' status
+      setMatchSuggestionMode(selectedStatus === 'đang thực hiện' ? 'serve' : 'prepare');
     }
   }, [
     selectedGroups,
     leftPanelTab,
     orders,
-    activeTab,
     ALLOWED_MATCH_CATEGORIES,
     buildMatchKey,
   ]);
@@ -1205,8 +1392,8 @@ function ChiefPageContent() {
       
       if (allItems.length === 0) return;
       
-      // Execute the action based on current tab
-      if (activeTab === 'đang thực hiện') {
+      // Execute the action based on matchSuggestionMode (determined by selected orders' status)
+      if (matchSuggestionMode === 'serve') {
         // Serve mode - call serve API
         await handleServeMultipleOrders(allItems);
       } else {
@@ -1214,7 +1401,7 @@ function ChiefPageContent() {
         await handlePrepareMultipleOrders(allItems);
       }
     },
-    [selectedGroups, activeTab, handlePrepareMultipleOrders, handleServeMultipleOrders]
+    [selectedGroups, matchSuggestionMode, handlePrepareMultipleOrders, handleServeMultipleOrders]
   );
   // ============================================================================
   // NOTE: getTableCategoryContext and getContextualPriority have been MOVED UP
@@ -1402,7 +1589,7 @@ function ChiefPageContent() {
         suggestions={matchSuggestions}
         onCancel={handleMatchModalCancel}
         onConfirm={handleMatchModalConfirm}
-        mode={activeTab === 'đang thực hiện' ? 'serve' : 'prepare'}
+        mode={matchSuggestionMode}
       />
 
       {/* Search Results Modal */}
@@ -1502,6 +1689,75 @@ function ChiefPageContent() {
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Divider */}
+                  <div className="h-8 w-px bg-gray-300"></div>
+                  
+                  {/* General Search Bar - Search for dishes/tables */}
+                  <div className="relative">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow w-[200px]">
+                      <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <input
+                        type="text"
+                        value={generalSearchQuery}
+                        onChange={(e) => setGeneralSearchQuery(e.target.value)}
+                        placeholder="Tìm món, bàn..."
+                        className="flex-1 outline-none text-xs text-gray-700 placeholder-gray-400 bg-transparent min-w-0"
+                      />
+                      {generalSearchQuery && (
+                        <button
+                          onClick={() => setGeneralSearchQuery('')}
+                          className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Search Bar for canceling orders - Next to general search */}
+                  <div className="relative">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm border border-red-200 hover:shadow-md transition-shadow w-[200px]">
+                      <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Tìm món để huỷ..."
+                        className="flex-1 outline-none text-xs text-gray-700 placeholder-gray-400 bg-transparent min-w-0"
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    {/* Dropdown for cancel search */}
+                    {showSearchDropdown && searchResults.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-60 overflow-y-auto">
+                        {searchResults.map((product) => (
+                          <button
+                            key={product}
+                            onClick={() => handleProductSelect(product)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                          >
+                            {product}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               
@@ -1510,6 +1766,10 @@ function ChiefPageContent() {
             </div>
           </div>
 
+          {/* ============================================================================
+           * OLD NavigationTabs - commented out for split-screen layout
+           * ============================================================================ */}
+          {/* 
           <NavigationTabs
             activeTab={activeTab as OrderStatus}
             onTabChange={handleTabChange as (tab: OrderStatus) => void}
@@ -1520,99 +1780,231 @@ function ChiefPageContent() {
             showSearchDropdown={showSearchDropdown}
             onProductSelect={handleProductSelect}
             onSearchDropdownClose={() => setShowSearchDropdown(false)}
-            rightAction={
-              /*
-              (() => {
-                if (activeTab === 'đang chờ') {
-                  const selectedOrders = selectedGroups.length > 0
-                    ? selectedGroups.flat()
-                    : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
-                  if (selectedOrders.length > 0) {
-                    return (
-                      <button
-                        onClick={() => {
-                          if (selectedGroups.length > 0) {
-                            handlePrepareMultipleOrders(selectedOrders);
-                          } else if (selectedGroup) {
-                            handlePrepareMultipleOrders(selectedGroup);
-                          } else if (selectedOrderKey) {
-                            handlePrepareClick(selectedOrderKey.id, selectedOrderKey.itemName);
-                          }
-                        }}
-                        className="font-medium text-sm px-4 py-2 rounded-full shadow bg-green-600 hover:bg-green-700 text-white whitespace-nowrap"
-                      >
-                        {`Thực hiện${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
-                      </button>
-                    );
-                  }
-                }
-                if (activeTab === 'đang thực hiện') {
-                  const selectedOrders = selectedGroups.length > 0
-                    ? selectedGroups.flat()
-                    : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
-                  if (selectedOrders.length > 0) {
-                    return (
-                      <button
-                        onClick={() => {
-                          if (selectedGroups.length > 0) {
-                            handleServeMultipleOrders(selectedOrders);
-                          } else if (selectedGroup) {
-                            handleServeMultipleOrders(selectedGroup);
-                          } else if (selectedOrderKey) {
-                            const all = Object.values(groupedOrders as Record<string, Order[]>).flat();
-                            const found = all.find(o => o.id === selectedOrderKey!.id);
-                            if (found) handleServeClick(found);
-                          }
-                        }}
-                        className="font-medium text-sm px-4 py-2 rounded-full shadow bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
-                      >
-                        {`Bắt đầu phục vụ${selectedOrders.length > 1 ? ` (${selectedOrders.length})` : ''}`}
-                      </button>
-                    );
-                  }
-                }
-                return null;
-              })()
-              */
-              null
-            }
+            rightAction={null}
           />
+          */}
 
-          <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">
-            {/* ============================================================================
-             * LAYOUT SWITCH: Full screen toggle between byDish and byTable views
-             * - byDish: Show OrdersContent (grouped by dish) - full width
-             * - byTable: Show KitchenSidebarByTable content - full width
-             * OLD CODE (side-by-side layout) has been removed per user request
-             * ============================================================================ */}
+          {/* ============================================================================
+           * SPLIT SCREEN LAYOUT:
+           * - Left side (50%): "Đang chờ" (pending) orders
+           * - Right side (50%): "Đang thực hiện" + "Bắt đầu phục vụ" orders
+           * ============================================================================ */}
+          <div className="flex-1 min-h-0 overflow-hidden bg-gray-50 flex">
             
-            {/* byDish view: OrdersContent grouped by dish - FULL WIDTH */}
-            {leftPanelTab === 'byDish' && (
-              <div className="h-full overflow-y-auto">
-                {(() => {
-                  if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
-                    const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
+            {/* ==================== LEFT PANEL: ĐANG CHỜ ==================== */}
+            <div className="w-1/2 h-full flex flex-col border-r border-gray-200">
+              {/* Left panel header */}
+              <div className="px-4 py-3 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-800">Đang chờ</h2>
+                      <p className="text-xs text-gray-500">Các món đang chờ thực hiện</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1.5 bg-amber-500 text-white text-sm font-bold rounded-full shadow">
+                      {getTabCount('đang chờ')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Left panel content */}
+              <div className="flex-1 min-h-0 overflow-y-auto relative">
+                {leftPanelTab === 'byDish' ? (
+                  (() => {
+                    // Use pendingGroupedOrdersAll which is always filtered by "đang chờ" status
+                    const sortedPending = sortGroupedByCategoryPriority(pendingGroupedOrdersAll);
+                    
+                    if (Object.keys(sortedPending).length === 0) {
+                      return (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-lg">
+                          <div className="text-center">
+                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            Không có món đang chờ
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <OrdersContent
-                        groupedOrders={sortedForServe}
-                        activeTab={activeTab}
+                        groupedOrders={sortedPending}
+                        activeTab={'đang chờ'}
                         onGroupClick={handleGroupClick}
                         onPrepareClick={handlePrepareClick}
                         onServeClick={handleServeClick}
+                        onPrepareMultipleOrders={handlePrepareMultipleOrders}
                         onAcceptRedoClick={handleAcceptRedoClick}
                         onRejectRedoClick={handleRejectRedoClickWrapper}
-                        selectedIds={selectedIds}
-                        animatingOutIds={animatingOutIds}
+                        selectedIds={pendingSelectedIds}
+                        showIndividualCards={true}
+                        animatingOutIds={pendingAnimatingOutIds}
                         onToggleSelection={handleToggleSelection}
                       />
                     );
-                  }
-
-                  if (isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0) {
-                    const sortedInProgress = sortGroupedByCategoryPriority(filteredInProgressGroupedOrders);
+                  })()
+                ) : (
+                  (() => {
+                    // Use pendingTablesByNumber which is always filtered by "đang chờ" status
+                    if (pendingTablesByNumber.length === 0) {
+                      return (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-lg">
+                          <div className="text-center">
+                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 10v8a1 1 0 001 1h16a1 1 0 001-1v-8M3 10l2-6h14l2 6" />
+                            </svg>
+                            Không có bàn nào đang chờ
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // Get pending selected orders for CTA
+                    const pendingSelectedOrders = selectedGroups.flat().filter(item => {
+                      const order = orders.find(o => o.id === item.id);
+                      return order && order.status === 'đang chờ';
+                    });
+                    
+                    return (
+                      <>
+                        <KitchenSidebarByTable
+                          tables={pendingTablesByNumber}
+                          selectedOrderKey={selectedOrderKey}
+                          onSidebarItemClick={handleSidebarItemClick}
+                          selectedGroup={selectedGroup}
+                          onGroupSelection={handleGroupSelection}
+                          selectedGroups={selectedGroups}
+                          onMultipleGroupSelection={handleMultipleGroupSelection}
+                          itemNameToCategory={itemNameToCategory}
+                          tableDataMap={tableDataMap}
+                          className="bg-transparent"
+                          hideCheckboxes={false}
+                        />
+                        {/* Spacer for CTA button */}
+                        {pendingSelectedOrders.length > 0 && <div className="h-24"></div>}
+                      </>
+                    );
+                  })()
+                )}
+                
+                {/* CTA Button for left panel (đang chờ) - byTable mode */}
+                {leftPanelTab === 'byTable' && (() => {
+                  const pendingSelectedOrders = selectedGroups.flat().filter(item => {
+                    const order = orders.find(o => o.id === item.id);
+                    return order && order.status === 'đang chờ';
+                  });
+                  
+                  if (pendingSelectedOrders.length === 0) return null;
+                  
+                  return (
+                    <div className="absolute bottom-0 left-0 right-0 z-10 py-4 flex justify-center pointer-events-none bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent">
+                      <button
+                        onClick={() => handlePrepareMultipleOrders(pendingSelectedOrders)}
+                        className="pointer-events-auto flex items-center justify-center gap-2 font-bold text-base px-6 py-3 rounded-xl shadow-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transform hover:scale-105 transition-all duration-300"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Thực hiện ({pendingSelectedOrders.length} món)
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            
+            {/* ==================== RIGHT PANEL: ĐANG THỰC HIỆN + BẮT ĐẦU PHỤC VỤ ==================== */}
+            <div className="w-1/2 h-full flex flex-col">
+              {/* Right panel header with sub-tabs */}
+              <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-800">Đang xử lý</h2>
+                      <p className="text-xs text-gray-500">Đang thực hiện & phục vụ</p>
+                    </div>
+                  </div>
+                  
+                  {/* Sub-tabs for right panel */}
+                  <div className="flex items-center gap-1 p-1 bg-white rounded-lg shadow-sm border border-gray-200">
+                    <button
+                      onClick={() => handleTabChange('đang thực hiện')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        activeTab === 'đang thực hiện'
+                          ? 'bg-blue-500 text-white shadow'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      Đang thực hiện
+                      <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
+                        activeTab === 'đang thực hiện' ? 'bg-white/20' : 'bg-gray-200'
+                      }`}>
+                        {getTabCount('đang thực hiện')}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => handleTabChange('bắt đầu phục vụ')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        activeTab === 'bắt đầu phục vụ'
+                          ? 'bg-orange-500 text-white shadow'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      Bắt đầu phục vụ
+                      <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
+                        activeTab === 'bắt đầu phục vụ' ? 'bg-white/20' : 'bg-gray-200'
+                      }`}>
+                        {getTabCount('bắt đầu phục vụ')}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Right panel content */}
+              <div className="flex-1 min-h-0 overflow-y-auto relative">
+                {leftPanelTab === 'byDish' ? (
+                  (() => {
+                    // Filter orders for current right panel tab
+                    const rightPanelGroupedOrders: Record<string, Order[]> = {};
+                    Object.entries(filteredGroupedOrdersForSearch).forEach(([key, orderList]) => {
+                      const filteredOrders = orderList.filter(order => order.status === activeTab);
+                      if (filteredOrders.length > 0) {
+                        rightPanelGroupedOrders[key] = filteredOrders;
+                      }
+                    });
+                    const sortedRightPanel = sortGroupedByCategoryPriority(rightPanelGroupedOrders);
+                    
+                    if (Object.keys(sortedRightPanel).length === 0) {
+                      return (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-lg">
+                          <div className="text-center">
+                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            {activeTab === 'đang thực hiện' ? 'Không có món đang thực hiện' : 'Không có món sẵn sàng phục vụ'}
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <OrdersContent
-                        groupedOrders={sortedInProgress}
+                        groupedOrders={sortedRightPanel}
                         activeTab={activeTab}
                         onGroupClick={handleGroupClick}
                         onPrepareClick={handlePrepareClick}
@@ -1621,115 +2013,90 @@ function ChiefPageContent() {
                         showIndividualCards={true}
                         onAcceptRedoClick={handleAcceptRedoClick}
                         onRejectRedoClick={handleRejectRedoClickWrapper}
-                        selectedIds={selectedIds}
-                        animatingOutIds={animatingOutIds}
+                        selectedIds={rightPanelSelectedIds}
+                        animatingOutIds={rightPanelAnimatingOutIds}
                         onToggleSelection={handleToggleSelection}
                       />
                     );
-                  }
-
-                  const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
-                  
-                  if (Object.keys(sortedDefault).length === 0) {
+                  })()
+                ) : (
+                  (() => {
+                    // Filter tables for current right panel tab
+                    const rightPanelTablesByNumber = tablesByNumber.map(table => ({
+                      ...table,
+                      orders: table.orders.filter(order => order.status === activeTab)
+                    })).filter(table => table.orders.length > 0);
+                    
+                    if (rightPanelTablesByNumber.length === 0) {
+                      return (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-lg">
+                          <div className="text-center">
+                            <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 10v8a1 1 0 001 1h16a1 1 0 001-1v-8M3 10l2-6h14l2 6" />
+                            </svg>
+                            {activeTab === 'đang thực hiện' ? 'Không có bàn đang thực hiện' : 'Không có bàn sẵn sàng phục vụ'}
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // Get in-progress selected orders for CTA (only for đang thực hiện tab)
+                    const inProgressSelectedOrders = activeTab === 'đang thực hiện' 
+                      ? selectedGroups.flat().filter(item => {
+                          const order = orders.find(o => o.id === item.id);
+                          return order && order.status === 'đang thực hiện';
+                        })
+                      : [];
+                    
                     return (
-                      <div className="flex h-full items-center justify-center text-gray-400 text-xl">
-                        Không có đơn hàng nào
-                      </div>
+                      <>
+                        <KitchenSidebarByTable
+                          tables={rightPanelTablesByNumber}
+                          selectedOrderKey={selectedOrderKey}
+                          onSidebarItemClick={handleSidebarItemClick}
+                          selectedGroup={selectedGroup}
+                          onGroupSelection={handleGroupSelection}
+                          selectedGroups={selectedGroups}
+                          onMultipleGroupSelection={handleMultipleGroupSelection}
+                          itemNameToCategory={itemNameToCategory}
+                          tableDataMap={tableDataMap}
+                          className="bg-transparent"
+                          hideCheckboxes={isServeTab}
+                        />
+                        {/* Spacer for CTA button */}
+                        {inProgressSelectedOrders.length > 0 && <div className="h-24"></div>}
+                      </>
                     );
-                  }
+                  })()
+                )}
+                
+                {/* CTA Button for right panel (đang thực hiện) - byTable mode */}
+                {leftPanelTab === 'byTable' && activeTab === 'đang thực hiện' && (() => {
+                  const inProgressSelectedOrders = selectedGroups.flat().filter(item => {
+                    const order = orders.find(o => o.id === item.id);
+                    return order && order.status === 'đang thực hiện';
+                  });
+                  
+                  if (inProgressSelectedOrders.length === 0) return null;
                   
                   return (
-                    <OrdersContent
-                      groupedOrders={sortedDefault}
-                      activeTab={activeTab}
-                      onGroupClick={handleGroupClick}
-                      onPrepareClick={handlePrepareClick}
-                      onServeClick={handleServeClick}
-                      onPrepareMultipleOrders={handlePrepareMultipleOrders}
-                      onServeMultipleOrders={handleServeMultipleOrders}
-                      onAcceptRedoClick={handleAcceptRedoClick}
-                      onRejectRedoClick={handleRejectRedoClickWrapper}
-                      selectedIds={selectedIds}
-                      showIndividualCards={true}
-                      animatingOutIds={animatingOutIds}
-                      onToggleSelection={handleToggleSelection}
-                    />
+                    <div className="absolute bottom-0 left-0 right-0 z-10 py-4 flex justify-center pointer-events-none bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent">
+                      <button
+                        onClick={() => handleServeMultipleOrders(inProgressSelectedOrders)}
+                        className="pointer-events-auto flex items-center justify-center gap-2 font-bold text-base px-6 py-3 rounded-xl shadow-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white transform hover:scale-105 transition-all duration-300"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Bắt đầu phục vụ ({inProgressSelectedOrders.length} món)
+                      </button>
+                    </div>
                   );
                 })()}
               </div>
-            )}
+            </div>
             
-            {/* byTable view: KitchenSidebarByTable - FULL WIDTH */}
-            {leftPanelTab === 'byTable' && (
-              <div className="h-full relative">
-                {/* Content area - scrollable */}
-                <div className="h-full overflow-y-auto">
-                  <KitchenSidebarByTable
-                    tables={tablesByNumber}
-                    selectedOrderKey={selectedOrderKey}
-                    onSidebarItemClick={handleSidebarItemClick}
-                    selectedGroup={selectedGroup}
-                    onGroupSelection={handleGroupSelection}
-                    selectedGroups={selectedGroups}
-                    onMultipleGroupSelection={handleMultipleGroupSelection}
-                    itemNameToCategory={itemNameToCategory}
-                    tableDataMap={tableDataMap}
-                    className="bg-transparent"
-                    hideCheckboxes={isServeTab} /* Hide checkboxes for serve tab */
-                  />
-                  
-                  {/* Spacer for CTA button */}
-                  {!isServeTab && (selectedGroups.length > 0 || selectedGroup || selectedOrderKey) && (
-                    <div className="h-24"></div>
-                  )}
-                </div>
-                
-                {/* CTA Button for byTable view - floating at bottom, transparent background */}
-                {!isServeTab && (() => {
-                  const selectedOrders = selectedGroups.length > 0
-                    ? selectedGroups.flat()
-                    : selectedGroup || (selectedOrderKey ? [selectedOrderKey] : []);
-                  
-                  if (selectedOrders.length === 0) return null;
-                  
-                  if (activeTab === 'đang chờ') {
-                    return (
-                      <div className="absolute bottom-0 left-0 right-0 z-10 py-4 flex justify-center pointer-events-none">
-                        <button
-                          onClick={() => handlePrepareMultipleOrders(selectedOrders)}
-                          className="pointer-events-auto flex items-center justify-center gap-2 font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transform hover:scale-105 transition-all duration-300"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          Thực hiện ({selectedOrders.length} món)
-                        </button>
-                      </div>
-                    );
-                  }
-                  
-                  if (activeTab === 'đang thực hiện') {
-                    return (
-                      <div className="absolute bottom-0 left-0 right-0 z-10 py-4 flex justify-center pointer-events-none">
-                        <button
-                          onClick={() => handleServeMultipleOrders(selectedOrders)}
-                          className="pointer-events-auto flex items-center justify-center gap-2 font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white transform hover:scale-105 transition-all duration-300"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          Bắt đầu phục vụ ({selectedOrders.length} món)
-                        </button>
-                      </div>
-                    );
-                  }
-                  
-                  return null;
-                })()}
-              </div>
-            )}
-            
-            {/* END of layout switch */}
+            {/* END of split screen layout */}
           </div>
         </div>
       </div>

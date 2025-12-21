@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Order } from '@/types/kitchen';
 import {
   Dialog,
@@ -14,6 +14,7 @@ import {
   CardAction,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DEFAULT_IMAGE_PLACEHOLDER } from '@/constants/kitchen-data';
 import { CancelOrderModal } from './CancelOrderModal';
 
@@ -34,24 +35,150 @@ export function SearchResultsModal({
 }: SearchResultsModalProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<number>>(new Set());
+  const [pendingCancellations, setPendingCancellations] = useState<Order[]>([]);
+  const [totalCancellationCount, setTotalCancellationCount] = useState<number>(0);
+  // Use ref to maintain cancellation queue that persists across refreshes
+  const cancellationQueueRef = useRef<Order[]>([]);
+  const isProcessingRef = useRef(false);
+
+  // Filter orders that can be cancelled
+  const cancellableOrders = useMemo(() => {
+    return orders.filter(order => order.status === 'đang chờ');
+  }, [orders]);
+
+  // Check if all cancellable orders are selected
+  const allSelected = useMemo(() => {
+    if (cancellableOrders.length === 0) return false;
+    return cancellableOrders.every(order => selectedOrderIds.has(order.id));
+  }, [cancellableOrders, selectedOrderIds]);
+
+  // Handle select all checkbox
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedOrderIds(new Set(cancellableOrders.map(order => order.id)));
+    } else {
+      setSelectedOrderIds(new Set());
+    }
+  };
+
+  // Handle individual checkbox
+  const handleToggleOrder = (orderId: number, checked: boolean) => {
+    setSelectedOrderIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(orderId);
+      } else {
+        newSet.delete(orderId);
+      }
+      return newSet;
+    });
+  };
 
   const handleCancelClick = (order: Order) => {
     setOrderToCancel(order);
     setShowCancelConfirm(true);
   };
 
-  const handleConfirmCancel = (reason: string) => {
-    if (orderToCancel) {
-      onCancelOrder(orderToCancel, reason);
+  const handleCancelSelected = () => {
+    if (selectedOrderIds.size === 0) return;
+    
+    const selectedOrders = orders.filter(order => selectedOrderIds.has(order.id));
+    if (selectedOrders.length === 0) return;
+
+    // Store orders to cancel in both state and ref
+    cancellationQueueRef.current = [...selectedOrders];
+    setPendingCancellations(selectedOrders);
+    setTotalCancellationCount(selectedOrders.length);
+    setOrderToCancel(selectedOrders[0]);
+    setShowCancelConfirm(true);
+  };
+
+  const handleConfirmCancel = async (reason: string) => {
+    if (!orderToCancel || isProcessingRef.current) {
+      return;
+    }
+
+    isProcessingRef.current = true;
+    
+    // Get current order and queue from ref to ensure we have the latest
+    const currentOrderToCancel = orderToCancel;
+    const currentQueue = [...cancellationQueueRef.current];
+    
+    // Verify the order is still in the queue
+    if (!currentQueue.find(o => o.id === currentOrderToCancel.id)) {
+      console.warn('Order not found in queue, aborting');
+      isProcessingRef.current = false;
+      return;
+    }
+
+    try {
+      // Wait for cancellation to complete before proceeding to next order
+      await onCancelOrder(currentOrderToCancel, reason);
+      
+      // Remove cancelled order from selectedOrderIds
+      setSelectedOrderIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(currentOrderToCancel.id);
+        return newSet;
+      });
+    } catch (error) {
+      // Even if cancellation fails, continue with remaining orders
+      console.error('Error cancelling order:', error);
+    }
+    
+    // Remove this order from cancellation queue
+    const updatedQueue = currentQueue.filter(
+      order => order.id !== currentOrderToCancel.id
+    );
+    cancellationQueueRef.current = updatedQueue;
+    
+    // Update state from updated queue
+    setPendingCancellations(updatedQueue);
+    
+    if (updatedQueue.length > 0) {
+      // Show modal for next order
+      setOrderToCancel(updatedQueue[0]);
+      // Keep modal open for next order
+      isProcessingRef.current = false;
+    } else {
+      // All orders processed, close both modals and clear selection
+      cancellationQueueRef.current = [];
+      setPendingCancellations([]);
+      setTotalCancellationCount(0);
+      setOrderToCancel(null);
+      setShowCancelConfirm(false);
+      setSelectedOrderIds(new Set());
+      isProcessingRef.current = false;
+      // Close the search results modal after all cancellations are done
+      onClose();
+    }
+  };
+
+  const handleCancelConfirmClose = () => {
+    // Only clear if not currently processing
+    if (!isProcessingRef.current) {
+      // Clear cancellation queue and state
+      cancellationQueueRef.current = [];
+      setPendingCancellations([]);
+      setTotalCancellationCount(0);
       setOrderToCancel(null);
     }
     setShowCancelConfirm(false);
   };
 
-  const handleCancelConfirmClose = () => {
-    setShowCancelConfirm(false);
-    setOrderToCancel(null);
-  };
+  // Reset selection when modal closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setSelectedOrderIds(new Set());
+      setPendingCancellations([]);
+      setTotalCancellationCount(0);
+      setOrderToCancel(null);
+      setShowCancelConfirm(false);
+      cancellationQueueRef.current = [];
+      isProcessingRef.current = false;
+    }
+  }, [isOpen]);
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const target = e.target as HTMLImageElement;
@@ -107,12 +234,43 @@ export function SearchResultsModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">
-            Kết quả tìm kiếm: {productName}
-          </DialogTitle>
-          <p className="text-gray-600">
-            Tìm thấy {orders.length} đơn hàng (sắp xếp theo thời gian mới nhất)
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-bold">
+                Kết quả tìm kiếm: {productName}
+              </DialogTitle>
+              <p className="text-gray-600">
+                Tìm thấy {orders.length} đơn hàng (sắp xếp theo thời gian mới nhất)
+              </p>
+            </div>
+            {cancellableOrders.length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={handleSelectAll}
+                    className="size-5"
+                    aria-label="Chọn tất cả"
+                  />
+                  <label className="text-sm font-medium text-gray-700 cursor-pointer">
+                    Chọn tất cả ({cancellableOrders.length})
+                  </label>
+                </div>
+                {selectedOrderIds.size > 0 && (
+                  <Button
+                    onClick={handleCancelSelected}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Huỷ {selectedOrderIds.size} món
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </DialogHeader>
         
         <div className="overflow-y-auto max-h-[60vh] space-y-4 pr-2">
@@ -126,6 +284,17 @@ export function SearchResultsModal({
             orders.map((order) => (
               <Card key={order.id} className="hover:shadow-md transition-shadow duration-200">
                 <CardHeader className="flex flex-row items-center gap-4">
+                  {/* Checkbox for cancellable orders */}
+                  {canCancelOrder(order) && (
+                    <div className="flex-shrink-0">
+                      <Checkbox
+                        checked={selectedOrderIds.has(order.id)}
+                        onCheckedChange={(checked) => handleToggleOrder(order.id, checked === true)}
+                        className="size-5"
+                        aria-label={`Chọn món ${order.itemName} - Bàn ${order.tableNumber}`}
+                      />
+                    </div>
+                  )}
                   {renderOrderImage(order)}
                   <div className="flex-1">
                     {/* Primary Info: Title + Size + Quantity + Table on same line */}
@@ -169,21 +338,7 @@ export function SearchResultsModal({
                     </div>
                   </div>
                   
-                  {/* Cancel button only for 'đang chờ' status */}
-                  {canCancelOrder(order) && (
-                    <CardAction>
-                      <Button
-                        onClick={() => handleCancelClick(order)}
-                        variant="destructive"
-                        size="sm"
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                        Huỷ món
-                      </Button>
-                    </CardAction>
-                  )}
+                  {/* Cancel button removed - use checkbox and bulk cancel button instead */}
                 </CardHeader>
               </Card>
             ))
@@ -196,6 +351,13 @@ export function SearchResultsModal({
           onClose={handleCancelConfirmClose}
           onConfirm={handleConfirmCancel}
           order={orderToCancel}
+          remainingCount={
+            pendingCancellations.length > 0 && totalCancellationCount > 0
+              ? pendingCancellations.length
+              : undefined
+          }
+          totalCount={totalCancellationCount > 0 ? totalCancellationCount : undefined}
+          allPendingOrders={pendingCancellations}
         />
       </DialogContent>
     </Dialog>
