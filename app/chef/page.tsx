@@ -1380,74 +1380,38 @@ function ChiefPageContent() {
       />
 
       <div className="flex flex-1 min-h-0">
-        <div
-          className={`flex w-1/2 min-h-0 flex-col border-r border-gray-200 bg-white ${isServeTab ? 'pointer-events-none opacity-50' : ''}`}
-        >
-          {/* <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800">Chờ chế biến</h2>
-          </div> */}
+        {/* ============================================================================
+         * FULL SCREEN LAYOUT - No left panel, main content takes full width
+         * Tab buttons are shown in the header to switch between byDish and byTable views
+         * 
+         * OLD LEFT PANEL CODE HAS BEEN REMOVED - Views are now toggled in main content
+         * OLD CODE was: Left panel with KitchenSidebar/KitchenSidebarByTable (w-1/2)
+         * ============================================================================ */}
 
-          <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-200 bg-gray-50">
-            {leftPanelTabs.map(tab => {
-              const isActive = leftPanelTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setLeftPanelTab(tab.key)}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    isActive ? 'bg-blue-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">
-            {leftPanelTab === 'byDish' && (
-              <div className="h-full">
-                <KitchenSidebar
-                  categories={CATEGORIES}
-                  selectedCategory={selectedCategory}
-                  onCategorySelect={setSelectedCategory}
-                  remainingItems={remainingItems}
-                  shouldShowInSidebar={shouldShowInSidebar}
-                  itemNameToCategory={itemNameToCategory}
-                  selectedOrderKey={selectedOrderKey}
-                  onSidebarItemClick={handleSidebarItemClick}
-                  selectedGroup={selectedGroup}
-                  onGroupSelection={handleGroupSelection}
-                  groupedOrders={filteredGroupedOrdersForSearch}
-                  selectedGroups={selectedGroups}
-                  onMultipleGroupSelection={handleMultipleGroupSelection}
-                  orders={orders}
-                  className="bg-transparent h-full"
-                  fluid
-                />
-              </div>
-            )}
-
-            {leftPanelTab === 'byTable' && (
-              <KitchenSidebarByTable
-                tables={tablesByNumber}
-                selectedOrderKey={selectedOrderKey}
-                onSidebarItemClick={handleSidebarItemClick}
-                selectedGroup={selectedGroup}
-                onGroupSelection={handleGroupSelection}
-                selectedGroups={selectedGroups}
-                onMultipleGroupSelection={handleMultipleGroupSelection}
-                itemNameToCategory={itemNameToCategory} // For context-aware sorting
-                tableDataMap={tableDataMap} // For late dish warnings
-                className="bg-transparent h-full"
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="flex w-1/2 min-h-0 flex-col bg-white">
+        {/* Main panel - Always full width */}
+        <div className="flex w-full min-h-0 flex-col bg-white">
+          {/* Header with datetime and tab buttons - always visible */}
           <div className="px-6 py-3 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between">
+              {/* Tab buttons for switching between byDish and byTable - moved to LEFT */}
+              <div className="flex items-center gap-2">
+                {leftPanelTabs.map(tab => {
+                  const isActive = leftPanelTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setLeftPanelTab(tab.key)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        isActive ? 'bg-blue-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* DateTime moved to RIGHT */}
               <span className="text-sm text-gray-600">{currentDateTime}</span>
             </div>
           </div>
@@ -1521,79 +1485,105 @@ function ChiefPageContent() {
           />
 
           <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">
-            <div className="h-full overflow-y-auto">
-              {(() => {
-                const hasSelection = selectedGroups.length > 0 || selectedGroup || selectedOrderKey;
+            {/* ============================================================================
+             * LAYOUT SWITCH: Full screen toggle between byDish and byTable views
+             * - byDish: Show OrdersContent (grouped by dish) - full width
+             * - byTable: Show KitchenSidebarByTable content - full width
+             * OLD CODE (side-by-side layout) has been removed per user request
+             * ============================================================================ */}
+            
+            {/* byDish view: OrdersContent grouped by dish - FULL WIDTH */}
+            {leftPanelTab === 'byDish' && (
+              <div className="h-full overflow-y-auto">
+                {(() => {
+                  if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
+                    const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
+                    return (
+                      <OrdersContent
+                        groupedOrders={sortedForServe}
+                        activeTab={activeTab}
+                        onGroupClick={handleGroupClick}
+                        onPrepareClick={handlePrepareClick}
+                        onServeClick={handleServeClick}
+                        onAcceptRedoClick={handleAcceptRedoClick}
+                        onRejectRedoClick={handleRejectRedoClickWrapper}
+                        selectedIds={selectedIds}
+                        animatingOutIds={animatingOutIds}
+                        onToggleSelection={handleToggleSelection}
+                      />
+                    );
+                  }
 
-                if (isServeTab && Object.keys(filteredServeTabGroupedOrders).length > 0) {
-                  const sortedForServe = sortGroupedByCategoryPriority(filteredServeTabGroupedOrders);
+                  if (isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0) {
+                    const sortedInProgress = sortGroupedByCategoryPriority(filteredInProgressGroupedOrders);
+                    return (
+                      <OrdersContent
+                        groupedOrders={sortedInProgress}
+                        activeTab={activeTab}
+                        onGroupClick={handleGroupClick}
+                        onPrepareClick={handlePrepareClick}
+                        onServeClick={handleServeClick}
+                        onServeMultipleOrders={handleServeMultipleOrders}
+                        showIndividualCards={true}
+                        onAcceptRedoClick={handleAcceptRedoClick}
+                        onRejectRedoClick={handleRejectRedoClickWrapper}
+                        selectedIds={selectedIds}
+                        animatingOutIds={animatingOutIds}
+                        onToggleSelection={handleToggleSelection}
+                      />
+                    );
+                  }
+
+                  const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
+                  
+                  if (Object.keys(sortedDefault).length === 0) {
+                    return (
+                      <div className="flex h-full items-center justify-center text-gray-400 text-xl">
+                        Không có đơn hàng nào
+                      </div>
+                    );
+                  }
+                  
                   return (
                     <OrdersContent
-                      groupedOrders={sortedForServe}
+                      groupedOrders={sortedDefault}
                       activeTab={activeTab}
                       onGroupClick={handleGroupClick}
                       onPrepareClick={handlePrepareClick}
                       onServeClick={handleServeClick}
-                      onAcceptRedoClick={handleAcceptRedoClick}
-                      onRejectRedoClick={handleRejectRedoClickWrapper}
-                      selectedIds={selectedIds}
-                      animatingOutIds={animatingOutIds}
-                      onToggleSelection={handleToggleSelection}
-                    />
-                  );
-                }
-
-                if (isInProgressTab && Object.keys(filteredInProgressGroupedOrders).length > 0) {
-                  const sortedInProgress = sortGroupedByCategoryPriority(filteredInProgressGroupedOrders);
-                  return (
-                    <OrdersContent
-                      groupedOrders={sortedInProgress}
-                      activeTab={activeTab}
-                      onGroupClick={handleGroupClick}
-                      onPrepareClick={handlePrepareClick}
-                      onServeClick={handleServeClick}
+                      onPrepareMultipleOrders={handlePrepareMultipleOrders}
                       onServeMultipleOrders={handleServeMultipleOrders}
-                      showIndividualCards={true}
                       onAcceptRedoClick={handleAcceptRedoClick}
                       onRejectRedoClick={handleRejectRedoClickWrapper}
                       selectedIds={selectedIds}
+                      showIndividualCards={true}
                       animatingOutIds={animatingOutIds}
                       onToggleSelection={handleToggleSelection}
                     />
                   );
-                }
-
-                // Always show all items - selection state is handled by selectedIds
-                // Items are not filtered based on selection - all items remain visible
-                const sortedDefault = sortGroupedByCategoryPriority(filteredGroupedOrdersForSearch);
-                
-                if (Object.keys(sortedDefault).length === 0) {
-                  return (
-                    <div className="flex h-full items-center justify-center text-gray-400 text-xl">
-                      Không có đơn hàng nào
-                    </div>
-                  );
-                }
-                
-                return (
-                  <OrdersContent
-                    groupedOrders={sortedDefault}
-                    activeTab={activeTab}
-                    onGroupClick={handleGroupClick}
-                    onPrepareClick={handlePrepareClick}
-                    onServeClick={handleServeClick}
-                    onPrepareMultipleOrders={handlePrepareMultipleOrders}
-                    onServeMultipleOrders={handleServeMultipleOrders}
-                    onAcceptRedoClick={handleAcceptRedoClick}
-                    onRejectRedoClick={handleRejectRedoClickWrapper}
-                    selectedIds={selectedIds}
-                    showIndividualCards={true}
-                    animatingOutIds={animatingOutIds}
-                    onToggleSelection={handleToggleSelection}
-                  />
-                );
-              })()}
-            </div>
+                })()}
+              </div>
+            )}
+            
+            {/* byTable view: KitchenSidebarByTable - FULL WIDTH */}
+            {leftPanelTab === 'byTable' && (
+              <div className={`h-full overflow-hidden ${isServeTab ? 'pointer-events-none opacity-50' : ''}`}>
+                <KitchenSidebarByTable
+                  tables={tablesByNumber}
+                  selectedOrderKey={selectedOrderKey}
+                  onSidebarItemClick={handleSidebarItemClick}
+                  selectedGroup={selectedGroup}
+                  onGroupSelection={handleGroupSelection}
+                  selectedGroups={selectedGroups}
+                  onMultipleGroupSelection={handleMultipleGroupSelection}
+                  itemNameToCategory={itemNameToCategory}
+                  tableDataMap={tableDataMap}
+                  className="bg-transparent h-full"
+                />
+              </div>
+            )}
+            
+            {/* END of layout switch */}
           </div>
         </div>
       </div>
