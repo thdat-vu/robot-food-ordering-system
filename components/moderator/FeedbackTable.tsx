@@ -30,22 +30,26 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
     rows.forEach((row) => {
       const feedbackKey = row.feedBack.trim();
       const statusKey = row.isPending ? "PENDING" : "DONE";
-      const key = `${feedbackKey}__${statusKey}`;
+      const groupKey = `${feedbackKey}__${statusKey}`;
 
-      if (!groups.has(key)) {
-        groups.set(key, {
+      // ✅ chưa có group -> tạo mới
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
           ...row,
           groupCount: 1,
           originalIds: [row.complainId],
           handledByNames: row.handledBy ? [row.handledBy] : [],
+          groupKey,
         });
         return;
       }
 
-      const existing = groups.get(key)!;
+      // ✅ đã có group -> merge
+      const existing = groups.get(groupKey)!;
       existing.groupCount += 1;
       existing.originalIds.push(row.complainId);
 
+      // DONE: gom handledBy
       if (row.handledBy) {
         existing.handledByNames = existing.handledByNames ?? [];
         if (!existing.handledByNames.includes(row.handledBy)) {
@@ -234,28 +238,38 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
                   </div>
                 </td>
 
-                {/* Response */}
                 <td className="px-6 py-4 align-top">
-                  <div className="space-y-2 max-w-sm">
-                    <textarea
-                      value={responses[row.complainId] || ""}
-                      onChange={(e) =>
-                        onResponseChange(row.complainId, e.target.value)
-                      }
-                      disabled={!row.isPending}
-                      placeholder={
-                        row.isPending ? "Nhập phản hồi..." : "Đã hoàn tất"
-                      }
-                      className="w-full p-3 text-xs bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all min-h-[80px] disabled:opacity-50 disabled:bg-gray-50 resize-none shadow-inner placeholder:text-gray-400"
-                    />
+                  <div className="space-y-2.5 max-w-sm">
+                    <div className="relative">
+                      <textarea
+                        value={responses[row.groupKey] || ""}
+                        onChange={(e) =>
+                          onResponseChange(row.groupKey, e.target.value)
+                        }
+                        disabled={!row.isPending}
+                        placeholder={
+                          row.isPending
+                            ? "Nhập phản hồi cho khách hàng..."
+                            : "Đã phản hồi"
+                        }
+                        className={`w-full p-3.5 text-xs leading-relaxed border rounded-2xl transition-all min-h-[90px] resize-none ${
+                          row.isPending
+                            ? "bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:bg-blue-50/30 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
+                            : "bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200 text-gray-500 cursor-not-allowed"
+                        }`}
+                      />
+                      {!row.isPending && responses[row.groupKey] && (
+                        <div className="absolute top-2.5 right-2.5">
+                          <CheckCircle size={14} className="text-emerald-500" />
+                        </div>
+                      )}
+                    </div>
 
                     {row.isPending && (
                       <ResponsePopover
-                        value={responses[row.complainId] || ""}
+                        value={responses[row.groupKey] || ""}
                         suggestions={responseSuggestions || []}
-                        onChange={(val) =>
-                          onSuggestionPick(row.complainId, val)
-                        }
+                        onChange={(val) => onSuggestionPick(row.groupKey, val)}
                       />
                     )}
                   </div>
