@@ -80,7 +80,6 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
     }
   };
 
-  // ✅ 1 useEffect: đổi sessionId hoặc đổi trang đều fetch
   useEffect(() => {
     if (!propSessionId) {
       setActivities([]);
@@ -90,23 +89,17 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       return;
     }
 
-    // nếu đổi sessionId mà đang ở page > 1 thì reset về 1 trước
-    // (giúp UX hợp lý + tránh fetch trang không tồn tại)
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-      return;
-    }
-
     fetchActivitiesBySessionId(propSessionId, currentPage, ACTIVITIES_PER_PAGE);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propSessionId, currentPage]);
+
+  // ✅ Reset về trang 1 khi đổi session
+  useEffect(() => {
+    if (propSessionId && currentPage !== 1) {
+      setCurrentPage(1);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propSessionId]);
-
-  // ✅ Fetch khi đổi trang (sau khi đã reset xong)
-  useEffect(() => {
-    if (!propSessionId) return;
-    fetchActivitiesBySessionId(propSessionId, currentPage, ACTIVITIES_PER_PAGE);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
 
   // Helper: Tên trạng thái món theo enum C#
   const getOrderItemStatusLabel = (status: number | string): string => {
@@ -190,28 +183,83 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       return <span className="text-gray-600">Đã cập nhật trạng thái món</span>;
     }
 
+    // ✅ DEDUPE + MERGE
+    type Normalized = {
+      key: string;
+      productName: string;
+      productId?: string | null;
+      fromStatus: number | string | undefined;
+      toStatus: number | string | undefined;
+      quantity: number;
+      repeat: number; // số lần item bị lặp
+    };
+
+    const map = new Map<string, Normalized>();
+
+    for (const it of updatedItems) {
+      const productName = it?.productName || "Món ăn";
+      const productId = it?.productId ?? it?.id ?? null;
+
+      const fromStatus = it?.previousStatus ?? it?.oldStatus;
+
+      const toStatus = it?.newStatus ?? it?.status;
+
+      const qty = Number(it?.quantity ?? 1);
+
+      // key ưu tiên productId, fallback productName
+      const base = String(productId ?? productName).trim();
+      const key = `${base}__${String(fromStatus)}__${String(toStatus)}`;
+
+      const existed = map.get(key);
+      if (!existed) {
+        map.set(key, {
+          key,
+          productName,
+          productId,
+          fromStatus,
+          toStatus,
+          quantity: Number.isFinite(qty) && qty > 0 ? qty : 1,
+          repeat: 1,
+        });
+      } else {
+        existed.quantity += Number.isFinite(qty) && qty > 0 ? qty : 1;
+        existed.repeat += 1;
+      }
+    }
+
+    const deduped = Array.from(map.values());
+
     return (
       <div className="space-y-3">
-        {updatedItems.map((item: any, idx: number) => {
-          const name = item?.productName || "Món ăn";
-          const qty = item?.quantity > 1 ? ` x${item.quantity}` : "";
-          const fromStatus = item?.previousStatus ?? item?.oldStatus;
-          const toStatus = item?.newStatus ?? item?.status;
+        {deduped.map((item) => {
+          const qtyText = item.quantity > 1 ? ` x${item.quantity}` : "";
 
-          const fromLabel = getOrderItemStatusLabel(fromStatus);
-          const toLabel = getOrderItemStatusLabel(toStatus);
+          const fromLabel = getOrderItemStatusLabel(item.fromStatus ?? "");
+          const toLabel = getOrderItemStatusLabel(item.toStatus ?? "");
 
           return (
-            <div key={idx} className="flex items-center gap-3 text-sm">
-              <span className="font-medium text-gray-800 min-w-36">
-                {name}
-                {qty}
+            <div key={item.key} className="flex items-center gap-3 text-sm">
+              <span className="font-medium text-gray-800 min-w-36 flex items-center gap-2">
+                <span>
+                  {item.productName}
+                  {qtyText}
+                </span>
+
+                {/* ✅ nếu bị lặp nhiều record giống nhau */}
+                {item.repeat > 1 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    x{item.repeat}
+                  </span>
+                )}
               </span>
+
               <span className="text-gray-500">→</span>
+
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-1 rounded-full text-xs font-medium border bg-gray-50">
                   {fromLabel}
                 </span>
+
                 <svg
                   className="w-5 h-5 text-gray-400"
                   fill="none"
@@ -225,9 +273,10 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                     d="M14 5l7 7m0 0l-7 7m7-7H3"
                   />
                 </svg>
+
                 <span
                   className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 ${getStatusColor(
-                    toStatus
+                    item.toStatus ?? ""
                   )}`}
                 >
                   {toLabel}
@@ -701,6 +750,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                             {activity.type === "CloseSession" &&
                               (() => {
                                 const invoiceId = data?.snapshot?.invoiceId;
+                                const invoiceCode = data?.snapshot?.invoiceCode;
                                 const actorType = data?.actor?.type ?? "System";
                                 const sourceLabel =
                                   actorType === "System"
@@ -714,7 +764,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                       title="Đóng phiên (Checkout)"
                                       message="Đã thanh toán và đóng phiên."
                                       badges={["Đã thanh toán"]} // ✅ array
-                                      footer={`InvoiceCode: {invoiceCode}`}
+                                      footer={`InvoiceCode: ${invoiceCode}`}
                                     />
                                   );
                                 }
