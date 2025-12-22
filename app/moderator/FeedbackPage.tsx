@@ -268,15 +268,30 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
 
   const clearSearch = () => setSearchQuery("");
 
-  const highlightSearchText = (text: string, search: string) => {
+  const highlightSearchText = (
+    text: string,
+    search: string
+  ): React.ReactNode => {
     if (!search) return text;
-    const regex = new RegExp(`(${search})`, "gi");
-    return text.replace(
-      regex,
-      '<mark class="bg-yellow-200 px-1 rounded">$1</mark>'
+
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escapedSearch})`, "gi");
+    const parts = text.split(regex);
+
+    return (
+      <>
+        {parts.map((part, index) =>
+          part.toLowerCase() === search.toLowerCase() ? (
+            <span key={index} className="font-semibold">
+              {part}
+            </span>
+          ) : (
+            part
+          )
+        )}
+      </>
     );
   };
-
   // 👉 Xác định feedback là "yêu cầu nhanh"
   // 👉 Xác định feedback là "yêu cầu nhanh" - PHIÊN BẢN ĐẦY ĐỦ
   const isQuickRequest = (feedback: FeedbackgGetTableId): boolean => {

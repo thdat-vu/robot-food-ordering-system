@@ -77,7 +77,10 @@ export type FeedbackRow = {
     hasSentQuickRequest: (row: FeedbackRow) => boolean;
     formatDate: (d: string | Date) => string;
     getRelativeTime: (d: string | Date) => string;
-    highlightSearchText: (text: string, search: string) => string;
+    highlightSearchText: (
+        text: string,
+        search: string
+      ) => React.ReactNode;
     onToggleSelect: (id: string, isPending: boolean) => void;
     onSelectAll: () => void;
     onResponseChange: (id: string, value: string) => void;
