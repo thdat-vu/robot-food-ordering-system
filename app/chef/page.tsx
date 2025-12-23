@@ -1618,45 +1618,9 @@ function ChiefPageContent() {
           {/* Enhanced Header with datetime and tab buttons */}
           <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-gray-50">
             <div className="flex items-center justify-between">
-              {/* LEFT side: Tab buttons + DateTime */}
+              {/* LEFT side: DateTime */}
               <div className="flex items-center gap-4">
-                {/* Tab buttons for switching between byDish and byTable */}
-                <div className="flex items-center gap-1 p-1 bg-white rounded-xl shadow-sm border border-gray-200">
-                  {leftPanelTabs.map(tab => {
-                    const isActive = leftPanelTab === tab.key;
-                    return (
-                      <button
-                        key={tab.key}
-                        onClick={() => setLeftPanelTab(tab.key)}
-                        className={`relative px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
-                          isActive 
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 transform scale-[1.02]' 
-                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          {tab.key === 'byDish' ? (
-                            /* Icon cho "Theo món" - clipboard/list */
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                          ) : (
-                            /* Icon cho "Theo bàn" - table/dining icon */
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 10v8a1 1 0 001 1h16a1 1 0 001-1v-8M3 10l2-6h14l2 6M7 19v2M17 19v2" />
-                            </svg>
-                          )}
-                          {tab.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                
-                {/* Divider */}
-                <div className="h-8 w-px bg-gray-300"></div>
-                
-                {/* DateTime display - next to tabs */}
+                {/* DateTime display */}
                 <div className="flex items-center gap-3">
                   {/* Date section */}
                   <div className="flex items-center gap-2.5 px-3.5 py-2 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
@@ -1808,9 +1772,43 @@ function ChiefPageContent() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="px-3 py-1.5 bg-amber-500 text-white text-sm font-bold rounded-full shadow">
-                      {getTabCount('đang chờ')}
-                    </span>
+                    {getTabCount('đang chờ') > 0 && (
+                      <span className="px-3 py-1.5 bg-amber-500 text-white text-sm font-bold rounded-full shadow">
+                        {getTabCount('đang chờ')}
+                      </span>
+                    )}
+                    {/* Tab buttons for switching between byDish and byTable */}
+                    <div className="flex items-center gap-1 p-1 bg-white rounded-xl shadow-sm border border-gray-200">
+                      {leftPanelTabs.map(tab => {
+                        const isActive = leftPanelTab === tab.key;
+                        return (
+                          <button
+                            key={tab.key}
+                            onClick={() => setLeftPanelTab(tab.key)}
+                            className={`relative px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
+                              isActive 
+                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 transform scale-[1.02]' 
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              {tab.key === 'byDish' ? (
+                                /* Icon cho "Theo món" - clipboard/list */
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                              ) : (
+                                /* Icon cho "Theo bàn" - table/dining icon */
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 10v8a1 1 0 001 1h16a1 1 0 001-1v-8M3 10l2-6h14l2 6M7 19v2M17 19v2" />
+                                </svg>
+                              )}
+                              {tab.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1934,7 +1932,7 @@ function ChiefPageContent() {
                       </svg>
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-gray-800">Đang xử lý</h2>
+                      <h2 className="text-lg font-bold text-gray-800">Đang thực hiện</h2>
                       <p className="text-xs text-gray-500">Đang thực hiện & phục vụ</p>
                     </div>
                   </div>
@@ -1950,11 +1948,13 @@ function ChiefPageContent() {
                       }`}
                     >
                       Đang thực hiện
-                      <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
-                        activeTab === 'đang thực hiện' ? 'bg-white/20' : 'bg-gray-200'
-                      }`}>
-                        {getTabCount('đang thực hiện')}
-                      </span>
+                      {getTabCount('đang thực hiện') > 0 && (
+                        <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
+                          activeTab === 'đang thực hiện' ? 'bg-white/20' : 'bg-gray-200'
+                        }`}>
+                          {getTabCount('đang thực hiện')}
+                        </span>
+                      )}
                     </button>
                     <button
                       onClick={() => handleTabChange('bắt đầu phục vụ')}
@@ -1965,11 +1965,13 @@ function ChiefPageContent() {
                       }`}
                     >
                       Bắt đầu phục vụ
-                      <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
-                        activeTab === 'bắt đầu phục vụ' ? 'bg-white/20' : 'bg-gray-200'
-                      }`}>
-                        {getTabCount('bắt đầu phục vụ')}
-                      </span>
+                      {getTabCount('bắt đầu phục vụ') > 0 && (
+                        <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
+                          activeTab === 'bắt đầu phục vụ' ? 'bg-white/20' : 'bg-gray-200'
+                        }`}>
+                          {getTabCount('bắt đầu phục vụ')}
+                        </span>
+                      )}
                     </button>
                   </div>
                 </div>
