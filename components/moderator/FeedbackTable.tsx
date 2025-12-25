@@ -142,6 +142,13 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
             const shouldShowUrgentBadge =
               row.isPending && isQuick && !alreadySentQuick;
             const isSelected = selectedIds.includes(row.complainId);
+            const responseText = row.isPending
+              ? responses[row.groupKey] || ""
+              : row.resolutionNote || "";
+
+            const getResponseTextFromTextarea = (row: GroupedFeedbackRow) => {
+              return responses[row.groupKey]?.trim() || "";
+            };
 
             return (
               <tr
@@ -242,7 +249,7 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
                   <div className="space-y-2.5 max-w-sm">
                     <div className="relative">
                       <textarea
-                        value={responses[row.groupKey] || ""}
+                        value={responseText}
                         onChange={(e) =>
                           onResponseChange(row.groupKey, e.target.value)
                         }
@@ -282,7 +289,10 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
                       onClick={() =>
                         isQuick
                           ? onSendQuickRequest(row.complainId, row.feedBack)
-                          : onSingleCheck(row.complainId)
+                          : onSingleCheck(
+                              row.complainId,
+                              getResponseTextFromTextarea(row)
+                            )
                       }
                       disabled={isChecking || alreadySentQuick}
                       className={`w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-[11px] transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${

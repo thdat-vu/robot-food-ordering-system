@@ -21,12 +21,19 @@ import {
 import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { ToastContainer } from "@/components/moderator/ToastContainer";
 import { FeedbackTable } from "@/components/moderator/FeedbackTable";
+import SingleTableOrderStatus, {
+  mapOrderStatus,
+} from "./Order/SingleTableOrderStatus";
 
 interface FeedbackPageProps {
   idTable: string;
+  tableName: string;
 }
 
-export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
+export const FeedbackPage: React.FC<FeedbackPageProps> = ({
+  idTable,
+  tableName,
+}) => {
   const { toasts, addToast, removeToast } = useToastModerator();
   const [data, setData] = useState<FeedbackgGetTableId[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -76,23 +83,25 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
 
   // Set default response value cho từng complain
   useEffect(() => {
-    if (data.length > 0) {
-      const defaultResponses = data.reduce((acc, feedback) => {
-        if (!responses[feedback.complainId]) {
-          acc[feedback.complainId] =
-            "Nhân viên đã tiếp nhận và khắc phục sự cố";
-        }
-        return acc;
-      }, {} as { [key: string]: string });
+    if (!data.length) return;
 
-      if (Object.keys(defaultResponses).length > 0) {
-        setResponses((prev) => ({
-          ...prev,
-          ...defaultResponses,
-        }));
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setResponses((prev) => {
+      const next = { ...prev };
+
+      data.forEach((feedback) => {
+        // 👉 nếu user đã nhập thì GIỮ NGUYÊN
+        if (next[feedback.complainId]) return;
+
+        // 👉 nếu backend có response thì sync vào
+        if (feedback.resolutionNote) {
+          next[feedback.complainId] = feedback.resolutionNote;
+        }
+
+        // 👉 còn lại: KHÔNG set gì cả
+      });
+
+      return next;
+    });
   }, [data]);
 
   const loadFeedbackData = async () => {
@@ -196,34 +205,42 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
     }
   };
 
-  const handleSingleCheck = async (feedbackId: string) => {
+  const handleSingleCheck = async (
+    feedbackId: string,
+    responseText: string
+  ) => {
     setIsChecking(true);
     try {
-      const responseText =
-        responses[feedbackId] || "Nhân viên đã tiếp nhận và khắc phục sự cố";
-      await runCheck(idTable, [feedbackId], responseText);
+      // ❗ Bắt buộc phải có nội dung
+      const finalResponse = responseText?.trim();
+      if (!finalResponse) {
+        addToast("Vui lòng nhập nội dung phản hồi", "error");
+        return;
+      }
 
-      setData((prevData) =>
-        prevData.map((feedback) =>
-          feedback.complainId === feedbackId
-            ? { ...feedback, isPending: false }
-            : feedback
+      // 🔥 Gửi đúng nội dung user nhập
+      await runCheck(idTable, [feedbackId], finalResponse);
+
+      // update UI
+      setData((prev) =>
+        prev.map((f) =>
+          f.complainId === feedbackId
+            ? { ...f, isPending: false, resolutionNote: finalResponse }
+            : f
         )
       );
 
+      // clear selection nếu có
       setSelectedFeedbacks((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(feedbackId);
-        return newSet;
+        const next = new Set(prev);
+        next.delete(feedbackId);
+        return next;
       });
 
-      addToast("Đã đánh dấu phản hồi là đã xử lý", "success");
+      addToast("Đã xử lý phản hồi", "success");
     } catch (error) {
       console.error("Error checking single feedback:", error);
-      addToast(
-        "Có lỗi xảy ra khi đánh dấu phản hồi. Vui lòng thử lại.",
-        "error"
-      );
+      addToast("Có lỗi xảy ra khi xử lý phản hồi", "error");
     } finally {
       setIsChecking(false);
     }
@@ -356,6 +373,9 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
   const pendingCount = data.filter((item) => item.isPending).length;
   const processedCount = data.filter((item) => !item.isPending).length;
 
+  console.log("filteredData", filteredData);
+  console.log("data", data);
+
   // 👉 Những phản hồi pending mà cho phép chọn (không phải yêu cầu nhanh)
   const selectablePendingIds = filteredData
     .filter((item) => item.isPending && !isQuickRequest(item))
@@ -408,7 +428,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
         idTable,
         [feedbackId],
         `Yêu cầu nhanh: ${feedbackText}`,
-        true
+        false
       );
       addToast("Đã gửi yêu cầu nhanh đến phục vụ", "success");
       await loadFeedbackData();
@@ -425,6 +445,29 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ idTable }) => {
 
       <div className="h-full flex flex-col">
         {/* Controls Bar */}
+        <SingleTableOrderStatus
+          tableNumber={tableName}
+          lastOrderUpdateTime={
+            filteredData.length > 0 ? filteredData[0].lastOrderUpdateTime : ""
+          }
+          kitchenItemCount={
+            filteredData.length > 0 ? filteredData[0].kitchenItemCount : 0
+          }
+          waiterItemCount={
+            filteredData.length > 0 ? filteredData[0].waiterItemCount : 0
+          }
+          cancelledItemCount={
+            filteredData.length > 0 ? filteredData[0].cancelledItemCount : 0
+          }
+          totalItemCount={
+            filteredData.length > 0 ? filteredData[0].totalItemCount : 0
+          }
+          // status={
+          //   filteredData.length > 0 ? filteredData[0].orderStatus : undefined
+          // }
+          onRefresh={loadFeedbackData} // ✅ thêm dòng này
+          isRefreshing={isLoading}
+        />
         <div className="mb-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
             <div className="relative flex-1 max-w-2xl">

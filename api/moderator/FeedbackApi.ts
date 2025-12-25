@@ -15,7 +15,7 @@ export const GetFeedbackByIdtable = async (
       }
   
       const res = await apiClient.get<BaseEntityDataError<FeedbackgGetTableId[]>>(
-        `${API_FEEDBACK}/${id}?isCustomer=true`
+        `${API_FEEDBACK}/${id}?isCustomer=false`
       );
   
       const body = res.data;
