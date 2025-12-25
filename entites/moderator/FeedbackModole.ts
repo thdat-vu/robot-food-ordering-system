@@ -1,11 +1,19 @@
 import { ApiOrderResponse } from "@/lib/api/orders";
 import { OrderData } from "./tableModel";
+import { Response } from '@/api/moderator/TableApi';
+import OrderStatus from './../../app/waiter/OrderStatus';
 
 export interface FeedbackgGetTableId {
     complainId: string;
     idTable: string;
     feedBack: string;
     isPending: boolean;
+    lastOrderUpdateTime : string;
+    kitchenItemCount ?: number ;
+    waiterItemCount?: number ;
+    cancelledItemCount?: number ;
+    totalItemCount?: number ;
+    orderStatus: string  ; // trạng thái đơn hàng hiện tại
     createData: Date;
     resolutionNote?: string; // Note from moderator, includes "Yêu cầu nhanh:" prefix when quick-serve is sent (camelCase)
     ResolutionNote?: string; // Note from moderator (PascalCase from backend) - handle both formats
@@ -86,7 +94,7 @@ export type FeedbackRow = {
     onResponseChange: (id: string, value: string) => void;
     onToggleSuggestions: (id: string) => void;
     onSuggestionPick: (id: string, suggestion: string) => void;
-    onSingleCheck: (id: string) => void;
+    onSingleCheck: (id: string , responseText: string) => void;
     onSendQuickRequest: (id: string, feedbackText: string) => void;
   };
   export interface GroupedFeedbackRow extends FeedbackRow {
