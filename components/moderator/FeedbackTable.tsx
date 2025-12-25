@@ -1,12 +1,65 @@
+import { GroupedFeedbackRow } from "@/entites/moderator/FeedbackModole";
 import {
-  FeedbackTableProps,
-  GroupedFeedbackRow,
-} from "@/entites/moderator/FeedbackModole";
-import { AlertCircle, CheckCircle, RefreshCw, Send, Users } from "lucide-react";
-import { useMemo } from "react";
-import { ResponsePopover } from "./ResponsePopover";
+  AlertCircle,
+  CheckCircle,
+  RefreshCw,
+  Send,
+  Users,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 
-export const FeedbackTable: React.FC<FeedbackTableProps> = ({
+// Mock types
+
+interface FeedbackTableProps {
+  rows: GroupedFeedbackRow[];
+  searchQuery: string;
+  selectedIds: string[];
+  selectablePendingIds: string[];
+  isChecking: boolean;
+  responses: Record<string, string>;
+  responseSuggestions?: string[];
+  showSuggestions: Record<string, boolean>;
+  isQuickRequest: (row: GroupedFeedbackRow) => boolean;
+  hasSentQuickRequest: (row: GroupedFeedbackRow) => boolean;
+  formatDate: (date: string) => string;
+  getRelativeTime: (date: string) => string;
+  highlightSearchText: (text: string, query: string) => React.ReactNode;
+  onToggleSelect: (id: string, isPending: boolean) => void;
+  onResponseChange: (key: string, value: string) => void;
+  onSuggestionPick: (key: string, value: string) => void;
+  onSingleCheck: (id: string, response: string) => void;
+  onSelectAll: () => void;
+  onToggleSuggestions: (id: string) => void;
+  onSendQuickRequest: (id: string, feedback: string) => void;
+}
+
+const ResponsePopover = ({
+  value,
+  suggestions,
+  onChange,
+}: {
+  value: string;
+  suggestions: string[];
+  onChange: (val: string) => void;
+}) => {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {suggestions.slice(0, 3).map((s, i) => (
+        <button
+          key={i}
+          onClick={() => onChange(s)}
+          className="px-2 py-1 text-[10px] rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium transition-colors"
+        >
+          {s.slice(0, 20)}...
+        </button>
+      ))}
+    </div>
+  );
+};
+
+export default function FeedbackTable({
   rows,
   searchQuery,
   selectedIds,
@@ -23,7 +76,21 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
   onSuggestionPick,
   onSingleCheck,
   onSendQuickRequest,
-}) => {
+}: FeedbackTableProps) {
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (complainId: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(complainId)) {
+        next.delete(complainId);
+      } else {
+        next.add(complainId);
+      }
+      return next;
+    });
+  };
+
   const groupedRows = useMemo(() => {
     const groups = new Map<string, GroupedFeedbackRow>();
 
@@ -32,7 +99,6 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
       const statusKey = row.isPending ? "PENDING" : "DONE";
       const groupKey = `${feedbackKey}__${statusKey}`;
 
-      // ✅ chưa có group -> tạo mới
       if (!groups.has(groupKey)) {
         groups.set(groupKey, {
           ...row,
@@ -44,12 +110,10 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
         return;
       }
 
-      // ✅ đã có group -> merge
       const existing = groups.get(groupKey)!;
       existing.groupCount += 1;
       existing.originalIds.push(row.complainId);
 
-      // DONE: gom handledBy
       if (row.handledBy) {
         existing.handledByNames = existing.handledByNames ?? [];
         if (!existing.handledByNames.includes(row.handledBy)) {
@@ -57,7 +121,6 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
         }
       }
 
-      // cập nhật createData theo record mới nhất trong cùng group
       const tExisting = new Date(existing.createData).getTime();
       const tNew = new Date(row.createData).getTime();
       if (tNew >= tExisting) {
@@ -67,7 +130,6 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
     });
 
     return Array.from(groups.values()).sort((a, b) => {
-      // pending lên trước
       if (a.isPending !== b.isPending) return a.isPending ? -1 : 1;
       return (
         new Date(b.createData).getTime() - new Date(a.createData).getTime()
@@ -110,6 +172,10 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
     );
   };
 
+  const getResponseTextFromTextarea = (row: GroupedFeedbackRow) => {
+    return responses[row.groupKey]?.trim() || "";
+  };
+
   return (
     <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
       <table className="w-full">
@@ -119,7 +185,7 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
               #
             </th>
             <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
-              Trạng thái / Nhóm
+              Trạng thái
             </th>
             <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
               Xử lý bởi
@@ -145,10 +211,7 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
             const responseText = row.isPending
               ? responses[row.groupKey] || ""
               : row.resolutionNote || "";
-
-            const getResponseTextFromTextarea = (row: GroupedFeedbackRow) => {
-              return responses[row.groupKey]?.trim() || "";
-            };
+            const isExpanded = expandedRows.has(row.complainId);
 
             return (
               <tr
@@ -239,45 +302,77 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
                         </span>
                       </div>
                     )}
-                    <p className="text-sm text-gray-700 leading-relaxed font-medium">
+                    <p className="text-sm text-gray-700 font-medium truncate">
                       {highlightSearchText(row.feedBack, searchQuery)}
                     </p>
                   </div>
                 </td>
 
                 <td className="px-6 py-4 align-top">
-                  <div className="space-y-2.5 max-w-sm">
-                    <div className="relative">
-                      <textarea
-                        value={responseText}
-                        onChange={(e) =>
-                          onResponseChange(row.groupKey, e.target.value)
-                        }
-                        disabled={!row.isPending}
-                        placeholder={
-                          row.isPending
-                            ? "Nhập phản hồi cho khách hàng..."
-                            : "Đã phản hồi"
-                        }
-                        className={`w-full p-3.5 text-xs leading-relaxed border rounded-2xl transition-all min-h-[90px] resize-none ${
-                          row.isPending
-                            ? "bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:bg-blue-50/30 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
-                            : "bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200 text-gray-500 cursor-not-allowed"
-                        }`}
-                      />
-                      {!row.isPending && responses[row.groupKey] && (
-                        <div className="absolute top-2.5 right-2.5">
-                          <CheckCircle size={14} className="text-emerald-500" />
+                  <div className="space-y-2">
+                    {!isExpanded ? (
+                      // Compact view
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`flex-1 px-3 py-2 text-xs rounded-lg truncate ${
+                            row.isPending
+                              ? "bg-white border border-gray-200"
+                              : "bg-gray-50 border border-gray-200 text-gray-500"
+                          }`}
+                        >
+                          {responseText ||
+                            (row.isPending
+                              ? "Chưa có phản hồi"
+                              : "Đã phản hồi")}
                         </div>
-                      )}
-                    </div>
+                        <button
+                          onClick={() => toggleExpand(row.complainId)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <ChevronDown className="w-4 h-4 text-gray-500" />
+                        </button>
+                      </div>
+                    ) : (
+                      // Expanded view
+                      <div className="space-y-2.5">
+                        <div className="relative">
+                          <textarea
+                            value={responseText}
+                            onChange={(e) =>
+                              onResponseChange(row.groupKey, e.target.value)
+                            }
+                            disabled={!row.isPending}
+                            placeholder={
+                              row.isPending
+                                ? "Nhập phản hồi cho khách hàng..."
+                                : "Đã phản hồi"
+                            }
+                            className={`w-full p-3.5 text-xs leading-relaxed border rounded-2xl transition-all min-h-[90px] resize-none ${
+                              row.isPending
+                                ? "bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:bg-blue-50/30 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
+                                : "bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200 text-gray-500 cursor-not-allowed"
+                            }`}
+                          />
+                          {!row.isPending && responses[row.groupKey] && (
+                            <div className="absolute top-2.5 right-2.5">
+                              <CheckCircle
+                                size={14}
+                                className="text-emerald-500"
+                              />
+                            </div>
+                          )}
+                        </div>
 
-                    {row.isPending && (
-                      <ResponsePopover
-                        value={responses[row.groupKey] || ""}
-                        suggestions={responseSuggestions || []}
-                        onChange={(val) => onSuggestionPick(row.groupKey, val)}
-                      />
+                        {row.isPending && (
+                          <ResponsePopover
+                            value={responses[row.groupKey] || ""}
+                            suggestions={responseSuggestions || []}
+                            onChange={(val) =>
+                              onSuggestionPick(row.groupKey, val)
+                            }
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
                 </td>
@@ -332,4 +427,4 @@ export const FeedbackTable: React.FC<FeedbackTableProps> = ({
       </table>
     </div>
   );
-};
+}
