@@ -89,9 +89,11 @@ export function useWaiterOrders() {
         switch (status) {
             case "1":
             case "Waiting":
+            case "Pending":
                 return "đang chờ";
             case "2":
             case "Processing":
+            case "Preparing":
                 return "đang thực hiện";
             case "3":
             case "Ready":

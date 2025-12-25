@@ -225,10 +225,15 @@ const ServePanel: React.FC<ServePanelProps> = ({
   // Get table numbers by status
   const tableNumbersByStatus = React.useMemo(() => {
     // Get tables with orders ready to serve (blue)
+    // Include tables with dishes in: "bắt đầu phục vụ", "đang chờ", or "đang thực hiện"
     const readyTables = Array.from(
       new Set(
         dishes
-          .filter((dish) => dish.status === "bắt đầu phục vụ")
+          .filter((dish) => 
+            dish.status === "bắt đầu phục vụ" ||
+            dish.status === "đang chờ" ||
+            dish.status === "đang thực hiện"
+          )
           .map((dish) => dish.tableNumber)
       )
     ).sort((a, b) => a - b);

@@ -170,10 +170,30 @@ export const Table: React.FC<TableProps> = ({
           </div>
         )}
 
-        {/* Show last update time for selectable tables */}
+        {/* Show last update time for selectable tables (blue - ready to serve) */}
         {isSelectable && lastUpdateTime && (
           <div className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full shadow-sm border border-amber-300 whitespace-nowrap">
             <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-[10px] font-semibold">{getRelativeTime(lastUpdateTime)}</span>
+          </div>
+        )}
+
+        {/* Show last update time for ready tables (blue - pending/preparing) that are not selectable */}
+        {isReady && !isSelectable && lastUpdateTime && (
+          <div className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full shadow-sm border border-blue-300 whitespace-nowrap">
+            <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-[10px] font-semibold">{getRelativeTime(lastUpdateTime)}</span>
+          </div>
+        )}
+
+        {/* Show last update time for served tables (yellow) */}
+        {isServed && !isSelectable && !isReady && lastUpdateTime && (
+          <div className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full shadow-sm border border-yellow-300 whitespace-nowrap">
+            <svg className="w-3.5 h-3.5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-[10px] font-semibold">{getRelativeTime(lastUpdateTime)}</span>

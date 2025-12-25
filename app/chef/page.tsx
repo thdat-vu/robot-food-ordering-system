@@ -654,8 +654,8 @@ function ChiefPageContent() {
         await handleServeOrder(selectedOrder.id);
         addToast(`Đã bắt đầu phục vụ món: ${selectedOrder.itemName}`, 'success');
         
-        // Auto switch to "Bắt đầu phục vụ" tab after serving order
-        setActiveTab('bắt đầu phục vụ');
+        // Don't auto switch tab - keep user on current view
+        // setActiveTab('bắt đầu phục vụ');
       } catch (error) {
         addToast(`Lỗi khi cập nhật trạng thái: ${selectedOrder.itemName}`, 'error');
       }
@@ -1085,8 +1085,8 @@ function ChiefPageContent() {
       // Clear animations after bulk action
       setAnimatingOutIds(new Set());
       
-      // Auto switch to "Bắt đầu phục vụ" tab after serving orders
-      setActiveTab('bắt đầu phục vụ');
+      // Don't auto switch tab - keep user on current view
+      // setActiveTab('bắt đầu phục vụ');
     } catch (error) {
       // Clear animation state on error
       setAnimatingOutIds(new Set());

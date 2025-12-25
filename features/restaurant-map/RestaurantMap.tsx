@@ -465,7 +465,8 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
           const tableId = Number(id);
           const isActive = selectedTables.includes(tableId);
           const isReady = readyTables.includes(tableId) && !isActive;
-          const isServed = servedTables.includes(tableId) && !isActive;
+          // Only show as served if table has served dishes AND no ready dishes
+          const isServed = servedTables.includes(tableId) && !isActive && !readyTables.includes(tableId);
           const isSelectable = selectableTables.has(tableId);
           const tableLastUpdate = tableStats[tableId]?.lastUpdateTime || tableLastUpdateTimes[tableId];
 
@@ -480,7 +481,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
                 isSelectable={isSelectable}
                 onClick={handleTableClick}
                 onCheckboxChange={handleCheckboxChange}
-                lastUpdateTime={isSelectable ? tableLastUpdate : undefined}
+                lastUpdateTime={(isSelectable || isServed || isReady) ? tableLastUpdate : undefined}
               />
               {selectedTableId === tableId && tableStats[tableId] && (
                 <TableInfoCard
