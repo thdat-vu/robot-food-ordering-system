@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   X,
   MessageSquare,
@@ -12,7 +12,10 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 
-import { FeedbackgGetTableId } from "@/entites/moderator/FeedbackModole";
+import {
+  FeedbackgGetTableId,
+  GroupedFeedbackRow,
+} from "@/entites/moderator/FeedbackModole";
 import { CheckSS } from "@/api/moderator/FeedbackApi";
 import {
   useCheckSS,
@@ -20,10 +23,10 @@ import {
 } from "@/hooks/moderator/useFeedbackHooks";
 import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { ToastContainer } from "@/components/moderator/ToastContainer";
-import { FeedbackTable } from "@/components/moderator/FeedbackTable";
 import SingleTableOrderStatus, {
   mapOrderStatus,
 } from "./Order/SingleTableOrderStatus";
+import FeedbackTable from "@/components/moderator/FeedbackTable";
 
 interface FeedbackPageProps {
   idTable: string;
@@ -369,6 +372,45 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
 
     return matchesFilter && matchesSearch;
   });
+  const normalizeDateString = (d: string | Date): string =>
+    typeof d === "string" ? d : d.toISOString();
+
+  const groupedRows = useMemo(() => {
+    const map = new Map<string, GroupedFeedbackRow>();
+
+    filteredData.forEach((item) => {
+      const key = item.feedBack.trim();
+
+      if (!map.has(key)) {
+        map.set(key, {
+          ...item,
+          createData: normalizeDateString(item.createData),
+          groupKey: key,
+          groupCount: 1,
+          originalIds: [item.complainId],
+          handledByNames: item.handledBy ? [item.handledBy] : [],
+        });
+      } else {
+        const existing = map.get(key)!;
+
+        existing.groupCount += 1;
+        existing.originalIds.push(item.complainId);
+
+        if (item.isPending) existing.isPending = true;
+
+        if (
+          item.handledBy &&
+          !existing.handledByNames?.includes(item.handledBy)
+        ) {
+          existing.handledByNames?.push(item.handledBy);
+        }
+
+        existing.createData = normalizeDateString(item.createData);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [filteredData]);
 
   const pendingCount = data.filter((item) => item.isPending).length;
   const processedCount = data.filter((item) => !item.isPending).length;
@@ -639,7 +681,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
             </div>
           ) : (
             <FeedbackTable
-              rows={filteredData}
+              rows={groupedRows}
               searchQuery={searchQuery}
               selectedIds={Array.from(selectedFeedbacks)}
               selectablePendingIds={selectablePendingIds}

@@ -14,10 +14,24 @@ export interface FeedbackgGetTableId {
     cancelledItemCount?: number ;
     totalItemCount?: number ;
     orderStatus: string  ; // trạng thái đơn hàng hiện tại
-    createData: Date;
+    createData: string ; // Date when feedback was created
     resolutionNote?: string; // Note from moderator, includes "Yêu cầu nhanh:" prefix when quick-serve is sent (camelCase)
     ResolutionNote?: string; // Note from moderator (PascalCase from backend) - handle both formats
+    handledBy?: string; // Name of the moderator who handled the feedback
 }
+export interface GroupedFeedbackRow {
+  complainId: string;
+  feedBack: string;
+  isPending: boolean;
+  createData: string;
+  handledBy?: string;
+  resolutionNote?: string;
+  groupCount: number;
+  originalIds: string[];
+  handledByNames?: string[];
+  groupKey: string;
+}
+
 
 
 
