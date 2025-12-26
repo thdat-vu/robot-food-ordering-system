@@ -350,14 +350,36 @@ const ServePanel: React.FC<ServePanelProps> = ({
     while (remaining.size > 0) {
       let nearestTable: number | null = null;
       let nearestDistance = Infinity;
+      const TOLERANCE = 0.01; // Small tolerance for floating point comparison
+      const SAME_ROW_THRESHOLD = 100; // If two tables are in the same row and within 100px distance difference, prefer smaller number
 
       // Find the nearest table from current position
+      // If multiple tables have the same distance (within tolerance), prefer the one with smaller table number
       remaining.forEach((tableId) => {
         const tablePos = TABLE_POSITIONS[tableId];
         if (!tablePos) return;
         
         const distance = calculateDistance(currentPosition, tablePos);
-        if (distance < nearestDistance) {
+        const currentNearestPos = nearestTable ? TABLE_POSITIONS[nearestTable] : null;
+        
+        // If this table is closer, choose it
+        if (distance < nearestDistance - TOLERANCE) {
+          nearestDistance = distance;
+          nearestTable = tableId;
+        } else if (Math.abs(distance - nearestDistance) <= TOLERANCE) {
+          // Same distance (within tolerance), prefer smaller table number
+          if (tableId < (nearestTable ?? Infinity)) {
+            nearestDistance = distance;
+            nearestTable = tableId;
+          }
+        } else if (
+          currentNearestPos && 
+          Math.abs(tablePos.y - currentNearestPos.y) < 5 && // Same row (within 5px tolerance)
+          distance < nearestDistance + SAME_ROW_THRESHOLD && // Within threshold
+          tableId < (nearestTable ?? Infinity) // Smaller table number
+        ) {
+          // If two tables are in the same row and the farther one is within threshold, prefer smaller number
+          // This ensures Bàn 19 goes before Bàn 20 when they're in the same row
           nearestDistance = distance;
           nearestTable = tableId;
         }
