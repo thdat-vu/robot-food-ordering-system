@@ -229,13 +229,13 @@ export const PathLine: React.FC<PathLineProps> = ({
             className={`absolute w-3 h-3 ${colorClass} rounded-full animate-ping opacity-70 border border-white`}
             style={{ left: `${end.x - 1.5}px`, top: `${end.y - 1.5}px`, zIndex: 6 }}
           />
-          {/* Order number badge at the end point (table position) */}
+          {/* Order number badge at the top-left corner of the table */}
           {orderNumber !== undefined && (
             <div
               className="absolute flex items-center justify-center bg-red-600 text-white rounded-full font-bold shadow-lg border-2 border-white"
               style={{
-                left: `${end.x - 14}px`,
-                top: `${end.y - 14}px`,
+                left: `${end.x - 48 - 14}px`, // Table width is 96px (w-24), so half is 48px, minus half badge width (14px)
+                top: `${end.y - 48 - 14}px`, // Table height is 96px (h-24), so half is 48px, minus half badge height (14px)
                 width: "28px",
                 height: "28px",
                 fontSize: "12px",
