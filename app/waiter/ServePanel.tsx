@@ -264,6 +264,16 @@ const ServePanel: React.FC<ServePanelProps> = ({
     const sequence: number[] = [];
     const seen = new Set<number>();
 
+    // Get unique table numbers from selected dishes
+    const tableNumbers = Array.from(new Set(allSelectedDishes.map(dish => dish.tableNumber)));
+
+    // PRIORITY: Always put Bàn 1 first if it's in the list
+    if (tableNumbers.includes(1)) {
+      sequence.push(1);
+      seen.add(1);
+    }
+
+    // Sort remaining dishes by order time, then add to sequence
     const sortedDishes = [...allSelectedDishes].sort((a, b) => {
       const timeA = a.orderTime ? new Date(a.orderTime).getTime() : Number.MAX_SAFE_INTEGER;
       const timeB = b.orderTime ? new Date(b.orderTime).getTime() : Number.MAX_SAFE_INTEGER;
@@ -282,6 +292,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
   }, [allSelectedDishes]);
 
   // Robot table sequence: Sort by nearest distance using nearest neighbor algorithm
+  // Priority: ALWAYS start from Bàn 1 if it's in the selected list, regardless of selection order
+  // Then sort remaining tables by nearest distance from Bàn 1 (or from staff if Bàn 1 not selected)
   const robotTableSequence = React.useMemo(() => {
     const selectedTablesList = [...tableNumbersByStatus.selected];
     
@@ -289,7 +301,6 @@ const ServePanel: React.FC<ServePanelProps> = ({
       return [];
     }
 
-    // Import TABLE_POSITIONS for distance calculation
     // Robot mode staff position: { x: 90, y: 40 }
     const staffPosition = { x: 90, y: 40 };
 
@@ -300,11 +311,42 @@ const ServePanel: React.FC<ServePanelProps> = ({
       return Math.sqrt(dx * dx + dy * dy);
     };
 
-    // Nearest neighbor algorithm: Start from staff position, find nearest table, then from that table find next nearest, etc.
+    // Nearest neighbor algorithm with STRICT priority for Bàn 1
     const sequence: number[] = [];
     const remaining = new Set(selectedTablesList);
     let currentPosition = staffPosition;
 
+    // STRICT PRIORITY: If Bàn 1 is in the selected list, ALWAYS start from Bàn 1 first
+    // This ensures Bàn 1 goes first regardless of when it was selected
+    if (remaining.has(1)) {
+      sequence.push(1);
+      remaining.delete(1);
+      currentPosition = TABLE_POSITIONS[1];
+    } else {
+      // If Bàn 1 is not selected, start from nearest table to staff
+      let nearestToStaff: number | null = null;
+      let nearestDistanceToStaff = Infinity;
+
+      remaining.forEach((tableId) => {
+        const tablePos = TABLE_POSITIONS[tableId];
+        if (!tablePos) return;
+        
+        const distance = calculateDistance(staffPosition, tablePos);
+        if (distance < nearestDistanceToStaff) {
+          nearestDistanceToStaff = distance;
+          nearestToStaff = tableId;
+        }
+      });
+
+      if (nearestToStaff !== null) {
+        sequence.push(nearestToStaff);
+        remaining.delete(nearestToStaff);
+        currentPosition = TABLE_POSITIONS[nearestToStaff];
+      }
+    }
+
+    // Continue with nearest neighbor algorithm from current position
+    // This will sort remaining tables by distance from the current position
     while (remaining.size > 0) {
       let nearestTable: number | null = null;
       let nearestDistance = Infinity;

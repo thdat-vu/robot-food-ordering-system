@@ -121,10 +121,10 @@ const dedupePoints = (points: Position[]): Position[] => {
 };
 
 const buildHumanPathSegments = (sequence: number[], start: Position) => {
-  const segments: Array<{ tableId: number; path: Position[]; start: Position; end: Position }> = [];
+  const segments: Array<{ tableId: number; path: Position[]; start: Position; end: Position; orderNumber: number }> = [];
   let currentStart: Position = start;
 
-  sequence.forEach((tableId) => {
+  sequence.forEach((tableId, index) => {
     const tablePosition = TABLE_POSITIONS[tableId];
     if (!tablePosition) return;
     const path = computeOptimizedPath(currentStart, tableId);
@@ -134,6 +134,7 @@ const buildHumanPathSegments = (sequence: number[], start: Position) => {
         path,
         start: currentStart,
         end: tablePosition,
+        orderNumber: index + 1, // Add order number (1-based)
       });
       currentStart = tablePosition;
     }
@@ -179,10 +180,10 @@ const getRowEntryFromTableY = (y: number) => {
 };
 
 const buildRobotPathSegments = (sequence: number[], start: Position) => {
-  const segments: Array<{ tableId: number; path: Position[]; start: Position; end: Position }> = [];
+  const segments: Array<{ tableId: number; path: Position[]; start: Position; end: Position; orderNumber: number }> = [];
   let current = { ...start };
 
-  sequence.forEach((tableId) => {
+  sequence.forEach((tableId, index) => {
     const tablePosition = TABLE_POSITIONS[tableId];
     if (!tablePosition) return;
 
@@ -218,6 +219,7 @@ const buildRobotPathSegments = (sequence: number[], start: Position) => {
       path: cleanedPath,
       start: cleanedPath[0],
       end: tablePosition,
+      orderNumber: index + 1, // Add order number (1-based)
     });
 
     current = { ...tablePosition };
@@ -518,6 +520,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
             end={segment.end}
             pathPoints={segment.path}
             color="danger"
+            orderNumber={segment.orderNumber}
           />
         ))}
       </div>
