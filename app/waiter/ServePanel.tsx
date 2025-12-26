@@ -12,6 +12,7 @@ import { WaiterDish } from "@/hooks/use-waiter-orders";
 import { toast } from "sonner";
 import { useQuickServe } from "@/hooks/use-quick-serve";
 import { RestaurantMap } from "@/features/restaurant-map/RestaurantMap";
+import { TABLE_POSITIONS } from "@/features/restaurant-map/constants";
 
 interface ServePanelProps {
   activeTab: OrderStatus;
@@ -280,56 +281,59 @@ const ServePanel: React.FC<ServePanelProps> = ({
     return sequence;
   }, [allSelectedDishes]);
 
-  // Robot table sequence: Prioritize by OLDEST ORDER TIME, then optimize by row/position
+  // Robot table sequence: Sort by nearest distance using nearest neighbor algorithm
   const robotTableSequence = React.useMemo(() => {
-    // Get the oldest order time for each selected table
-    const tableOldestOrderTime = new Map<number, number>();
+    const selectedTablesList = [...tableNumbersByStatus.selected];
     
-    allSelectedDishes.forEach((dish) => {
-      const tableNum = dish.tableNumber;
-      // Parse DD/MM/YYYY HH:mm:ss format or ISO format
-      let orderTimeMs = Number.MAX_SAFE_INTEGER;
-      if (dish.orderTime) {
-        const ddmmyyyyMatch = dish.orderTime.match(
-          /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/
-        );
-        if (ddmmyyyyMatch) {
-          const [, day, month, year, hours, minutes, seconds] = ddmmyyyyMatch;
-          orderTimeMs = new Date(
-            parseInt(year, 10),
-            parseInt(month, 10) - 1,
-            parseInt(day, 10),
-            parseInt(hours, 10),
-            parseInt(minutes, 10),
-            parseInt(seconds, 10)
-          ).getTime();
-        } else {
-          const parsed = new Date(dish.orderTime).getTime();
-          if (!isNaN(parsed)) orderTimeMs = parsed;
-        }
-      }
-      
-      const current = tableOldestOrderTime.get(tableNum);
-      if (current === undefined || orderTimeMs < current) {
-        tableOldestOrderTime.set(tableNum, orderTimeMs);
-      }
-    });
+    if (selectedTablesList.length === 0) {
+      return [];
+    }
 
-    return [...tableNumbersByStatus.selected].sort((a, b) => {
-      // 1. Primary sort: by oldest order time (FIFO - serve older orders first)
-      const timeA = tableOldestOrderTime.get(a) ?? Number.MAX_SAFE_INTEGER;
-      const timeB = tableOldestOrderTime.get(b) ?? Number.MAX_SAFE_INTEGER;
-      if (timeA !== timeB) return timeA - timeB;
-      
-      // 2. Secondary sort: by row (group tables in same row together)
-      const rowA = Math.floor((a - 1) / 5);
-      const rowB = Math.floor((b - 1) / 5);
-      if (rowA !== rowB) return rowA - rowB;
-      
-      // 3. Tertiary sort: by table number within the same row
-      return a - b;
-    });
-  }, [tableNumbersByStatus.selected, allSelectedDishes]);
+    // Import TABLE_POSITIONS for distance calculation
+    // Robot mode staff position: { x: 90, y: 40 }
+    const staffPosition = { x: 90, y: 40 };
+
+    // Calculate Euclidean distance between two positions
+    const calculateDistance = (pos1: { x: number; y: number }, pos2: { x: number; y: number }): number => {
+      const dx = pos2.x - pos1.x;
+      const dy = pos2.y - pos1.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    // Nearest neighbor algorithm: Start from staff position, find nearest table, then from that table find next nearest, etc.
+    const sequence: number[] = [];
+    const remaining = new Set(selectedTablesList);
+    let currentPosition = staffPosition;
+
+    while (remaining.size > 0) {
+      let nearestTable: number | null = null;
+      let nearestDistance = Infinity;
+
+      // Find the nearest table from current position
+      remaining.forEach((tableId) => {
+        const tablePos = TABLE_POSITIONS[tableId];
+        if (!tablePos) return;
+        
+        const distance = calculateDistance(currentPosition, tablePos);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestTable = tableId;
+        }
+      });
+
+      // Add nearest table to sequence and update current position
+      if (nearestTable !== null) {
+        sequence.push(nearestTable);
+        remaining.delete(nearestTable);
+        currentPosition = TABLE_POSITIONS[nearestTable];
+      } else {
+        // Fallback: if no valid table found, break
+        break;
+      }
+    }
+
+    return sequence;
+  }, [tableNumbersByStatus.selected]);
 
   // Generate map URL with table statuses
   const mapUrl = React.useMemo(() => {
