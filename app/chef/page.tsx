@@ -315,7 +315,8 @@ function ChiefPageContent() {
     const ids = new Set<number>();
     selectedIds.forEach(id => {
       const order = orders.find(o => o.id === id);
-      if (order && (order.status === 'đang thực hiện' || order.status === 'bắt đầu phục vụ')) {
+      // Right panel always shows "đang thực hiện" status
+      if (order && order.status === 'đang thực hiện') {
         ids.add(id);
       }
     });
@@ -340,8 +341,8 @@ function ChiefPageContent() {
     const ids = new Set<number>();
     animatingOutIds.forEach(id => {
       const order = orders.find(o => o.id === id);
-      // Include if order is in-progress/serving OR if order doesn't exist anymore (was just served)
-      if (!order || order.status === 'đang thực hiện' || order.status === 'bắt đầu phục vụ') {
+      // Right panel always shows "đang thực hiện" status
+      if (!order || order.status === 'đang thực hiện') {
         ids.add(id);
       }
     });
@@ -1107,24 +1108,8 @@ function ChiefPageContent() {
     });
   }
 
-  // Get all orders in 'bắt đầu phục vụ' state for the right panel
-  const isServeTab = activeTab === 'bắt đầu phục vụ';
-  const isInProgressTab = activeTab === 'đang thực hiện';
-  let serveTabGroupedOrders: Record<string, Order[]> = {};
-  if (isServeTab) {
-    // Filter groupedOrders to only include 'bắt đầu phục vụ' status while maintaining grouping
-    Object.entries(groupedOrders as Record<string, Order[]>).forEach(([groupKey, orderList]) => {
-      const serveOrders = orderList.filter(order => order.status === 'bắt đầu phục vụ');
-      if (serveOrders.length > 0) {
-        serveTabGroupedOrders[groupKey] = serveOrders;
-      }
-    });
-  }
-
   // Apply general search filter to all order data (for displaying orders)
   const filteredGroupedOrdersForSearch = filterOrdersByGeneralSearch(groupedOrders as Record<string, Order[]>);
-  const filteredServeTabGroupedOrders = filterOrdersByGeneralSearch(serveTabGroupedOrders);
-  const filteredInProgressGroupedOrders = filteredGroupedOrdersForSearch;
 
   // ============================================================================
   // PENDING ORDERS - Always group orders with status "đang chờ" regardless of activeTab
@@ -1937,8 +1922,8 @@ function ChiefPageContent() {
                     </div>
                   </div>
                   
-                  {/* Sub-tabs for right panel */}
-                  <div className="flex items-center gap-1 p-1 bg-white rounded-lg shadow-sm border border-gray-200">
+                  {/* Sub-tabs for right panel - HIDDEN per requirement */}
+                  {/* <div className="flex items-center gap-1 p-1 bg-white rounded-lg shadow-sm border border-gray-200">
                     <button
                       onClick={() => handleTabChange('đang thực hiện')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
@@ -1973,18 +1958,18 @@ function ChiefPageContent() {
                         </span>
                       )}
                     </button>
-                  </div>
+                  </div> */}
                 </div>
               </div>
               
-              {/* Right panel content */}
+              {/* Right panel content - Always show "đang thực hiện" status */}
               <div className="flex-1 min-h-0 overflow-y-auto relative">
                 {leftPanelTab === 'byDish' ? (
                   (() => {
-                    // Filter orders for current right panel tab
+                    // Always filter orders for "đang thực hiện" status (not based on activeTab)
                     const rightPanelGroupedOrders: Record<string, Order[]> = {};
                     Object.entries(filteredGroupedOrdersForSearch).forEach(([key, orderList]) => {
-                      const filteredOrders = orderList.filter(order => order.status === activeTab);
+                      const filteredOrders = orderList.filter(order => order.status === 'đang thực hiện');
                       if (filteredOrders.length > 0) {
                         rightPanelGroupedOrders[key] = filteredOrders;
                       }
@@ -1998,7 +1983,7 @@ function ChiefPageContent() {
                             <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
-                            {activeTab === 'đang thực hiện' ? 'Không có món đang thực hiện' : 'Không có món sẵn sàng phục vụ'}
+                            Không có món đang thực hiện
                           </div>
                         </div>
                       );
@@ -2007,7 +1992,7 @@ function ChiefPageContent() {
                     return (
                       <OrdersContent
                         groupedOrders={sortedRightPanel}
-                        activeTab={activeTab}
+                        activeTab={'đang thực hiện'}
                         onGroupClick={handleGroupClick}
                         onPrepareClick={handlePrepareClick}
                         onServeClick={handleServeClick}
@@ -2023,10 +2008,10 @@ function ChiefPageContent() {
                   })()
                 ) : (
                   (() => {
-                    // Filter tables for current right panel tab
+                    // Always filter tables for "đang thực hiện" status (not based on activeTab)
                     const rightPanelTablesByNumber = tablesByNumber.map(table => ({
                       ...table,
-                      orders: table.orders.filter(order => order.status === activeTab)
+                      orders: table.orders.filter(order => order.status === 'đang thực hiện')
                     })).filter(table => table.orders.length > 0);
                     
                     if (rightPanelTablesByNumber.length === 0) {
@@ -2036,19 +2021,17 @@ function ChiefPageContent() {
                             <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 10v8a1 1 0 001 1h16a1 1 0 001-1v-8M3 10l2-6h14l2 6" />
                             </svg>
-                            {activeTab === 'đang thực hiện' ? 'Không có bàn đang thực hiện' : 'Không có bàn sẵn sàng phục vụ'}
+                            Không có bàn đang thực hiện
                           </div>
                         </div>
                       );
                     }
                     
-                    // Get in-progress selected orders for CTA (only for đang thực hiện tab)
-                    const inProgressSelectedOrders = activeTab === 'đang thực hiện' 
-                      ? selectedGroups.flat().filter(item => {
-                          const order = orders.find(o => o.id === item.id);
-                          return order && order.status === 'đang thực hiện';
-                        })
-                      : [];
+                    // Get in-progress selected orders for CTA
+                    const inProgressSelectedOrders = selectedGroups.flat().filter(item => {
+                      const order = orders.find(o => o.id === item.id);
+                      return order && order.status === 'đang thực hiện';
+                    });
                     
                     return (
                       <>
@@ -2063,7 +2046,7 @@ function ChiefPageContent() {
                           itemNameToCategory={itemNameToCategory}
                           tableDataMap={tableDataMap}
                           className="bg-transparent"
-                          hideCheckboxes={isServeTab}
+                          hideCheckboxes={false}
                         />
                         {/* Spacer for CTA button */}
                         {inProgressSelectedOrders.length > 0 && <div className="h-24"></div>}
@@ -2073,7 +2056,7 @@ function ChiefPageContent() {
                 )}
                 
                 {/* CTA Button for right panel (đang thực hiện) - byTable mode */}
-                {leftPanelTab === 'byTable' && activeTab === 'đang thực hiện' && (() => {
+                {leftPanelTab === 'byTable' && (() => {
                   const inProgressSelectedOrders = selectedGroups.flat().filter(item => {
                     const order = orders.find(o => o.id === item.id);
                     return order && order.status === 'đang thực hiện';
