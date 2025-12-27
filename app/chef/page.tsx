@@ -315,13 +315,13 @@ function ChiefPageContent() {
     const ids = new Set<number>();
     selectedIds.forEach(id => {
       const order = orders.find(o => o.id === id);
-      // Right panel always shows "đang thực hiện" status
-      if (order && order.status === 'đang thực hiện') {
+      // Right panel shows orders based on activeTab
+      if (order && order.status === activeTab) {
         ids.add(id);
       }
     });
     return ids;
-  }, [selectedIds, orders]);
+  }, [selectedIds, orders, activeTab]);
 
   // Separate animatingOutIds for each panel based on order status
   // This prevents cross-panel animation
@@ -341,13 +341,13 @@ function ChiefPageContent() {
     const ids = new Set<number>();
     animatingOutIds.forEach(id => {
       const order = orders.find(o => o.id === id);
-      // Right panel always shows "đang thực hiện" status
-      if (!order || order.status === 'đang thực hiện') {
+      // Right panel shows orders based on activeTab
+      if (!order || order.status === activeTab) {
         ids.add(id);
       }
     });
     return ids;
-  }, [animatingOutIds, orders]);
+  }, [animatingOutIds, orders, activeTab]);
 
   // Update datetime immediately on mount and then every second
   useEffect(() => {
@@ -1917,13 +1917,19 @@ function ChiefPageContent() {
                       </svg>
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-gray-800">Đang thực hiện</h2>
-                      <p className="text-xs text-gray-500">Đang thực hiện & phục vụ</p>
+                      <h2 className="text-lg font-bold text-gray-800">
+                        {activeTab === 'đang thực hiện' && 'Đang thực hiện'}
+                        {activeTab === 'bắt đầu phục vụ' && 'Bắt đầu phục vụ'}
+                      </h2>
+                      <p className="text-xs text-gray-500">
+                        {activeTab === 'đang thực hiện' && 'Đang thực hiện & phục vụ'}
+                        {activeTab === 'bắt đầu phục vụ' && 'Sẵn sàng phục vụ'}
+                      </p>
                     </div>
                   </div>
                   
-                  {/* Sub-tabs for right panel - HIDDEN per requirement */}
-                  {/* <div className="flex items-center gap-1 p-1 bg-white rounded-lg shadow-sm border border-gray-200">
+                  {/* Sub-tabs for right panel */}
+                  <div className="flex items-center gap-1 p-1 bg-white rounded-lg shadow-sm border border-gray-200">
                     <button
                       onClick={() => handleTabChange('đang thực hiện')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
@@ -1958,18 +1964,18 @@ function ChiefPageContent() {
                         </span>
                       )}
                     </button>
-                  </div> */}
+                  </div>
                 </div>
               </div>
               
-              {/* Right panel content - Always show "đang thực hiện" status */}
+              {/* Right panel content - Filter based on activeTab */}
               <div className="flex-1 min-h-0 overflow-y-auto relative">
                 {leftPanelTab === 'byDish' ? (
                   (() => {
-                    // Always filter orders for "đang thực hiện" status (not based on activeTab)
+                    // Filter orders based on activeTab
                     const rightPanelGroupedOrders: Record<string, Order[]> = {};
                     Object.entries(filteredGroupedOrdersForSearch).forEach(([key, orderList]) => {
-                      const filteredOrders = orderList.filter(order => order.status === 'đang thực hiện');
+                      const filteredOrders = orderList.filter(order => order.status === activeTab);
                       if (filteredOrders.length > 0) {
                         rightPanelGroupedOrders[key] = filteredOrders;
                       }
@@ -1977,13 +1983,17 @@ function ChiefPageContent() {
                     const sortedRightPanel = sortGroupedByCategoryPriority(rightPanelGroupedOrders);
                     
                     if (Object.keys(sortedRightPanel).length === 0) {
+                      const emptyMessages: Record<string, string> = {
+                        'đang thực hiện': 'Không có món đang thực hiện',
+                        'bắt đầu phục vụ': 'Không có món bắt đầu phục vụ'
+                      };
                       return (
                         <div className="flex h-full items-center justify-center text-gray-400 text-lg">
                           <div className="text-center">
                             <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
-                            Không có món đang thực hiện
+                            {emptyMessages[activeTab] || 'Không có món'}
                           </div>
                         </div>
                       );
@@ -1992,7 +2002,7 @@ function ChiefPageContent() {
                     return (
                       <OrdersContent
                         groupedOrders={sortedRightPanel}
-                        activeTab={'đang thực hiện'}
+                        activeTab={activeTab}
                         onGroupClick={handleGroupClick}
                         onPrepareClick={handlePrepareClick}
                         onServeClick={handleServeClick}
@@ -2008,29 +2018,33 @@ function ChiefPageContent() {
                   })()
                 ) : (
                   (() => {
-                    // Always filter tables for "đang thực hiện" status (not based on activeTab)
+                    // Filter tables based on activeTab
                     const rightPanelTablesByNumber = tablesByNumber.map(table => ({
                       ...table,
-                      orders: table.orders.filter(order => order.status === 'đang thực hiện')
+                      orders: table.orders.filter(order => order.status === activeTab)
                     })).filter(table => table.orders.length > 0);
                     
                     if (rightPanelTablesByNumber.length === 0) {
+                      const emptyMessages: Record<string, string> = {
+                        'đang thực hiện': 'Không có bàn đang thực hiện',
+                        'bắt đầu phục vụ': 'Không có bàn bắt đầu phục vụ'
+                      };
                       return (
                         <div className="flex h-full items-center justify-center text-gray-400 text-lg">
                           <div className="text-center">
                             <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 10v8a1 1 0 001 1h16a1 1 0 001-1v-8M3 10l2-6h14l2 6" />
                             </svg>
-                            Không có bàn đang thực hiện
+                            {emptyMessages[activeTab] || 'Không có bàn'}
                           </div>
                         </div>
                       );
                     }
                     
-                    // Get in-progress selected orders for CTA
-                    const inProgressSelectedOrders = selectedGroups.flat().filter(item => {
+                    // Get selected orders for CTA based on activeTab
+                    const selectedOrdersForTab = selectedGroups.flat().filter(item => {
                       const order = orders.find(o => o.id === item.id);
-                      return order && order.status === 'đang thực hiện';
+                      return order && order.status === activeTab;
                     });
                     
                     return (
@@ -2049,31 +2063,32 @@ function ChiefPageContent() {
                           hideCheckboxes={false}
                         />
                         {/* Spacer for CTA button */}
-                        {inProgressSelectedOrders.length > 0 && <div className="h-24"></div>}
+                        {selectedOrdersForTab.length > 0 && <div className="h-24"></div>}
                       </>
                     );
                   })()
                 )}
                 
-                {/* CTA Button for right panel (đang thực hiện) - byTable mode */}
+                {/* CTA Button for right panel - byTable mode */}
                 {leftPanelTab === 'byTable' && (() => {
-                  const inProgressSelectedOrders = selectedGroups.flat().filter(item => {
+                  const selectedOrdersForTab = selectedGroups.flat().filter(item => {
                     const order = orders.find(o => o.id === item.id);
-                    return order && order.status === 'đang thực hiện';
+                    return order && order.status === activeTab;
                   });
                   
-                  if (inProgressSelectedOrders.length === 0) return null;
+                  // Only show CTA button for "đang thực hiện" and "bắt đầu phục vụ" tabs
+                  if (selectedOrdersForTab.length === 0 || (activeTab !== 'đang thực hiện' && activeTab !== 'bắt đầu phục vụ')) return null;
                   
                   return (
                     <div className="absolute bottom-0 left-0 right-0 z-10 py-4 flex justify-center pointer-events-none bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent">
                       <button
-                        onClick={() => handleServeMultipleOrders(inProgressSelectedOrders)}
+                        onClick={() => handleServeMultipleOrders(selectedOrdersForTab)}
                         className="pointer-events-auto flex items-center justify-center gap-2 font-bold text-base px-6 py-3 rounded-xl shadow-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white transform hover:scale-105 transition-all duration-300"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        Bắt đầu phục vụ ({inProgressSelectedOrders.length} món)
+                        Bắt đầu phục vụ ({selectedOrdersForTab.length} món)
                       </button>
                     </div>
                   );
