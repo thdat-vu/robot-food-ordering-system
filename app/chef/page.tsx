@@ -2047,6 +2047,10 @@ function ChiefPageContent() {
                       return order && order.status === activeTab;
                     });
                     
+                    // Hide checkboxes and late warning when filtering by table and in "bắt đầu phục vụ" tab
+                    const shouldHideCheckboxes = leftPanelTab === 'byTable' && activeTab === 'bắt đầu phục vụ';
+                    const shouldHideLateWarning = leftPanelTab === 'byTable' && activeTab === 'bắt đầu phục vụ';
+                    
                     return (
                       <>
                         <KitchenSidebarByTable
@@ -2060,7 +2064,8 @@ function ChiefPageContent() {
                           itemNameToCategory={itemNameToCategory}
                           tableDataMap={tableDataMap}
                           className="bg-transparent"
-                          hideCheckboxes={false}
+                          hideCheckboxes={shouldHideCheckboxes}
+                          hideLateWarning={shouldHideLateWarning}
                         />
                         {/* Spacer for CTA button */}
                         {selectedOrdersForTab.length > 0 && <div className="h-24"></div>}

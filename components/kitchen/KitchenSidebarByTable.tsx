@@ -24,6 +24,7 @@ interface KitchenSidebarByTableProps {
   tableDataMap?: Record<number, any>; // Map tableNumber -> TableData for late dish warnings
   className?: string;
   hideCheckboxes?: boolean; // Hide checkboxes for serve tab (view-only mode)
+  hideLateWarning?: boolean; // Hide late dish warning overlay
 }
 
 const toSelectionItem = (order: Order): SelectionItem => ({
@@ -204,6 +205,7 @@ export function KitchenSidebarByTable({
   tableDataMap = {},
   className,
   hideCheckboxes = false,
+  hideLateWarning = false,
 }: KitchenSidebarByTableProps) {
   // Collect all orders from all tables for context analysis
   const allOrders = useMemo(() => {
@@ -390,7 +392,7 @@ export function KitchenSidebarByTable({
                 }`}
               >
                 {/* Late dish warning overlay */}
-                {tableData && <LateDishWarning table={tableData} borderRadius="rounded-2xl" />}
+                {tableData && !hideLateWarning && <LateDishWarning table={tableData} borderRadius="rounded-2xl" />}
                 
                 {/* Header with gradient */}
                 <div
