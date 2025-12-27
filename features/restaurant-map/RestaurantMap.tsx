@@ -86,23 +86,26 @@ const detectClusters = (tableIds: number[]): Cluster[] => {
   for (const tableId of tableIds) {
     if (!visited.has(tableId)) {
       const cluster = findCluster(tableId);
-      const positions = cluster.map((id) => TABLE_POSITIONS[id]);
-      const minX = Math.min(...positions.map((p) => p.x));
-      const maxX = Math.max(...positions.map((p) => p.x));
-      const minY = Math.min(...positions.map((p) => p.y));
-      const maxY = Math.max(...positions.map((p) => p.y));
-      const padding = 20;
-      const tableWidth = 80;
+      // Only include clusters with 2 or more tables (no highlight for single tables)
+      if (cluster.length > 1) {
+        const positions = cluster.map((id) => TABLE_POSITIONS[id]);
+        const minX = Math.min(...positions.map((p) => p.x));
+        const maxX = Math.max(...positions.map((p) => p.x));
+        const minY = Math.min(...positions.map((p) => p.y));
+        const maxY = Math.max(...positions.map((p) => p.y));
+        const padding = 20;
+        const tableWidth = 80;
 
-      clusters.push({
-        tables: cluster,
-        boundingBox: {
-          x: (minX + maxX) / 2,
-          y: (minY + maxY) / 2,
-          width: maxX - minX + tableWidth + padding * 2,
-          height: maxY - minY + tableWidth + padding * 2,
-        },
-      });
+        clusters.push({
+          tables: cluster,
+          boundingBox: {
+            x: (minX + maxX) / 2,
+            y: (minY + maxY) / 2,
+            width: maxX - minX + tableWidth + padding * 2,
+            height: maxY - minY + tableWidth + padding * 2,
+          },
+        });
+      }
     }
   }
 
