@@ -379,7 +379,6 @@ const ServePanel: React.FC<ServePanelProps> = ({
           tableId < (nearestTable ?? Infinity) // Smaller table number
         ) {
           // If two tables are in the same row and the farther one is within threshold, prefer smaller number
-          // This ensures Bàn 19 goes before Bàn 20 when they're in the same row
           nearestDistance = distance;
           nearestTable = tableId;
         }
