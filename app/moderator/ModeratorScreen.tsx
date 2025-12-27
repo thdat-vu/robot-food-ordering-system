@@ -14,6 +14,7 @@ import {
   Clock10Icon,
   Utensils,
   AlarmClock,
+  Search,
 } from "lucide-react";
 
 import { useToastModerator } from "@/hooks/use-toast-moderator";
@@ -38,7 +39,6 @@ type FilterStatus =
   | "paid";
 
 const ModeratorScreen: React.FC = () => {
-  // ✅ Sử dụng SignalR hook thay vì useEffect polling
   const { data, isLoading, error, isRealtimeConnected } =
     useModeratorRealtimeTables();
 
@@ -48,18 +48,13 @@ const ModeratorScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [highlightedTable, setHighlightedTable] = useState<string>("");
   const [initialTab, setInitialTab] = useState<"home" | "feedback">("home");
-  const [isLegendFloating, setIsLegendFloating] = useState(false);
 
   const { toasts, addToast, removeToast } = useToastModerator();
 
-  // ✅ Hiển thị error từ hook nếu có
   React.useEffect(() => {
-    if (error) {
-      addToast(error, "error");
-    }
+    if (error) addToast(error, "error");
   }, [error, addToast]);
 
-  // ✅ Mở dialog theo tab
   const openTableDialog = useCallback(
     (tableId: string, tab: "home" | "feedback" = "home") => {
       setIdTable(tableId);
@@ -74,38 +69,6 @@ const ModeratorScreen: React.FC = () => {
     setInitialTab("home");
   }, []);
 
-  // ✅ Scroll legend floating
-  React.useEffect(() => {
-    let lastScrollY = window.scrollY;
-    let ticking = false;
-
-    const updateLegendState = () => {
-      const y = lastScrollY;
-      setIsLegendFloating((prev) => {
-        const showFloatingThreshold = 260;
-        const backToTopThreshold = 180;
-
-        if (!prev && y > showFloatingThreshold) return true;
-        if (prev && y < backToTopThreshold) return false;
-        return prev;
-      });
-      ticking = false;
-    };
-
-    const handleScroll = () => {
-      lastScrollY = window.scrollY;
-      if (!ticking) {
-        window.requestAnimationFrame(updateLegendState);
-        ticking = true;
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // ✅ Determine table status dựa trên counters
   const getTableStatus = (tableData: TableData): FilterStatus => {
     const {
       totalItems,
@@ -118,26 +81,21 @@ const ModeratorScreen: React.FC = () => {
     if (tableStatus === 0) return "empty";
     if (tableStatus === 1 && totalItems === 0) return "occupied";
 
-    if (totalItems > 0 && deliveredCount < totalItems) {
-      return "ordered";
-    }
+    if (totalItems > 0 && deliveredCount < totalItems) return "ordered";
 
     if (
       totalItems > 0 &&
       deliveredCount === totalItems &&
       serveredCount < totalItems
-    ) {
+    )
       return "delivered";
-    }
 
     if (
       totalItems > 0 &&
       serveredCount === totalItems &&
       deliveredCount === totalItems
     ) {
-      if (paymentStatus === 2) {
-        return "paid";
-      }
+      if (paymentStatus === 2) return "paid";
       return "served";
     }
 
@@ -229,11 +187,11 @@ const ModeratorScreen: React.FC = () => {
       ordered: Object.values(data).filter(
         (t) => getTableStatus(t) === "ordered"
       ).length,
-      served: Object.values(data).filter((t) => getTableStatus(t) === "served")
-        .length,
       delivered: Object.values(data).filter(
         (t) => getTableStatus(t) === "delivered"
       ).length,
+      served: Object.values(data).filter((t) => getTableStatus(t) === "served")
+        .length,
       paid: Object.values(data).filter((t) => getTableStatus(t) === "paid")
         .length,
     }),
@@ -262,8 +220,8 @@ const ModeratorScreen: React.FC = () => {
         <div className="bg-white/95 backdrop-blur-lg p-12 rounded-3xl shadow-2xl border border-white/20">
           <div className="text-center">
             <div className="relative mb-8">
-              <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 border-t-purple-500 mx-auto"></div>
-              <div className="absolute inset-0 rounded-full h-20 w-20 border-4 border-transparent border-r-purple-300 animate-pulse mx-auto"></div>
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 border-t-purple-500 mx-auto" />
+              <div className="absolute inset-0 rounded-full h-20 w-20 border-4 border-transparent border-r-purple-300 animate-pulse mx-auto" />
             </div>
             <h3 className="text-purple-800 text-2xl font-bold mb-2">
               Đang tải dữ liệu...
@@ -291,344 +249,429 @@ const ModeratorScreen: React.FC = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-purple-700 p-4">
-      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+  const FilterBtn = ({
+    active,
+    onClick,
+    left,
+    right,
+    className,
+  }: {
+    active: boolean;
+    onClick: () => void;
+    left: React.ReactNode;
+    right: React.ReactNode;
+    className: string;
+  }) => (
+    <button
+      onClick={onClick}
+      className={[
+        "w-full rounded-2xl px-3 py-2 text-xs font-semibold transition-all duration-200 flex items-center justify-between",
+        active
+          ? "bg-white text-purple-700 shadow-lg"
+          : "bg-white/15 text-white hover:bg-white/25",
+        className,
+      ].join(" ")}
+    >
+      <span className="flex items-center gap-2">{left}</span>
+      <span className="font-bold tabular-nums">{right}</span>
+    </button>
+  );
 
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <div className="relative flex justify-center items-center mb-6">
-            <div className="inline-flex items-center justify-center bg-white/20 backdrop-blur-lg rounded-full px-8 py-4 border border-white/30">
-              <div className="flex items-center space-x-3">
-                {/* ✅ Indicator real-time connection */}
-                <div
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-purple-700">
+      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+      {/* ================= GLOBAL HEADER ================= */}
+      <div className="relative z-30 mb-6">
+        <div className="flex justify-center">
+          <div className="w-full max-w-[720px] flex flex-col items-center">
+            {/* TITLE */}
+            <div className="mb-4">
+              <div className="inline-flex items-center gap-3 bg-white/18 backdrop-blur-lg rounded-full px-6 py-3 border border-white/25">
+                <span
                   className={`w-3 h-3 rounded-full animate-pulse ${
                     isRealtimeConnected ? "bg-green-400" : "bg-red-400"
                   }`}
-                ></div>
-                <h1 className="text-white text-2xl md:text-3xl font-bold tracking-wide">
+                />
+                <h1 className="text-white text-xl md:text-2xl font-bold tracking-wide">
                   BẢNG QUẢN LÝ MODERATOR
                 </h1>
-                <div
+                <span
                   className={`w-3 h-3 rounded-full animate-pulse ${
                     isRealtimeConnected ? "bg-green-400" : "bg-red-400"
                   }`}
-                ></div>
+                />
               </div>
             </div>
 
-            <LegendFloating isFloating={isLegendFloating} />
-          </div>
-
-          {/* Search */}
-          <div className="flex justify-center mb-8 px-4">
-            <div className="relative w-full max-w-lg group">
-              <div className="relative flex items-center bg-gradient-to-r from-purple-600/30 via-pink-500/30 to-purple-600/30 backdrop-blur-2xl rounded-3xl px-5 sm:px-7 py-3 sm:py-4 transition-all duration-500 group-hover:scale-[1.02]">
-                <div className="relative">
-                  <ExpandableSearch
-                    placeholder="Tìm kiếm bàn, món ăn..."
-                    onSearch={(q) => handleSearch(q)}
-                  />
-                </div>
+            {/* SEARCH */}
+            <div className="w-full">
+              <div className="flex items-center bg-gradient-to-r from-purple-600/30 via-pink-500/30 to-purple-600/30 backdrop-blur-2xl rounded-3xl px-5 py-3">
+                <ExpandableSearch
+                  placeholder="Tìm kiếm bàn, món ăn..."
+                  onSearch={(q) => handleSearch(q)}
+                />
 
                 <input
                   type="text"
-                  placeholder="✨ Tìm kiếm bàn của bạn..."
+                  placeholder="Tìm kiếm bàn của bạn..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="flex-1 bg-transparent border-none outline-none ring-0 focus:ring-0 focus:border-none text-white placeholder-purple-100/70 text-sm sm:text-base font-medium min-w-0 tracking-wide"
+                  className="flex-1 bg-transparent border-none outline-none text-white placeholder-purple-100/70 text-sm font-medium ml-2"
                 />
 
-                {searchQuery && (
+                {searchQuery ? (
                   <button
                     onClick={clearSearch}
-                    className="ml-2 sm:ml-3 p-1.5 sm:p-2 rounded-full bg-gradient-to-br from-purple-500/40 to-pink-500/40 hover:from-purple-500/60 hover:to-pink-500/60 text-white transition-all duration-300 flex-shrink-0 hover:scale-110 hover:rotate-90"
-                    aria-label="Xóa tìm kiếm"
+                    className="ml-2 p-2 rounded-full bg-white/15 hover:bg-white/25 transition"
                   >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <X className="w-4 h-4 text-white" />
                   </button>
+                ) : (
+                  <div className="ml-2 p-2 rounded-full bg-white/10">
+                    <Search className="w-4 h-4 text-white/80" />
+                  </div>
                 )}
               </div>
             </div>
-          </div>
-
-          <p className="text-white/90 text-lg font-medium mb-4">
-            Theo dõi trạng thái các bàn real-time
-            {!isRealtimeConnected && (
-              <span className="ml-2 text-red-300 text-sm">
-                (Đang kết nối lại...)
-              </span>
-            )}
-          </p>
-
-          <div className="flex justify-center items-center gap-5 mb-7 pr-6">
-            <ClockCard />
-            <div className="flex items-center gap-4">
-              <StatsCard
-                icon={<Users className="w-5 h-5 text-emerald-300" />}
-                value={`${activeTables}/${totalTables}`}
-                label="Bàn hoạt động"
-              />
-              <StatsCard
-                icon={<Utensils className="w-5 h-5 text-yellow-300" />}
-                value={totalItemsAllTables}
-                label="Món đã order"
-              />
-              <StatsCard
-                icon={<AlarmClock className="w-5 h-5 text-red-300" />}
-                value={slowItemsCount}
-                label="Món chậm"
-                highlight={slowItemsCount > 0}
-              />
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap justify-center gap-2 mb-6">
-            <button
-              onClick={() => setFilterStatus("all")}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
-                filterStatus === "all"
-                  ? "bg-white text-purple-700 shadow-lg transform scale-105"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <Filter size={16} />
-              Tất cả ({totalTables})
-            </button>
-
-            <button
-              onClick={() => setFilterStatus("empty")}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
-                filterStatus === "empty"
-                  ? "bg-gray-300 text-gray-800 shadow-lg transform scale-105"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <User size={16} />
-              Bàn trống ({statusCounts.empty})
-            </button>
-
-            <button
-              onClick={() => setFilterStatus("ordered")}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
-                filterStatus === "ordered"
-                  ? "bg-blue-400 text-blue-900 shadow-lg transform scale-105"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <TrendingUp size={16} />
-              Đã order ({statusCounts.ordered})
-            </button>
-
-            <button
-              onClick={() => setFilterStatus("served")}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
-                filterStatus === "served"
-                  ? "bg-orange-400 text-orange-900 shadow-lg transform scale-105"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <ChefHat size={16} />
-              Đã phục vụ ({statusCounts.delivered})
-            </button>
-
-            <button
-              onClick={() => setFilterStatus("delivered")}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
-                filterStatus === "delivered"
-                  ? "bg-purple-400 text-purple-900 shadow-lg transform scale-105"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <UserCheck size={16} />
-              Đã giao ({statusCounts.served})
-            </button>
-
-            <button
-              onClick={() => setFilterStatus("paid")}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
-                filterStatus === "paid"
-                  ? "bg-green-400 text-green-900 shadow-lg transform scale-105"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <CheckCircle2 size={16} />
-              Đã thanh toán ({statusCounts.paid})
-            </button>
           </div>
         </div>
+      </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
-          {processedData.map(([tableId, tableData]) => {
-            const isHighlighted = highlightedTable === tableId;
-            const textColor = getTextColor(tableData);
-            const cardColor = getTableColor(tableData);
-            const totalItems = tableData.totalItems || 0;
-            const isEmpty = totalItems === 0;
-
-            return (
-              <div
-                key={tableId}
-                id={`table-${tableId}`}
-                className={`group relative aspect-square rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 transform hover:scale-105 hover:rotate-1 ${cardColor}`}
-                onClick={() => openTableDialog(tableId, "home")}
-              >
-                <div
-                  className={`text-xl md:text-2xl lg:text-3xl font-bold mb-2 text-center ${textColor}`}
-                >
-                  {tableData.tableName}
+      {/* ✅ FULL WIDTH, KHÔNG tạo khoảng trống hai bên */}
+      <div className="mx-auto w-full max-w-[1800px] px-4 py-4">
+        {/* ✅ 3-COLUMN LAYOUT (LEFT / CENTER / RIGHT) */}
+        <div className="grid grid-cols-1 2xl:grid-cols-[260px,minmax(0,1fr),300px] gap-6">
+          {/* ================= LEFT FILTER ================= */}
+          <aside className="hidden 2xl:block">
+            <div className="sticky top-1/2 -translate-y-1/2">
+              {/* không bọc khung to: chỉ một panel nhỏ gọn */}
+              <div className="rounded-3xl bg-white/12 backdrop-blur-xl border border-white/20 p-3 shadow-2xl">
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <Filter className="w-4 h-4 text-white" />
+                  <div className="text-white font-bold text-xs">Bộ lọc</div>
                 </div>
 
-                {tableData.totalItems > 0 ? (
-                  <div className="w-full text-center relative px-3">
-                    <div
-                      className={`text-4xl md:text-5xl lg:text-6xl font-black ${textColor}`}
-                    >
-                      {tableData.totalItems}
-                    </div>
+                <div className="flex flex-col gap-2">
+                  <FilterBtn
+                    active={filterStatus === "all"}
+                    onClick={() => setFilterStatus("all")}
+                    left={
+                      <>
+                        <Filter size={14} /> Tất cả
+                      </>
+                    }
+                    right={totalTables}
+                    className=""
+                  />
 
-                    {tableData.counter > 0 && (
-                      <button
-                        type="button"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 z-30 bg-white/10 rounded-full p-1 hover:scale-110 transition-transform"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          openTableDialog(tableId, "feedback");
-                        }}
-                        aria-label="Xem phản hồi"
-                      >
-                        <div className="relative">
-                          <MessageSquareWarning
-                            size={18}
-                            className="text-orange-500 drop-shadow-[0_0_6px_rgba(255,165,0,0.8)]"
-                            strokeWidth={2.5}
-                          />
-                          <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[16px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center shadow-lg border border-white">
-                            {tableData.counter}
-                          </span>
-                        </div>
-                      </button>
-                    )}
+                  <FilterBtn
+                    active={filterStatus === "empty"}
+                    onClick={() => setFilterStatus("empty")}
+                    left={
+                      <>
+                        <User size={14} /> Bàn trống
+                      </>
+                    }
+                    right={statusCounts.empty}
+                    className=""
+                  />
 
-                    <div
-                      className={`text-sm md:text-base font-bold text-center ${textColor}`}
-                    >
-                      Món ăn
-                    </div>
-                  </div>
-                ) : null}
+                  <FilterBtn
+                    active={filterStatus === "ordered"}
+                    onClick={() => setFilterStatus("ordered")}
+                    left={
+                      <>
+                        <TrendingUp size={14} /> Đã order
+                      </>
+                    }
+                    right={statusCounts.ordered}
+                    className=""
+                  />
 
-                {tableData.tableStatus !== 0 && (
+                  <FilterBtn
+                    active={filterStatus === "delivered"}
+                    onClick={() => setFilterStatus("delivered")}
+                    left={
+                      <>
+                        <UserCheck size={14} /> Đã giao
+                      </>
+                    }
+                    right={statusCounts.delivered}
+                    className=""
+                  />
+
+                  <FilterBtn
+                    active={filterStatus === "served"}
+                    onClick={() => setFilterStatus("served")}
+                    left={
+                      <>
+                        <ChefHat size={14} /> Đã phục vụ
+                      </>
+                    }
+                    right={statusCounts.served}
+                    className=""
+                  />
+
+                  <FilterBtn
+                    active={filterStatus === "paid"}
+                    onClick={() => setFilterStatus("paid")}
+                    left={
+                      <>
+                        <CheckCircle2 size={14} /> Đã thanh toán
+                      </>
+                    }
+                    right={statusCounts.paid}
+                    className=""
+                  />
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* ================= CENTER ================= */}
+          <main className="min-w-0">
+            {/* HEADER (nén lại để fit) */}
+            <div className="hidden 2xl:block pt-1">
+              {/* ép nó “đứng yên” ở đầu, không chơi floating theo scroll */}
+              <LegendFloating isFloating={true} />
+            </div>
+            {/* GRID bàn - giữ format, chỉ “nén” nhẹ ở 2xl */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5 2xl:gap-3">
+              {processedData.map(([tableId, tableData]) => {
+                const isHighlighted = highlightedTable === tableId;
+                const textColor = getTextColor(tableData);
+                const cardColor = getTableColor(tableData);
+                const totalItems = tableData.totalItems || 0;
+                const isEmpty = totalItems === 0;
+
+                return (
                   <div
+                    key={tableId}
+                    id={`table-${tableId}`}
                     className={[
-                      "flex items-center gap-1 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm flex-shrink-0",
-                      isEmpty
-                        ? "text-base px-2.5 py-1.5"
-                        : "text-xs px-1.5 py-0.5",
+                      "group relative aspect-square rounded-3xl 2xl:rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 transform hover:scale-[1.03] hover:rotate-1",
+                      cardColor,
                     ].join(" ")}
+                    onClick={() => openTableDialog(tableId, "home")}
                   >
                     <div
                       className={[
-                        "flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm",
-                        isEmpty
-                          ? "text-base px-2.5 py-1.5"
-                          : "text-xs px-1.5 py-0.5",
+                        "font-bold mb-2 text-center",
+                        "text-xl md:text-2xl lg:text-3xl 2xl:text-2xl",
+                        textColor,
                       ].join(" ")}
                     >
-                      <ChefHat
-                        size={isEmpty ? 18 : 12}
-                        className="flex-shrink-0"
-                      />
-                      <span className={isEmpty ? "leading-none" : ""}>
-                        {tableData.deliveredCount || 0}/{totalItems}
-                      </span>
+                      {tableData.tableName}
                     </div>
 
-                    <div
-                      className={[
-                        "flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm",
-                        isEmpty
-                          ? "text-base px-2.5 py-1.5"
-                          : "text-xs px-1.5 py-0.5",
-                      ].join(" ")}
-                    >
-                      <UserCheck
-                        size={isEmpty ? 18 : 12}
-                        className="flex-shrink-0"
-                      />
-                      <span className={isEmpty ? "leading-none" : ""}>
-                        {tableData.serveredCount || 0}/{totalItems}
-                      </span>
-                    </div>
+                    {tableData.totalItems > 0 ? (
+                      <div className="w-full text-center relative px-3">
+                        <div
+                          className={[
+                            "font-black",
+                            "text-4xl md:text-5xl lg:text-6xl 2xl:text-5xl",
+                            textColor,
+                          ].join(" ")}
+                        >
+                          {tableData.totalItems}
+                        </div>
 
-                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm px-1.5 py-0.5 flex-shrink-0">
-                      {(() => {
-                        switch (tableData.paymentStatus) {
-                          case 1:
-                            return (
-                              <>
-                                <Wallet
-                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
-                                />
-                                <Clock10Icon
-                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
-                                />
-                              </>
-                            );
-                          case 2:
-                            return (
-                              <>
-                                <Wallet
-                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
-                                />
-                                <CheckCircle2
-                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
-                                />
-                              </>
-                            );
-                          case 3:
-                          case 4:
-                            return (
-                              <>
-                                <Wallet
-                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
-                                />
-                                <XCircle
-                                  className={isEmpty ? "w-5 h-5" : "w-4 h-4"}
-                                />
-                              </>
-                            );
-                          default:
-                            return null;
-                        }
-                      })()}
-                    </div>
+                        {tableData.counter > 0 && (
+                          <button
+                            type="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 bg-white/10 rounded-full p-1 hover:scale-110 transition-transform"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openTableDialog(tableId, "feedback");
+                            }}
+                            aria-label="Xem phản hồi"
+                          >
+                            <div className="relative">
+                              <MessageSquareWarning
+                                size={18}
+                                className="text-orange-500 drop-shadow-[0_0_6px_rgba(255,165,0,0.8)]"
+                                strokeWidth={2.5}
+                              />
+                              <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[12px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center shadow-lg border border-white">
+                                {tableData.counter}
+                              </span>
+                            </div>
+                          </button>
+                        )}
+
+                        <div
+                          className={[
+                            "font-bold text-center",
+                            "text-sm md:text-base 2xl:text-sm",
+                            textColor,
+                          ].join(" ")}
+                        >
+                          Món ăn
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {tableData.tableStatus !== 0 && (
+                      <div
+                        className={[
+                          "flex items-center gap-1 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm flex-shrink-0",
+                          isEmpty
+                            ? "text-base px-2.5 py-1.5"
+                            : "text-xs px-1.5 py-0.5",
+                        ].join(" ")}
+                      >
+                        <div
+                          className={[
+                            "flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm",
+                            isEmpty
+                              ? "text-base px-2.5 py-1.5"
+                              : "text-xs px-1.5 py-0.5",
+                          ].join(" ")}
+                        >
+                          <ChefHat
+                            size={isEmpty ? 18 : 12}
+                            className="flex-shrink-0"
+                          />
+                          <span className={isEmpty ? "leading-none" : ""}>
+                            {tableData.deliveredCount || 0}/{totalItems}
+                          </span>
+                        </div>
+
+                        <div
+                          className={[
+                            "flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm",
+                            isEmpty
+                              ? "text-base px-2.5 py-1.5"
+                              : "text-xs px-1.5 py-0.5",
+                          ].join(" ")}
+                        >
+                          <UserCheck
+                            size={isEmpty ? 18 : 12}
+                            className="flex-shrink-0"
+                          />
+                          <span className={isEmpty ? "leading-none" : ""}>
+                            {tableData.serveredCount || 0}/{totalItems}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded shadow-sm px-1.5 py-0.5 flex-shrink-0">
+                          {(() => {
+                            switch (tableData.paymentStatus) {
+                              case 1:
+                                return (
+                                  <>
+                                    <Wallet
+                                      className={
+                                        isEmpty ? "w-5 h-5" : "w-4 h-4"
+                                      }
+                                    />
+                                    <Clock10Icon
+                                      className={
+                                        isEmpty ? "w-5 h-5" : "w-4 h-4"
+                                      }
+                                    />
+                                  </>
+                                );
+                              case 2:
+                                return (
+                                  <>
+                                    <Wallet
+                                      className={
+                                        isEmpty ? "w-5 h-5" : "w-4 h-4"
+                                      }
+                                    />
+                                    <CheckCircle2
+                                      className={
+                                        isEmpty ? "w-5 h-5" : "w-4 h-4"
+                                      }
+                                    />
+                                  </>
+                                );
+                              case 3:
+                              case 4:
+                                return (
+                                  <>
+                                    <Wallet
+                                      className={
+                                        isEmpty ? "w-5 h-5" : "w-4 h-4"
+                                      }
+                                    />
+                                    <XCircle
+                                      className={
+                                        isEmpty ? "w-5 h-5" : "w-4 h-4"
+                                      }
+                                    />
+                                  </>
+                                );
+                              default:
+                                return null;
+                            }
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
+                    <LateDishWarning table={tableData} />
+                    <LastUpdateBadge
+                      lastUpdateTime={tableData.lastOrderUpdatedTime}
+                    />
+
+                    <div className="pointer-events-none absolute inset-0 bg-white/10 rounded-3xl 2xl:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    {isHighlighted && (
+                      <>
+                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-green-500 via-cyan-400 to-green-500 text-black text-sm px-4 py-1 rounded-full font-bold shadow-2xl border-2 border-white animate-bounce z-10">
+                          🎯 TÌM THẤY 🎯
+                        </div>
+                        <div className="absolute inset-0 rounded-3xl 2xl:rounded-2xl border-4 border-transparent">
+                          <div className="absolute inset-0 rounded-3xl 2xl:rounded-2xl border-4 border-cyan-400 animate-[borderRun_2s_linear_infinite]" />
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
+                );
+              })}
+            </div>
+          </main>
 
-                <LateDishWarning table={tableData} />
-                <LastUpdateBadge
-                  lastUpdateTime={tableData.lastOrderUpdatedTime}
-                />
+          {/* ================= RIGHT STATS ================= */}
+          <aside className="hidden 2xl:block">
+            <div className="sticky top-1/2 -translate-y-1/2">
+              {/* không khung dư, chỉ panel gọn */}
+              <div className="rounded-3xl bg-white/12 backdrop-blur-xl border border-white/20 p-3 shadow-2xl">
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <Users className="w-4 h-4 text-white" />
+                  <div className="text-white font-bold text-xs">Thống kê</div>
+                </div>
 
-                <div className="pointer-events-none absolute inset-0 bg-white/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="flex flex-col gap-3 scale-[0.95] origin-top">
+                  <div className="bg-white/10 rounded-2xl p-2 border border-white/15">
+                    <ClockCard />
+                  </div>
 
-                {isHighlighted && (
-                  <>
-                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-green-500 via-cyan-400 to-green-500 text-black text-sm px-4 py-1 rounded-full font-bold shadow-2xl border-2 border-white animate-bounce z-10">
-                      🎯 TÌM THẤY 🎯
-                    </div>
-                    <div className="absolute inset-0 rounded-3xl border-4 border-transparent">
-                      <div className="absolute inset-0 rounded-3xl border-4 border-cyan-400 animate-[borderRun_2s_linear_infinite]"></div>
-                    </div>
-                  </>
-                )}
+                  <StatsCard
+                    icon={<Users className="w-5 h-5 text-emerald-300" />}
+                    value={`${activeTables}/${totalTables}`}
+                    label="Bàn hoạt động"
+                  />
+
+                  <StatsCard
+                    icon={<Utensils className="w-5 h-5 text-yellow-300" />}
+                    value={totalItemsAllTables}
+                    label="Món đã order"
+                  />
+
+                  <StatsCard
+                    icon={<AlarmClock className="w-5 h-5 text-red-300" />}
+                    value={slowItemsCount}
+                    label="Món chậm"
+                    highlight={slowItemsCount > 0}
+                  />
+                </div>
               </div>
-            );
-          })}
+            </div>
+          </aside>
         </div>
       </div>
 

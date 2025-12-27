@@ -13,6 +13,10 @@ import {
   Award,
   RefreshCw,
   Truck,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  ShoppingCart,
 } from "lucide-react";
 import { OrderCardProps } from "@/entites/moderator/FeedbackModole";
 import {
@@ -26,8 +30,6 @@ import { useDateFilterUI } from "@/hooks/moderator/useDateFilterUI";
 import { OrderData } from "@/entites/moderator/tableModel";
 import { DateRangeFilter } from "./DateRangeFilter";
 import { ordersApi } from "@/lib/api/orders";
-
-// Props interface for OrderCard
 
 const OrderCard: React.FC<OrderCardProps> = ({
   tableId,
@@ -43,6 +45,8 @@ const OrderCard: React.FC<OrderCardProps> = ({
   const [localExpandedId, setLocalExpandedId] = useState<string | null>(null);
   const [filteredOrders, setFilteredOrders] = useState<OrderData[]>([]);
   const [hasUserClickedSearch, setHasUserClickedSearch] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,18 +63,22 @@ const OrderCard: React.FC<OrderCardProps> = ({
     }
   };
 
+  const toggleRowExpansion = (orderId: string) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [orderId]: !prev[orderId],
+    }));
+  };
+
   // Sync propOrders -> filteredOrders
   useEffect(() => {
     if (propOrders) {
       setFilteredOrders(propOrders || []);
-
-      console.log("🔄 Prop orders updated, filteredOrders set.", propOrders);
     }
   }, [propOrders]);
 
   const handleDateSearch = useCallback(
     async (startDate: string | null, endDate: string | null) => {
-      // 🚦 Nếu chưa bấm Search thì không gọi API
       if (!hasUserClickedSearch) return;
 
       try {
@@ -86,19 +94,15 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
         if (response.data.statusCode === 200 && response.data.data) {
           const apiOrders = response.data.data as OrderData[];
-
-          // 🛠️ Map từ ApiOrderResponse → OrderData
           const newOrders: OrderData[] = apiOrders.map((order) => ({
             ...order,
-            createdTime: order.createdTime ?? "", // fallback để luôn là string
+            createdTime: order.createdTime ?? "",
           }));
 
           setFilteredOrders(newOrders);
           if (onOrdersChange) {
             onOrdersChange(newOrders, targetTableId.toString());
           }
-
-          console.log("✅ Orders fetched for date range:", newOrders);
         } else {
           setError("Không có đơn hàng trong khoảng thời gian đã chọn");
           setFilteredOrders([]);
@@ -116,16 +120,12 @@ const OrderCard: React.FC<OrderCardProps> = ({
     [propOrders, tableId, onOrdersChange, hasUserClickedSearch]
   );
 
-  // Reset filter
   const handleReset = () => {
     setFilteredOrders(propOrders || []);
-    setHasUserClickedSearch(false); // ✅ reset flag
+    setHasUserClickedSearch(false);
+    setSearchQuery("");
   };
 
-  // Clear error
-  const handleClearError = () => {
-    setError(null);
-  };
   // Utility functions
   const parseDate = (date: string | Date) => {
     if (date instanceof Date) return date;
@@ -152,32 +152,21 @@ const OrderCard: React.FC<OrderCardProps> = ({
   const getOrderStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
       case "pending":
-        return <Clock className="w-4 h-4 text-amber-500" />;
+        return <Clock className="w-4 h-4" />;
       case "preparing":
-        return <Utensils className="w-4 h-4 text-orange-500" />;
+        return <Utensils className="w-4 h-4" />;
       case "ready":
-        return <PackageCheck className="w-4 h-4 text-emerald-500" />;
+        return <PackageCheck className="w-4 h-4" />;
       case "delivering":
-        return <Truck className="w-4 h-4 text-cyan-500" />;
+        return <Truck className="w-4 h-4" />;
       case "completed":
-        return <CheckCircle className="w-4 h-4 text-blue-500" />;
+        return <CheckCircle className="w-4 h-4" />;
       case "cancelled":
-        return <XCircle className="w-4 h-4 text-red-500" />;
+        return <XCircle className="w-4 h-4" />;
       case "redorequested":
-        return <RefreshCw className="w-4 h-4 text-purple-500" />; // 👈 chỉnh màu tím cho nổi bật
+        return <RefreshCw className="w-4 h-4" />;
       default:
-        return <Clock className="w-4 h-4 text-gray-400" />;
-    }
-  };
-
-  const getPaymentStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return <Hourglass className="w-4 h-4 text-amber-500" />;
-      case "paid":
-        return <CheckCircle className="w-4 h-4 text-emerald-500" />;
-      default:
-        return <Hourglass className="w-4 h-4 text-gray-400" />;
+        return <Clock className="w-4 h-4" />;
     }
   };
 
@@ -198,7 +187,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
       case "requestcancel":
         return "Yêu cầu hủy món";
       case "redorequested":
-        return "Yêu cầu đổi món cho bàn khác";
+        return "Yêu cầu đổi món";
       default:
         return "Không xác định";
     }
@@ -217,28 +206,20 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
   const getOrderStatusColor = (status: string): string => {
     const colors = {
-      pending:
-        "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200 shadow-sm",
-      preparing:
-        "bg-gradient-to-r from-orange-50 to-red-50 text-orange-700 border border-orange-200 shadow-sm",
-      delivering:
-        "bg-gradient-to-r from-cyan-50 to-teal-50 text-cyan-700 border border-cyan-200 shadow-sm",
-      ready:
-        "bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border border-emerald-200 shadow-sm",
-      completed:
-        "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200 shadow-sm",
-      cancelled:
-        "bg-gradient-to-r from-red-50 to-pink-50 text-red-700 border border-red-200 shadow-sm",
-      redorequested:
-        "bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200 shadow-sm",
-      requestcancel:
-        "bg-gradient-to-r from-violet-50 to-purple-50 text-purple-700 border border-purple-200 shadow-sm", // 👈 đổi màu
-      served:
-        "bg-gradient-to-r from-teal-50 to-cyan-50 text-teal-700 border border-teal-200 shadow-sm",
+      pending: "bg-amber-50 text-amber-700 border-amber-200",
+      preparing: "bg-orange-50 text-orange-700 border-orange-200",
+      delivering: "bg-cyan-50 text-cyan-700 border-cyan-200",
+      ready: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      completed: "bg-blue-50 text-blue-700 border-blue-200",
+      cancelled: "bg-red-50 text-red-700 border-red-200",
+      redorequested: "bg-purple-50 text-purple-700 border-purple-200",
+      requestcancel: "bg-violet-50 text-violet-700 border-violet-200",
+      served: "bg-teal-50 text-teal-700 border-teal-200",
+      paid: "bg-green-50 text-green-700 border-green-200",
     };
     return (
       colors[status.toLowerCase() as keyof typeof colors] ||
-      "bg-gray-100 text-gray-800 border-gray-200"
+      "bg-gray-50 text-gray-700 border-gray-200"
     );
   };
 
@@ -253,13 +234,28 @@ const OrderCard: React.FC<OrderCardProps> = ({
     requestcancel: "Yêu cầu đổi món",
   };
 
-  // Determine which orders to display and their statistics
-  const effectiveOrders = filteredOrders.length > 0 ? filteredOrders : [];
-  const displayOrders = hasUserClickedSearch ? effectiveOrders : propOrders;
+  // Determine which orders to display
+  const displayOrders = hasUserClickedSearch ? filteredOrders : propOrders;
   const ordersWithGroupedItems = groupItemsPerOrder(displayOrders);
+
+  // Filter orders by search query
+  const searchFilteredOrders = ordersWithGroupedItems.filter((order) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+
+    // Search by order code
+    if (order.orderCode?.toLowerCase().includes(query)) return true;
+
+    // Search by product names
+    return order.groupedItems?.some((item) =>
+      item.productName?.toLowerCase().includes(query)
+    );
+  });
+
   const statistics = calculateOrdersStatistics(displayOrders);
 
-  // Handle initial empty state (no orders at all)
+  // Handle initial empty state
   if (!hasUserClickedSearch && propOrders.length === 0) {
     return (
       <div className="bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-2xl p-8 text-center border border-gray-200/50">
@@ -276,312 +272,307 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Summary Card với statistics từ utility */}
-      {/*<div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-200/50 shadow-xl relative overflow-hidden">*/}
-      {/*  /!* Decorative elements *!/*/}
-      {/*  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16"></div>*/}
-      {/*  <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/10 to-blue-400/10 rounded-full translate-y-12 -translate-x-12"></div>*/}
-      {/*            */}
-      {/*  */}
-      {/*  /!*<div className="relative">*!/*/}
-
-      {/*  /!*  /!* Header with icon *!/*!/*/}
-      {/*  /!*  <div className="flex items-center mb-6">*!/*/}
-      {/*  /!*    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-3 shadow-lg">*!/*/}
-      {/*  /!*      <Award className="w-5 h-5 text-white" />*!/*/}
-      {/*  /!*    </div>*!/*/}
-      {/*  /!*    <h3 className="text-xl font-bold text-gray-900">Tổng Quan Hoạt Động</h3>*!/*/}
-      {/*  /!*    *!/*/}
-      {/*  /!*  *!/*/}
-      {/*  /!*    *!/*/}
-      {/*  /!*  </div>*!/*/}
-      {/*  /!* *!/*/}
-      {/*  /!*  *!/*/}
-      {/*  /!*  *!/*/}
-
-      {/*  /!*  /!* Enhanced Statistics Grid *!/*!/*/}
-      {/*  /!*  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">*!/*/}
-      {/*  /!*    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">*!/*/}
-      {/*  /!*      <div className="flex items-center justify-between mb-3">*!/*/}
-      {/*  /!*        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
-      {/*  /!*          <Clock className="w-6 h-6 text-white" />*!/*/}
-      {/*  /!*        </div>*!/*/}
-      {/*  /!*        <div className="text-2xl font-bold text-blue-600">*!/*/}
-      {/*  /!*          {statistics.totalOrders}*!/*/}
-      {/*  /!*        </div>*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*      <div className="text-sm text-gray-600 font-medium">*!/*/}
-      {/*  /!*        Đơn Hoạt Động*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*    </div>*!/*/}
-
-      {/*  /!*    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">*!/*/}
-      {/*  /!*      <div className="flex items-center justify-between mb-3">*!/*/}
-      {/*  /!*        <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
-      {/*  /!*          <DollarSign className="w-6 h-6 text-white" />*!/*/}
-      {/*  /!*        </div>*!/*/}
-      {/*  /!*        <div className="text-lg lg:text-xl font-bold text-emerald-600 truncate">*!/*/}
-      {/*  /!*          {formatVNNumber(statistics.totalPrice)}đ*!/*/}
-      {/*  /!*        </div>*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*      <div className="text-sm text-gray-600 font-medium">*!/*/}
-      {/*  /!*        Tổng Giá Trị*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*    </div>*!/*/}
-
-      {/*  /!*    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">*!/*/}
-      {/*  /!*      <div className="flex items-center justify-between mb-3">*!/*/}
-      {/*  /!*        <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
-      {/*  /!*          <Utensils className="w-6 h-6 text-white" />*!/*/}
-      {/*  /!*        </div>*!/*/}
-      {/*  /!*        <div className="text-2xl font-bold text-purple-600">*!/*/}
-      {/*  /!*          {statistics.totalQuantity}*!/*/}
-      {/*  /!*        </div>*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*      <div className="text-sm text-gray-600 font-medium">*!/*/}
-      {/*  /!*        Tổng Món*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*    </div>*!/*/}
-
-      {/*  /!*    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/50">*!/*/}
-      {/*  /!*      <div className="flex items-center justify-between mb-3">*!/*/}
-      {/*  /!*        <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
-      {/*  /!*          <Award className="w-6 h-6 text-white" />*!/*/}
-      {/*  /!*        </div>*!/*/}
-      {/*  /!*        <div className="text-2xl font-bold text-indigo-600">1</div>*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*      <div className="text-sm text-gray-600 font-medium">*!/*/}
-      {/*  /!*        Bàn Phục Vụ*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*    </div>*!/*/}
-      {/*  /!*  </div>*!/*/}
-
-      {/*  /!*  /!* Enhanced Payment Status *!/*!/*/}
-      {/*  /!*  <div className="border-t border-blue-200/50 pt-6">*!/*/}
-      {/*  /!*    <div className="flex items-center mb-4">*!/*/}
-      {/*  /!*      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3 shadow-lg">*!/*/}
-      {/*  /!*        <DollarSign className="w-4 h-4 text-white" />*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*      <h4 className="text-lg font-semibold text-gray-800">Trạng Thái Thanh Toán</h4>*!/*/}
-      {/*  /!*    </div>*!/*/}
-      {/*  /!*    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">*!/*/}
-      {/*  /!*      <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-4 shadow-lg border border-emerald-200/50 hover:shadow-xl transition-all duration-300">*!/*/}
-      {/*  /!*        <div className="flex items-center justify-between">*!/*/}
-      {/*  /!*          <div className="flex items-center space-x-3">*!/*/}
-      {/*  /!*            <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
-      {/*  /!*              <CheckCircle className="w-5 h-5 text-white" />*!/*/}
-      {/*  /!*            </div>*!/*/}
-      {/*  /!*            <span className="font-medium text-gray-700">*!/*/}
-      {/*  /!*              Đã Thanh Toán*!/*/}
-      {/*  /!*            </span>*!/*/}
-      {/*  /!*          </div>*!/*/}
-      {/*  /!*          <div className="text-2xl font-bold text-emerald-600">{statistics.paidOrders}</div>*!/*/}
-      {/*  /!*        </div>*!/*/}
-      {/*  /!*      </div>*!/*/}
-
-      {/*  /!*      <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-4 shadow-lg border border-red-200/50 hover:shadow-xl transition-all duration-300">*!/*/}
-      {/*  /!*        <div className="flex items-center justify-between">*!/*/}
-      {/*  /!*          <div className="flex items-center space-x-3">*!/*/}
-      {/*  /!*            <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">*!/*/}
-      {/*  /!*              <XCircle className="w-5 h-5 text-white" />*!/*/}
-      {/*  /!*            </div>*!/*/}
-      {/*  /!*            <span className="font-medium text-gray-700">*!/*/}
-      {/*  /!*              Chưa Thanh Toán*!/*/}
-      {/*  /!*            </span>*!/*/}
-      {/*  /!*          </div>*!/*/}
-      {/*  /!*          <div className="text-2xl font-bold text-red-600">{statistics.unpaidOrders}</div>*!/*/}
-      {/*  /!*        </div>*!/*/}
-      {/*  /!*      </div>*!/*/}
-      {/*  /!*    </div>*!/*/}
-      {/*  /!*  </div>*!/*/}
-      {/*  /!*</div>*!/*/}
-
-      {/*</div>*/}
-      {/* Enhanced Orders List */}
-      <div className="space-y-4">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
-            <Clock className="w-5 h-5 text-white" />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <ShoppingCart className="w-5 h-5 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900">Chi Tiết Đơn Hàng</h3>
+          <h3 className="text-2xl font-bold text-gray-900">
+            Chi Tiết Đơn Hàng
+          </h3>
         </div>
+      </div>
 
-        {showDateFilter && (
-          <DateRangeFilter
-            onSearch={async (startDate, endDate) => {
-              setHasUserClickedSearch(true); // ✅ đánh dấu user đã bấm search
-              handleDateSearch(startDate, endDate); // ✅ gọi API
-            }}
-            isLoading={isLoading}
-            error={error}
-            onClearError={handleReset}
-          />
-        )}
+      {/* Date Filter */}
+      {showDateFilter && (
+        <DateRangeFilter
+          onSearch={async (startDate, endDate) => {
+            setHasUserClickedSearch(true);
+            handleDateSearch(startDate, endDate);
+          }}
+          isLoading={isLoading}
+          error={error}
+          onClearError={handleReset}
+        />
+      )}
 
-        {!isLoading && ordersWithGroupedItems.length === 0 ? (
-          <div className="bg-gradient-to-br from-orange-50 to-yellow-50/30 rounded-2xl p-8 text-center border border-orange-200/50">
-            <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-white" />
+      {/* Table Container */}
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+        {/* Stats Header
+        <div className="px-8 py-5 bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
+          <div className="flex items-center gap-6">
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
+                Tổng đơn hàng
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {ordersWithGroupedItems.length}
+              </p>
             </div>
-            <h3 className="text-xl font-bold text-orange-700 mb-2">
-              Không có đơn hàng trong khoảng thời gian đã chọn
-            </h3>
-            <p className="text-orange-600">
-              Vui lòng thử chọn khoảng thời gian khác hoặc kiểm tra lại bộ lọc.
+            <div className="h-12 w-px bg-gray-300"></div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
+                Tổng tiền
+              </p>
+              <p className="text-xl font-bold text-emerald-600">
+                {formatVNNumber(
+                  ordersWithGroupedItems.reduce(
+                    (sum, o) => sum + o.totalPrice,
+                    0
+                  )
+                )}
+                đ
+              </p>
+            </div>
+            <div className="h-12 w-px bg-gray-300"></div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
+                Đã thanh toán
+              </p>
+              <p className="text-lg font-semibold text-blue-600">
+                {
+                  ordersWithGroupedItems.filter(
+                    (o) => o.paymentStatus === "Paid"
+                  ).length
+                }
+              </p>
+            </div>
+          </div>
+        </div> */}
+
+        {/* Search Bar */}
+
+        {/* Loading / Empty / Table */}
+        {isLoading ? (
+          <div className="py-24 text-center text-gray-500">
+            <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4 animate-spin" />
+            <p className="text-lg">Đang tải đơn hàng...</p>
+          </div>
+        ) : searchFilteredOrders.length === 0 ? (
+          <div className="py-24 text-center">
+            <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg">
+              {searchQuery
+                ? "Không tìm thấy đơn hàng phù hợp"
+                : "Không có đơn hàng"}
             </p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+              >
+                Xóa tìm kiếm
+              </button>
+            )}
           </div>
         ) : (
-          ordersWithGroupedItems.map((orderWithGroups, index) => (
-            <div
-              key={orderWithGroups.id}
-              className="bg-white rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-[1.02] overflow-hidden"
-              onClick={() => toggleExpand(orderWithGroups.id)}
-            >
-              {/* Order gradient header */}
-              <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600"></div>
-
-              <div className="p-4 sm:p-6">
-                <div className="flex justify-between items-start space-x-4">
-                  <div className="flex items-center space-x-4 min-w-0 flex-1">
-                    <div className="relative">
-                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                        <span className="text-white font-bold text-lg">
-                          #{orderWithGroups.orderCode}
-                        </span>
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                        <Star className="w-3 h-3 text-white" />
-                      </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gradient-to-r from-gray-50 to-slate-50 border-b-2 border-gray-200">
+                  <th className="px-6 py-4 text-left w-12"></th>
+                  <th className="px-6 py-4 text-left">
+                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Mã đơn
+                    </span>
+                  </th>
+                  <th className="px-6 py-4 text-left">
+                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Trạng thái
+                    </span>
+                  </th>
+                  <th className="px-6 py-4 text-left">
+                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Thanh toán
+                    </span>
+                  </th>
+                  <th className="px-6 py-4 text-left">
+                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Số Món
+                    </span>
+                  </th>
+                  <th className="px-6 py-4 text-right">
+                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Tổng tiền
+                    </span>
+                  </th>
+                  <th className="px-6 py-4 text-left">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        Thời gian
+                      </span>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-bold text-gray-900 text-lg mb-2">
-                        Đơn Hàng #{orderWithGroups.orderCode}...
-                      </h4>
-                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                        <div
-                          className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(
-                            orderWithGroups.status
-                          )}`}
-                        >
-                          {getOrderStatusIcon(orderWithGroups.status)}
-                          <span>
-                            {getOrderStatusLabel(orderWithGroups.status)}
-                          </span>
-                        </div>
-                        <div
-                          className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${getOrderStatusColor(
-                            orderWithGroups.paymentStatus === "paid"
-                              ? "completed"
-                              : "pending"
-                          )}`}
-                        >
-                          {getPaymentStatusIcon(orderWithGroups.paymentStatus)}
-                          <span>
-                            {getPaymentStatusLabel(
-                              orderWithGroups.paymentStatus
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {searchFilteredOrders.map((order, idx) => {
+                  const isExpanded = expandedRows[order.id];
+
+                  return (
+                    <React.Fragment key={order.id}>
+                      <tr className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
+                        {/* Expand Button */}
+                        <td className="px-6 py-5 align-top">
+                          <button
+                            onClick={() => toggleRowExpansion(order.id)}
+                            className="p-1 hover:bg-blue-100 rounded-lg transition-colors"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-5 h-5 text-blue-600" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-gray-400" />
                             )}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                      {formatVNNumber(orderWithGroups.totalPrice)}đ
-                    </div>
-                    <div className="flex items-center text-sm text-gray-500 mt-1">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      {getRelativeTime(orderWithGroups.createdTime ?? "")}
-                    </div>
-                  </div>
-                </div>
+                          </button>
+                        </td>
 
-                {currentExpandedId === orderWithGroups.id && (
-                  <div className="mt-6 pt-6 border-t border-gray-100">
-                    <div className="space-y-4">
-                      {/* Hiển thị grouped items thay vì items gốc */}
-                      {orderWithGroups.groupedItems.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="bg-gradient-to-r from-gray-50 to-blue-50/30 rounded-2xl p-4 hover:from-gray-100 hover:to-blue-50/50 transition-all duration-300 border border-gray-200/50"
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0">
-                            <div className="flex items-center space-x-4 min-w-0 flex-1">
-                              <div className="relative">
-                                <img
-                                  src={item.imageUrl}
-                                  alt={item.productName}
-                                  className="w-16 h-16 rounded-2xl object-cover shadow-lg border-2 border-white"
-                                />
-                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
-                                  {item.quantity}
-                                </div>
+                        {/* Order Code */}
+                        <td className="px-6 py-5 align-top">
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <div className="text-sm font-semibold text-gray-900">
+                                {order.orderCode}
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-gray-900 text-lg mb-1">
-                                  {item.productName}
-                                </div>
-                                <div className="text-sm text-gray-600 mb-2">
-                                  Size: {item.sizeName} × {item.quantity}
-                                </div>
-                                {item.note && (
-                                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 text-sm text-amber-700">
-                                    <MessageSquare className="w-4 h-4 inline mr-1" />
-                                    {item.note}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col sm:items-end space-y-2">
-                              <span
-                                className={`px-4 py-2 text-sm font-medium rounded-full ${getOrderStatusColor(
-                                  item.status
-                                )} shadow-sm`}
-                              >
-                                {
-                                  OrderItemStatusLabel[
-                                    item.status.toLowerCase()
-                                  ]
-                                }
-                              </span>
-                              <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                                {formatVNCurrency(
-                                  item.price +
-                                    item.toppings.reduce(
-                                      (sum, t) => sum + t.price,
-                                      0
-                                    )
-                                )}
-                              </span>
                             </div>
                           </div>
+                        </td>
 
-                          {item.toppings.length > 0 && (
-                            <div className="mt-4 pl-20 space-y-2">
-                              {item.toppings.map((topping, tIdx) => (
-                                <div
-                                  key={tIdx}
-                                  className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2 border border-gray-200/50"
-                                >
-                                  <span className="text-sm text-gray-700 font-medium">
-                                    + {topping.name}
-                                  </span>
-                                  <span className="text-sm font-semibold text-emerald-600">
-                                    +{formatVNCurrency(topping.price)}
-                                  </span>
-                                </div>
-                              ))}
+                        {/* Order Status */}
+                        <td className="px-6 py-5 align-top">
+                          <span
+                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border ${getOrderStatusColor(
+                              order.status
+                            )}`}
+                          >
+                            {getOrderStatusIcon(order.status)}
+                            {getOrderStatusLabel(order.status)}
+                          </span>
+                        </td>
+
+                        {/* Payment Status */}
+                        <td className="px-6 py-5 align-top">
+                          <span
+                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border ${getOrderStatusColor(
+                              order.paymentStatus === "Paid"
+                                ? "paid"
+                                : "pending"
+                            )}`}
+                          >
+                            {order.paymentStatus === "Paid" ? (
+                              <CheckCircle className="w-4 h-4" />
+                            ) : (
+                              <Hourglass className="w-4 h-4" />
+                            )}
+                            {getPaymentStatusLabel(order.paymentStatus)}
+                          </span>
+                        </td>
+
+                        {/* Items Summary */}
+                        <td className="px-6 py-5">
+                          <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-200 inline-block">
+                            <span className="text-xs text-blue-700">
+                              <span className="font-semibold">
+                                {order.groupedItems?.length || 0}
+                              </span>{" "}
+                              món
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Total Price */}
+                        <td className="px-6 py-5 text-right align-top">
+                          <div className="text-xl font-bold text-emerald-600">
+                            {formatVNNumber(order.totalPrice)}đ
+                          </div>
+                        </td>
+
+                        {/* Time */}
+                        <td className="px-6 py-5 align-top">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar className="w-4 h-4" />
+                            {getRelativeTime(order.createdTime ?? "")}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {order.createdTime}
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Expanded Details Row */}
+                      {isExpanded && (
+                        <tr className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                          <td></td>
+                          <td colSpan={6} className="px-6 py-4">
+                            <div className="bg-white rounded-lg border-2 border-blue-200 p-4 shadow-sm">
+                              <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                <Utensils className="w-4 h-4 text-blue-600" />
+                                Danh sách món ăn
+                              </h4>
+
+                              <div className="space-y-2">
+                                {order.groupedItems?.map((item, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-4 flex-1">
+                                      <div className="flex-1">
+                                        <div className="font-semibold text-gray-900">
+                                          {item.productName}
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                          Size:{" "}
+                                          {item.sizeName
+                                            ?.charAt(0)
+                                            .toUpperCase()}{" "}
+                                          × {item.quantity}
+                                        </div>
+
+                                        {item.note && (
+                                          <div className="mt-1 text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded inline-flex items-center gap-1">
+                                            <MessageSquare className="w-3 h-3" />
+                                            {item.note}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                      <span
+                                        className={`px-3 py-1 text-xs font-medium rounded-full ${getOrderStatusColor(
+                                          item.status
+                                        )}`}
+                                      >
+                                        {
+                                          OrderItemStatusLabel[
+                                            item.status.toLowerCase()
+                                          ]
+                                        }
+                                      </span>
+                                      <span className="text-lg font-bold text-emerald-600 min-w-[100px] text-right">
+                                        {formatVNCurrency(
+                                          item.price +
+                                            item.toppings.reduce(
+                                              (sum, t) => sum + t.price,
+                                              0
+                                            )
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
