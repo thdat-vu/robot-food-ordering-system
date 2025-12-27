@@ -36,6 +36,7 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
 
 interface MapPanelProps {
   readyTables: number[];
+  readyTablesForCluster?: number[]; // Tables with Ready status for cluster highlighting
   servedTables: number[];
   selectedTables: number[];
   tableSequence: number[];
@@ -49,6 +50,7 @@ interface MapPanelProps {
 
 const MapPanel = ({
   readyTables,
+  readyTablesForCluster,
   servedTables,
   selectedTables,
   tableSequence,
@@ -105,6 +107,7 @@ const MapPanel = ({
         <div className="flex-1 relative bg-gray-50 min-h-[260px] sm:min-h-[340px] md:min-h-[420px] lg:min-h-[520px]">
           <RestaurantMap
             readyTables={readyTables}
+            readyTablesForCluster={readyTablesForCluster}
             servedTables={servedTables}
             selectedTables={selectedTables}
             tableSequence={tableSequence}
@@ -225,9 +228,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Get table numbers by status
   const tableNumbersByStatus = React.useMemo(() => {
-    // Get tables with orders ready to serve (blue)
+    // Get tables with orders ready to serve (blue) - for color display
     // Include tables with dishes in: "bắt đầu phục vụ", "đang chờ", or "đang thực hiện"
-    const readyTables = Array.from(
+    const readyTablesForColor = Array.from(
       new Set(
         dishes
           .filter((dish) => 
@@ -235,6 +238,16 @@ const ServePanel: React.FC<ServePanelProps> = ({
             dish.status === "đang chờ" ||
             dish.status === "đang thực hiện"
           )
+          .map((dish) => dish.tableNumber)
+      )
+    ).sort((a, b) => a - b);
+
+    // Get tables with orders ready to serve (blue) - for cluster highlighting
+    // Only include tables that have at least one dish with status "bắt đầu phục vụ" (Ready)
+    const readyTablesForCluster = Array.from(
+      new Set(
+        dishes
+          .filter((dish) => dish.status === "bắt đầu phục vụ")
           .map((dish) => dish.tableNumber)
       )
     ).sort((a, b) => a - b);
@@ -254,7 +267,8 @@ const ServePanel: React.FC<ServePanelProps> = ({
     ).sort((a, b) => a - b);
 
     return {
-      ready: readyTables,
+      ready: readyTablesForColor,
+      readyForCluster: readyTablesForCluster,
       served: servedTables,
       selected: selectedTables,
     };
@@ -508,6 +522,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
           {activeTab === "bắt đầu phục vụ" || activeTab === "phục vụ nhanh" ? (
             <MapPanel
               readyTables={tableNumbersByStatus.ready}
+              readyTablesForCluster={tableNumbersByStatus.readyForCluster}
               servedTables={tableNumbersByStatus.served}
               selectedTables={tableNumbersByStatus.selected}
               tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
@@ -585,6 +600,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
               <div className="flex-1 relative bg-gray-50 min-h-[260px] sm:min-h-[340px] md:min-h-[420px] lg:min-h-[520px]">
                 <RestaurantMap
                   readyTables={tableNumbersByStatus.ready}
+                  readyTablesForCluster={tableNumbersByStatus.readyForCluster}
                   servedTables={tableNumbersByStatus.served}
                   selectedTables={tableNumbersByStatus.selected}
                   tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}

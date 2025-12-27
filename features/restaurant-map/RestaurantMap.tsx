@@ -23,6 +23,7 @@ interface Dish {
 
 interface RestaurantMapProps {
   readyTables: number[];
+  readyTablesForCluster?: number[]; // Tables with Ready status for cluster highlighting
   servedTables: number[];
   selectedTables: number[];
   tableSequence?: number[];
@@ -230,6 +231,7 @@ const buildRobotPathSegments = (sequence: number[], start: Position) => {
 
 export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   readyTables,
+  readyTablesForCluster,
   servedTables,
   selectedTables,
   tableSequence,
@@ -243,7 +245,9 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   // Move robot start point to top-left when robot mode is enabled
   const staffPosition: Position = isRobotMode ? { x: 90, y: 40 } : { x: 90, y: 300 };
-  const readyClusters = useMemo(() => detectClusters(readyTables), [readyTables]);
+  // Use readyTablesForCluster for highlighting, fallback to readyTables if not provided
+  const tablesForCluster = readyTablesForCluster ?? readyTables;
+  const readyClusters = useMemo(() => detectClusters(tablesForCluster), [tablesForCluster]);
 
   // Get tables that have dishes in the current tab (can be selected)
   const selectableTables = useMemo(() => {
