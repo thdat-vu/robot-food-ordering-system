@@ -4,7 +4,33 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="" />
+    <list default="true" id="52491a30-2310-417a-9219-e6ca76a7cacd" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/components/common/ComplainSpeedDial.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/OrtherServicePage.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/PhoneDialog.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/RequestDialog.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/Thankyou_screen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/common/top1000request.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api-endpoint-env.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api-endpoint-env.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/FeedbackApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/FeedbackApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/TableApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/api/TableApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/OrderList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/OrderList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ProductionDetail.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/features/components/ProductionsPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/features/components/ProductionsPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/payment/success/SuccessPageContent.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/payment/success/SuccessPageContent.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/BillDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/BillDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/BillPDFPreview.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/BillPDFPreview.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/FeedbackDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/FeedbackDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/common/OrderDisplay.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entites/request/FeedbackRequest.ts" beforeDir="false" afterPath="$PROJECT_DIR$/entites/request/FeedbackRequest.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/customHooks/useFeedbackHooks.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/customHooks/useFeedbackHooks.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/customHooks/useTableHooks.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/customHooks/useTableHooks.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/next.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -13,8 +39,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="TypeScript File" />
         <option value="TypeScript JSX File" />
+        <option value="TypeScript File" />
       </list>
     </option>
   </component>
@@ -51,7 +77,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;develop__mobileweb&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/NhatTruong/Desktop/MobileWeb - Sao chép/public&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/NhatTruong/Desktop/MobileWeb - Sao chép/components/common&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -65,6 +91,7 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\NhatTruong\Desktop\MobileWeb - Sao chép\components\common" />
       <recent name="C:\Users\NhatTruong\Desktop\MobileWeb - Sao chép\public" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
@@ -233,6 +260,24 @@
       <workItem from="1763627853782" duration="1932000" />
       <workItem from="1763641195524" duration="11056000" />
       <workItem from="1763655693922" duration="9665000" />
+      <workItem from="1764002687052" duration="647000" />
+      <workItem from="1764237443608" duration="12779000" />
+      <workItem from="1764660685954" duration="926000" />
+      <workItem from="1765210030844" duration="1826000" />
+      <workItem from="1765289932750" duration="371000" />
+      <workItem from="1765372151106" duration="25000" />
+      <workItem from="1765437558416" duration="2153000" />
+      <workItem from="1765468936407" duration="3293000" />
+      <workItem from="1765848096314" duration="701000" />
+      <workItem from="1765946895377" duration="3258000" />
+      <workItem from="1766030892202" duration="11175000" />
+      <workItem from="1766073900035" duration="4371000" />
+      <workItem from="1766492237446" duration="947000" />
+      <workItem from="1766518556498" duration="7000" />
+      <workItem from="1766591267723" duration="2257000" />
+      <workItem from="1766749478670" duration="8000" />
+      <workItem from="1766750019528" duration="2720000" />
+      <workItem from="1766753905669" duration="7000" />
     </task>
     <servers />
   </component>
@@ -275,7 +320,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/app/features/components/ProductionDetail.tsx</url>
-          <line>93</line>
+          <line>89</line>
           <option name="timeStamp" value="23" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
@@ -285,29 +330,38 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/app/[id]/page.tsx</url>
-          <line>230</line>
+          <line>228</line>
           <option name="timeStamp" value="27" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/app/[id]/page.tsx</url>
-          <line>534</line>
+          <line>532</line>
           <option name="timeStamp" value="31" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/app/[id]/page.tsx</url>
-          <line>92</line>
+          <line>91</line>
           <option name="timeStamp" value="32" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/app/[id]/page.tsx</url>
-          <line>186</line>
+          <line>184</line>
           <option name="timeStamp" value="33" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/components/common/ChoceToping.tsx</url>
           <line>80</line>
-          <properties lambdaOrdinal="-1" />
           <option name="timeStamp" value="34" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/components/common/OrderDisplay.tsx</url>
+          <line>390</line>
+          <option name="timeStamp" value="36" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/components/common/OrderDisplay.tsx</url>
+          <line>422</line>
+          <option name="timeStamp" value="37" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -1,5 +1,5 @@
 import {useApiHandler} from "@/hooks/useApiHandler";
-import {AcceptShareTable, CheckoutTable, CheckTable, GetTableForID, ShareTable} from "@/api/TableApi";
+import {AcceptShareTable, AddPoind, CheckoutTable, CheckTable, GetTableForID, ShareTable} from "@/api/TableApi";
 
 export const useGetTable = () => {
     return useApiHandler(GetTableForID);
@@ -20,4 +20,8 @@ export const useCheckoutTable = () => {
 
 export const useCheckTable = () => {
     return useApiHandler(CheckTable);
+}
+
+export const useAddPoind = () => {
+    return useApiHandler(AddPoind);
 }

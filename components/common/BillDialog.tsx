@@ -43,7 +43,6 @@ export const BillDialog: React.FC<BillDialogProps> = ({
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
 
-    // Tạo key từ tất cả các thông tin của sản phẩm để so sánh
     const createKeyFromOrderDetail = (item: InForProductOrderDetail): string => {
         let toppingString = '';
         const sortedToppings = [...(item.toppings || [])].sort((a, b) => a.id.localeCompare(b.id));
@@ -53,7 +52,6 @@ export const BillDialog: React.FC<BillDialogProps> = ({
         return `${item.productId}_${item.productSizeId}_${toppingString}_${item.note || ''}`;
     };
 
-    // Group items by exact match
     const groupedItems = useMemo((): GroupedItem[] => {
         if (!items) return [];
 
@@ -88,7 +86,7 @@ export const BillDialog: React.FC<BillDialogProps> = ({
         const date = new Date(value);
 
         if (isNaN(date.getTime())) {
-            return "Không xác định"; // hoặc ""
+            return "Không xác định";
         }
 
         return new Intl.DateTimeFormat("vi-VN", {
@@ -102,7 +100,6 @@ export const BillDialog: React.FC<BillDialogProps> = ({
     };
 
 
-    // Format size name to short version
     const formatSizeName = (sizeName: string): string => {
         const sizeMap: Record<string, string> = {
             'large': 'L',

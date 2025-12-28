@@ -6,6 +6,7 @@ import {IoIosArrowBack} from "react-icons/io";
 import {ShoppingCartList} from "@/components/common/ShoppingCartList";
 import {OrderDisplay} from "@/components/common/OrderDisplay";
 import {useTableContext} from "@/hooks/context/Context";
+import {OrtherServicePage} from "@/components/common/OrtherServicePage";
 
 
 export const OrderList: React.FC<{ id: string }> = ({id}) => {
@@ -39,6 +40,7 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
                     {[
                         {label: "Giỏ đồ ăn", key: "food"},
                         {label: "Món đã gọi", key: "ordered"},
+                        {label: "Khác", key: "orther"},
                     ].map((tab) => (
                         <button
                             key={tab.key}
@@ -73,8 +75,10 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
                         {
                             activeTab === "food" ? (
                                 <ShoppingCartList onChange={setActiveTab}/>
-                            ) : (
+                            ) : activeTab === "ordered" ? (
                                 <OrderDisplay handleChange={setCount}/>
+                            ) : (
+                                <OrtherServicePage/>
                             )
                         }
                     </div>

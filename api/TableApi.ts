@@ -1,6 +1,6 @@
 import {Table} from "@/entites/respont/Table";
 import api from "@/api/api";
-import {API_TABLE} from "@/api-endpoint-env";
+import {API_ADD_POIND, API_TABLE} from "@/api-endpoint-env";
 import {BaseEntityResponse_v2} from "@/entites/BaseEntity";
 
 export type ErroTable = {
@@ -105,5 +105,13 @@ export interface checkTable {
 
 export const CheckTable = async (idTable: string, token: string): Promise<BaseEntityResponse_v2<checkTable>> => {
     const res = await api.get(`${API_TABLE}/${idTable}/checkDeviceToken/${token}`);
+    return res.data;
+}
+
+export const AddPoind = async (tableId: string, deviceId: string, phoneNumber: string, name: string): Promise<BaseEntityResponse_v2<any>> => {
+    const res = await api.post(`${API_ADD_POIND}/${tableId}/customer?deviceId=${deviceId}`, {
+        phoneNumber,
+        name
+    });
     return res.data;
 }

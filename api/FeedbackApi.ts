@@ -1,6 +1,6 @@
 import api from "@/api/api";
 import {api_feedback, API_FEEDBACK} from "@/api-endpoint-env";
-import {BaseEntityData} from "@/entites/BaseEntity";
+import {BaseEntityData, BaseEntityResponse_v2} from "@/entites/BaseEntity";
 import {Feedback} from "@/entites/respont/Feedback";
 import {FeedbackRequest} from "@/entites/request/FeedbackRequest";
 
@@ -29,5 +29,26 @@ export const CreateNewFeedback = async (tableId: string, orderItemId: string, ra
         comment,
         type: 0
     })
+    return res.data;
+}
+
+export interface Camplanin {
+    complainId: string,
+    idTable: string,
+    feedBack: string,
+    isPending: boolean,
+    createData: Date,
+    dtos: dto[]
+    resolutionNote: string,
+}
+
+export interface dto {
+    orderItemId: string,
+    orderItemName: string,
+    status: string,
+}
+
+export const GetCamplain = async (idTable: string): Promise<BaseEntityResponse_v2<Camplanin[]>> => {
+    const res = await api.get(`${API_FEEDBACK}/${idTable}?isCustomer=true`);
     return res.data;
 }

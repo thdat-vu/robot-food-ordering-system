@@ -80,13 +80,12 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
     const hasFetchedRef = useRef<boolean>(false);
     const isInitializingRef = useRef<boolean>(false);
 
-    // States
     const [step, setStep] = useState<number>(1);
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scannedResult, setScannedResult] = useState<string>("");
     const [data, setData] = useState<Table>();
     const [loading, setLoading] = useState<boolean>(true);
-    const [isFetchingData, setIsFetchingData] = useState<boolean>(false); // ✅ Loading state cho fetch data
+    const [isFetchingData, setIsFetchingData] = useState<boolean>(false);
     const [showWebViewPrompt, setShowWebViewPrompt] = useState<boolean>(false);
     const [hasRedirected, setHasRedirected] = useState<boolean>(false);
     const [webViewApp, setWebViewApp] = useState<string>('');
@@ -99,7 +98,6 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
     const [shouldShowErrorDialog, setShouldShowErrorDialog] = useState<boolean>(false);
     const [hasTableError, setHasTableError] = useState<boolean>(false);
 
-    // WebView check effect
     useEffect(() => {
         const handleWebViewCheck = () => {
             if (!hasRedirected && isInWebView()) {
@@ -179,7 +177,7 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
             }
 
             hasFetchedRef.current = true;
-            setIsFetchingData(true); // ✅ Bắt đầu loading
+            setIsFetchingData(true);
 
             console.log("Fetching table data...");
 

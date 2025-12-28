@@ -11,3 +11,4 @@ export const API_FEEDBACK: string = `/api/Complain`
 export const API_PAYMENT: string = `/api/PayOS`
 export const API_SETTING: string = `/api/Settings`
 export const api_feedback = '/api/Feedback'
+export const API_ADD_POIND: string = `/api/table`

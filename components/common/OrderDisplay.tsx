@@ -4,14 +4,11 @@ import {
     MapPin,
     CreditCard,
     RefreshCw,
-    AlertCircle,
     ShoppingBag,
     Package,
     Clock,
     ArrowLeft,
     Sparkles,
-    ChevronDown,
-    ChevronUp
 } from 'lucide-react';
 import {RiBillLine} from "react-icons/ri";
 
@@ -20,8 +17,6 @@ import {useGetOrderWithIdTableAndToken} from "@/hooks/customHooks/useOrderHooks"
 import formatCurrency from "@/unit/unit";
 import {Payment} from "@/app/features/components/Payment";
 import {useTableContext} from "@/hooks/context/Context";
-import {VscFeedback} from "react-icons/vsc";
-import {FeedbackDialog} from "@/components/common/FeedbackDialog";
 import {useCreateFeedback} from "@/hooks/customHooks/useFeedbackHooks";
 import {FeedbackRequest} from "@/entites/request/FeedbackRequest";
 import {OrderStatus} from "@/components/common/OrderStatus";
@@ -33,6 +28,7 @@ import {BaseEntityData, BaseEntityResponse_v2} from "@/entites/BaseEntity";
 import {useRouter} from "next/navigation";
 import {useGetSetting} from "@/hooks/customHooks/useSettingHooks";
 import {BillDialog} from "@/components/common/BillDialog";
+import BasicSpeedDial from "@/components/common/ComplainSpeedDial";
 
 type OrderDisplay = {
     handleChange: (number: number) => void;
@@ -140,37 +136,33 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
         })()
     }, []);
 
-    // Effect để fetch data lần đầu
     useEffect(() => {
         if (idTable && token) {
-            fetchOrderData(false); // Initial load
+            fetchOrderData(false);
         }
     }, [idTable, token]);
 
-    // Effect riêng cho auto-refresh sau mỗi 3 giây
     useEffect(() => {
-        // Clear interval cũ nếu có
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
         }
 
-        // Chỉ setup interval khi đã có data
+
         if (idTable && token && orderData) {
             intervalRef.current = setInterval(() => {
-                fetchOrderData(true); // Background update - không hiển thị loading
-            }, 3000); // 3 giây
+                fetchOrderData(true);
+            }, 3000);
         }
 
-        // Cleanup function
+
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
         };
-    }, [idTable, token, orderData]); // Dependencies để re-setup interval khi cần
+    }, [idTable, token, orderData]);
 
-    // Cleanup khi component unmount
     useEffect(() => {
         isMountedRef.current = true;
 
@@ -184,7 +176,7 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
-        await fetchOrderData(false); // Manual refresh - hiển thị loading
+        await fetchOrderData(false);
         setIsRefreshing(false);
     };
 
@@ -220,7 +212,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
         const request: FeedbackRequest = {
             tableId: table.tableId,
             complainNote: "Thanh Toan Tien",
-            orderItemIds: [],
             title: "",
         };
 
@@ -433,12 +424,12 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
                                                         <h4 className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
                                                             {item.productName}
                                                         </h4>
-                                                        <button
-                                                            onClick={() => handleOpenFeedback(isSingle ? [item] : group.items)}
-                                                            className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-amber-100 hover:bg-amber-200 text-amber-600 rounded-lg flex items-center justify-center transition-all"
-                                                        >
-                                                            <VscFeedback size={14} className="sm:w-4 sm:h-4"/>
-                                                        </button>
+                                                        {/*<button*/}
+                                                        {/*    onClick={() => handleOpenFeedback(isSingle ? [item] : group.items)}*/}
+                                                        {/*    className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-amber-100 hover:bg-amber-200 text-amber-600 rounded-lg flex items-center justify-center transition-all"*/}
+                                                        {/*>*/}
+                                                        {/*    <VscFeedback size={14} className="sm:w-4 sm:h-4"/>*/}
+                                                        {/*</button>*/}
                                                     </div>
 
                                                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
@@ -494,6 +485,9 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
                         </div>
                     </div>
                 </div>
+                <div className="fixed bottom-4 right-4 z-50">
+                    <BasicSpeedDial/>
+                </div>
             </div>
 
             <Payment
@@ -505,12 +499,12 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
                 }}
             />
 
-            <FeedbackDialog
-                isOpen={openFeedback}
-                productInfo={selectedItem}
-                listIds={listIdorderItem}
-                onClose={() => setOpenFeedback(false)}
-            />
+            {/*<FeedbackDialog*/}
+            {/*    isOpen={openFeedback}*/}
+            {/*    productInfo={selectedItem}*/}
+            {/*    listIds={listIdorderItem}*/}
+            {/*    onClose={() => setOpenFeedback(false)}*/}
+            {/*/>*/}
 
             {dialogData && (
                 <MobileDialog

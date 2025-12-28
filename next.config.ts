@@ -46,8 +46,6 @@ const nextConfig: NextConfig = {
         minimumCacheTTL: 60,
     },
 
-    swcMinify: true,
-
     compiler: {
         removeConsole: process.env.NODE_ENV === "production",
     },

@@ -80,15 +80,13 @@ export default function ProductionsPage({id}: { id: string }) {
 
     return (
         <div className="min-h-screen w-full bg-gray-50">
-            {/* Header Sticky */}
+
             <Header id={id} handeChangName={handeChangName}/>
 
-            {/* Category List - Sticky, NO gap */}
             <div className="sticky top-[57px] bg-white z-40">
                 <CategoryList category={listTpe} handleChange={handleChangeType}/>
             </div>
 
-            {/* Main Content */}
             <main className="px-3 sm:px-4 py-3">
                 {loadingProducts ? (
                     <Loading/>

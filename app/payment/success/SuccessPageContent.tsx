@@ -29,7 +29,6 @@ export default function SuccessPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // Lấy id từ URL ?id=xxxx
     const id = searchParams.get("id") ?? "";
 
     const [loading, setLoading] = useState(true);
@@ -39,7 +38,6 @@ export default function SuccessPageContent() {
     const {deviceToken} = useDeviceToken();
     const {run: runGetTable} = useGetTable();
 
-    // Load thông tin table
     useEffect(() => {
         if (!id || !deviceToken) {
             setLoading(false);
@@ -57,9 +55,9 @@ export default function SuccessPageContent() {
                 setTable(t.id, t.status, t.name);
                 setLocalTableId(t.id);
 
-                if (tableId === t.id) {
+                setTimeout(() => {
                     localStorage.removeItem(SHOPPING_CARTS);
-                }
+                }, 30);
             }
 
             setLoading(false);
@@ -68,7 +66,7 @@ export default function SuccessPageContent() {
         loadTable();
     }, [id, deviceToken]);
 
-    // Quay lại trang order
+
     const handleGoHome = () => {
         router.push(`/productions/order/${localTableId || id}`);
     };

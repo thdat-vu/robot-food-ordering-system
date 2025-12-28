@@ -13,9 +13,6 @@ import {MobileDialog} from "@/components/common/MobileDialog";
 import {useTableContext} from "@/hooks/context/Context";
 import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
 import {useGetTable} from "@/hooks/customHooks/useTableHooks";
-import {ErroTable} from "@/api/TableApi";
-import {Table} from "@/entites/respont/Table";
-
 
 export default function ProductionDetailPage({id}: { id: string }) {
 
@@ -63,12 +60,11 @@ export default function ProductionDetailPage({id}: { id: string }) {
         if (dataProduct?.data) {
             setData(dataProduct.data)
             if (dataProduct.data) {
-                // Tìm size Large để set làm mặc định
+
                 const largeSize = dataProduct.data.sizes.find(s =>
                     s.sizeName.toLowerCase().includes('large') || s.sizeName.toLowerCase().includes('lớn')
                 );
 
-                // Nếu không có Large thì lấy size đầu tiên
                 const defaultSize = largeSize || dataProduct.data.sizes[0];
 
                 setSize({
@@ -109,6 +105,20 @@ export default function ProductionDetailPage({id}: { id: string }) {
         setOpent(false);
     }, [setProduct]);
 
+    const sizeOrder: Record<string, number> = {
+        s: 1,
+        m: 2,
+        l: 3
+    };
+
+    const getSizeKey = (sizeName: string): number => {
+        const lower = sizeName.toLowerCase();
+        if (lower.includes('small') || lower.includes('nhỏ')) return sizeOrder.s;
+        if (lower.includes('medium') || lower.includes('vừa')) return sizeOrder.m;
+        if (lower.includes('large') || lower.includes('lớn')) return sizeOrder.l;
+        return 99;
+    };
+
 
     return (
         <>
@@ -117,7 +127,7 @@ export default function ProductionDetailPage({id}: { id: string }) {
                     <Loading/>
                 ) : data && data.name ?
                     (
-                        <div className="mx-auto bg-white min-h-screen">
+                        <div className="mx-auto w-full bg-white min-h-screen">
                             <div className="relative">
                                 <button
                                     className="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white transition-all duration-200"
@@ -182,55 +192,49 @@ export default function ProductionDetailPage({id}: { id: string }) {
 
 
                                     <div className="flex gap-3 justify-center">
-                                        {data.sizes.map(value => (
-                                            <button
-                                                key={value.id}
-                                                onClick={() => {
-                                                    setSize({
-                                                        id: value.id,
-                                                        name: value.sizeName,
-                                                        price: value.price
-                                                    })
-                                                }}
-                                                className={`flex-1 max-w-[120px] py-4 px-6 rounded-2xl border-2 transition-all duration-200 ${
-                                                    size?.name === value.sizeName
-                                                        ? 'border-green-500 bg-green-50 shadow-md scale-105'
-                                                        : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-                                                }`}
-                                            >
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <div className={`text-3xl font-bold ${
+                                        {data.sizes
+                                            .slice()
+                                            .sort((a, b) => getSizeKey(a.sizeName) - getSizeKey(b.sizeName))
+                                            .map(value => (
+                                                <button
+                                                    key={value.id}
+                                                    onClick={() => {
+                                                        setSize({
+                                                            id: value.id,
+                                                            name: value.sizeName,
+                                                            price: value.price
+                                                        })
+                                                    }}
+                                                    className={`flex-1 max-w-[120px] py-4 px-6 rounded-2xl border-2 transition-all duration-200 ${
                                                         size?.name === value.sizeName
-                                                            ? 'text-green-600'
-                                                            : 'text-gray-700'
-                                                    }`}>
-                                                        {getSizeSymbol(value.sizeName)}
+                                                            ? 'border-green-500 bg-green-50 shadow-md scale-105'
+                                                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                                                    }`}
+                                                >
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className={`text-3xl font-bold ${
+                                                            size?.name === value.sizeName
+                                                                ? 'text-green-600'
+                                                                : 'text-gray-700'
+                                                        }`}>
+                                                            {getSizeSymbol(value.sizeName)}
+                                                        </div>
+                                                        <div className={`text-xs font-medium ${
+                                                            size?.name === value.sizeName
+                                                                ? 'text-green-600'
+                                                                : 'text-gray-500'
+                                                        }`}>
+                                                            {formatCurrency(Number(value.price))}
+                                                        </div>
                                                     </div>
-                                                    <div className={`text-xs font-medium ${
-                                                        size?.name === value.sizeName
-                                                            ? 'text-green-600'
-                                                            : 'text-gray-500'
-                                                    }`}>
-                                                        {formatCurrency(Number(value.price))}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ))}
+                                                </button>
+                                            ))}
                                     </div>
 
 
                                     <div
                                         className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-100 shadow-lg">
                                         <div className="flex items-center gap-3">
-                                            {/*<Button*/}
-                                            {/*    content="Gọi món ngay"*/}
-                                            {/*    handle={() => {*/}
-                                            {/*        handle(data?.id, data?.name, data?.urlImg)*/}
-                                            {/*        setContent('Gọi món ngay');*/}
-                                            {/*        setOpent(true);*/}
-                                            {/*    }}*/}
-                                            {/*    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl transition-all duration-300 transform active:scale-95 text-lg"*/}
-                                            {/*/>*/}
 
                                             <button
                                                 onClick={async () => {
