@@ -17,6 +17,7 @@ import {
   ChevronUp,
   Search,
   ShoppingCart,
+  LogOut,
 } from "lucide-react";
 import { OrderCardProps } from "@/entites/moderator/FeedbackModole";
 import {
@@ -77,6 +78,10 @@ const OrderCard: React.FC<OrderCardProps> = ({
     }
   }, [propOrders]);
 
+  console.log(
+    "🚀 ~ file: OrderCard.tsx:216 ~ OrderCard ~ filteredOrders:",
+    filteredOrders
+  );
   const handleDateSearch = useCallback(
     async (startDate: string | null, endDate: string | null) => {
       if (!hasUserClickedSearch) return;
@@ -165,6 +170,8 @@ const OrderCard: React.FC<OrderCardProps> = ({
         return <XCircle className="w-4 h-4" />;
       case "redorequested":
         return <RefreshCw className="w-4 h-4" />;
+      case "abandoned":
+        return <LogOut className="w-4 h-4 text-gray-500" />;
       default:
         return <Clock className="w-4 h-4" />;
     }
@@ -188,6 +195,8 @@ const OrderCard: React.FC<OrderCardProps> = ({
         return "Yêu cầu hủy món";
       case "redorequested":
         return "Yêu cầu đổi món";
+      case "abandoned":
+        return "Khách rời đi";
       default:
         return "Không xác định";
     }
@@ -215,6 +224,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
       redorequested: "bg-purple-50 text-purple-700 border-purple-200",
       requestcancel: "bg-violet-50 text-violet-700 border-violet-200",
       served: "bg-teal-50 text-teal-700 border-teal-200",
+      abandoned: "bg-gray-50 text-gray-700 border-gray-200",
       paid: "bg-green-50 text-green-700 border-green-200",
     };
     return (
@@ -226,12 +236,13 @@ const OrderCard: React.FC<OrderCardProps> = ({
   const OrderItemStatusLabel: Record<string, string> = {
     pending: "Đang chờ xác nhận",
     preparing: "Đang chuẩn bị món",
-    delivering: "Đang giao hàng",
-    ready: "Sẵn sàng / Đã xong món",
+    delivering: "Đang giao món",
+    ready: "Sẵn sàng phục vụ",
     served: "Đã phục vụ",
     completed: "Hoàn thành",
     cancelled: "Đã hủy",
-    requestcancel: "Yêu cầu đổi món",
+    requestcancel: "Yêu cầu hủy / đổi món",
+    abandoned: "Món chưa được xử lý (khách đã rời bàn)",
   };
 
   // Determine which orders to display
