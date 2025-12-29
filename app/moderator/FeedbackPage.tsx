@@ -458,6 +458,10 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
 
     setData(sorted);
   };
+  const handleClearSelection = () => {
+    setSelectedFeedbacks(new Set());
+    setListId([]);
+  };
 
   // ✅ handler gửi yêu cầu nhanh (giữ y như code bạn đang làm)
   const handleSendQuickRequest = async (
@@ -470,7 +474,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
         idTable,
         [feedbackId],
         `Yêu cầu nhanh: ${feedbackText}`,
-        false
+        true
       );
       addToast("Đã gửi yêu cầu nhanh đến phục vụ", "success");
       await loadFeedbackData();
@@ -701,6 +705,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
               onSuggestionPick={handleSuggestionClick}
               onSingleCheck={handleSingleCheck}
               onSendQuickRequest={handleSendQuickRequest}
+              onClearSelection={handleClearSelection}
             />
           )}
         </div>
