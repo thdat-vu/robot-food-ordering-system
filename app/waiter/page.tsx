@@ -226,6 +226,21 @@ function WaiterPageContent() {
         setPanel("control");
     };
 
+    // Handler to clear all selections
+    const handleClearAllSelections = () => {
+        const selectedDishes = dishes.filter(d => d.selected);
+        if (selectedDishes.length === 0) {
+            toast.info("Không có món nào được chọn");
+            return;
+        }
+        
+        selectedDishes.forEach(dish => {
+            toggleDish(dish.id);
+        });
+        
+        toast.success(`Đã xóa ${selectedDishes.length} món đã chọn`);
+    };
+
     if (isLoading) {
         return (
             <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -359,6 +374,7 @@ function WaiterPageContent() {
                                     onToggleRobotMode={handleToggleRobotMode}
                                     tableLastUpdateTimes={tableLastUpdateTimes}
                                     onTableSelect={handleTableSelect}
+                                    onClearAllSelections={handleClearAllSelections}
                                 />
                             </div>
                         </div>

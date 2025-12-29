@@ -1833,12 +1833,12 @@ function ChiefPageContent() {
                       <button
                         onClick={handleClearPendingSelections}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-all"
-                        title="Xóa hết tick"
+                        title="Bỏ chọn"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        Xóa hết tick
+                        Bỏ chọn
                       </button>
                     )}
                     {/* Tab buttons for switching between byDish and byTable */}
@@ -2013,12 +2013,12 @@ function ChiefPageContent() {
                       <button
                         onClick={handleClearRightPanelSelections}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-all"
-                        title="Xóa hết tick"
+                        title="Bỏ chọn"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        Xóa hết tick
+                        Bỏ chọn
                       </button>
                     )}
                     {/* Sub-tabs for right panel */}
