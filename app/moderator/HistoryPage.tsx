@@ -49,12 +49,6 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ idTable }) => {
   };
 
   // Tính toán số lượng theo status
-  const statusCounts = {
-    pending: orderData.filter((o) => o.status === "Pending").length,
-    preparing: orderData.filter((o) => o.status === "Preparing").length,
-    completed: orderData.filter((o) => o.status === "Completed").length,
-    cancelled: orderData.filter((o) => o.status === "Cancelled").length,
-  };
 
   return (
     <div className="h-full flex flex-col">
