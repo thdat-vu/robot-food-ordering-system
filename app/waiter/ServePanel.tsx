@@ -36,6 +36,7 @@ const MapPanel = ({ mapUrl }: { mapUrl: string | null }) => {
 
 interface MapPanelProps {
   readyTables: number[];
+  readyTablesForCluster?: number[]; // Tables with Ready status for cluster highlighting
   servedTables: number[];
   selectedTables: number[];
   tableSequence: number[];
@@ -49,6 +50,7 @@ interface MapPanelProps {
 
 const MapPanel = ({
   readyTables,
+  readyTablesForCluster,
   servedTables,
   selectedTables,
   tableSequence,
@@ -105,6 +107,7 @@ const MapPanel = ({
         <div className="flex-1 relative bg-gray-50 min-h-[260px] sm:min-h-[340px] md:min-h-[420px] lg:min-h-[520px]">
           <RestaurantMap
             readyTables={readyTables}
+            readyTablesForCluster={readyTablesForCluster}
             servedTables={servedTables}
             selectedTables={selectedTables}
             tableSequence={tableSequence}
@@ -225,9 +228,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Get table numbers by status
   const tableNumbersByStatus = React.useMemo(() => {
-    // Get tables with orders ready to serve (blue)
+    // Get tables with orders ready to serve (blue) - for color display
     // Include tables with dishes in: "bắt đầu phục vụ", "đang chờ", or "đang thực hiện"
-    const readyTables = Array.from(
+    const readyTablesForColor = Array.from(
       new Set(
         dishes
           .filter((dish) => 
@@ -235,6 +238,16 @@ const ServePanel: React.FC<ServePanelProps> = ({
             dish.status === "đang chờ" ||
             dish.status === "đang thực hiện"
           )
+          .map((dish) => dish.tableNumber)
+      )
+    ).sort((a, b) => a - b);
+
+    // Get tables with orders ready to serve (blue) - for cluster highlighting
+    // Only include tables that have at least one dish with status "bắt đầu phục vụ" (Ready)
+    const readyTablesForCluster = Array.from(
+      new Set(
+        dishes
+          .filter((dish) => dish.status === "bắt đầu phục vụ")
           .map((dish) => dish.tableNumber)
       )
     ).sort((a, b) => a - b);
@@ -254,39 +267,113 @@ const ServePanel: React.FC<ServePanelProps> = ({
     ).sort((a, b) => a - b);
 
     return {
-      ready: readyTables,
+      ready: readyTablesForColor,
+      readyForCluster: readyTablesForCluster,
       served: servedTables,
       selected: selectedTables,
     };
   }, [dishes, allSelectedDishes]);
 
   const selectedTableSequence = React.useMemo(() => {
-    const sequence: number[] = [];
-    const seen = new Set<number>();
-
-    // Get unique table numbers from selected dishes
-    const tableNumbers = Array.from(new Set(allSelectedDishes.map(dish => dish.tableNumber)));
-
-    // PRIORITY: Always put Bàn 1 first if it's in the list
-    if (tableNumbers.includes(1)) {
-      sequence.push(1);
-      seen.add(1);
+    const selectedTablesList = Array.from(new Set(allSelectedDishes.map(dish => dish.tableNumber)));
+    
+    if (selectedTablesList.length === 0) {
+      return [];
     }
 
-    // Sort remaining dishes by order time, then add to sequence
-    const sortedDishes = [...allSelectedDishes].sort((a, b) => {
-      const timeA = a.orderTime ? new Date(a.orderTime).getTime() : Number.MAX_SAFE_INTEGER;
-      const timeB = b.orderTime ? new Date(b.orderTime).getTime() : Number.MAX_SAFE_INTEGER;
-      if (timeA !== timeB) return timeA - timeB;
-      return a.tableNumber - b.tableNumber;
-    });
+    // Waiter mode staff position: { x: 90, y: 300 }
+    const staffPosition = { x: 90, y: 300 };
 
-    sortedDishes.forEach((dish) => {
-      if (!seen.has(dish.tableNumber)) {
-        sequence.push(dish.tableNumber);
-        seen.add(dish.tableNumber);
+    // Calculate Euclidean distance between two positions
+    const calculateDistance = (pos1: { x: number; y: number }, pos2: { x: number; y: number }): number => {
+      const dx = pos2.x - pos1.x;
+      const dy = pos2.y - pos1.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    // Nearest neighbor algorithm with STRICT priority for Bàn 1
+    const sequence: number[] = [];
+    const remaining = new Set(selectedTablesList);
+    let currentPosition = staffPosition;
+
+    // STRICT PRIORITY: If Bàn 1 is in the selected list, ALWAYS start from Bàn 1 first
+    // This ensures Bàn 1 goes first regardless of distance
+    if (remaining.has(1)) {
+      sequence.push(1);
+      remaining.delete(1);
+      currentPosition = TABLE_POSITIONS[1];
+    } else {
+      // If Bàn 1 is not selected, start from nearest table to staff
+      let nearestToStaff: number | null = null;
+      let nearestDistanceToStaff = Infinity;
+
+      remaining.forEach((tableId) => {
+        const tablePos = TABLE_POSITIONS[tableId];
+        if (!tablePos) return;
+        
+        const distance = calculateDistance(staffPosition, tablePos);
+        if (distance < nearestDistanceToStaff) {
+          nearestDistanceToStaff = distance;
+          nearestToStaff = tableId;
+        }
+      });
+
+      if (nearestToStaff !== null) {
+        sequence.push(nearestToStaff);
+        remaining.delete(nearestToStaff);
+        currentPosition = TABLE_POSITIONS[nearestToStaff];
       }
-    });
+    }
+
+    // Continue with nearest neighbor algorithm from current position
+    // This will sort remaining tables by distance from the current position
+    while (remaining.size > 0) {
+      let nearestTable: number | null = null;
+      let nearestDistance = Infinity;
+      const TOLERANCE = 0.01; // Small tolerance for floating point comparison
+      const SAME_ROW_THRESHOLD = 100; // If two tables are in the same row and within 100px distance difference, prefer smaller number
+
+      // Find the nearest table from current position
+      // If multiple tables have the same distance (within tolerance), prefer the one with smaller table number
+      remaining.forEach((tableId) => {
+        const tablePos = TABLE_POSITIONS[tableId];
+        if (!tablePos) return;
+        
+        const distance = calculateDistance(currentPosition, tablePos);
+        const currentNearestPos = nearestTable ? TABLE_POSITIONS[nearestTable] : null;
+        
+        // If this table is closer, choose it
+        if (distance < nearestDistance - TOLERANCE) {
+          nearestDistance = distance;
+          nearestTable = tableId;
+        } else if (Math.abs(distance - nearestDistance) <= TOLERANCE) {
+          // Same distance (within tolerance), prefer smaller table number
+          if (tableId < (nearestTable ?? Infinity)) {
+            nearestDistance = distance;
+            nearestTable = tableId;
+          }
+        } else if (
+          currentNearestPos && 
+          Math.abs(tablePos.y - currentNearestPos.y) < 5 && // Same row (within 5px tolerance)
+          distance < nearestDistance + SAME_ROW_THRESHOLD && // Within threshold
+          tableId < (nearestTable ?? Infinity) // Smaller table number
+        ) {
+          // If two tables are in the same row and the farther one is within threshold, prefer smaller number
+          nearestDistance = distance;
+          nearestTable = tableId;
+        }
+      });
+
+      // Add nearest table to sequence and update current position
+      if (nearestTable !== null) {
+        sequence.push(nearestTable);
+        remaining.delete(nearestTable);
+        currentPosition = TABLE_POSITIONS[nearestTable];
+      } else {
+        // Fallback: if no valid table found, break
+        break;
+      }
+    }
 
     return sequence;
   }, [allSelectedDishes]);
@@ -508,6 +595,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
           {activeTab === "bắt đầu phục vụ" || activeTab === "phục vụ nhanh" ? (
             <MapPanel
               readyTables={tableNumbersByStatus.ready}
+              readyTablesForCluster={tableNumbersByStatus.readyForCluster}
               servedTables={tableNumbersByStatus.served}
               selectedTables={tableNumbersByStatus.selected}
               tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
@@ -585,6 +673,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
               <div className="flex-1 relative bg-gray-50 min-h-[260px] sm:min-h-[340px] md:min-h-[420px] lg:min-h-[520px]">
                 <RestaurantMap
                   readyTables={tableNumbersByStatus.ready}
+                  readyTablesForCluster={tableNumbersByStatus.readyForCluster}
                   servedTables={tableNumbersByStatus.served}
                   selectedTables={tableNumbersByStatus.selected}
                   tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}

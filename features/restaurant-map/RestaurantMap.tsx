@@ -23,6 +23,7 @@ interface Dish {
 
 interface RestaurantMapProps {
   readyTables: number[];
+  readyTablesForCluster?: number[]; // Tables with Ready status for cluster highlighting
   servedTables: number[];
   selectedTables: number[];
   tableSequence?: number[];
@@ -85,23 +86,26 @@ const detectClusters = (tableIds: number[]): Cluster[] => {
   for (const tableId of tableIds) {
     if (!visited.has(tableId)) {
       const cluster = findCluster(tableId);
-      const positions = cluster.map((id) => TABLE_POSITIONS[id]);
-      const minX = Math.min(...positions.map((p) => p.x));
-      const maxX = Math.max(...positions.map((p) => p.x));
-      const minY = Math.min(...positions.map((p) => p.y));
-      const maxY = Math.max(...positions.map((p) => p.y));
-      const padding = 20;
-      const tableWidth = 80;
+      // Only include clusters with 2 or more tables (no highlight for single tables)
+      if (cluster.length > 1) {
+        const positions = cluster.map((id) => TABLE_POSITIONS[id]);
+        const minX = Math.min(...positions.map((p) => p.x));
+        const maxX = Math.max(...positions.map((p) => p.x));
+        const minY = Math.min(...positions.map((p) => p.y));
+        const maxY = Math.max(...positions.map((p) => p.y));
+        const padding = 20;
+        const tableWidth = 80;
 
-      clusters.push({
-        tables: cluster,
-        boundingBox: {
-          x: (minX + maxX) / 2,
-          y: (minY + maxY) / 2,
-          width: maxX - minX + tableWidth + padding * 2,
-          height: maxY - minY + tableWidth + padding * 2,
-        },
-      });
+        clusters.push({
+          tables: cluster,
+          boundingBox: {
+            x: (minX + maxX) / 2,
+            y: (minY + maxY) / 2,
+            width: maxX - minX + tableWidth + padding * 2,
+            height: maxY - minY + tableWidth + padding * 2,
+          },
+        });
+      }
     }
   }
 
@@ -230,6 +234,7 @@ const buildRobotPathSegments = (sequence: number[], start: Position) => {
 
 export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   readyTables,
+  readyTablesForCluster,
   servedTables,
   selectedTables,
   tableSequence,
@@ -243,7 +248,9 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   // Move robot start point to top-left when robot mode is enabled
   const staffPosition: Position = isRobotMode ? { x: 90, y: 40 } : { x: 90, y: 300 };
-  const readyClusters = useMemo(() => detectClusters(readyTables), [readyTables]);
+  // Use readyTablesForCluster for highlighting, fallback to readyTables if not provided
+  const tablesForCluster = readyTablesForCluster ?? readyTables;
+  const readyClusters = useMemo(() => detectClusters(tablesForCluster), [tablesForCluster]);
 
   // Get tables that have dishes in the current tab (can be selected)
   const selectableTables = useMemo(() => {
