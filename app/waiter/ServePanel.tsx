@@ -26,6 +26,7 @@ interface ServePanelProps {
   onToggleRobotMode: (enabled: boolean) => void; // Toggle robot mode
   tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
   onTableSelect?: (tableNumbers: number[]) => void; // Select dishes by clicking on table in map
+  onClearAllSelections?: () => void; // Clear all selections
 }
 
 /* Legacy MapPanel with iframe embed is kept for reference.
@@ -46,6 +47,7 @@ interface MapPanelProps {
   tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
   onTableSelect?: (tableNumbers: number[]) => void; // Select dishes by clicking on table
   activeTab?: string; // Current tab for filtering selectable tables
+  onClearAllSelections?: () => void; // Clear all selections
 }
 
 const MapPanel = ({
@@ -60,6 +62,7 @@ const MapPanel = ({
   tableLastUpdateTimes = {},
   onTableSelect,
   activeTab = "bắt đầu phục vụ",
+  onClearAllSelections,
 }: MapPanelProps) => {
   const [showMap, setShowMap] = useState(false);
 
@@ -105,6 +108,19 @@ const MapPanel = ({
 
       {showMap ? (
         <div className="flex-1 relative bg-gray-50 min-h-[260px] sm:min-h-[340px] md:min-h-[420px] lg:min-h-[520px]">
+          {/* Clear all selections button - top right corner */}
+          {onClearAllSelections && selectedTables.length > 0 && (
+            <button
+              onClick={onClearAllSelections}
+              className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 hover:shadow-lg transition-all"
+              title="Xóa hết lựa chọn"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Xóa hết lựa chọn
+            </button>
+          )}
           <RestaurantMap
             readyTables={readyTables}
             readyTablesForCluster={readyTablesForCluster}
@@ -165,6 +181,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   onToggleRobotMode,
   tableLastUpdateTimes = {},
   onTableSelect,
+  onClearAllSelections,
 }) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   // Remake action is now handled in the left sidebar (DishList)
@@ -605,6 +622,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
               tableLastUpdateTimes={tableLastUpdateTimes}
               onTableSelect={onTableSelect}
               activeTab={activeTab}
+              onClearAllSelections={onClearAllSelections}
             />
           ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
