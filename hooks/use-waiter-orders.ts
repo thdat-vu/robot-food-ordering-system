@@ -294,32 +294,44 @@ export function useWaiterOrders() {
     });
 
     // Transform quick-serve requests to WaiterDish format
+    // Split combined product names (e.g., "Nước mắm + Nước tương") into separate dishes
     const quickServeDishes = useMemo(() => {
-        return quickServeRequests.map((req): WaiterDish => {
+        const dishes: WaiterDish[] = [];
+        
+        quickServeRequests.forEach((req) => {
             const tableNumber = parseInt(req.tableName.replace(/\D/g, "")) || 1;
             const categoryName = "Phục vụ nhanh";
             const category = categories.find((c) => c.name === categoryName) || categories[0];
-            const dishId = `quick-serve-${req.complainId}`;
-
-            return {
-                id: dishId,
-                name: req.productName,
-                categoryId: category?.id || "unknown",
-                categoryName: categoryName,
-                selected: quickServeSelections.has(dishId),
-                served: false,
-                orderId: `quick-${req.complainId}`,
-                itemId: `quick-item-${req.complainId}`,
-                tableNumber,
-                quantity: 1,
-                status: "phục vụ nhanh" as OrderStatus,
-                estimatedTime: "Ngay lập tức",
-                note: "Yêu cầu phục vụ nhanh",
-                isQuickServe: true,
-                complainId: req.complainId,
-                tableId: req.tableId,
-            };
+            
+            // Split product name by " + " to create separate dishes
+            const productNames = req.productName.split(/\s*\+\s*/).map(name => name.trim()).filter(name => name.length > 0);
+            
+            productNames.forEach((productName, index) => {
+                // Create unique ID for each split item
+                const dishId = `quick-serve-${req.complainId}-${index}`;
+                
+                dishes.push({
+                    id: dishId,
+                    name: productName,
+                    categoryId: category?.id || "unknown",
+                    categoryName: categoryName,
+                    selected: quickServeSelections.has(dishId),
+                    served: false,
+                    orderId: `quick-${req.complainId}`,
+                    itemId: `quick-item-${req.complainId}-${index}`,
+                    tableNumber,
+                    quantity: 1,
+                    status: "phục vụ nhanh" as OrderStatus,
+                    estimatedTime: "Ngay lập tức",
+                    note: "Yêu cầu phục vụ nhanh",
+                    isQuickServe: true,
+                    complainId: req.complainId,
+                    tableId: req.tableId,
+                });
+            });
         });
+        
+        return dishes;
     }, [quickServeRequests, categories, quickServeSelections]);
 
     // Merge regular dishes with quick-serve dishes
@@ -424,18 +436,19 @@ export function useWaiterOrders() {
             // Handle quick-serve dishes - mark complain as processed
             if (quickServeDishes.length > 0) {
                 // Group by tableId to batch CheckSS calls
-                const byTable = new Map<string, string[]>();
+                // Use Set to deduplicate complainIds (since split items share the same complainId)
+                const byTable = new Map<string, Set<string>>();
                 quickServeDishes.forEach((dish) => {
                     if (dish.tableId && dish.complainId) {
-                        const existing = byTable.get(dish.tableId) || [];
-                        existing.push(dish.complainId);
+                        const existing = byTable.get(dish.tableId) || new Set();
+                        existing.add(dish.complainId);
                         byTable.set(dish.tableId, existing);
                     }
                 });
 
-                // Call CheckSS for each table
-                const checkSSPromises = Array.from(byTable.entries()).map(([tableId, complainIds]) =>
-                    CheckSS(tableId, complainIds, "Đã phục vụ nhanh", false)
+                // Call CheckSS for each table (convert Set back to array)
+                const checkSSPromises = Array.from(byTable.entries()).map(([tableId, complainIdSet]) =>
+                    CheckSS(tableId, Array.from(complainIdSet), "Đã phục vụ nhanh", false)
                 );
                 await Promise.all(checkSSPromises);
 
