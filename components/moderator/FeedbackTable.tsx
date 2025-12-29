@@ -7,10 +7,9 @@ import {
   Users,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-
-// Mock types
 
 interface FeedbackTableProps {
   rows: GroupedFeedbackRow[];
@@ -33,6 +32,7 @@ interface FeedbackTableProps {
   onSelectAll: () => void;
   onToggleSuggestions: (id: string) => void;
   onSendQuickRequest: (id: string, feedback: string) => void;
+  onClearSelection?: () => void;
 }
 
 const ResponsePopover = ({
@@ -76,6 +76,7 @@ export default function FeedbackTable({
   onSuggestionPick,
   onSingleCheck,
   onSendQuickRequest,
+  onClearSelection,
 }: FeedbackTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
@@ -181,8 +182,19 @@ export default function FeedbackTable({
       <table className="w-full">
         <thead>
           <tr className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200">
-            <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
-              #
+            <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide w-16">
+              <div className="flex items-center gap-2">
+                #
+                {selectedIds.length > 0 && onClearSelection && (
+                  <button
+                    onClick={onClearSelection}
+                    className="p-1 hover:bg-red-100 rounded-full transition-colors group"
+                    title="Bỏ chọn tất cả"
+                  >
+                    <X className="w-3.5 h-3.5 text-red-500 group-hover:text-red-700" />
+                  </button>
+                )}
+              </div>
             </th>
             <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
               Trạng thái
@@ -195,9 +207,6 @@ export default function FeedbackTable({
             </th>
             <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wide">
               Phản hồi khách
-            </th>
-            <th className="px-6 py-4 text-right text-[11px] font-bold text-gray-600 uppercase tracking-wide">
-              Thao tác
             </th>
           </tr>
         </thead>
@@ -227,7 +236,7 @@ export default function FeedbackTable({
                       onChange={() =>
                         onToggleSelect(row.complainId, row.isPending)
                       }
-                      disabled={!row.isPending}
+                      disabled={!row.isPending || isQuick}
                       className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 disabled:opacity-20 transition-all cursor-pointer"
                     />
                     <span className="text-xs font-bold text-gray-400 group-hover:text-gray-600 transition-colors">
@@ -282,7 +291,7 @@ export default function FeedbackTable({
 
                 {/* Content */}
                 <td className="px-6 py-4 align-top">
-                  <div className="space-y-2 max-w-md">
+                  <div className="space-y-2">
                     {shouldShowUrgentBadge && (
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200/50 shadow-sm">
                         <AlertCircle className="w-3.5 h-3.5 text-orange-600" />
@@ -302,123 +311,131 @@ export default function FeedbackTable({
                         </span>
                       </div>
                     )}
-                    <p className="text-sm text-gray-700 font-medium truncate">
+                    <p className="text-sm text-gray-700 font-medium">
                       {highlightSearchText(row.feedBack, searchQuery)}
                     </p>
                   </div>
                 </td>
 
+                {/* Response + Actions Combined */}
                 <td className="px-6 py-4 align-top">
-                  <div className="space-y-2">
-                    {!isExpanded ? (
-                      // Compact view
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`flex-1 px-3 py-2 text-xs rounded-lg truncate ${
-                            row.isPending
-                              ? "bg-white border border-gray-200"
-                              : "bg-gray-50 border border-gray-200 text-gray-500"
-                          }`}
-                        >
-                          {responseText ||
-                            (row.isPending
-                              ? "Chưa có phản hồi"
-                              : "Đã phản hồi")}
-                        </div>
-                        <button
-                          onClick={() => toggleExpand(row.complainId)}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <ChevronDown className="w-4 h-4 text-gray-500" />
-                        </button>
-                      </div>
-                    ) : (
-                      // Expanded view
-                      <div className="space-y-2.5">
-                        <div className="relative">
-                          <textarea
-                            value={responseText}
-                            onChange={(e) =>
-                              onResponseChange(row.groupKey, e.target.value)
-                            }
-                            disabled={!row.isPending}
-                            placeholder={
+                  <div className="space-y-3">
+                    {/* Response Section */}
+                    <div className="space-y-2">
+                      {!isExpanded ? (
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`flex-1 px-3 py-2 text-xs rounded-lg truncate ${
                               row.isPending
-                                ? "Nhập phản hồi cho khách hàng..."
-                                : "Đã phản hồi"
-                            }
-                            className={`w-full p-3.5 text-xs leading-relaxed border rounded-2xl transition-all min-h-[90px] resize-none ${
-                              row.isPending
-                                ? "bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:bg-blue-50/30 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
-                                : "bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200 text-gray-500 cursor-not-allowed"
+                                ? "bg-white border border-gray-200"
+                                : "bg-gray-50 border border-gray-200 text-gray-500"
                             }`}
-                          />
-                          {!row.isPending && responses[row.groupKey] && (
-                            <div className="absolute top-2.5 right-2.5">
-                              <CheckCircle
-                                size={14}
-                                className="text-emerald-500"
+                          >
+                            {responseText ||
+                              (row.isPending
+                                ? "Chưa có phản hồi"
+                                : "Đã phản hồi")}
+                          </div>
+                          <button
+                            onClick={() => toggleExpand(row.complainId)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          <div className="flex items-start gap-2">
+                            <div className="relative flex-1">
+                              <textarea
+                                value={responseText}
+                                onChange={(e) =>
+                                  onResponseChange(row.groupKey, e.target.value)
+                                }
+                                disabled={!row.isPending}
+                                placeholder={
+                                  row.isPending
+                                    ? "Nhập phản hồi cho khách hàng..."
+                                    : "Đã phản hồi"
+                                }
+                                className={`w-full p-3.5 text-xs leading-relaxed border rounded-2xl transition-all min-h-[90px] resize-none ${
+                                  row.isPending
+                                    ? "bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:bg-blue-50/30 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
+                                    : "bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200 text-gray-500 cursor-not-allowed"
+                                }`}
                               />
+                              {!row.isPending && responses[row.groupKey] && (
+                                <div className="absolute top-2.5 right-2.5">
+                                  <CheckCircle
+                                    size={14}
+                                    className="text-emerald-500"
+                                  />
+                                </div>
+                              )}
                             </div>
+                            <button
+                              onClick={() => toggleExpand(row.complainId)}
+                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                              <ChevronUp className="w-4 h-4 text-gray-500" />
+                            </button>
+                          </div>
+
+                          {row.isPending && (
+                            <ResponsePopover
+                              value={responses[row.groupKey] || ""}
+                              suggestions={responseSuggestions || []}
+                              onChange={(val) =>
+                                onSuggestionPick(row.groupKey, val)
+                              }
+                            />
                           )}
                         </div>
+                      )}
+                    </div>
 
-                        {row.isPending && (
-                          <ResponsePopover
-                            value={responses[row.groupKey] || ""}
-                            suggestions={responseSuggestions || []}
-                            onChange={(val) =>
-                              onSuggestionPick(row.groupKey, val)
-                            }
-                          />
+                    {/* Action Buttons */}
+                    {row.isPending ? (
+                      <button
+                        onClick={() =>
+                          isQuick
+                            ? onSendQuickRequest(row.complainId, row.feedBack)
+                            : onSingleCheck(
+                                row.complainId,
+                                getResponseTextFromTextarea(row)
+                              )
+                        }
+                        disabled={isChecking || alreadySentQuick}
+                        className={`w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-[11px] transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isQuick
+                            ? alreadySentQuick
+                              ? "bg-gray-100 text-gray-400 border-2 border-gray-200 shadow-none"
+                              : "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-blue-200 hover:shadow-xl hover:from-blue-700 hover:to-blue-800"
+                            : "bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-emerald-200 hover:shadow-xl hover:from-emerald-700 hover:to-emerald-800"
+                        }`}
+                      >
+                        {isChecking ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send size={14} />
                         )}
+                        <span className="whitespace-nowrap">
+                          {isQuick
+                            ? alreadySentQuick
+                              ? "Đã gửi"
+                              : "Gửi ngay"
+                            : "Xác nhận"}
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="py-2.5 px-4 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center gap-2 bg-gray-50/50">
+                        <CheckCircle size={14} className="text-emerald-500" />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">
+                          Xong
+                        </span>
                       </div>
                     )}
                   </div>
-                </td>
-
-                {/* Actions */}
-                <td className="px-6 py-4 align-top text-right">
-                  {row.isPending ? (
-                    <button
-                      onClick={() =>
-                        isQuick
-                          ? onSendQuickRequest(row.complainId, row.feedBack)
-                          : onSingleCheck(
-                              row.complainId,
-                              getResponseTextFromTextarea(row)
-                            )
-                      }
-                      disabled={isChecking || alreadySentQuick}
-                      className={`w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-[11px] transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
-                        isQuick
-                          ? alreadySentQuick
-                            ? "bg-gray-100 text-gray-400 border-2 border-gray-200 shadow-none"
-                            : "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-blue-200 hover:shadow-xl hover:from-blue-700 hover:to-blue-800"
-                          : "bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-emerald-200 hover:shadow-xl hover:from-emerald-700 hover:to-emerald-800"
-                      }`}
-                    >
-                      {isChecking ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Send size={14} />
-                      )}
-                      <span className="whitespace-nowrap">
-                        {isQuick
-                          ? alreadySentQuick
-                            ? "Đã gửi"
-                            : "Gửi ngay"
-                          : "Xác nhận"}
-                      </span>
-                    </button>
-                  ) : (
-                    <div className="py-2.5 px-4 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center gap-2 bg-gray-50/50">
-                      <CheckCircle size={14} className="text-emerald-500" />
-                      <span className="text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">
-                        Xong
-                      </span>
-                    </div>
-                  )}
                 </td>
               </tr>
             );
