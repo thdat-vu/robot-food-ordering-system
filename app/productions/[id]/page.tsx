@@ -7,6 +7,7 @@ import {TableContext, useTableContext} from "@/hooks/context/Context";
 import {Table} from "@/entites/respont/Table";
 import {ErroTable} from "@/api/TableApi";
 import {TOKEN_Bro_VALUE} from "@/name-value-env";
+import {useSignalRTableMoved} from "@/hooks/customHooks/useSignalRTableMoved";
 
 
 export default function Page({params}: { params: Promise<{ id: string }> }) {
@@ -14,6 +15,9 @@ export default function Page({params}: { params: Promise<{ id: string }> }) {
     const {tableId, setTable} = useTableContext();
     const {run} = useGetTable();
     const [token, setToken] = useState<string>();
+
+    // Listen for table moved notifications via SignalR
+    useSignalRTableMoved(id);
 
 
     useEffect(() => {

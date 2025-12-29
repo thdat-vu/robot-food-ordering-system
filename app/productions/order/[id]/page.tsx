@@ -7,9 +7,13 @@ import {Table} from "@/entites/respont/Table";
 import {ErroTable} from "@/api/TableApi";
 import {useTableContext} from "@/hooks/context/Context";
 import {useDeviceToken} from "@/hooks/context/deviceTokenContext";
+import {useSignalRTableMoved} from "@/hooks/customHooks/useSignalRTableMoved";
 
 export default function Page() {
     const {id} = useParams<{ id: string }>();
+
+    // Listen for table moved notifications via SignalR
+    useSignalRTableMoved(id || '');
 
     const {setTable} = useTableContext();
     const {deviceToken} = useDeviceToken();
