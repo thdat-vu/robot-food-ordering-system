@@ -927,6 +927,72 @@ function ChiefPageContent() {
     }
   }, [orders]);
 
+  // Handler to clear all selections for pending orders (left panel)
+  const handleClearPendingSelections = useCallback(() => {
+    // Mark as manual selection to prevent auto-select from running again
+    setHasManualSelection(true);
+    
+    // Filter out pending orders from selections
+    const pendingIds = new Set(
+      orders.filter(o => o.status === 'đang chờ').map(o => o.id)
+    );
+    
+    // Clear selectedGroups - remove groups that only contain pending orders
+    setSelectedGroups(prev => {
+      return prev
+        .map(group => group.filter(item => !pendingIds.has(item.id)))
+        .filter(group => group.length > 0);
+    });
+    
+    // Clear selectedGroup if it only contains pending orders
+    if (selectedGroup) {
+      const hasNonPending = selectedGroup.some(item => !pendingIds.has(item.id));
+      if (!hasNonPending) {
+        setSelectedGroup(null);
+      } else {
+        setSelectedGroup(selectedGroup.filter(item => !pendingIds.has(item.id)));
+      }
+    }
+    
+    // Clear selectedOrderKey if it's a pending order
+    if (selectedOrderKey && pendingIds.has(selectedOrderKey.id)) {
+      setSelectedOrderKey(null);
+    }
+  }, [orders, selectedGroup, selectedOrderKey]);
+
+  // Handler to clear all selections for right panel orders (based on activeTab)
+  const handleClearRightPanelSelections = useCallback(() => {
+    // Mark as manual selection to prevent auto-select from running again
+    setHasManualSelection(true);
+    
+    // Filter out orders with activeTab status from selections
+    const rightPanelIds = new Set(
+      orders.filter(o => o.status === activeTab).map(o => o.id)
+    );
+    
+    // Clear selectedGroups - remove groups that only contain right panel orders
+    setSelectedGroups(prev => {
+      return prev
+        .map(group => group.filter(item => !rightPanelIds.has(item.id)))
+        .filter(group => group.length > 0);
+    });
+    
+    // Clear selectedGroup if it only contains right panel orders
+    if (selectedGroup) {
+      const hasNonRightPanel = selectedGroup.some(item => !rightPanelIds.has(item.id));
+      if (!hasNonRightPanel) {
+        setSelectedGroup(null);
+      } else {
+        setSelectedGroup(selectedGroup.filter(item => !rightPanelIds.has(item.id)));
+      }
+    }
+    
+    // Clear selectedOrderKey if it's a right panel order
+    if (selectedOrderKey && rightPanelIds.has(selectedOrderKey.id)) {
+      setSelectedOrderKey(null);
+    }
+  }, [orders, activeTab, selectedGroup, selectedOrderKey]);
+
   // Function to automatically select the first 3 groups from PENDING orders (left panel)
   // This uses orders directly instead of groupedOrders (which is filtered by activeTab)
   const autoSelectFirstPendingGroups = useCallback(() => {
@@ -1762,6 +1828,19 @@ function ChiefPageContent() {
                         {getTabCount('đang chờ')}
                       </span>
                     )}
+                    {/* Clear all ticks button */}
+                    {pendingSelectedIds.size > 0 && (
+                      <button
+                        onClick={handleClearPendingSelections}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-all"
+                        title="Xóa hết tick"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Xóa hết tick
+                      </button>
+                    )}
                     {/* Tab buttons for switching between byDish and byTable */}
                     <div className="flex items-center gap-1 p-1 bg-white rounded-xl shadow-sm border border-gray-200">
                       {leftPanelTabs.map(tab => {
@@ -1928,42 +2007,57 @@ function ChiefPageContent() {
                     </div>
                   </div>
                   
-                  {/* Sub-tabs for right panel */}
-                  <div className="flex items-center gap-1 p-1 bg-white rounded-lg shadow-sm border border-gray-200">
-                    <button
-                      onClick={() => handleTabChange('đang thực hiện')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                        activeTab === 'đang thực hiện'
-                          ? 'bg-blue-500 text-white shadow'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      Đang thực hiện
-                      {getTabCount('đang thực hiện') > 0 && (
-                        <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
-                          activeTab === 'đang thực hiện' ? 'bg-white/20' : 'bg-gray-200'
-                        }`}>
-                          {getTabCount('đang thực hiện')}
-                        </span>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleTabChange('bắt đầu phục vụ')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                        activeTab === 'bắt đầu phục vụ'
-                          ? 'bg-orange-500 text-white shadow'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      Bắt đầu phục vụ
-                      {getTabCount('bắt đầu phục vụ') > 0 && (
-                        <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
-                          activeTab === 'bắt đầu phục vụ' ? 'bg-white/20' : 'bg-gray-200'
-                        }`}>
-                          {getTabCount('bắt đầu phục vụ')}
-                        </span>
-                      )}
-                    </button>
+                  <div className="flex items-center gap-2">
+                    {/* Clear all ticks button */}
+                    {rightPanelSelectedIds.size > 0 && (
+                      <button
+                        onClick={handleClearRightPanelSelections}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-all"
+                        title="Xóa hết tick"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Xóa hết tick
+                      </button>
+                    )}
+                    {/* Sub-tabs for right panel */}
+                    <div className="flex items-center gap-1 p-1 bg-white rounded-lg shadow-sm border border-gray-200">
+                      <button
+                        onClick={() => handleTabChange('đang thực hiện')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                          activeTab === 'đang thực hiện'
+                            ? 'bg-blue-500 text-white shadow'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Đang thực hiện
+                        {getTabCount('đang thực hiện') > 0 && (
+                          <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
+                            activeTab === 'đang thực hiện' ? 'bg-white/20' : 'bg-gray-200'
+                          }`}>
+                            {getTabCount('đang thực hiện')}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleTabChange('bắt đầu phục vụ')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                          activeTab === 'bắt đầu phục vụ'
+                            ? 'bg-orange-500 text-white shadow'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        Bắt đầu phục vụ
+                        {getTabCount('bắt đầu phục vụ') > 0 && (
+                          <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
+                            activeTab === 'bắt đầu phục vụ' ? 'bg-white/20' : 'bg-gray-200'
+                          }`}>
+                            {getTabCount('bắt đầu phục vụ')}
+                          </span>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
