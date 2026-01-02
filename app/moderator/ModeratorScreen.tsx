@@ -260,20 +260,24 @@ const ModeratorScreen: React.FC = () => {
     onClick: () => void;
     left: React.ReactNode;
     right: React.ReactNode;
-    className: string;
+    className?: string;
   }) => (
     <button
       onClick={onClick}
       className={[
-        "w-full rounded-2xl px-3 py-2 text-xs font-semibold transition-all duration-200 flex items-center justify-between",
+        "w-full rounded-2xl px-4 py-3 transition-all duration-200 flex items-center justify-between",
         active
           ? "bg-white text-purple-700 shadow-lg"
           : "bg-white/15 text-white hover:bg-white/25",
-        className,
+        className ?? "",
       ].join(" ")}
     >
-      <span className="flex items-center gap-2">{left}</span>
-      <span className="font-bold tabular-nums">{right}</span>
+      {/* LEFT: to hơn 1 nấc */}
+      <span className="flex items-center gap-3 text-lg font-semibold">
+        {left}
+      </span>
+
+      <span className="font-extrabold tabular-nums text-xl">{right}</span>
     </button>
   );
 
@@ -357,7 +361,7 @@ const ModeratorScreen: React.FC = () => {
                     onClick={() => setFilterStatus("all")}
                     left={
                       <>
-                        <Filter size={14} /> Tất cả
+                        <Filter size={18} className="shrink-0" /> Tất cả
                       </>
                     }
                     right={totalTables}
@@ -369,7 +373,7 @@ const ModeratorScreen: React.FC = () => {
                     onClick={() => setFilterStatus("empty")}
                     left={
                       <>
-                        <User size={14} /> Bàn trống
+                        <User size={18} className="shrink-0" /> Bàn trống
                       </>
                     }
                     right={statusCounts.empty}
@@ -381,7 +385,7 @@ const ModeratorScreen: React.FC = () => {
                     onClick={() => setFilterStatus("ordered")}
                     left={
                       <>
-                        <TrendingUp size={14} /> Đã order
+                        <TrendingUp size={18} className="shrink-0" /> Đã order
                       </>
                     }
                     right={statusCounts.ordered}
@@ -393,7 +397,7 @@ const ModeratorScreen: React.FC = () => {
                     onClick={() => setFilterStatus("delivered")}
                     left={
                       <>
-                        <UserCheck size={14} /> Đã giao
+                        <UserCheck size={18} className="shrink-0" /> Đã giao
                       </>
                     }
                     right={statusCounts.delivered}
@@ -405,7 +409,7 @@ const ModeratorScreen: React.FC = () => {
                     onClick={() => setFilterStatus("served")}
                     left={
                       <>
-                        <ChefHat size={14} /> Đã phục vụ
+                        <ChefHat size={18} className="shrink-0" /> Đã phục vụ
                       </>
                     }
                     right={statusCounts.served}
@@ -417,7 +421,8 @@ const ModeratorScreen: React.FC = () => {
                     onClick={() => setFilterStatus("paid")}
                     left={
                       <>
-                        <CheckCircle2 size={14} /> Đã thanh toán
+                        <CheckCircle2 size={18} className="shrink-0" /> Đã thanh
+                        toán
                       </>
                     }
                     right={statusCounts.paid}

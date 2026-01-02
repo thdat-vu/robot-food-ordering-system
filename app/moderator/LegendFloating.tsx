@@ -45,7 +45,7 @@ const LegendItem: React.FC<LegendItemProps> = ({
         )}
       </span>
       {!iconOnly && (
-        <span className="text-xs leading-tight text-slate-700 font-medium">
+        <span className="text-lg leading-tight text-slate-700 font-medium">
           {label}
         </span>
       )}
@@ -54,8 +54,8 @@ const LegendItem: React.FC<LegendItemProps> = ({
 };
 
 const LegendCard: React.FC = () => (
-  <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl px-3.5 py-3 space-y-1.5 text-xs border border-slate-200/80 w-52">
-    <h3 className="font-semibold text-slate-800 flex items-center gap-2 pb-1 border-b border-slate-100 text-[13px]">
+  <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl px-3.5 py-3 space-y-1.5 text-sm border border-slate-200/80 w-52">
+    <h3 className="font-semibold text-slate-800 flex items-center gap-2 pb-1 border-b border-slate-100 text-lg">
       <Coffee className="w-4 h-4" />
       <span>Trạng thái bàn</span>
     </h3>
