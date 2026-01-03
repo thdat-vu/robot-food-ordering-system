@@ -294,8 +294,8 @@ export function OrdersContent({
                     </div>
                   )}
                   
-                  {/* Tertiary Info: Time & Date - Subtle */}
-                  <div className="flex items-center gap-3 mt-2.5">
+                  {/* Tertiary Info: Time & Date - Horizontal layout with labels */}
+                  <div className="flex items-center gap-3 mt-2.5 flex-wrap">
                     <div className="flex items-center gap-1 text-gray-500">
                       {renderClockIcon()}
                       <span className="text-xs">{order.estimatedTime}</span>
@@ -304,9 +304,10 @@ export function OrdersContent({
                       {order.createdTime && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="flex items-center gap-1 text-gray-400 cursor-help">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-50">
                               {renderCreatedTimeIcon()}
-                              <span className="text-xs">{order.createdTime}</span>
+                              <span className="text-gray-600 font-semibold">Tạo:</span>
+                              <span className="text-gray-500">{order.createdTime}</span>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -317,9 +318,10 @@ export function OrdersContent({
                       {order.readyTime && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="flex items-center gap-1 text-emerald-600 cursor-help">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
                               {renderReadyTimeIcon()}
-                              <span className="text-xs">{order.readyTime}</span>
+                              <span className="text-emerald-700 font-semibold">Xong:</span>
+                              <span className="text-emerald-600">{order.readyTime}</span>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -569,18 +571,26 @@ export function OrdersContent({
               <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(order.category)}`}></div>
               
               <div className="flex items-center gap-4 p-4 pl-5">
+                {/* Order number badge */}
+                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-white text-lg font-bold">{index + 1}</span>
+                </div>
+                
                 <div className="flex-1 min-w-0">
-                  {/* Primary Info: Name + Size + Table on same line */}
-                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
-                    {order.itemName}
+                  {/* Primary Info: Name + Size + Quantity + Table on same line */}
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2 flex items-center gap-2 flex-wrap">
+                    <span>{order.itemName}</span>
                     {order.sizeName && (
-                      <span className="ml-2 px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
+                      <span className="px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
                         {order.sizeName.charAt(0).toUpperCase()}
                       </span>
                     )}
-                    <span className="text-gray-400 font-normal mx-2">-</span>
                     <span className="text-base font-semibold text-gray-600">
-                      Bàn {order.tableNumber}: x{order.quantity > 0 ? order.quantity : 1}
+                      x{order.quantity > 0 ? order.quantity : 1}
+                    </span>
+                    <span className="text-gray-400 font-normal">-</span>
+                    <span className="text-base font-semibold text-gray-600">
+                      Bàn {order.tableNumber}
                     </span>
                   </h3>
                   
@@ -596,17 +606,18 @@ export function OrdersContent({
                     </div>
                   )}
                   
-                  {/* Time badges */}
-                  <div className="flex items-center gap-3 mt-2">
+                  {/* Time badges - Horizontal layout with labels */}
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
                     {renderTimeBadge(order.estimatedTime)}
                     <TooltipProvider>
                       {order.createdTime && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200 cursor-help">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-50">
                               {renderCreatedTimeIcon()}
-                              {order.createdTime}
-                            </span>
+                              <span className="text-gray-600 font-semibold">Tạo:</span>
+                              <span className="text-gray-500">{order.createdTime}</span>
+                            </div>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Ngày giờ tạo món</p>
@@ -616,10 +627,11 @@ export function OrdersContent({
                       {order.readyTime && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
                               {renderReadyTimeIcon()}
-                              {order.readyTime}
-                            </span>
+                              <span className="text-emerald-700 font-semibold">Xong:</span>
+                              <span className="text-emerald-600">{order.readyTime}</span>
+                            </div>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Ngày giờ xong</p>

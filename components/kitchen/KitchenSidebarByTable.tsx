@@ -500,7 +500,7 @@ export function KitchenSidebarByTable({
 
                 {isExpanded && (
                   <div className="px-4 pb-4 pt-2 flex flex-col gap-3">
-                    {groupedOrders.map(group => {
+                    {groupedOrders.map((group, groupIndex) => {
                       const selectionItems = toSelectionItems(group.orders);
                       const selectedCount = group.orders.filter(order => isItemSelected(order.id)).length;
                       const checkboxState =
@@ -527,6 +527,14 @@ export function KitchenSidebarByTable({
                       const representativeOrder = group.orders[0];
                       const totalQuantity =
                         group.quantity > 0 ? group.quantity : group.orders.length;
+                      
+                      // Calculate total count of items with same name (regardless of size) in this table
+                      const totalItemsWithSameName = orders.filter(
+                        order => order.itemName === group.itemName
+                      ).reduce((sum, order) => {
+                        const qty = order.quantity && order.quantity > 0 ? order.quantity : 1;
+                        return sum + qty;
+                      }, 0);
                       
                       // Get category info for styling
                       const category = itemNameToCategory?.[group.itemName];
@@ -565,24 +573,24 @@ export function KitchenSidebarByTable({
                           )}
                           
                           <div className={`flex-1 min-w-0 ${hideCheckboxes ? 'ml-3' : 'ml-1'}`}>
-                            {/* Item name and badges */}
-                            <h4 className="text-sm font-bold text-gray-900 leading-tight mb-2">
-                              {group.itemName}
-                            </h4>
-                            
-                            <div className="flex flex-wrap items-center gap-2">
+                            {/* Item name, total count, size and quantity on same line */}
+                            <h4 className="text-sm font-bold text-gray-900 leading-tight mb-2 flex items-center gap-2 flex-wrap">
+                              {/* Total count badge - shows total items with same name in table */}
+                              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-sm">
+                                {totalItemsWithSameName}
+                              </span>
+                              <span>{group.itemName}</span>
+                              <span className="text-gray-400 font-normal">-</span>
                               {/* Size badge */}
                               {group.sizeName && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
-                                  Size {group.sizeName.charAt(0).toUpperCase()}
+                                  {group.sizeName.charAt(0).toUpperCase()}
                                 </span>
                               )}
-                              
                               {/* Quantity badge */}
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${categoryAccent.badge} border`}>
                                 x{totalQuantity}
                               </span>
-                              
                               {/* Note indicator */}
                               {group.hasVariations && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
@@ -592,17 +600,18 @@ export function KitchenSidebarByTable({
                                   Ghi chú
                                 </span>
                               )}
-                            </div>
+                            </h4>
                             
-                            {/* Timestamps - Horizontal layout */}
+                            {/* Timestamps - Horizontal layout with labels */}
                             <TooltipProvider>
                               <div className="mt-2 flex items-center gap-3 flex-wrap">
                                 {representativeOrder?.createdTime && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <div className="flex items-center gap-1 text-xs font-medium text-gray-400 cursor-help hover:text-gray-600 transition-colors">
+                                      <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-50">
                                         {renderCreatedTimeIcon()}
-                                        <span>{formatOrderDateTime(representativeOrder.createdTime)}</span>
+                                        <span className="text-gray-600 font-semibold">Tạo:</span>
+                                        <span className="text-gray-500">{formatOrderDateTime(representativeOrder.createdTime)}</span>
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -613,9 +622,10 @@ export function KitchenSidebarByTable({
                                 {representativeOrder?.readyTime && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <div className="flex items-center gap-1 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors">
+                                      <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
                                         {renderReadyTimeIcon()}
-                                        <span>{formatOrderDateTime(representativeOrder.readyTime)}</span>
+                                        <span className="text-emerald-700 font-semibold">Xong:</span>
+                                        <span className="text-emerald-600">{formatOrderDateTime(representativeOrder.readyTime)}</span>
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
