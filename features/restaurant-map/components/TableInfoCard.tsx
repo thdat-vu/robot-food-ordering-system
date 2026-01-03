@@ -11,6 +11,8 @@ interface Dish {
   status: string;
   orderTime?: string;
   createdTime?: string;
+  readyTime?: string;
+  servedTime?: string;
   quantity?: number;
   sizeName?: string;
 }
@@ -101,21 +103,58 @@ export const TableInfoCard: React.FC<TableInfoCardProps> = ({
   const unservedDishes = dishes.filter(d => d.status !== "đã phục vụ");
   const servedDishes = dishes.filter(d => d.status === "đã phục vụ");
   
-  // Nhóm món theo tên và size
-  const groupDishesByNameAndSize = (dishList: Dish[]): Array<{ name: string; sizeName?: string; count: number; status: string }> => {
-    const grouped = new Map<string, { name: string; sizeName?: string; count: number; status: string }>();
+  // Format time string to show only time (HH:mm:ss) - remove date
+  const formatTimeOnly = (timeStr?: string | null): string => {
+    if (!timeStr) return '';
+    
+    // Try parsing format: "HH:mm:ss dd/MM/yyyy"
+    const match1 = timeStr.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match1) {
+      return `${match1[1]}:${match1[2]}:${match1[3]}`;
+    }
+    
+    // Try parsing format: "dd/MM/yyyy HH:mm:ss"
+    const match2 = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+    if (match2) {
+      const hours = match2[4].padStart(2, '0');
+      return `${hours}:${match2[5]}:${match2[6]}`;
+    }
+    
+    // Try parsing as ISO date
+    const parsed = new Date(timeStr);
+    if (!Number.isNaN(parsed.getTime())) {
+      const pad = (value: number) => value.toString().padStart(2, '0');
+      return `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
+    }
+    
+    return timeStr;
+  };
+
+  // Nhóm món theo tên và size, kèm thời gian
+  const groupDishesByNameAndSize = (dishList: Dish[]): Array<{ name: string; sizeName?: string; count: number; status: string; time?: string }> => {
+    const grouped = new Map<string, { name: string; sizeName?: string; count: number; status: string; time?: string }>();
     
     dishList.forEach(dish => {
       const name = dish.name || "Món không tên";
       const sizeName = dish.sizeName;
       const key = `${name}::${sizeName || '__NO_SIZE__'}`;
       
+      // Lấy thời gian: 
+      // - Nếu món đã phục vụ (status === "đã phục vụ" hoặc "Served"), ưu tiên servedTime
+      // - Nếu không, ưu tiên readyTime, sau đó createdTime, cuối cùng orderTime
+      const isServed = dish.status === "đã phục vụ" || dish.status === "Served";
+      const time = isServed 
+        ? (dish.servedTime || dish.readyTime || dish.createdTime || dish.orderTime)
+        : (dish.readyTime || dish.createdTime || dish.orderTime);
+      const formattedTime = formatTimeOnly(time);
+      
       if (!grouped.has(key)) {
         grouped.set(key, {
           name,
           sizeName,
           count: 0,
-          status: dish.status
+          status: dish.status,
+          time: formattedTime
         });
       }
       const group = grouped.get(key)!;
@@ -192,17 +231,17 @@ export const TableInfoCard: React.FC<TableInfoCardProps> = ({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="relative bg-gradient-to-br from-purple-50 via-white to-purple-50 rounded-2xl shadow-2xl border-2 border-purple-200 overflow-hidden min-w-[260px] max-w-[280px]">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold hover:bg-red-600 transition-colors z-10 shadow-lg"
-        >
-          ×
-        </button>
-
         {/* Header with table name */}
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-5 py-3">
+        <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-5 py-3 relative">
           <div className="text-lg font-bold text-center">Bàn {tableId}</div>
+          {/* Close button - moved inside header */}
+          <button
+            onClick={onClose}
+            className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold hover:bg-red-600 transition-colors z-10 shadow-md"
+            aria-label="Đóng"
+          >
+            ×
+          </button>
         </div>
 
         <div className="p-5">
@@ -248,8 +287,11 @@ export const TableInfoCard: React.FC<TableInfoCardProps> = ({
               <div className="text-sm font-bold text-purple-800 mb-2">Món chưa xong:</div>
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {groupedUnserved.map((group, index) => (
-                  <div key={`${group.name}-${group.sizeName || 'no-size'}-${index}`} className="text-xs text-gray-700 pl-2 border-l-2 border-orange-400">
-                    -{getDishDisplayName(group)}
+                  <div key={`${group.name}-${group.sizeName || 'no-size'}-${index}`} className="text-xs text-gray-700 pl-2 border-l-2 border-orange-400 flex items-center justify-between gap-2">
+                    <span>-{getDishDisplayName(group)}</span>
+                    {group.time && (
+                      <span className="text-gray-500 font-mono text-[10px] flex-shrink-0">{group.time}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -262,8 +304,11 @@ export const TableInfoCard: React.FC<TableInfoCardProps> = ({
               <div className="text-sm font-bold text-purple-800 mb-2">Món đã xong:</div>
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {groupedServed.map((group, index) => (
-                  <div key={`${group.name}-${group.sizeName || 'no-size'}-${index}`} className="text-xs text-gray-600 pl-2 border-l-2 border-green-400">
-                    -{getDishDisplayName(group)}
+                  <div key={`${group.name}-${group.sizeName || 'no-size'}-${index}`} className="text-xs text-gray-600 pl-2 border-l-2 border-green-400 flex items-center justify-between gap-2">
+                    <span>-{getDishDisplayName(group)}</span>
+                    {group.time && (
+                      <span className="text-gray-500 font-mono text-[10px] flex-shrink-0">{group.time}</span>
+                    )}
                   </div>
                 ))}
               </div>

@@ -13,6 +13,34 @@ import { toast } from "sonner";
 import { useQuickServe } from "@/hooks/use-quick-serve";
 import { RestaurantMap } from "@/features/restaurant-map/RestaurantMap";
 import { TABLE_POSITIONS } from "@/features/restaurant-map/constants";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+
+// Format time string to show only time (HH:mm:ss) - remove date
+const formatTimeOnly = (timeStr?: string | null): string => {
+  if (!timeStr) return '';
+  
+  // Try parsing format: "HH:mm:ss dd/MM/yyyy"
+  const match1 = timeStr.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (match1) {
+    return `${match1[1]}:${match1[2]}:${match1[3]}`;
+  }
+  
+  // Try parsing format: "dd/MM/yyyy HH:mm:ss"
+  const match2 = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+  if (match2) {
+    const hours = match2[4].padStart(2, '0');
+    return `${hours}:${match2[5]}:${match2[6]}`;
+  }
+  
+  // Try parsing as ISO date
+  const parsed = new Date(timeStr);
+  if (!Number.isNaN(parsed.getTime())) {
+    const pad = (value: number) => value.toString().padStart(2, '0');
+    return `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
+  }
+  
+  return timeStr;
+};
 
 interface ServePanelProps {
   activeTab: OrderStatus;
@@ -657,11 +685,59 @@ const ServePanel: React.FC<ServePanelProps> = ({
                                     </span>
                                   )}
                                 </div>
-                                {d.orderTime && (
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    Đặt lúc: {d.orderTime}
-                                  </div>
-                                )}
+                                {/* Time badges - Horizontal layout with labels */}
+                                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                  <TooltipProvider>
+                                    {d.orderTime && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="flex items-center gap-1 text-[10px] sm:text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-50 flex-shrink-0">
+                                            <svg className="w-3 h-3 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            <span className="text-gray-600 font-semibold hidden sm:inline">Tạo:</span>
+                                            <span className="text-gray-500">{formatTimeOnly(d.orderTime)}</span>
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Ngày giờ tạo món</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                    {d.readyTime && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="flex items-center gap-1 text-[10px] sm:text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-emerald-50 flex-shrink-0">
+                                            <svg className="w-3 h-3 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <span className="text-emerald-700 font-semibold hidden sm:inline">Ra món:</span>
+                                            <span className="text-emerald-600">{formatTimeOnly(d.readyTime)}</span>
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Ngày giờ ra món</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                    {activeTab === "đã phục vụ" && d.servedTime && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="flex items-center gap-1 text-[10px] sm:text-xs font-medium text-green-600 cursor-help hover:text-green-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-green-50 flex-shrink-0">
+                                            <svg className="w-3 h-3 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span className="text-green-700 font-semibold hidden sm:inline">Đã phục vụ:</span>
+                                            <span className="text-green-600">{formatTimeOnly(d.servedTime)}</span>
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Ngày giờ đã phục vụ</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </TooltipProvider>
+                                </div>
                                 {d.note && (
                                   <div className="text-xs text-orange-600 mt-1">
                                     Ghi chú: {d.note}

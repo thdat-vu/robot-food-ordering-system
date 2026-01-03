@@ -21,15 +21,30 @@ import {
 import UserMenu from "@/components/common/UserMenu";
 import AuthGuard from "@/components/common/AuthGuard";
 
-const formatCurrentDateTime = (date: Date): string => {
-    const weekdayNames = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-    const weekday = weekdayNames[date.getDay()] ?? "";
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const year = date.getFullYear();
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${weekday} - ${day}/${month}/${year} - ${hours}:${minutes}`;
+// NEW: Returns object with separate date and time for better header display
+interface FormattedDateTime {
+  weekday: string;
+  date: string;
+  time: string;
+  full: string;
+}
+
+const formatCurrentDateTime = (date: Date): FormattedDateTime => {
+  const weekdayNames = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+  const weekday = weekdayNames[date.getDay()] ?? "";
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const seconds = date.getSeconds().toString().padStart(2, "0");
+  
+  return {
+    weekday,
+    date: `${day}/${month}/${year}`,
+    time: `${hours}:${minutes}:${seconds}`,
+    full: `${weekday} - ${day}/${month}/${year} - ${hours}:${minutes}`,
+  };
 };
 
 function WaiterPageContent() {
@@ -37,7 +52,13 @@ function WaiterPageContent() {
     const [searchQuery, setSearchQuery] = useState("");
     const [panel, setPanel] = useState<"control" | "payment">("control");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [currentDateTime, setCurrentDateTime] = useState<string>(() => formatCurrentDateTime(new Date()));
+    // Initialize with empty values to avoid SSR hydration mismatch, then update on client
+    const [currentDateTime, setCurrentDateTime] = useState<FormattedDateTime>({
+        weekday: '',
+        date: '',
+        time: '',
+        full: '',
+    });
     
     // ============================================================================
     // ROBOT DELIVERY MODE STATE
@@ -301,11 +322,80 @@ function WaiterPageContent() {
             {/*)}*/}
 
             <div className="flex-1 flex flex-col">
-                <div className="px-6 py-3 border-b border-gray-200 bg-white">
+                {/* Enhanced Header with datetime and search bar */}
+                <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-gray-50">
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                            {currentDateTime}
-                        </span>
+                        {/* LEFT side: DateTime and Search */}
+                        <div className="flex items-center gap-4">
+                            {/* DateTime display */}
+                            <div className="flex items-center gap-3">
+                                {/* Date section */}
+                                <div className="flex items-center gap-2.5 px-3.5 py-2 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-sm">
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Ngày</span>
+                                        <span className="text-sm font-bold text-gray-800">
+                                            {currentDateTime.weekday && currentDateTime.date 
+                                                ? `${currentDateTime.weekday}, ${currentDateTime.date}` 
+                                                : '...'}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {/* Time section */}
+                                <div className="flex items-center gap-2.5 px-3.5 py-2 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg shadow-sm">
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Giờ</span>
+                                        <span className="text-sm font-bold text-gray-800 tabular-nums tracking-wide">
+                                            {currentDateTime.time || '...'}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {/* Divider */}
+                                <div className="h-8 w-px bg-gray-300"></div>
+                                
+                                {/* General Search Bar - Search for dishes/tables */}
+                                <div className="relative">
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow w-[200px]">
+                                        <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Tìm món ăn hoặc bàn..."
+                                            className="flex-1 outline-none text-xs text-gray-700 placeholder-gray-400 bg-transparent min-w-0"
+                                        />
+                                        {searchQuery && (
+                                            <button
+                                                onClick={() => setSearchQuery('')}
+                                                className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* RIGHT side: User greeting (if needed) */}
+                        <div className="flex items-center gap-4">
+                            {/* User greeting can be added here if needed */}
+                        </div>
                     </div>
                 </div>
                 {panel === "control" ? (
@@ -345,7 +435,7 @@ function WaiterPageContent() {
                         </div>
 
                         <div className="flex-1 flex overflow-hidden">
-                            <div className="w-52 md:w-60 lg:w-64 bg-white border-r border-gray-200 flex flex-col">
+                            <div className="w-64 md:w-80 lg:w-96 bg-white border-r border-gray-200 flex flex-col">
                                 <div className="flex-1 overflow-y-auto">
                                     <DishList
                                         activeTab={activeTab}

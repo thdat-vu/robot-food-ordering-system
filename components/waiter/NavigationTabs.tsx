@@ -76,7 +76,7 @@ export function NavigationTabs({
         </nav>
 
         {/* Search Bar - Right side */}
-        <div className="flex items-center">
+        {/* <div className="flex items-center">
           <div className="relative">
             <input
               type="text"
@@ -101,7 +101,7 @@ export function NavigationTabs({
               </svg>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

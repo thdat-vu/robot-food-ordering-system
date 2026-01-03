@@ -11,6 +11,7 @@ import {
   CardAction,
   CardFooter,
 } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 interface OrdersContentProps {
   groupedOrders: GroupedOrders;
@@ -67,7 +68,7 @@ export function OrdersContent({
     </svg>
   );
 
-  const renderCalendarIcon = () => (
+  const renderCreatedTimeIcon = () => (
     <svg 
       className="w-4 h-4 text-gray-500" 
       aria-hidden="true" 
@@ -82,7 +83,47 @@ export function OrdersContent({
         strokeLinecap="round" 
         strokeLinejoin="round" 
         strokeWidth="2" 
-        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+        d="M12 4.5v15m7.5-7.5h-15"
+      />
+    </svg>
+  );
+
+  const renderReadyTimeIcon = () => (
+    <svg 
+      className="w-3.5 h-3.5 text-emerald-500" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M5 13l4 4L19 7"
+      />
+    </svg>
+  );
+
+  const renderRemakedTimeIcon = () => (
+    <svg 
+      className="w-3.5 h-3.5 text-red-500" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
       />
     </svg>
   );
@@ -273,18 +314,56 @@ export function OrdersContent({
                     </div>
                   )}
                   
-                  {/* Tertiary Info: Time & Date - Subtle */}
-                  <div className="flex items-center gap-3 mt-2.5">
+                  {/* Tertiary Info: Time & Date - Horizontal layout with labels */}
+                  <div className="flex items-center gap-3 mt-2.5 flex-wrap">
                     <div className="flex items-center gap-1 text-gray-500">
                       {renderClockIcon()}
                       <span className="text-xs">{order.estimatedTime}</span>
                     </div>
-                    {order.createdTime && (
-                      <div className="flex items-center gap-1 text-gray-400">
-                        {renderCalendarIcon()}
-                        <span className="text-xs">{order.createdTime}</span>
-                      </div>
-                    )}
+                    <TooltipProvider>
+                      {order.createdTime && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-50">
+                              {renderCreatedTimeIcon()}
+                              <span className="text-gray-600 font-semibold">Tạo:</span>
+                              <span className="text-gray-500">{order.createdTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ tạo món</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                      {order.isUrgent && order.remakedTime ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-red-600 cursor-help hover:text-red-700 transition-colors px-2 py-1 rounded-md hover:bg-red-50">
+                              {renderRemakedTimeIcon()}
+                              <span className="text-red-700 font-semibold">Trả lại:</span>
+                              <span className="text-red-600">{order.remakedTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ món bị trả lại</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : order.readyTime ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
+                              {renderReadyTimeIcon()}
+                              <span className="text-emerald-700 font-semibold">Xong:</span>
+                              <span className="text-emerald-600">{order.readyTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ xong</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : null}
+                    </TooltipProvider>
                   </div>
                 </div>
                 {/* Item number badge */}
@@ -340,12 +419,28 @@ export function OrdersContent({
       }
     };
     
+    // Check if order should be highlighted (isUrgent or has remakedTime)
+    const isHighlighted = order.isUrgent || (order.remakedTime !== null && order.remakedTime !== undefined);
+    
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         <Card className={`relative overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 ${
-          isSelectedSingle ? 'border-blue-500 shadow-blue-100 ring-2 ring-blue-200' : 'border-transparent'
+          isSelectedSingle ? 'border-blue-500 shadow-blue-100 ring-2 ring-blue-200' : 
+          isHighlighted ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50' :
+          'border-transparent'
         } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
         >
+          {/* Urgent badge - top right corner */}
+          {order.isUrgent && (
+            <div className="absolute top-3 right-3 z-10">
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="text-sm">KHẨN CẤP</span>
+              </div>
+            </div>
+          )}
           {/* Top gradient accent bar */}
           <div className={`h-1.5 bg-gradient-to-r ${getCategoryGradient(order.category)}`}></div>
           
@@ -376,6 +471,17 @@ export function OrdersContent({
                   </div>
                 </div>
               )}
+              {/* Remark Note for remade orders in "đang thực hiện" tab */}
+              {activeTab === 'đang thực hiện' && order.remakedTime && order.remarkNote && (
+                <div className="mt-3 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-2.5 rounded-xl border-l-4 border-red-500 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                    </svg>
+                    <span><span className="font-semibold">Lý do làm lại:</span> {order.remarkNote}</span>
+                  </div>
+                </div>
+              )}
               {order.toppings && order.toppings.length > 0 && (
                 <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-4 py-2.5 rounded-xl border border-emerald-200 shadow-sm">
                   <div className="flex items-center gap-2">
@@ -390,12 +496,47 @@ export function OrdersContent({
               {/* Time badges with improved styling */}
               <div className="flex items-center gap-3 mt-4">
                 {renderTimeBadge(order.estimatedTime)}
-                {order.createdTime && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
-                    {renderCalendarIcon()}
-                    {order.createdTime}
-                  </span>
-                )}
+                <TooltipProvider>
+                  {order.createdTime && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200 cursor-help">
+                          {renderCreatedTimeIcon()}
+                          {order.createdTime}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ngày giờ tạo món</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                  {order.isUrgent && order.remakedTime ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-full border border-red-200 cursor-help">
+                          {renderRemakedTimeIcon()}
+                          {order.remakedTime}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ngày giờ món bị trả lại</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : order.readyTime ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
+                          {renderReadyTimeIcon()}
+                          {order.readyTime}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ngày giờ xong</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : null}
+                </TooltipProvider>
               </div>
             </div>
             
@@ -491,31 +632,56 @@ export function OrdersContent({
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="space-y-4">
-          {sortedOrders.map((order, index) => (
+          {sortedOrders.map((order, index) => {
+            // Check if order should be highlighted (isUrgent or has remakedTime)
+            const isHighlighted = order.isUrgent || (order.remakedTime !== null && order.remakedTime !== undefined);
+            
+            return (
             <div
               key={order.id}
               className={`relative overflow-hidden bg-white rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
                 selectedIds && selectedIds.has(order.id) 
                   ? 'border-emerald-500 shadow-emerald-200 ring-2 ring-emerald-200' 
+                  : isHighlighted
+                  ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                   : 'border-gray-100 hover:border-emerald-300'
               } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
             >
+              {/* Urgent badge - top right corner */}
+              {order.isUrgent && (
+                <div className="absolute top-3 right-3 z-10">
+                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                    <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="text-sm">KHẨN CẤP</span>
+                  </div>
+                </div>
+              )}
               {/* Left gradient accent bar */}
               <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(order.category)}`}></div>
               
               <div className="flex items-center gap-4 p-4 pl-5">
+                {/* Order number badge */}
+                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-white text-lg font-bold">{index + 1}</span>
+                </div>
+                
                 <div className="flex-1 min-w-0">
-                  {/* Primary Info: Name + Size + Table on same line */}
-                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
-                    {order.itemName}
+                  {/* Primary Info: Name + Size + Quantity + Table on same line */}
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2 flex items-center gap-2 flex-wrap">
+                    <span>{order.itemName}</span>
                     {order.sizeName && (
-                      <span className="ml-2 px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
+                      <span className="px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
                         {order.sizeName.charAt(0).toUpperCase()}
                       </span>
                     )}
-                    <span className="text-gray-400 font-normal mx-2">-</span>
                     <span className="text-base font-semibold text-gray-600">
-                      Bàn {order.tableNumber}: x{order.quantity > 0 ? order.quantity : 1}
+                      x{order.quantity > 0 ? order.quantity : 1}
+                    </span>
+                    <span className="text-gray-400 font-normal">-</span>
+                    <span className="text-base font-semibold text-gray-600">
+                      Bàn {order.tableNumber}
                     </span>
                   </h3>
                   
@@ -525,26 +691,71 @@ export function OrdersContent({
                       <span className="font-semibold">Ghi chú:</span> {order.note}
                     </div>
                   )}
+                  {/* Remark Note for remade orders - only show in "đang thực hiện" tab */}
+                  {order.remakedTime && order.remarkNote && (
+                    <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
+                      <span className="font-semibold">Lý do làm lại:</span> {order.remarkNote}
+                    </div>
+                  )}
                   {order.toppings && order.toppings.length > 0 && (
                     <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-2 rounded-xl border border-emerald-200">
                       <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
                     </div>
                   )}
                   
-                  {/* Time badges */}
-                  <div className="flex items-center gap-3 mt-2">
+                  {/* Time badges - Horizontal layout with labels */}
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
                     {renderTimeBadge(order.estimatedTime)}
-                    {order.createdTime && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
-                        {renderCalendarIcon()}
-                        {order.createdTime}
-                      </span>
-                    )}
+                    <TooltipProvider>
+                      {order.createdTime && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-50">
+                              {renderCreatedTimeIcon()}
+                              <span className="text-gray-600 font-semibold">Tạo:</span>
+                              <span className="text-gray-500">{order.createdTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ tạo món</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                      {order.isUrgent && order.remakedTime ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-red-600 cursor-help hover:text-red-700 transition-colors px-2 py-1 rounded-md hover:bg-red-50">
+                              {renderRemakedTimeIcon()}
+                              <span className="text-red-700 font-semibold">Trả lại:</span>
+                              <span className="text-red-600">{order.remakedTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ món bị trả lại</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : order.readyTime ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
+                              {renderReadyTimeIcon()}
+                              <span className="text-emerald-700 font-semibold">Xong:</span>
+                              <span className="text-emerald-600">{order.readyTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ xong</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : null}
+                    </TooltipProvider>
                   </div>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -631,12 +842,20 @@ export function OrdersContent({
             // Get all order IDs in this group
             const orderIds = orders.map(o => o.id);
             
+            // Check if any order in group should be highlighted (isUrgent or has remakedTime)
+            const isHighlighted = orders.some(o => o.isUrgent || (o.remakedTime !== null && o.remakedTime !== undefined));
+            
+            // Check if any order in group is urgent
+            const hasUrgent = orders.some(o => o.isUrgent);
+            
             return (
               <div
                 key={`${itemName}-${sizeName}-${noteKey}`}
                 className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
                   groupSelected 
                     ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
+                    : isHighlighted
+                    ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                     : 'border-gray-100 hover:border-blue-300'
                 } ${anyAnimating ? 'animating-out' : ''}`}
                 onClick={() => {
@@ -647,6 +866,17 @@ export function OrdersContent({
                   onGroupClick(itemName);
                 }}
               >
+                {/* Urgent badge - top right corner */}
+                {hasUrgent && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                      <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span className="text-sm">KHẨN CẤP</span>
+                    </div>
+                  </div>
+                )}
                 {/* Left gradient accent bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(first.category)}`}></div>
                 
@@ -699,16 +929,62 @@ export function OrdersContent({
                         </div>
                       </div>
                     )}
+                    {/* Remark Note for remade orders in "đang thực hiện" tab */}
+                    {activeTab === 'đang thực hiện' && orders.some(o => o.remakedTime && o.remarkNote) && (
+                      <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                          </svg>
+                          <span><span className="font-semibold">Lý do làm lại:</span> {orders.find(o => o.remakedTime && o.remarkNote)?.remarkNote}</span>
+                        </div>
+                      </div>
+                    )}
                     
                     {/* Time badges */}
                     <div className="flex items-center gap-3 mt-2">
                       {renderTimeBadge(first.estimatedTime)}
-                      {first.createdTime && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
-                          {renderCalendarIcon()}
-                          {first.createdTime}
-                        </span>
-                      )}
+                      <TooltipProvider>
+                        {first.createdTime && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200 cursor-help">
+                                {renderCreatedTimeIcon()}
+                                {first.createdTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ tạo món</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                        {first.isUrgent && first.remakedTime ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-full border border-red-200 cursor-help">
+                                {renderRemakedTimeIcon()}
+                                {first.remakedTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ món bị trả lại</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : first.readyTime ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
+                                {renderReadyTimeIcon()}
+                                {first.readyTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ xong</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                      </TooltipProvider>
                     </div>
                   </div>
                   
@@ -807,15 +1083,34 @@ export function OrdersContent({
             const tableBadges = Array.from(ordersByTable.entries())
               .sort(([a], [b]) => a - b);
             
+            // Check if any order in group should be highlighted (isUrgent or has remakedTime)
+            const isHighlighted = orders.some(o => o.isUrgent || (o.remakedTime !== null && o.remakedTime !== undefined));
+            
+            // Check if any order in group is urgent
+            const hasUrgent = orders.some(o => o.isUrgent);
+            
             return (
               <div 
                 key={`${itemName}-${representative.sizeName || ''}-${noteKey}`} 
                 className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
                   groupSelected 
                     ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
+                    : isHighlighted
+                    ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                     : 'border-gray-100 hover:border-blue-300'
                 } ${anyAnimating ? 'animating-out' : ''}`}
               >
+                {/* Urgent badge - top right corner */}
+                {hasUrgent && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                      <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span className="text-sm">KHẨN CẤP</span>
+                    </div>
+                  </div>
+                )}
                 {/* Left gradient accent bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(representative.category)}`}></div>
                 
@@ -849,6 +1144,17 @@ export function OrdersContent({
                         </div>
                       </div>
                     )}
+                    {/* Remark Note for remade orders in "đang thực hiện" tab */}
+                    {activeTab === 'đang thực hiện' && orders.some(o => o.remakedTime && o.remarkNote) && (
+                      <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                          </svg>
+                          <span><span className="font-semibold">Lý do làm lại:</span> {orders.find(o => o.remakedTime && o.remarkNote)?.remarkNote}</span>
+                        </div>
+                      </div>
+                    )}
                     {representative.toppings && representative.toppings.length > 0 && (
                       <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-2 rounded-xl border border-emerald-200">
                         <div className="flex items-center gap-2">
@@ -863,12 +1169,47 @@ export function OrdersContent({
                     {/* Time badges */}
                     <div className="flex items-center gap-3 mt-2">
                       {renderTimeBadge(getGroupEstimatedTime(orders))}
-                      {representative.createdTime && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
-                          {renderCalendarIcon()}
-                          {representative.createdTime}
-                        </span>
-                      )}
+                      <TooltipProvider>
+                        {representative.createdTime && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200 cursor-help">
+                                {renderCreatedTimeIcon()}
+                                {representative.createdTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ tạo món</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                        {representative.isUrgent && representative.remakedTime ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-full border border-red-200 cursor-help">
+                                {renderRemakedTimeIcon()}
+                                {representative.remakedTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ món bị trả lại</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : representative.readyTime ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
+                                {renderReadyTimeIcon()}
+                                {representative.readyTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ xong</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                      </TooltipProvider>
                     </div>
                   </div>
                   

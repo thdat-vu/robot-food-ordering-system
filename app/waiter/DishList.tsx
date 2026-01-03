@@ -97,6 +97,33 @@ const parseOrderTime = (timeStr: string | undefined): number => {
     return isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
 };
 
+// Format time string to show only time (HH:mm:ss) - remove date
+const formatTimeOnly = (timeStr: string | undefined): string => {
+    if (!timeStr) return '';
+    
+    // Try parsing format: "HH:mm:ss dd/MM/yyyy"
+    const match1 = timeStr.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match1) {
+        return `${match1[1]}:${match1[2]}:${match1[3]}`;
+    }
+    
+    // Try parsing format: "dd/MM/yyyy HH:mm:ss"
+    const match2 = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+    if (match2) {
+        const hours = match2[4].padStart(2, '0');
+        return `${hours}:${match2[5]}:${match2[6]}`;
+    }
+    
+    // Try parsing as ISO date
+    const parsed = new Date(timeStr);
+    if (!Number.isNaN(parsed.getTime())) {
+        const pad = (value: number) => value.toString().padStart(2, '0');
+        return `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
+    }
+    
+    return timeStr;
+};
+
 interface TableGroup {
     tableNumber: number;
     dishes: WaiterDish[];
@@ -873,39 +900,103 @@ const DishList: React.FC<DishListProps> = ({
                                                             <div className="w-3 h-3 bg-yellow-600 rounded-full"></div>
                                                         )}
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="text-sm font-medium text-foreground">
-                                                                {dish.name} - Bàn {dish.tableNumber}{" "}
-                                                                {dish.quantity > 1 && `(${dish.quantity})`}
+                                                    <div className="flex-1 min-w-0">
+                                                        {/* Primary Info: Name + Size + Quantity + Table on same line */}
+                                                        <div className="flex items-start sm:items-center justify-between gap-2 mb-2 flex-wrap">
+                                                            <h3 className="text-xs sm:text-sm font-bold text-gray-900 leading-tight flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0 flex-1">
+                                                                <span className="truncate max-w-[120px] sm:max-w-none">{dish.name}</span>
+                                                                {dish.sizeName && (
+                                                                    <span className="px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200 flex-shrink-0">
+                                                                        {dish.sizeName.charAt(0).toUpperCase()}
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-xs sm:text-sm font-semibold text-gray-600 flex-shrink-0">
+                                                                    x{dish.quantity > 0 ? dish.quantity : 1}
+                                                                </span>
+                                                                <span className="text-gray-400 font-normal flex-shrink-0">-</span>
+                                                                <span className="text-xs sm:text-sm font-semibold text-gray-600 flex-shrink-0">
+                                                                    Bàn {dish.tableNumber}
+                                                                </span>
+                                                            </h3>
+                                                            <div className="flex-shrink-0">
+                                                                {isTableFullySelected && (
+                                                                    <span className="text-[10px] sm:text-xs bg-green-100 text-green-700 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap">
+                                                                        Toàn bàn
+                                                                    </span>
+                                                                )}
+                                                                {isTablePartiallySelected && (
+                                                                    <span className="text-[10px] sm:text-xs bg-yellow-100 text-yellow-700 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap">
+                                                                        Một phần
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                            {isTableFullySelected && (
-                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                                                    Toàn bàn
-                                                                </span>
-                                                            )}
-                                                            {isTablePartiallySelected && (
-                                                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                                                                    Một phần
-                                                                </span>
-                                                            )}
                                                         </div>
-                                                        {dish.orderTime && (
-                                                            <div className="text-xs text-muted-foreground">
-                                                                Đặt lúc: {dish.orderTime}
-                                                            </div>
-                                                        )}
+                                                        
+                                                        {/* Note & Toppings */}
                                                         {dish.note && (
-                                                            <div className="text-xs text-orange-600 mt-1">Ghi chú: {dish.note}</div>
-                                                        )}
-                                                        {dish.sizeName && (
-                                                            <div className="text-xs text-blue-600">Size: {dish.sizeName}</div>
+                                                            <div className="mt-1 text-[10px] sm:text-xs text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-2 py-1 rounded-md border border-amber-200 break-words">
+                                                                <span className="font-semibold">Ghi chú:</span> <span className="break-words">{dish.note}</span>
+                                                            </div>
                                                         )}
                                                         {dish.toppings && dish.toppings.length > 0 && (
-                                                            <div className="text-xs text-purple-600">
-                                                                Toppings: {dish.toppings.join(", ")}
+                                                            <div className="mt-1 text-[10px] sm:text-xs text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-2 py-1 rounded-md border border-emerald-200 break-words">
+                                                                <span className="font-semibold">Toppings:</span> <span className="break-words">{dish.toppings.join(", ")}</span>
                                                             </div>
                                                         )}
+                                                        
+                                                        {/* Time badges - Horizontal layout with labels - Responsive */}
+                                                        <div className="flex items-center gap-1.5 sm:gap-3 mt-2 flex-wrap">
+                                                            <TooltipProvider>
+                                                                {dish.orderTime && (
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md hover:bg-gray-50 flex-shrink-0">
+                                                                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                                                </svg>
+                                                                                <span className="text-gray-600 font-semibold hidden sm:inline">Tạo:</span>
+                                                                                <span className="text-gray-500 truncate max-w-[100px] sm:max-w-none">{formatTimeOnly(dish.orderTime)}</span>
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Ngày giờ tạo món</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                )}
+                                                                {dish.readyTime && (
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md hover:bg-emerald-50 flex-shrink-0">
+                                                                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                                </svg>
+                                                                                <span className="text-emerald-700 font-semibold hidden sm:inline">Ra món:</span>
+                                                                                <span className="text-emerald-600 truncate max-w-[100px] sm:max-w-none">{formatTimeOnly(dish.readyTime)}</span>
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Ngày giờ ra món</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                )}
+                                                                {activeTab === "đã phục vụ" && dish.servedTime && (
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-green-600 cursor-help hover:text-green-700 transition-colors px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md hover:bg-green-50 flex-shrink-0">
+                                                                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                                </svg>
+                                                                                <span className="text-green-700 font-semibold hidden sm:inline">Đã phục vụ:</span>
+                                                                                <span className="text-green-600 truncate max-w-[100px] sm:max-w-none">{formatTimeOnly(dish.servedTime)}</span>
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Ngày giờ đã phục vụ</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                )}
+                                                            </TooltipProvider>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </li>
@@ -1068,37 +1159,103 @@ const DishList: React.FC<DishListProps> = ({
                                                                             <div className="w-3 h-3 bg-yellow-600 rounded-full"></div>
                                                                         )}
                                                                     </div>
-                                                                    <div className="flex-1">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div className="text-sm font-medium text-foreground">
-                                                                                {dish.name} - Bàn {dish.tableNumber}{" "}
-                                                                                {dish.quantity > 1 && `(${dish.quantity})`}
+                                                                    <div className="flex-1 min-w-0">
+                                                                        {/* Primary Info: Name + Size + Quantity + Table on same line */}
+                                                                        <div className="flex items-start sm:items-center justify-between gap-2 mb-2 flex-wrap">
+                                                                            <h3 className="text-xs sm:text-sm font-bold text-gray-900 leading-tight flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0 flex-1">
+                                                                                <span className="truncate max-w-[120px] sm:max-w-none">{dish.name}</span>
+                                                                                {dish.sizeName && (
+                                                                                    <span className="px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200 flex-shrink-0">
+                                                                                        {dish.sizeName.charAt(0).toUpperCase()}
+                                                                                    </span>
+                                                                                )}
+                                                                                <span className="text-xs sm:text-sm font-semibold text-gray-600 flex-shrink-0">
+                                                                                    x{dish.quantity > 0 ? dish.quantity : 1}
+                                                                                </span>
+                                                                                <span className="text-gray-400 font-normal flex-shrink-0">-</span>
+                                                                                <span className="text-xs sm:text-sm font-semibold text-gray-600 flex-shrink-0">
+                                                                                    Bàn {dish.tableNumber}
+                                                                                </span>
+                                                                            </h3>
+                                                                            <div className="flex-shrink-0">
+                                                                                {isTableFullySelected && (
+                                                                                    <span className="text-[10px] sm:text-xs bg-green-100 text-green-700 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap">
+                                                                                        Toàn bàn
+                                                                                    </span>
+                                                                                )}
+                                                                                {isTablePartiallySelected && (
+                                                                                    <span className="text-[10px] sm:text-xs bg-yellow-100 text-yellow-700 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap">
+                                                                                        Một phần
+                                                                                    </span>
+                                                                                )}
                                                                             </div>
-                                                                            {isTableFullySelected && (
-                                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                                                                    Toàn bàn
-                                                                                </span>
-                                                                            )}
-                                                                            {isTablePartiallySelected && (
-                                                                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                                                                                    Một phần
-                                                                                </span>
-                                                                            )}
                                                                         </div>
-                                                                        {dish.orderTime && (
-                                                                            <div className="text-xs text-muted-foreground">Đặt lúc: {dish.orderTime}</div>
-                                                                        )}
+                                                                        
+                                                                        {/* Note & Toppings */}
                                                                         {dish.note && (
-                                                                            <div className="text-xs text-orange-600 mt-1">Ghi chú: {dish.note}</div>
-                                                                        )}
-                                                                        {dish.sizeName && (
-                                                                            <div className="text-xs text-blue-600">Size: {dish.sizeName}</div>
+                                                                            <div className="mt-1 text-[10px] sm:text-xs text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-2 py-1 rounded-md border border-amber-200 break-words">
+                                                                                <span className="font-semibold">Ghi chú:</span> <span className="break-words">{dish.note}</span>
+                                                                            </div>
                                                                         )}
                                                                         {dish.toppings && dish.toppings.length > 0 && (
-                                                                            <div className="text-xs text-purple-600">
-                                                                                Toppings: {dish.toppings.join(", ")}
+                                                                            <div className="mt-1 text-[10px] sm:text-xs text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-2 py-1 rounded-md border border-emerald-200 break-words">
+                                                                                <span className="font-semibold">Toppings:</span> <span className="break-words">{dish.toppings.join(", ")}</span>
                                                                             </div>
                                                                         )}
+                                                                        
+                                                                        {/* Time badges - Horizontal layout with labels - Responsive */}
+                                                                        <div className="flex items-center gap-1.5 sm:gap-3 mt-2 flex-wrap">
+                                                                            <TooltipProvider>
+                                                                                {dish.orderTime && (
+                                                                                    <Tooltip>
+                                                                                        <TooltipTrigger asChild>
+                                                                                            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md hover:bg-gray-50 flex-shrink-0">
+                                                                                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                                                                </svg>
+                                                                                                <span className="text-gray-600 font-semibold hidden sm:inline">Tạo:</span>
+                                                                                                <span className="text-gray-500 truncate max-w-[100px] sm:max-w-none">{formatTimeOnly(dish.orderTime)}</span>
+                                                                                            </div>
+                                                                                        </TooltipTrigger>
+                                                                                        <TooltipContent>
+                                                                                            <p>Ngày giờ tạo món</p>
+                                                                                        </TooltipContent>
+                                                                                    </Tooltip>
+                                                                                )}
+                                                                                {dish.readyTime && (
+                                                                                    <Tooltip>
+                                                                                        <TooltipTrigger asChild>
+                                                                                            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md hover:bg-emerald-50 flex-shrink-0">
+                                                                                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                                                </svg>
+                                                                                                <span className="text-emerald-700 font-semibold hidden sm:inline">Ra món:</span>
+                                                                                                <span className="text-emerald-600 truncate max-w-[100px] sm:max-w-none">{formatTimeOnly(dish.readyTime)}</span>
+                                                                                            </div>
+                                                                                        </TooltipTrigger>
+                                                                                        <TooltipContent>
+                                                                                            <p>Ngày giờ ra món</p>
+                                                                                        </TooltipContent>
+                                                                                    </Tooltip>
+                                                                                )}
+                                                                                {activeTab === "đã phục vụ" && dish.servedTime && (
+                                                                                    <Tooltip>
+                                                                                        <TooltipTrigger asChild>
+                                                                                            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-green-600 cursor-help hover:text-green-700 transition-colors px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md hover:bg-green-50 flex-shrink-0">
+                                                                                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                                                </svg>
+                                                                                                <span className="text-green-700 font-semibold hidden sm:inline">Đã phục vụ:</span>
+                                                                                                <span className="text-green-600 truncate max-w-[100px] sm:max-w-none">{formatTimeOnly(dish.servedTime)}</span>
+                                                                                            </div>
+                                                                                        </TooltipTrigger>
+                                                                                        <TooltipContent>
+                                                                                            <p>Ngày giờ đã phục vụ</p>
+                                                                                        </TooltipContent>
+                                                                                    </Tooltip>
+                                                                                )}
+                                                                            </TooltipProvider>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             );
@@ -1169,18 +1326,18 @@ const DishList: React.FC<DishListProps> = ({
 
                                 <textarea
                                     value={remakeReason}
-                                    onChange={handleInputChange}
-                                    onFocus={handleInputFocus}
-                                    placeholder="Nhập lý do làm lại hoặc chọn từ gợi ý bên trên..."
+                                    readOnly
+                                    disabled
+                                    placeholder={remakeReason === '' ? "Chọn lý do từ gợi ý bên trên..." : ""}
                                     rows={3}
                                     className="w-full border border-gray-300 rounded-md px-3 py-2
-                             focus:outline-none focus:ring-2 focus:ring-orange-500
-                             focus:border-orange-500 resize-none"
+                             bg-gray-50 text-gray-700 cursor-not-allowed resize-none
+                             focus:outline-none"
                                 />
 
                                 <div className="flex justify-between items-center mt-1">
                                     <p className="text-xs text-gray-500">
-                                        {remakeReason === '' ? 'Có thể chọn gợi ý hoặc nhập tay' : ''}
+                                        {remakeReason === '' ? 'Vui lòng chọn lý do từ gợi ý bên trên' : 'Lý do đã chọn'}
                                     </p>
                                     <span className="text-xs text-gray-400">
                         {remakeReason.length}/200

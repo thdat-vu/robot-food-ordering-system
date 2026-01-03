@@ -138,21 +138,52 @@ export const transformApiOrderItemToOrder = (
     createdTime: (() => {
       const dateValue = orderItem.createdTime || order.createdTime;
       const dt = parseVnDateTime(dateValue);
-      return dt
-        ? dt.toLocaleString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          })
-        : undefined;
-    })(), // Convert Date to string format
+      if (!dt) return undefined;
+      // Format: HH:mm:ss dd/MM/yyyy
+      const pad = (value: number) => value.toString().padStart(2, '0');
+      const hours = pad(dt.getHours());
+      const minutes = pad(dt.getMinutes());
+      const seconds = pad(dt.getSeconds());
+      const day = pad(dt.getDate());
+      const month = pad(dt.getMonth() + 1);
+      const year = dt.getFullYear();
+      return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+    })(), // Convert Date to string format: HH:mm:ss dd/MM/yyyy
+    readyTime: (() => {
+      const dateValue = orderItem.readyTime;
+      const dt = parseVnDateTime(dateValue);
+      if (!dt) return undefined;
+      // Format: HH:mm:ss dd/MM/yyyy
+      const pad = (value: number) => value.toString().padStart(2, '0');
+      const hours = pad(dt.getHours());
+      const minutes = pad(dt.getMinutes());
+      const seconds = pad(dt.getSeconds());
+      const day = pad(dt.getDate());
+      const month = pad(dt.getMonth() + 1);
+      const year = dt.getFullYear();
+      return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+    })(), // Convert Ready Date to string format: HH:mm:ss dd/MM/yyyy
     estimatedTime: getEstimatedTime(orderItem.productName),
     sizeName: orderItem.sizeName, // Add size name from API
     toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API
     note: orderItem.note, // Add note from API
+    isUrgent: orderItem.isUrgent || false, // Add isUrgent from API
+    remakedTime: (() => {
+      const dateValue = orderItem.remakedTime;
+      if (!dateValue) return null;
+      const dt = parseVnDateTime(dateValue);
+      if (!dt) return null;
+      // Format: HH:mm:ss dd/MM/yyyy
+      const pad = (value: number) => value.toString().padStart(2, '0');
+      const hours = pad(dt.getHours());
+      const minutes = pad(dt.getMinutes());
+      const seconds = pad(dt.getSeconds());
+      const day = pad(dt.getDate());
+      const month = pad(dt.getMonth() + 1);
+      const year = dt.getFullYear();
+      return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+    })(), // Add remakedTime from API
+    remarkNote: orderItem.remarkNote || null, // Add remarkNote from API
     // Store API IDs for making API calls
     apiOrderId: order.id,
     apiItemId: orderItem.id

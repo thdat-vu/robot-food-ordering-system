@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
 import LateDishWarning from '@/components/moderator/LateDishWarning';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 type SelectionItem = { itemName: string; tableNumber: number; id: number };
 
@@ -326,11 +327,17 @@ export function KitchenSidebarByTable({
     return areSameGroup(sortGroup(selectedGroup), tableSelection);
   };
 
-  const formatOrderDateTime = (order: Order): string => {
-    const raw = order.createdTime || order.orderTime;
-    if (!raw) return '';
+  const formatOrderDateTime = (dateString?: string): string => {
+    if (!dateString) return '';
+    
+    // Try parsing as already formatted string (HH:mm:ss dd/MM/yyyy)
+    const alreadyFormatted = dateString.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (alreadyFormatted) {
+      return dateString; // Already in correct format
+    }
 
-    const parsed = new Date(raw);
+    // Try parsing as Date
+    const parsed = new Date(dateString);
     if (!Number.isNaN(parsed.getTime())) {
       const pad = (value: number) => value.toString().padStart(2, '0');
       const hours = pad(parsed.getHours());
@@ -342,8 +349,68 @@ export function KitchenSidebarByTable({
       return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
     }
 
-    return raw;
+    return dateString;
   };
+
+  const renderCreatedTimeIcon = () => (
+    <svg 
+      className="w-3 h-3 text-gray-400" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M12 4.5v15m7.5-7.5h-15"
+      />
+    </svg>
+  );
+
+  const renderReadyTimeIcon = () => (
+    <svg 
+      className="w-3 h-3 text-emerald-500" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M5 13l4 4L19 7"
+      />
+    </svg>
+  );
+
+  const renderRemakedTimeIcon = () => (
+    <svg 
+      className="w-3 h-3 text-red-500" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+      />
+    </svg>
+  );
 
   // Get category accent color
   const getCategoryAccent = (categoryName?: string) => {
@@ -453,7 +520,7 @@ export function KitchenSidebarByTable({
 
                 {isExpanded && (
                   <div className="px-4 pb-4 pt-2 flex flex-col gap-3">
-                    {groupedOrders.map(group => {
+                    {groupedOrders.map((group, groupIndex) => {
                       const selectionItems = toSelectionItems(group.orders);
                       const selectedCount = group.orders.filter(order => isItemSelected(order.id)).length;
                       const checkboxState =
@@ -481,6 +548,18 @@ export function KitchenSidebarByTable({
                       const totalQuantity =
                         group.quantity > 0 ? group.quantity : group.orders.length;
                       
+                      // Calculate total count of items with same name (regardless of size) in this table
+                      const totalItemsWithSameName = orders.filter(
+                        order => order.itemName === group.itemName
+                      ).reduce((sum, order) => {
+                        const qty = order.quantity && order.quantity > 0 ? order.quantity : 1;
+                        return sum + qty;
+                      }, 0);
+                      
+                      // Check if order should be highlighted (isUrgent or has remakedTime)
+                      const isUrgentOrRemade = representativeOrder?.isUrgent || (representativeOrder?.remakedTime !== null && representativeOrder?.remakedTime !== undefined);
+                      const finalHighlighted = isHighlighted || isUrgentOrRemade;
+                      
                       // Get category info for styling
                       const category = itemNameToCategory?.[group.itemName];
                       const categoryAccent = getCategoryAccent(category);
@@ -491,6 +570,8 @@ export function KitchenSidebarByTable({
                           className={`relative overflow-hidden flex items-start gap-3 rounded-xl border-2 p-3 transition-all duration-300 cursor-pointer hover:shadow-md ${
                             isHighlighted 
                               ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm' 
+                              : isUrgentOrRemade
+                              ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                               : 'border-gray-100 bg-gray-50 hover:border-blue-200'
                           }`}
                           onClick={() => {
@@ -500,6 +581,18 @@ export function KitchenSidebarByTable({
                             }
                           }}
                         >
+                          {/* Urgent badge - top right corner */}
+                          {representativeOrder?.isUrgent && (
+                            <div className="absolute top-2 right-2 z-10 pointer-events-none">
+                              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                                <svg className="w-4 h-4 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span className="text-sm">KHẨN CẤP</span>
+                              </div>
+                            </div>
+                          )}
+                          
                           {/* Left accent bar */}
                           <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${categoryAccent.bg}`}></div>
                           
@@ -518,24 +611,24 @@ export function KitchenSidebarByTable({
                           )}
                           
                           <div className={`flex-1 min-w-0 ${hideCheckboxes ? 'ml-3' : 'ml-1'}`}>
-                            {/* Item name and badges */}
-                            <h4 className="text-sm font-bold text-gray-900 leading-tight mb-2">
-                              {group.itemName}
-                            </h4>
-                            
-                            <div className="flex flex-wrap items-center gap-2">
+                            {/* Item name, total count, size and quantity on same line */}
+                            <h4 className="text-sm font-bold text-gray-900 leading-tight mb-2 flex items-center gap-2 flex-wrap">
+                              {/* Total count badge - shows total items with same name in table */}
+                              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-sm">
+                                {totalItemsWithSameName}
+                              </span>
+                              <span>{group.itemName}</span>
+                              <span className="text-gray-400 font-normal">-</span>
                               {/* Size badge */}
                               {group.sizeName && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
-                                  Size {group.sizeName.charAt(0).toUpperCase()}
+                                  {group.sizeName.charAt(0).toUpperCase()}
                                 </span>
                               )}
-                              
                               {/* Quantity badge */}
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${categoryAccent.badge} border`}>
                                 x{totalQuantity}
                               </span>
-                              
                               {/* Note indicator */}
                               {group.hasVariations && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
@@ -545,22 +638,55 @@ export function KitchenSidebarByTable({
                                   Ghi chú
                                 </span>
                               )}
-                            </div>
+                            </h4>
                             
-                            {/* Timestamp */}
-                            {(() => {
-                              if (!representativeOrder) return null;
-                              const timestamp = formatOrderDateTime(representativeOrder);
-                              if (!timestamp) return null;
-                              return (
-                                <div className="mt-2 flex items-center gap-1 text-xs font-medium text-gray-400">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  {timestamp}
-                                </div>
-                              );
-                            })()}
+                            {/* Timestamps - Horizontal layout with labels */}
+                            <TooltipProvider>
+                              <div className="mt-2 flex items-center gap-3 flex-wrap">
+                                {representativeOrder?.createdTime && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-50">
+                                        {renderCreatedTimeIcon()}
+                                        <span className="text-gray-600 font-semibold">Tạo:</span>
+                                        <span className="text-gray-500">{formatOrderDateTime(representativeOrder.createdTime)}</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ngày giờ tạo món</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                                {representativeOrder?.isUrgent && representativeOrder?.remakedTime ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-1.5 text-xs font-medium text-red-600 cursor-help hover:text-red-700 transition-colors px-2 py-1 rounded-md hover:bg-red-50">
+                                        {renderRemakedTimeIcon()}
+                                        <span className="text-red-700 font-semibold">Trả lại:</span>
+                                        <span className="text-red-600">{formatOrderDateTime(representativeOrder.remakedTime)}</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ngày giờ món bị trả lại</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : representativeOrder?.readyTime ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
+                                        {renderReadyTimeIcon()}
+                                        <span className="text-emerald-700 font-semibold">Xong:</span>
+                                        <span className="text-emerald-600">{formatOrderDateTime(representativeOrder.readyTime)}</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ngày giờ xong</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : null}
+                              </div>
+                            </TooltipProvider>
                           </div>
                           
                           {/* Arrow indicator */}
