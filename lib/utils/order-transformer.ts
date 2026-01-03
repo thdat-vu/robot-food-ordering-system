@@ -149,6 +149,20 @@ export const transformApiOrderItemToOrder = (
           })
         : undefined;
     })(), // Convert Date to string format
+    readyTime: (() => {
+      const dateValue = orderItem.readyTime;
+      const dt = parseVnDateTime(dateValue);
+      return dt
+        ? dt.toLocaleString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+        : undefined;
+    })(), // Convert Ready Date to string format
     estimatedTime: getEstimatedTime(orderItem.productName),
     sizeName: orderItem.sizeName, // Add size name from API
     toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API
