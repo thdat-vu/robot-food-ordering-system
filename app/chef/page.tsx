@@ -1275,8 +1275,8 @@ function ChiefPageContent() {
       })
       .sort((a, b) => {
         // Sort tables by earliest createdTime (oldest first)
-        const timeA = parseVnDateTime(a.earliestCreatedTime);
-        const timeB = parseVnDateTime(b.earliestCreatedTime);
+        const timeA = parseVnDateTime(a.earliestCreatedTime ?? undefined);
+        const timeB = parseVnDateTime(b.earliestCreatedTime ?? undefined);
         if (!timeA && !timeB) return a.tableNumber - b.tableNumber;
         if (!timeA) return 1;
         if (!timeB) return -1;

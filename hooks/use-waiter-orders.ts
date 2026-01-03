@@ -25,6 +25,7 @@ export interface WaiterDish {
     status: OrderStatus; // Updated to use OrderStatus type
     orderTime?: string;
     readyTime?: string; // Ready time from API (e.g., "06:48:46 03/01/2026")
+    servedTime?: string; // Served time from API (e.g., "20:30:53 03/01/2026")
     estimatedTime?: string;
     note?: string;
     sizeName?: string;
