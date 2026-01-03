@@ -1326,18 +1326,18 @@ const DishList: React.FC<DishListProps> = ({
 
                                 <textarea
                                     value={remakeReason}
-                                    onChange={handleInputChange}
-                                    onFocus={handleInputFocus}
-                                    placeholder="Nhập lý do làm lại hoặc chọn từ gợi ý bên trên..."
+                                    readOnly
+                                    disabled
+                                    placeholder={remakeReason === '' ? "Chọn lý do từ gợi ý bên trên..." : ""}
                                     rows={3}
                                     className="w-full border border-gray-300 rounded-md px-3 py-2
-                             focus:outline-none focus:ring-2 focus:ring-orange-500
-                             focus:border-orange-500 resize-none"
+                             bg-gray-50 text-gray-700 cursor-not-allowed resize-none
+                             focus:outline-none"
                                 />
 
                                 <div className="flex justify-between items-center mt-1">
                                     <p className="text-xs text-gray-500">
-                                        {remakeReason === '' ? 'Có thể chọn gợi ý hoặc nhập tay' : ''}
+                                        {remakeReason === '' ? 'Vui lòng chọn lý do từ gợi ý bên trên' : 'Lý do đã chọn'}
                                     </p>
                                     <span className="text-xs text-gray-400">
                         {remakeReason.length}/200
