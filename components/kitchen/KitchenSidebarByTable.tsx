@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
 import LateDishWarning from '@/components/moderator/LateDishWarning';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 type SelectionItem = { itemName: string; tableNumber: number; id: number };
 
@@ -326,11 +327,17 @@ export function KitchenSidebarByTable({
     return areSameGroup(sortGroup(selectedGroup), tableSelection);
   };
 
-  const formatOrderDateTime = (order: Order): string => {
-    const raw = order.createdTime || order.orderTime;
-    if (!raw) return '';
+  const formatOrderDateTime = (dateString?: string): string => {
+    if (!dateString) return '';
+    
+    // Try parsing as already formatted string (HH:mm:ss dd/MM/yyyy)
+    const alreadyFormatted = dateString.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (alreadyFormatted) {
+      return dateString; // Already in correct format
+    }
 
-    const parsed = new Date(raw);
+    // Try parsing as Date
+    const parsed = new Date(dateString);
     if (!Number.isNaN(parsed.getTime())) {
       const pad = (value: number) => value.toString().padStart(2, '0');
       const hours = pad(parsed.getHours());
@@ -342,8 +349,48 @@ export function KitchenSidebarByTable({
       return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
     }
 
-    return raw;
+    return dateString;
   };
+
+  const renderCreatedTimeIcon = () => (
+    <svg 
+      className="w-3 h-3 text-gray-400" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M12 4.5v15m7.5-7.5h-15"
+      />
+    </svg>
+  );
+
+  const renderReadyTimeIcon = () => (
+    <svg 
+      className="w-3 h-3 text-emerald-500" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M5 13l4 4L19 7"
+      />
+    </svg>
+  );
 
   // Get category accent color
   const getCategoryAccent = (categoryName?: string) => {
@@ -547,20 +594,37 @@ export function KitchenSidebarByTable({
                               )}
                             </div>
                             
-                            {/* Timestamp */}
-                            {(() => {
-                              if (!representativeOrder) return null;
-                              const timestamp = formatOrderDateTime(representativeOrder);
-                              if (!timestamp) return null;
-                              return (
-                                <div className="mt-2 flex items-center gap-1 text-xs font-medium text-gray-400">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  {timestamp}
-                                </div>
-                              );
-                            })()}
+                            {/* Timestamps - Horizontal layout */}
+                            <TooltipProvider>
+                              <div className="mt-2 flex items-center gap-3 flex-wrap">
+                                {representativeOrder?.createdTime && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-1 text-xs font-medium text-gray-400 cursor-help hover:text-gray-600 transition-colors">
+                                        {renderCreatedTimeIcon()}
+                                        <span>{formatOrderDateTime(representativeOrder.createdTime)}</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ngày giờ tạo món</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {representativeOrder?.readyTime && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-1 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors">
+                                        {renderReadyTimeIcon()}
+                                        <span>{formatOrderDateTime(representativeOrder.readyTime)}</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ngày giờ xong</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            </TooltipProvider>
                           </div>
                           
                           {/* Arrow indicator */}

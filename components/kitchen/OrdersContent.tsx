@@ -11,6 +11,7 @@ import {
   CardAction,
   CardFooter,
 } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 interface OrdersContentProps {
   groupedOrders: GroupedOrders;
@@ -67,7 +68,7 @@ export function OrdersContent({
     </svg>
   );
 
-  const renderCalendarIcon = () => (
+  const renderCreatedTimeIcon = () => (
     <svg 
       className="w-4 h-4 text-gray-500" 
       aria-hidden="true" 
@@ -82,7 +83,27 @@ export function OrdersContent({
         strokeLinecap="round" 
         strokeLinejoin="round" 
         strokeWidth="2" 
-        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+        d="M12 4.5v15m7.5-7.5h-15"
+      />
+    </svg>
+  );
+
+  const renderReadyTimeIcon = () => (
+    <svg 
+      className="w-3.5 h-3.5 text-emerald-500" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M5 13l4 4L19 7"
       />
     </svg>
   );
@@ -279,12 +300,34 @@ export function OrdersContent({
                       {renderClockIcon()}
                       <span className="text-xs">{order.estimatedTime}</span>
                     </div>
-                    {order.createdTime && (
-                      <div className="flex items-center gap-1 text-gray-400">
-                        {renderCalendarIcon()}
-                        <span className="text-xs">{order.createdTime}</span>
-                      </div>
-                    )}
+                    <TooltipProvider>
+                      {order.createdTime && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1 text-gray-400 cursor-help">
+                              {renderCreatedTimeIcon()}
+                              <span className="text-xs">{order.createdTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ tạo món</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {order.readyTime && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1 text-emerald-600 cursor-help">
+                              {renderReadyTimeIcon()}
+                              <span className="text-xs">{order.readyTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ xong</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </TooltipProvider>
                   </div>
                 </div>
                 {/* Item number badge */}
@@ -390,12 +433,34 @@ export function OrdersContent({
               {/* Time badges with improved styling */}
               <div className="flex items-center gap-3 mt-4">
                 {renderTimeBadge(order.estimatedTime)}
-                {order.createdTime && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
-                    {renderCalendarIcon()}
-                    {order.createdTime}
-                  </span>
-                )}
+                <TooltipProvider>
+                  {order.createdTime && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200 cursor-help">
+                          {renderCreatedTimeIcon()}
+                          {order.createdTime}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ngày giờ tạo món</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {order.readyTime && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
+                          {renderReadyTimeIcon()}
+                          {order.readyTime}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ngày giờ xong</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </TooltipProvider>
               </div>
             </div>
             
@@ -534,20 +599,34 @@ export function OrdersContent({
                   {/* Time badges */}
                   <div className="flex items-center gap-3 mt-2">
                     {renderTimeBadge(order.estimatedTime)}
-                    {order.createdTime && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
-                        {renderCalendarIcon()}
-                        {order.createdTime}
-                      </span>
-                    )}
-                    {order.readyTime && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200">
-                        <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {order.readyTime}
-                      </span>
-                    )}
+                    <TooltipProvider>
+                      {order.createdTime && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200 cursor-help">
+                              {renderCreatedTimeIcon()}
+                              {order.createdTime}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ tạo món</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {order.readyTime && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
+                              {renderReadyTimeIcon()}
+                              {order.readyTime}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ xong</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </TooltipProvider>
                   </div>
                 </div>
               </div>
@@ -711,12 +790,34 @@ export function OrdersContent({
                     {/* Time badges */}
                     <div className="flex items-center gap-3 mt-2">
                       {renderTimeBadge(first.estimatedTime)}
-                      {first.createdTime && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
-                          {renderCalendarIcon()}
-                          {first.createdTime}
-                        </span>
-                      )}
+                      <TooltipProvider>
+                        {first.createdTime && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200 cursor-help">
+                                {renderCreatedTimeIcon()}
+                                {first.createdTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ tạo món</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {first.readyTime && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
+                                {renderReadyTimeIcon()}
+                                {first.readyTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ xong</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </TooltipProvider>
                     </div>
                   </div>
                   
@@ -871,12 +972,34 @@ export function OrdersContent({
                     {/* Time badges */}
                     <div className="flex items-center gap-3 mt-2">
                       {renderTimeBadge(getGroupEstimatedTime(orders))}
-                      {representative.createdTime && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200">
-                          {renderCalendarIcon()}
-                          {representative.createdTime}
-                        </span>
-                      )}
+                      <TooltipProvider>
+                        {representative.createdTime && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-50 rounded-full border border-gray-200 cursor-help">
+                                {renderCreatedTimeIcon()}
+                                {representative.createdTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ tạo món</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {representative.readyTime && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
+                                {renderReadyTimeIcon()}
+                                {representative.readyTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ xong</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </TooltipProvider>
                     </div>
                   </div>
                   
