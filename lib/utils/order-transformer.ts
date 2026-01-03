@@ -167,6 +167,23 @@ export const transformApiOrderItemToOrder = (
     sizeName: orderItem.sizeName, // Add size name from API
     toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API
     note: orderItem.note, // Add note from API
+    isUrgent: orderItem.isUrgent || false, // Add isUrgent from API
+    remakedTime: (() => {
+      const dateValue = orderItem.remakedTime;
+      if (!dateValue) return null;
+      const dt = parseVnDateTime(dateValue);
+      if (!dt) return null;
+      // Format: HH:mm:ss dd/MM/yyyy
+      const pad = (value: number) => value.toString().padStart(2, '0');
+      const hours = pad(dt.getHours());
+      const minutes = pad(dt.getMinutes());
+      const seconds = pad(dt.getSeconds());
+      const day = pad(dt.getDate());
+      const month = pad(dt.getMonth() + 1);
+      const year = dt.getFullYear();
+      return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+    })(), // Add remakedTime from API
+    remarkNote: orderItem.remarkNote || null, // Add remarkNote from API
     // Store API IDs for making API calls
     apiOrderId: order.id,
     apiItemId: orderItem.id

@@ -385,12 +385,28 @@ export function OrdersContent({
       }
     };
     
+    // Check if order should be highlighted (isUrgent or has remakedTime)
+    const isHighlighted = order.isUrgent || (order.remakedTime !== null && order.remakedTime !== undefined);
+    
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         <Card className={`relative overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 ${
-          isSelectedSingle ? 'border-blue-500 shadow-blue-100 ring-2 ring-blue-200' : 'border-transparent'
+          isSelectedSingle ? 'border-blue-500 shadow-blue-100 ring-2 ring-blue-200' : 
+          isHighlighted ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50' :
+          'border-transparent'
         } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
         >
+          {/* Urgent badge - top right corner */}
+          {order.isUrgent && (
+            <div className="absolute top-3 right-3 z-10">
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="text-sm">KHẨN CẤP</span>
+              </div>
+            </div>
+          )}
           {/* Top gradient accent bar */}
           <div className={`h-1.5 bg-gradient-to-r ${getCategoryGradient(order.category)}`}></div>
           
@@ -418,6 +434,17 @@ export function OrdersContent({
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                     </svg>
                     <span><span className="font-semibold">Ghi chú:</span> {order.note}</span>
+                  </div>
+                </div>
+              )}
+              {/* Remark Note for remade orders in "đang thực hiện" tab */}
+              {activeTab === 'đang thực hiện' && order.remakedTime && order.remarkNote && (
+                <div className="mt-3 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-2.5 rounded-xl border-l-4 border-red-500 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                    </svg>
+                    <span><span className="font-semibold">Lý do làm lại:</span> {order.remarkNote}</span>
                   </div>
                 </div>
               )}
@@ -558,15 +585,32 @@ export function OrdersContent({
     return (
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="space-y-4">
-          {sortedOrders.map((order, index) => (
+          {sortedOrders.map((order, index) => {
+            // Check if order should be highlighted (isUrgent or has remakedTime)
+            const isHighlighted = order.isUrgent || (order.remakedTime !== null && order.remakedTime !== undefined);
+            
+            return (
             <div
               key={order.id}
               className={`relative overflow-hidden bg-white rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
                 selectedIds && selectedIds.has(order.id) 
                   ? 'border-emerald-500 shadow-emerald-200 ring-2 ring-emerald-200' 
+                  : isHighlighted
+                  ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                   : 'border-gray-100 hover:border-emerald-300'
               } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
             >
+              {/* Urgent badge - top right corner */}
+              {order.isUrgent && (
+                <div className="absolute top-3 right-3 z-10">
+                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                    <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="text-sm">KHẨN CẤP</span>
+                  </div>
+                </div>
+              )}
               {/* Left gradient accent bar */}
               <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(order.category)}`}></div>
               
@@ -598,6 +642,12 @@ export function OrdersContent({
                   {order.note && (
                     <div className="mt-2 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2 rounded-xl border border-amber-200">
                       <span className="font-semibold">Ghi chú:</span> {order.note}
+                    </div>
+                  )}
+                  {/* Remark Note for remade orders - only show in "đang thực hiện" tab */}
+                  {order.remakedTime && order.remarkNote && (
+                    <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
+                      <span className="font-semibold">Lý do làm lại:</span> {order.remarkNote}
                     </div>
                   )}
                   {order.toppings && order.toppings.length > 0 && (
@@ -643,7 +693,8 @@ export function OrdersContent({
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -730,12 +781,20 @@ export function OrdersContent({
             // Get all order IDs in this group
             const orderIds = orders.map(o => o.id);
             
+            // Check if any order in group should be highlighted (isUrgent or has remakedTime)
+            const isHighlighted = orders.some(o => o.isUrgent || (o.remakedTime !== null && o.remakedTime !== undefined));
+            
+            // Check if any order in group is urgent
+            const hasUrgent = orders.some(o => o.isUrgent);
+            
             return (
               <div
                 key={`${itemName}-${sizeName}-${noteKey}`}
                 className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
                   groupSelected 
                     ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
+                    : isHighlighted
+                    ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                     : 'border-gray-100 hover:border-blue-300'
                 } ${anyAnimating ? 'animating-out' : ''}`}
                 onClick={() => {
@@ -746,6 +805,17 @@ export function OrdersContent({
                   onGroupClick(itemName);
                 }}
               >
+                {/* Urgent badge - top right corner */}
+                {hasUrgent && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                      <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span className="text-sm">KHẨN CẤP</span>
+                    </div>
+                  </div>
+                )}
                 {/* Left gradient accent bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(first.category)}`}></div>
                 
@@ -795,6 +865,17 @@ export function OrdersContent({
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                           </svg>
                           <span><span className="font-semibold">Ghi chú:</span> {displayNote}</span>
+                        </div>
+                      </div>
+                    )}
+                    {/* Remark Note for remade orders in "đang thực hiện" tab */}
+                    {activeTab === 'đang thực hiện' && orders.some(o => o.remakedTime && o.remarkNote) && (
+                      <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                          </svg>
+                          <span><span className="font-semibold">Lý do làm lại:</span> {orders.find(o => o.remakedTime && o.remarkNote)?.remarkNote}</span>
                         </div>
                       </div>
                     )}
@@ -928,15 +1009,34 @@ export function OrdersContent({
             const tableBadges = Array.from(ordersByTable.entries())
               .sort(([a], [b]) => a - b);
             
+            // Check if any order in group should be highlighted (isUrgent or has remakedTime)
+            const isHighlighted = orders.some(o => o.isUrgent || (o.remakedTime !== null && o.remakedTime !== undefined));
+            
+            // Check if any order in group is urgent
+            const hasUrgent = orders.some(o => o.isUrgent);
+            
             return (
               <div 
                 key={`${itemName}-${representative.sizeName || ''}-${noteKey}`} 
                 className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
                   groupSelected 
                     ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
+                    : isHighlighted
+                    ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                     : 'border-gray-100 hover:border-blue-300'
                 } ${anyAnimating ? 'animating-out' : ''}`}
               >
+                {/* Urgent badge - top right corner */}
+                {hasUrgent && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                      <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span className="text-sm">KHẨN CẤP</span>
+                    </div>
+                  </div>
+                )}
                 {/* Left gradient accent bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(representative.category)}`}></div>
                 
@@ -967,6 +1067,17 @@ export function OrdersContent({
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                           </svg>
                           <span><span className="font-semibold">Ghi chú:</span> {displayNote}</span>
+                        </div>
+                      </div>
+                    )}
+                    {/* Remark Note for remade orders in "đang thực hiện" tab */}
+                    {activeTab === 'đang thực hiện' && orders.some(o => o.remakedTime && o.remarkNote) && (
+                      <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                          </svg>
+                          <span><span className="font-semibold">Lý do làm lại:</span> {orders.find(o => o.remakedTime && o.remarkNote)?.remarkNote}</span>
                         </div>
                       </div>
                     )}

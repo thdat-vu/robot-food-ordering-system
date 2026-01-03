@@ -22,6 +22,9 @@ export interface Order {
   sizeName?: string; // Size of the item (e.g., "Small", "Medium", "Large")
   toppings?: string[]; // Array of topping names
   note?: string | null; // Customer note for the item
+  isUrgent?: boolean; // Whether the order is urgent
+  remakedTime?: string | null; // Time when the order was remade (e.g., "03/01/2026 21:18:32")
+  remarkNote?: string | null; // Note from remake request
   // API IDs for making API calls
   apiOrderId: string;
   apiItemId: string;
