@@ -24,6 +24,7 @@ export interface WaiterDish {
     quantity: number;
     status: OrderStatus; // Updated to use OrderStatus type
     orderTime?: string;
+    readyTime?: string; // Ready time from API (e.g., "06:48:46 03/01/2026")
     estimatedTime?: string;
     note?: string;
     sizeName?: string;
@@ -154,6 +155,7 @@ export function useWaiterOrders() {
                             quantity: 1,
                             status: orderStatus,
                             orderTime: item.createdTime || order.createdTime || undefined,
+                            readyTime: item.readyTime || undefined,
                             estimatedTime: "10 phút",
                             note: item.note || undefined,
                             sizeName: item.sizeName,
@@ -222,6 +224,7 @@ export function useWaiterOrders() {
                             quantity: 1,
                             status: orderStatus,
                             orderTime: item.createdTime || order.createdTime || undefined,
+                            readyTime: item.readyTime || undefined,
                             estimatedTime: "10 phút",
                             note: item.note || undefined,
                             sizeName: item.sizeName,

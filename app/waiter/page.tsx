@@ -345,7 +345,7 @@ function WaiterPageContent() {
                         </div>
 
                         <div className="flex-1 flex overflow-hidden">
-                            <div className="w-52 md:w-60 lg:w-64 bg-white border-r border-gray-200 flex flex-col">
+                            <div className="w-64 md:w-80 lg:w-96 bg-white border-r border-gray-200 flex flex-col">
                                 <div className="flex-1 overflow-y-auto">
                                     <DishList
                                         activeTab={activeTab}
