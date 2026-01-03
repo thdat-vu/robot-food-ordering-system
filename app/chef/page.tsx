@@ -1208,6 +1208,27 @@ function ChiefPageContent() {
     return grouped;
   }, [orders, generalSearchQuery]);
 
+  // Helper function to parse Vietnamese datetime string to Date
+  const parseVnDateTime = (dateString?: string): Date | null => {
+    if (!dateString) return null;
+    // Try parsing format: "HH:mm:ss dd/MM/yyyy"
+    const match = dateString.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match) {
+      const [, hours, minutes, seconds, day, month, year] = match;
+      return new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hours),
+        Number(minutes),
+        Number(seconds)
+      );
+    }
+    // Try parsing as ISO or other formats
+    const parsed = new Date(dateString);
+    return !Number.isNaN(parsed.getTime()) ? parsed : null;
+  };
+
   // Tables grouped by number for LEFT panel (pending orders only)
   const pendingTablesByNumber = useMemo(() => {
     const tableMap = new Map<number, Order[]>();
@@ -1234,11 +1255,34 @@ function ChiefPageContent() {
       });
 
     return Array.from(tableMap.entries())
-      .map(([tableNumber, tableOrders]) => ({
-        tableNumber,
-        orders: [...tableOrders].sort((a, b) => a.id - b.id),
-      }))
-      .sort((a, b) => a.tableNumber - b.tableNumber);
+      .map(([tableNumber, tableOrders]) => {
+        // Sort orders within table by createdTime (oldest first)
+        const sortedOrders = [...tableOrders].sort((a, b) => {
+          const timeA = parseVnDateTime(a.createdTime);
+          const timeB = parseVnDateTime(b.createdTime);
+          if (!timeA && !timeB) return a.id - b.id;
+          if (!timeA) return 1;
+          if (!timeB) return -1;
+          return timeA.getTime() - timeB.getTime();
+        });
+        
+        return {
+          tableNumber,
+          orders: sortedOrders,
+          // Get earliest createdTime for sorting tables
+          earliestCreatedTime: sortedOrders[0]?.createdTime || null,
+        };
+      })
+      .sort((a, b) => {
+        // Sort tables by earliest createdTime (oldest first)
+        const timeA = parseVnDateTime(a.earliestCreatedTime);
+        const timeB = parseVnDateTime(b.earliestCreatedTime);
+        if (!timeA && !timeB) return a.tableNumber - b.tableNumber;
+        if (!timeA) return 1;
+        if (!timeB) return -1;
+        return timeA.getTime() - timeB.getTime();
+      })
+      .map(({ tableNumber, orders }) => ({ tableNumber, orders }));
   }, [orders, generalSearchQuery]);
 
   // Tables grouped by number for RIGHT panel (based on activeTab)
