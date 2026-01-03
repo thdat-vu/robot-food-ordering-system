@@ -26,6 +26,7 @@ export interface ApiOrderItemResponse {
     imageUrl: string; // Add imageUrl field from API response
     createdTime?: string; // Created time from API (e.g., "31/07/2025 00:01:28")
     readyTime?: string; // Ready time from API (e.g., "03/01/2026 06:51:26")
+    servedTime?: string; // Served time from API (e.g., "03/01/2026 20:30:53")
     toppings: ApiToppingResponse[];
 }
 
