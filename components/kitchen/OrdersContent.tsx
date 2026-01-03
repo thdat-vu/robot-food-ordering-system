@@ -108,6 +108,26 @@ export function OrdersContent({
     </svg>
   );
 
+  const renderRemakedTimeIcon = () => (
+    <svg 
+      className="w-3.5 h-3.5 text-red-500" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+      />
+    </svg>
+  );
+
   const renderServeButton = (order: Order) => (
     <Button onClick={() => onServeClick(order)}>
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,7 +335,21 @@ export function OrdersContent({
                           </TooltipContent>
                         </Tooltip>
                       )}
-                      {order.readyTime && (
+                      {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                      {order.isUrgent && order.remakedTime ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-red-600 cursor-help hover:text-red-700 transition-colors px-2 py-1 rounded-md hover:bg-red-50">
+                              {renderRemakedTimeIcon()}
+                              <span className="text-red-700 font-semibold">Trả lại:</span>
+                              <span className="text-red-600">{order.remakedTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ món bị trả lại</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : order.readyTime ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
@@ -328,7 +362,7 @@ export function OrdersContent({
                             <p>Ngày giờ xong</p>
                           </TooltipContent>
                         </Tooltip>
-                      )}
+                      ) : null}
                     </TooltipProvider>
                   </div>
                 </div>
@@ -476,7 +510,20 @@ export function OrdersContent({
                       </TooltipContent>
                     </Tooltip>
                   )}
-                  {order.readyTime && (
+                  {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                  {order.isUrgent && order.remakedTime ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-full border border-red-200 cursor-help">
+                          {renderRemakedTimeIcon()}
+                          {order.remakedTime}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ngày giờ món bị trả lại</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : order.readyTime ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
@@ -488,7 +535,7 @@ export function OrdersContent({
                         <p>Ngày giờ xong</p>
                       </TooltipContent>
                     </Tooltip>
-                  )}
+                  ) : null}
                 </TooltipProvider>
               </div>
             </div>
@@ -674,7 +721,21 @@ export function OrdersContent({
                           </TooltipContent>
                         </Tooltip>
                       )}
-                      {order.readyTime && (
+                      {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                      {order.isUrgent && order.remakedTime ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-red-600 cursor-help hover:text-red-700 transition-colors px-2 py-1 rounded-md hover:bg-red-50">
+                              {renderRemakedTimeIcon()}
+                              <span className="text-red-700 font-semibold">Trả lại:</span>
+                              <span className="text-red-600">{order.remakedTime}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ngày giờ món bị trả lại</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : order.readyTime ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
@@ -687,7 +748,7 @@ export function OrdersContent({
                             <p>Ngày giờ xong</p>
                           </TooltipContent>
                         </Tooltip>
-                      )}
+                      ) : null}
                     </TooltipProvider>
                   </div>
                 </div>
@@ -897,7 +958,20 @@ export function OrdersContent({
                             </TooltipContent>
                           </Tooltip>
                         )}
-                        {first.readyTime && (
+                        {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                        {first.isUrgent && first.remakedTime ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-full border border-red-200 cursor-help">
+                                {renderRemakedTimeIcon()}
+                                {first.remakedTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ món bị trả lại</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : first.readyTime ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
@@ -909,7 +983,7 @@ export function OrdersContent({
                               <p>Ngày giờ xong</p>
                             </TooltipContent>
                           </Tooltip>
-                        )}
+                        ) : null}
                       </TooltipProvider>
                     </div>
                   </div>
@@ -1109,7 +1183,20 @@ export function OrdersContent({
                             </TooltipContent>
                           </Tooltip>
                         )}
-                        {representative.readyTime && (
+                        {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                        {representative.isUrgent && representative.remakedTime ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-full border border-red-200 cursor-help">
+                                {renderRemakedTimeIcon()}
+                                {representative.remakedTime}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ món bị trả lại</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : representative.readyTime ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-full border border-emerald-200 cursor-help">
@@ -1121,7 +1208,7 @@ export function OrdersContent({
                               <p>Ngày giờ xong</p>
                             </TooltipContent>
                           </Tooltip>
-                        )}
+                        ) : null}
                       </TooltipProvider>
                     </div>
                   </div>

@@ -392,6 +392,26 @@ export function KitchenSidebarByTable({
     </svg>
   );
 
+  const renderRemakedTimeIcon = () => (
+    <svg 
+      className="w-3 h-3 text-red-500" 
+      aria-hidden="true" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <path 
+        stroke="currentColor" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth="2" 
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+      />
+    </svg>
+  );
+
   // Get category accent color
   const getCategoryAccent = (categoryName?: string) => {
     switch (categoryName) {
@@ -536,6 +556,10 @@ export function KitchenSidebarByTable({
                         return sum + qty;
                       }, 0);
                       
+                      // Check if order should be highlighted (isUrgent or has remakedTime)
+                      const isUrgentOrRemade = representativeOrder?.isUrgent || (representativeOrder?.remakedTime !== null && representativeOrder?.remakedTime !== undefined);
+                      const finalHighlighted = isHighlighted || isUrgentOrRemade;
+                      
                       // Get category info for styling
                       const category = itemNameToCategory?.[group.itemName];
                       const categoryAccent = getCategoryAccent(category);
@@ -546,6 +570,8 @@ export function KitchenSidebarByTable({
                           className={`relative overflow-hidden flex items-start gap-3 rounded-xl border-2 p-3 transition-all duration-300 cursor-pointer hover:shadow-md ${
                             isHighlighted 
                               ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm' 
+                              : isUrgentOrRemade
+                              ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                               : 'border-gray-100 bg-gray-50 hover:border-blue-200'
                           }`}
                           onClick={() => {
@@ -555,6 +581,18 @@ export function KitchenSidebarByTable({
                             }
                           }}
                         >
+                          {/* Urgent badge - top right corner */}
+                          {representativeOrder?.isUrgent && (
+                            <div className="absolute top-2 right-2 z-10 pointer-events-none">
+                              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                                <svg className="w-4 h-4 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span className="text-sm">KHẨN CẤP</span>
+                              </div>
+                            </div>
+                          )}
+                          
                           {/* Left accent bar */}
                           <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${categoryAccent.bg}`}></div>
                           
@@ -619,7 +657,21 @@ export function KitchenSidebarByTable({
                                     </TooltipContent>
                                   </Tooltip>
                                 )}
-                                {representativeOrder?.readyTime && (
+                                {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                                {representativeOrder?.isUrgent && representativeOrder?.remakedTime ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-1.5 text-xs font-medium text-red-600 cursor-help hover:text-red-700 transition-colors px-2 py-1 rounded-md hover:bg-red-50">
+                                        {renderRemakedTimeIcon()}
+                                        <span className="text-red-700 font-semibold">Trả lại:</span>
+                                        <span className="text-red-600">{formatOrderDateTime(representativeOrder.remakedTime)}</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ngày giờ món bị trả lại</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : representativeOrder?.readyTime ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
@@ -632,7 +684,7 @@ export function KitchenSidebarByTable({
                                       <p>Ngày giờ xong</p>
                                     </TooltipContent>
                                   </Tooltip>
-                                )}
+                                ) : null}
                               </div>
                             </TooltipProvider>
                           </div>

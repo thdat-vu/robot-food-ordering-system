@@ -495,10 +495,12 @@ export function useWaiterOrders() {
                 );
 
                 // Step 2: Immediately move the same item back to Processing status
+                // IMPORTANT: Include remarkNote to preserve it in the backend
                 await ordersApi.updateOrderItemStatus(
                     dish.orderId,
                     dish.itemId,
-                    2
+                    2,
+                    remarkNote
                 );
             });
 
