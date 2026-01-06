@@ -219,6 +219,61 @@ export function OrdersContent({
     return trimmed.toLowerCase();
   };
 
+  // Parse multiple datetime string formats to milliseconds for sorting
+  const parseDateTimeToMs = (input?: string | null): number => {
+    if (!input) return -Infinity;
+    const value = input.trim();
+
+    // Format: HH:mm:ss dd/MM/yyyy
+    const matchTimeFirst = value.match(
+      /^(\d{2}):(\d{2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})\/(\d{4})$/
+    );
+    if (matchTimeFirst) {
+      const [, hh, mm, ss, d, mo, y] = matchTimeFirst;
+      return new Date(
+        Number(y),
+        Number(mo) - 1,
+        Number(d),
+        Number(hh),
+        Number(mm),
+        Number(ss)
+      ).getTime();
+    }
+
+    // Format: dd/MM/yyyy HH:mm:ss
+    const matchDateFirst = value.match(
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/
+    );
+    if (matchDateFirst) {
+      const [, d, mo, y, hh, mm, ss] = matchDateFirst;
+      return new Date(
+        Number(y),
+        Number(mo) - 1,
+        Number(d),
+        Number(hh),
+        Number(mm),
+        Number(ss)
+      ).getTime();
+    }
+
+    const ts = Date.parse(value);
+    return Number.isNaN(ts) ? -Infinity : ts;
+  };
+
+  // Prioritize remade/returned items in the "đang thực hiện" tab
+  const prioritizeRemadeOrders = (orders: Order[]): Order[] => {
+    if (activeTab !== 'đang thực hiện') return orders;
+    return [...orders].sort((a, b) => {
+      const hasRemakeA = Boolean(a.remakedTime);
+      const hasRemakeB = Boolean(b.remakedTime);
+      if (hasRemakeA !== hasRemakeB) return hasRemakeA ? -1 : 1;
+
+      const timeA = parseDateTimeToMs(a.createdTime);
+      const timeB = parseDateTimeToMs(b.createdTime);
+      return timeA - timeB; // oldest first after remade priority
+    });
+  };
+
   const groupOrdersByNote = (orders: Order[]) => {
     const map = new Map<string, { key: string; displayNote: string | null; orders: Order[] }>();
     orders.forEach(order => {
@@ -229,7 +284,10 @@ export function OrdersContent({
       }
       map.get(key)!.orders.push(order);
     });
-    return Array.from(map.values());
+    return Array.from(map.values()).map(group => ({
+      ...group,
+      orders: prioritizeRemadeOrders(group.orders),
+    }));
   };
 
   // Category priority: Drinks > Main > Dessert
@@ -250,6 +308,29 @@ export function OrdersContent({
   const getGroupEstimatedTime = (orderGroup: Order[]): string => {
     // Since items in the same group should have the same estimated time
     return orderGroup[0]?.estimatedTime || "";
+  };
+
+  // Sort grouped entries so remade items surface first in "đang thực hiện"
+  const sortGroupedEntriesForInProgress = (entries: [string, Order[]][]) => {
+    if (activeTab !== 'đang thực hiện') return entries;
+
+    return [...entries]
+      .map((entry, index) => ({ entry, index }))
+      .sort((a, b) => {
+        const ordersA = a.entry[1];
+        const ordersB = b.entry[1];
+
+        const hasRemakeA = ordersA.some(o => o.remakedTime);
+        const hasRemakeB = ordersB.some(o => o.remakedTime);
+        if (hasRemakeA !== hasRemakeB) return hasRemakeA ? -1 : 1;
+
+        const earliestA = Math.min(...ordersA.map(o => parseDateTimeToMs(o.createdTime)));
+        const earliestB = Math.min(...ordersB.map(o => parseDateTimeToMs(o.createdTime)));
+        if (earliestA !== earliestB) return earliestA - earliestB; // oldest group first
+
+        return a.index - b.index; // preserve original order as a final fallback
+      })
+      .map(wrapper => wrapper.entry);
   };
 
   // Render selected group items as individual shadcn cards
@@ -765,9 +846,18 @@ export function OrdersContent({
   if (showIndividualCards) {
     // Flatten all orders
     const allOrders = Object.values(groupedOrders).flat();
-    const sortedOrders = [...allOrders].sort(
-      (a, b) => categoryPriority(a.category) - categoryPriority(b.category)
-    );
+    const sortedOrders = [...allOrders].sort((a, b) => {
+      if (activeTab === 'đang thực hiện') {
+        const hasRemakeA = Boolean(a.remakedTime);
+        const hasRemakeB = Boolean(b.remakedTime);
+        if (hasRemakeA !== hasRemakeB) return hasRemakeA ? -1 : 1;
+
+        const timeA = parseDateTimeToMs(a.createdTime);
+        const timeB = parseDateTimeToMs(b.createdTime);
+        if (timeA !== timeB) return timeA - timeB; // oldest first
+      }
+      return categoryPriority(a.category) - categoryPriority(b.category);
+    });
     // Only consider selected orders for bulk actions
     const selectedSortedOrders = selectedIds ? sortedOrders.filter(order => selectedIds.has(order.id)) : [];
     
@@ -1062,7 +1152,7 @@ export function OrdersContent({
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       <div className="space-y-4">
-        {Object.entries(groupedOrders).flatMap(([itemName, orderGroup]) => {
+        {sortGroupedEntriesForInProgress(Object.entries(groupedOrders)).flatMap(([itemName, orderGroup]) => {
           const noteGroups = groupOrdersByNote(orderGroup);
           return noteGroups.map(({ key: noteKey, displayNote, orders }) => {
             const groupSelected = selectedIds ? orders.some(o => selectedIds!.has(o.id)) : false;
