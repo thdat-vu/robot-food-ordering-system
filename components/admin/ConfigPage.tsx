@@ -1,6 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, DollarSign, Clock, Loader2, Info } from "lucide-react";
+import {
+  Check,
+  DollarSign,
+  Clock,
+  Loader2,
+  Info,
+  Store,
+  Percent,
+  Timer,
+  CalendarClock,
+  Table2,
+  LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -410,10 +422,16 @@ export const ConfigPage: React.FC = () => {
       max?: number;
       step?: number;
       readOnly?: boolean;
+      icon?: LucideIcon;
     }
   ) => (
     <div className="space-y-1">
-      <Label className="text-sm font-medium">{label}</Label>
+      <Label className="text-sm font-medium flex items-center gap-1.5">
+        {options?.icon && (
+          <options.icon className="w-3.5 h-3.5 text-muted-foreground" />
+        )}
+        {label}
+      </Label>
       <Input
         type={options?.type ?? "text"}
         value={form[field]}
@@ -454,7 +472,10 @@ export const ConfigPage: React.FC = () => {
 
     return (
       <div className="space-y-1">
-        <Label className="text-sm font-medium">{label}</Label>
+        <Label className="text-sm font-medium flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+          {label}
+        </Label>
         <div className="flex items-center gap-2">
           <select
             className="border rounded-md px-2 py-2 text-sm bg-background"
@@ -649,7 +670,7 @@ export const ConfigPage: React.FC = () => {
                     "Tên Nhà Hàng",
                     "Sweet & Salt Factory - Steakhouse",
                     "Tối đa 200 ký tự",
-                    { type: "text" }
+                    { type: "text", icon: Store }
                   )}
 
                   {renderTimePicker(
@@ -669,7 +690,7 @@ export const ConfigPage: React.FC = () => {
                     "Thuế VAT (%)",
                     "8%",
                     "0 - 100%. Có thể nhập 8 hoặc 8% (ví dụ 8%)",
-                    { type: "number", min: 0, max: 100, step: 0.1 }
+                    { type: "number", min: 0, max: 100, step: 0.1, icon: Percent }
                   )}
 
                   {renderInput(
@@ -677,7 +698,7 @@ export const ConfigPage: React.FC = () => {
                     "Số bàn tối đa",
                     "20",
                     "Số bàn tối đa từ 1 đến 100 bàn",
-                    { type: "number", min: 1, max: 100, step: 1 }
+                    { type: "number", min: 1, max: 100, step: 1, icon: Table2 }
                   )}
 
                   {renderInput(
@@ -685,7 +706,7 @@ export const ConfigPage: React.FC = () => {
                     "Thời gian tối đa không đặt món (phút)",
                     "3",
                     "Ví dụ: 3 phút. Bạn có thể đặt món trong vòng 3 phút sau khi bàn được cấp",
-                    { type: "number", min: 1, max: 240, step: 1 }
+                    { type: "number", min: 1, max: 240, step: 1, icon: Timer }
                   )}
 
                   {renderInput(
@@ -693,7 +714,7 @@ export const ConfigPage: React.FC = () => {
                     "Thời gian tối đa dọn bàn (ngày)",
                     "1",
                     "Ví dụ: 1 ngày. Sau một ngày thì bàn sẽ được dọn và cấp cho khách hàng khác",
-                    { type: "number", min: 1, max: 365, step: 1 }
+                    { type: "number", min: 1, max: 365, step: 1, icon: CalendarClock }
                   )}
 
                   {/* <div className="space-y-1">
