@@ -26,10 +26,12 @@ export interface OrderData {
 
 interface OrderItem {
   id: string;
+
   productId: string;
   productName: string;
   productSizeId: string;
   sizeName: string;
+
   note: string;
   remarkNote: string;
   quantity: number;
@@ -37,6 +39,10 @@ interface OrderItem {
   status: string;
   imageUrl: string;
   createdTime: string;
+  isUrgent : boolean;
+  remakedTime?: string;
+  readyTime?: string;
+  servedTime?: string;
   toppings: Topping[];
 }
 

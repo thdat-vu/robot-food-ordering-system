@@ -47,6 +47,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
     let totalOrders = orders.length;
     let totalItems = 0;
     let notServedItems = 0;
+    console.log("Calculating order stats from orders:", orders);
 
     orders.forEach((order) => {
       const o: any = order as any;

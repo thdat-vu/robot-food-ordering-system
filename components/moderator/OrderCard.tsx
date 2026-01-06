@@ -18,6 +18,8 @@ import {
   Search,
   ShoppingCart,
   LogOut,
+  RotateCcw,
+  UtensilsCrossed,
 } from "lucide-react";
 import { OrderCardProps } from "@/entites/moderator/FeedbackModole";
 import {
@@ -99,6 +101,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
         if (response.data.statusCode === 200 && response.data.data) {
           const apiOrders = response.data.data as OrderData[];
+
           const newOrders: OrderData[] = apiOrders.map((order) => ({
             ...order,
             createdTime: order.createdTime ?? "",
@@ -522,57 +525,156 @@ const OrderCard: React.FC<OrderCardProps> = ({
                                 Danh sách món ăn
                               </h4>
 
-                              <div className="space-y-2">
-                                {order.groupedItems?.map((item, i) => (
-                                  <div
-                                    key={i}
-                                    className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                                  >
-                                    <div className="flex items-center gap-4 flex-1">
-                                      <div className="flex-1">
-                                        <div className="font-semibold text-gray-900">
-                                          {item.productName}
-                                        </div>
-                                        <div className="text-xs text-gray-600">
-                                          Size:{" "}
-                                          {item.sizeName
-                                            ?.charAt(0)
-                                            .toUpperCase()}{" "}
-                                          × {item.quantity}
-                                        </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                  <thead>
+                                    <tr className="bg-gray-100 text-xs text-gray-600 uppercase">
+                                      <th className="px-4 py-2 text-left">
+                                        Món ăn
+                                      </th>
+                                      <th className="px-4 py-2 text-left">
+                                        Ghi chú
+                                      </th>
+                                      <th className="px-4 py-2 text-center">
+                                        Trạng thái
+                                      </th>
+                                      <th className="px-4 py-2 text-right">
+                                        Giá
+                                      </th>
+                                    </tr>
+                                  </thead>
 
-                                        {item.note && (
-                                          <div className="mt-1 text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded inline-flex items-center gap-1">
-                                            <MessageSquare className="w-3 h-3" />
-                                            {item.note}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                      <span
-                                        className={`px-3 py-1 text-xs font-medium rounded-full ${getOrderStatusColor(
-                                          item.status
-                                        )}`}
-                                      >
-                                        {
-                                          OrderItemStatusLabel[
-                                            item.status.toLowerCase()
-                                          ]
-                                        }
-                                      </span>
-                                      <span className="text-lg font-bold text-emerald-600 min-w-[100px] text-right">
-                                        {formatVNCurrency(
-                                          item.price +
-                                            item.toppings.reduce(
-                                              (sum, t) => sum + t.price,
-                                              0
-                                            )
-                                        )}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
+                                  <tbody className="divide-y">
+                                    {order.groupedItems?.map((item, i) => {
+                                      const isRemakeItem = Boolean(
+                                        item.remakedTime || item.remarkNote
+                                      );
+                                      const shouldShowUrgent =
+                                        item.isUrgent && !isRemakeItem;
+
+                                      return (
+                                        <tr
+                                          key={i}
+                                          className="hover:bg-gray-50 transition-colors align-top"
+                                        >
+                                          {/* CỘT MÓN ĂN */}
+                                          <td className="px-4 py-3">
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-2 font-semibold text-gray-900">
+                                                {item.productName}
+                                                {shouldShowUrgent && (
+                                                  <span className="px-2 py-0.5 text-[10px] font-semibold text-white bg-red-600 rounded-full">
+                                                    GẤP
+                                                  </span>
+                                                )}
+                                              </div>
+
+                                              <div className="text-xs text-gray-600">
+                                                Size:{" "}
+                                                {item.sizeName
+                                                  ?.charAt(0)
+                                                  .toUpperCase()}{" "}
+                                                × {item.quantity}
+                                              </div>
+                                            </div>
+                                          </td>
+
+                                          {/* CỘT GHI CHÚ */}
+                                          <td className="px-4 py-3">
+                                            <div className="space-y-1">
+                                              {/* Note khách */}
+                                              {item.note && (
+                                                <div className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded inline-flex items-center gap-1">
+                                                  <MessageSquare className="w-3 h-3" />
+                                                  {item.note}
+                                                </div>
+                                              )}
+
+                                              {/* Lý do làm lại */}
+                                              {item.remarkNote && (
+                                                <div className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded inline-flex items-center gap-1">
+                                                  <RotateCcw className="w-3 h-3" />
+                                                  <span className="font-medium">
+                                                    Làm lại:
+                                                  </span>
+                                                  {item.remarkNote}
+                                                </div>
+                                              )}
+
+                                              {/* Timeline */}
+                                              {/* Timeline */}
+                                              {(item.createdTime ||
+                                                item.readyTime ||
+                                                item.servedTime ||
+                                                item.remakedTime) && (
+                                                <div className="flex flex-col gap-1.5 text-[11px]">
+                                                  {item.createdTime && (
+                                                    <div className="flex items-center gap-1.5 text-gray-600">
+                                                      <Clock className="w-3 h-3" />
+                                                      <span>
+                                                        Tạo: {item.createdTime}
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                  {item.readyTime && (
+                                                    <div className="flex items-center gap-1.5 text-green-600">
+                                                      <CheckCircle className="w-3 h-3" />
+                                                      <span>
+                                                        Xong: {item.readyTime}
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                  {item.servedTime && (
+                                                    <div className="flex items-center gap-1.5 text-emerald-600">
+                                                      <UtensilsCrossed className="w-3 h-3" />
+                                                      <span>
+                                                        Phục vụ:{" "}
+                                                        {item.servedTime}
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                  {item.remakedTime && (
+                                                    <div className="flex items-center gap-1.5 text-red-600">
+                                                      <RotateCcw className="w-3 h-3" />
+                                                      <span className="font-medium">
+                                                        Làm lại:{" "}
+                                                        {item.remakedTime}
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </td>
+
+                                          {/* CỘT TRẠNG THÁI */}
+                                          <td className="px-4 py-3 text-center">
+                                            <span
+                                              className={`px-3 py-1 text-xs font-medium rounded-full ${getOrderStatusColor(
+                                                item.status
+                                              )}`}
+                                            >
+                                              {
+                                                OrderItemStatusLabel[
+                                                  item.status.toLowerCase()
+                                                ]
+                                              }
+                                            </span>
+                                          </td>
+
+                                          {/* CỘT GIÁ */}
+                                          <td className="px-4 py-3 text-right">
+                                            <span className="text-lg font-bold text-emerald-600">
+                                              {formatVNCurrency(
+                                                item.totalPrice
+                                              )}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
                           </td>
