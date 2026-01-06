@@ -18,7 +18,7 @@ import AccountPage from "@/components/admin/AccountPage";
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<
     "accounts" | "dishes" | "config" | "table" | "dashboad"
-  >("dishes");
+  >("dashboad");
   const [user, setUser] = useState<DecodedToken | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"prepay" | "postpay">(
     "postpay"
@@ -50,11 +50,11 @@ export default function AdminDashboard() {
   const [addDishModal, setAddDishModal] = useState(false);
 
   const secondaryNav = [
+    { key: "dashboad", label: "Thống kê", icon: CiViewTable },
     { key: "accounts", label: "Tài Khoản", icon: Users },
     { key: "dishes", label: "Món Ăn", icon: UtensilsCrossed },
     { key: "table", label: "Cấu hình bàn", icon: PiPicnicTableBold },
     { key: "config", label: "Cấu Hình", icon: Settings },
-    { key: "dashboad", label: "Thống kê", icon: CiViewTable },
   ];
 
   return (
