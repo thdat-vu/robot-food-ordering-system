@@ -437,6 +437,7 @@ export default function DashboardPage() {
                             }}
                             itemStyle={{ fontWeight: 700 }}
                             cursor={{ fill: "rgba(79, 70, 229, 0.10)" }}
+                            formatter={(value: any, name: string) => [value, "Số lượt"]}
                           />
 
                           <Bar
