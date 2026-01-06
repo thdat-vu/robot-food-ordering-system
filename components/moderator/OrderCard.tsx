@@ -19,6 +19,7 @@ import {
   ShoppingCart,
   LogOut,
   RotateCcw,
+  UtensilsCrossed,
 } from "lucide-react";
 import { OrderCardProps } from "@/entites/moderator/FeedbackModole";
 import {
@@ -601,31 +602,45 @@ const OrderCard: React.FC<OrderCardProps> = ({
                                               )}
 
                                               {/* Timeline */}
+                                              {/* Timeline */}
                                               {(item.createdTime ||
                                                 item.readyTime ||
                                                 item.servedTime ||
                                                 item.remakedTime) && (
-                                                <div className="flex flex-col gap-0.5 text-[11px] text-gray-500">
+                                                <div className="flex flex-col gap-1.5 text-[11px]">
                                                   {item.createdTime && (
-                                                    <span>
-                                                      Tạo: {item.createdTime}
-                                                    </span>
+                                                    <div className="flex items-center gap-1.5 text-gray-600">
+                                                      <Clock className="w-3 h-3" />
+                                                      <span>
+                                                        Tạo: {item.createdTime}
+                                                      </span>
+                                                    </div>
                                                   )}
                                                   {item.readyTime && (
-                                                    <span>
-                                                      Xong: {item.readyTime}
-                                                    </span>
+                                                    <div className="flex items-center gap-1.5 text-green-600">
+                                                      <CheckCircle className="w-3 h-3" />
+                                                      <span>
+                                                        Xong: {item.readyTime}
+                                                      </span>
+                                                    </div>
                                                   )}
                                                   {item.servedTime && (
-                                                    <span>
-                                                      Phục vụ: {item.servedTime}
-                                                    </span>
+                                                    <div className="flex items-center gap-1.5 text-emerald-600">
+                                                      <UtensilsCrossed className="w-3 h-3" />
+                                                      <span>
+                                                        Phục vụ:{" "}
+                                                        {item.servedTime}
+                                                      </span>
+                                                    </div>
                                                   )}
                                                   {item.remakedTime && (
-                                                    <span className="text-red-600">
-                                                      Làm lại:{" "}
-                                                      {item.remakedTime}
-                                                    </span>
+                                                    <div className="flex items-center gap-1.5 text-red-600">
+                                                      <RotateCcw className="w-3 h-3" />
+                                                      <span className="font-medium">
+                                                        Làm lại:{" "}
+                                                        {item.remakedTime}
+                                                      </span>
+                                                    </div>
                                                   )}
                                                 </div>
                                               )}
