@@ -1299,11 +1299,45 @@ function ChiefPageContent() {
     });
 
     return Array.from(tableMap.entries())
-      .map(([tableNumber, tableOrders]) => ({
-        tableNumber,
-        orders: [...tableOrders].sort((a, b) => a.id - b.id),
-      }))
-      .sort((a, b) => a.tableNumber - b.tableNumber);
+      .map(([tableNumber, tableOrders]) => {
+        // Sort orders within table by createdTime (oldest first) for consistent display
+        const sortedOrders = [...tableOrders].sort((a, b) => {
+          const timeA = parseVnDateTime(a.createdTime);
+          const timeB = parseVnDateTime(b.createdTime);
+          if (!timeA && !timeB) return a.id - b.id;
+          if (!timeA) return 1;
+          if (!timeB) return -1;
+          return timeA.getTime() - timeB.getTime();
+        });
+
+        const earliestCreatedTime = sortedOrders[0]?.createdTime || null;
+        const hasRemake = sortedOrders.some(o => o.remakedTime);
+
+        return {
+          tableNumber,
+          orders: sortedOrders,
+          earliestCreatedTime,
+          hasRemake,
+        };
+      })
+      .sort((a, b) => {
+        // In "đang thực hiện", prioritize tables that have remade items, then oldest createdTime
+        if (activeTab === 'đang thực hiện') {
+          if (a.hasRemake !== b.hasRemake) return a.hasRemake ? -1 : 1;
+
+          const timeA = parseVnDateTime(a.earliestCreatedTime ?? undefined);
+          const timeB = parseVnDateTime(b.earliestCreatedTime ?? undefined);
+          if (!timeA && !timeB) return a.tableNumber - b.tableNumber;
+          if (!timeA) return 1;
+          if (!timeB) return -1;
+          if (timeA.getTime() !== timeB.getTime()) {
+            return timeA.getTime() - timeB.getTime(); // oldest first
+          }
+        }
+        // Default: sort by table number
+        return a.tableNumber - b.tableNumber;
+      })
+      .map(({ tableNumber, orders }) => ({ tableNumber, orders }));
   }, [filteredGroupedOrdersForSearch]);
 
   useEffect(() => {
