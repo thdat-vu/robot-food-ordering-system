@@ -23,12 +23,20 @@ export function useKitchenOrders() {
     return `${normalizedBase}/orderNotificationHub`;
   }, []);
 
+  // Moderator dashboard hub URL for table status change notifications
+  const moderatorHubUrl = useMemo(() => {
+    const apiUrl = getApiUrl();
+    const normalizedBase = apiUrl.replace(/\/api\/?$/, '');
+    return `${normalizedBase}/hubs/moderator-dashboard`;
+  }, []);
+
+
   // Fetch orders from API
   const fetchOrders = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const { orders } = await chefService.fetchOrders(1, 100);
       // Treat an empty payload as a valid state (no orders) instead of an error
       setOrders(orders);
@@ -48,7 +56,7 @@ export function useKitchenOrders() {
   const silentFetchOrders = useCallback(async () => {
     try {
       setError(null);
-      
+
       const { orders } = await chefService.fetchOrders(1, 100);
       // Always sync to latest payload, even when empty, so UI shows "không có món"
       setOrders(orders);
@@ -85,7 +93,7 @@ export function useKitchenOrders() {
         }, 500);
         return;
       }
-      
+
       console.log('🔄 Triggering realtime refresh...');
       realtimeFetchInFlight.current = true;
       try {
@@ -100,15 +108,28 @@ export function useKitchenOrders() {
   const hubMethods = useMemo(
     () => ({
       OrderItemStatusChanged: (data?: any) => {
-        console.log('🔔 OrderItemStatusChanged notification received', data);
         triggerRealtimeRefresh();
       },
       OrderStatusChanged: (data?: any) => {
-        console.log('🔔 OrderStatusChanged notification received', data);
         triggerRealtimeRefresh();
       },
       KitchenNotification: (data?: any) => {
-        console.log('🔔 KitchenNotification received', data);
+        triggerRealtimeRefresh();
+      },
+    }),
+    [triggerRealtimeRefresh]
+  );
+
+  // Hub methods for moderator dashboard - listen for table status changes (checkout/freed)
+  const moderatorHubMethods = useMemo(
+    () => ({
+      // When table status changes (freed/checked out), refresh orders to sync data
+      DashboardTableUpdated: () => {
+        // Backend handles filtering - just refresh to get latest data
+        triggerRealtimeRefresh();
+      },
+      // Handle snapshot updates as fallback
+      PendingComplainsSnapshotUpdated: () => {
         triggerRealtimeRefresh();
       },
     }),
@@ -121,15 +142,26 @@ export function useKitchenOrders() {
     hubMethods,
   });
 
+  // Second SignalR connection for moderator dashboard table status changes
+  useSignalR({
+    url: moderatorHubUrl,
+    groupName: 'Moderators', // Join as Moderator to receive table update notifications
+    hubMethods: moderatorHubMethods,
+  });
+
   // Load orders on component mount
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
 
   // Filter orders by status and category
+  // For "bắt đầu phục vụ" tab, also show "đã phục vụ" items
+  // They remain visible until table checkout (backend excludes checked-out tables)
   const filteredOrders = useMemo((): Order[] => {
     return orders.filter(order => {
-      const statusMatch = order.status === activeTab;
+      const statusMatch = activeTab === "bắt đầu phục vụ"
+        ? (order.status === "bắt đầu phục vụ" || order.status === "đã phục vụ")
+        : order.status === activeTab;
       const categoryMatch = selectedCategory === "Tất cả" || order.category === selectedCategory;
       return statusMatch && categoryMatch;
     });
@@ -154,16 +186,16 @@ export function useKitchenOrders() {
   // }, [filteredOrders]);
   const groupedOrders = useMemo((): GroupedOrders => {
     const grouped: GroupedOrders = {};
-    
+
     filteredOrders.forEach(order => {
       const groupKey = order.itemName;
-      
+
       if (!grouped[groupKey]) {
         grouped[groupKey] = [];
       }
       grouped[groupKey].push(order);
     });
-    
+
     return grouped;
   }, [filteredOrders]);
 
@@ -181,13 +213,13 @@ export function useKitchenOrders() {
   // Calculate remaining items (not completed, not served, not cancelled)
   const remainingItems = useMemo((): RemainingItems => {
     const remaining: RemainingItems = {};
-    
+
     orders.forEach(order => {
       if (order.status !== "bắt đầu phục vụ" && order.status !== "đã phục vụ" && order.status !== "đã huỷ") {
         remaining[order.itemName] = (remaining[order.itemName] || 0) + 1; // Count individual items
       }
     });
-    
+
     return remaining;
   }, [orders]);
 
@@ -209,13 +241,18 @@ export function useKitchenOrders() {
 
   // Get count for specific tab
   const getTabCount = (status: OrderStatus): number => {
+    let count = 0;
     switch (status) {
-      case "đang chờ": return orderCounts.toCook;
-      case "đang thực hiện": return orderCounts.ready;
-      case "bắt đầu phục vụ": return orderCounts.completed;
-      case "yêu cầu làm lại": return orderCounts.redo;
-      default: return 0;
+      case "đang chờ": count = orderCounts.toCook; break;
+      case "đang thực hiện": count = orderCounts.ready; break;
+      case "bắt đầu phục vụ":
+        // Include both Ready and Served items count (shown in same tab until checkout)
+        count = orders.filter(o => o.status === "bắt đầu phục vụ" || o.status === "đã phục vụ").length;
+        break;
+      case "yêu cầu làm lại": count = orderCounts.redo; break;
+      default: count = 0;
     }
+    return count;
   };
 
   // Update order status to "đang thực hiện" via service
@@ -245,7 +282,7 @@ export function useKitchenOrders() {
       }
 
       console.log('Order status updated successfully via API');
-      
+
     } catch (err) {
       console.error('Error updating order status:', err);
       // Revert the change if API call fails
@@ -271,8 +308,8 @@ export function useKitchenOrders() {
       }
 
       // Update local state immediately for better UX
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
           order.id === orderId
             ? { ...order, status: "bắt đầu phục vụ" }
             : order
@@ -286,7 +323,7 @@ export function useKitchenOrders() {
       }
 
       console.log('Order status updated successfully via API');
-      
+
     } catch (err) {
       console.error('Error updating order status:', err);
       // Revert the change if API call fails
@@ -312,8 +349,8 @@ export function useKitchenOrders() {
       }
 
       // Update local state immediately for better UX
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
           order.id === orderId
             ? { ...order, status: "đang thực hiện" }
             : order
@@ -327,7 +364,7 @@ export function useKitchenOrders() {
       }
 
       console.log('Redo request accepted successfully via API');
-      
+
     } catch (err) {
       console.error('Error accepting redo request:', err);
       // Revert the change if API call fails
@@ -353,7 +390,7 @@ export function useKitchenOrders() {
       }
 
       // Update local state immediately for better UX - remove from orders list
-      setOrders(prevOrders => 
+      setOrders(prevOrders =>
         prevOrders.filter(order => order.id !== orderId)
       );
 
@@ -364,7 +401,7 @@ export function useKitchenOrders() {
       }
 
       console.log('Redo request rejected successfully via API');
-      
+
     } catch (err) {
       console.error('Error rejecting redo request:', err);
       // Revert the change if API call fails
@@ -415,7 +452,7 @@ export function useKitchenOrders() {
 
   // Effect to handle sidebar animation
   useEffect(() => {
-    const allCompleted = Object.values(groupedOrders).every(group => 
+    const allCompleted = Object.values(groupedOrders).every(group =>
       group.every(order => order.status === "bắt đầu phục vụ")
     );
 
@@ -438,14 +475,14 @@ export function useKitchenOrders() {
     isSidebarAnimating,
     isLoading,
     error,
-    
+
     // Computed values
     filteredOrders,
     groupedOrders,
     orderCounts,
     remainingItems,
     itemNameToCategory,
-    
+
     // Actions
     setActiveTab,
     setSelectedCategory,
@@ -457,7 +494,7 @@ export function useKitchenOrders() {
     handleCancelOrder,
     refreshOrders,
     isRealtimeConnected,
-    
+
     // Helpers
     shouldShowInSidebar,
     getTabCount,
