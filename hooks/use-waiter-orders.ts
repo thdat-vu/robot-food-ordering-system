@@ -273,7 +273,13 @@ export function useWaiterOrders() {
     }, [silentFetchOrders]);
 
     // Quick-serve integration - must be before hubMethods
-    const { requests: quickServeRequests, fetchQuickRequestsForActiveTables } = useQuickServe();
+    const {
+        requests: quickServeRequests,
+        servedRequests: servedQuickServeRequests,
+        fetchQuickRequestsForActiveTables,
+        fetchServedQuickRequests,
+        serveQuickRequest
+    } = useQuickServe();
 
     const hubMethods = useMemo(
         () => ({
@@ -299,46 +305,44 @@ export function useWaiterOrders() {
         hubMethods,
     });
 
-    // Transform quick-serve requests to WaiterDish format
-    // Split combined product names (e.g., "Nước mắm + Nước tương") into separate dishes
+    // Transform quick-serve requests to WaiterDish format (each QuickServeItem is already a single item)
     const quickServeDishes = useMemo(() => {
         const dishes: WaiterDish[] = [];
         
-        quickServeRequests.forEach((req) => {
+        const mapToDish = (req: QuickRequest, isServed: boolean) => {
             const tableNumber = parseInt(req.tableName.replace(/\D/g, "")) || 1;
             const categoryName = "Phục vụ nhanh";
             const category = categories.find((c) => c.name === categoryName) || categories[0];
             
-            // Split product name by " + " to create separate dishes
-            const productNames = req.productName.split(/\s*\+\s*/).map(name => name.trim()).filter(name => name.length > 0);
-            
-            productNames.forEach((productName, index) => {
-                // Create unique ID for each split item
-                const dishId = `quick-serve-${req.complainId}-${index}`;
-                
-                dishes.push({
-                    id: dishId,
-                    name: productName,
-                    categoryId: category?.id || "unknown",
-                    categoryName: categoryName,
-                    selected: quickServeSelections.has(dishId),
-                    served: false,
-                    orderId: `quick-${req.complainId}`,
-                    itemId: `quick-item-${req.complainId}-${index}`,
-                    tableNumber,
-                    quantity: 1,
-                    status: "phục vụ nhanh" as OrderStatus,
-                    estimatedTime: "Ngay lập tức",
-                    note: "Yêu cầu phục vụ nhanh",
-                    isQuickServe: true,
-                    complainId: req.complainId,
-                    tableId: req.tableId,
-                });
+            const dishId = `quick-serve-${req.id}`;
+
+            dishes.push({
+                id: dishId,
+                name: req.itemName,
+                categoryId: category?.id || "unknown",
+                categoryName: categoryName,
+                selected: quickServeSelections.has(dishId),
+                served: isServed,
+                orderId: `quick-${req.complainId}`,
+                itemId: req.id,
+                tableNumber,
+                quantity: 1,
+                status: isServed ? ("đã phục vụ" as OrderStatus) : ("phục vụ nhanh" as OrderStatus),
+                estimatedTime: "Ngay lập tức",
+                note: "Yêu cầu phục vụ nhanh",
+                isQuickServe: true,
+                complainId: req.complainId,
+                tableId: req.tableId,
+                orderTime: req.createdTime,
+                servedTime: req.lastUpdatedTime,
             });
-        });
+        };
+
+        quickServeRequests.forEach((req) => mapToDish(req, false));
+        servedQuickServeRequests.forEach((req) => mapToDish(req, true));
         
         return dishes;
-    }, [quickServeRequests, categories, quickServeSelections]);
+    }, [quickServeRequests, servedQuickServeRequests, categories, quickServeSelections]);
 
     // Merge regular dishes with quick-serve dishes
     const allDishes = useMemo(() => {
@@ -358,8 +362,9 @@ export function useWaiterOrders() {
         if (categories.length > 0) {
             fetchOrders();
             fetchQuickRequestsForActiveTables();
+            fetchServedQuickRequests();
         }
-    }, [fetchOrders, categories, fetchQuickRequestsForActiveTables]);
+    }, [fetchOrders, categories, fetchQuickRequestsForActiveTables, fetchServedQuickRequests]);
 
     // Group dishes by category
     const groupedDishes = useMemo(() => {
@@ -439,24 +444,19 @@ export function useWaiterOrders() {
                 );
             }
 
-            // Handle quick-serve dishes - mark complain as processed
+            // Handle quick-serve dishes - call backend QuickServe serve API
             if (quickServeDishes.length > 0) {
-                // Group by tableId to batch CheckSS calls
-                // Use Set to deduplicate complainIds (since split items share the same complainId)
-                const byTable = new Map<string, Set<string>>();
-                quickServeDishes.forEach((dish) => {
-                    if (dish.tableId && dish.complainId) {
-                        const existing = byTable.get(dish.tableId) || new Set();
-                        existing.add(dish.complainId);
-                        byTable.set(dish.tableId, existing);
-                    }
-                });
-
-                // Call CheckSS for each table (convert Set back to array)
-                const checkSSPromises = Array.from(byTable.entries()).map(([tableId, complainIdSet]) =>
-                    CheckSS(tableId, Array.from(complainIdSet), "Đã phục vụ nhanh", false)
+                const servePromises = quickServeDishes.map((dish) =>
+                    serveQuickRequest({
+                        id: dish.itemId,
+                        complainId: dish.complainId,
+                        tableId: dish.tableId,
+                        tableName: `Bàn ${dish.tableNumber}`,
+                        itemName: dish.name,
+                        isServed: dish.served,
+                    })
                 );
-                await Promise.all(checkSSPromises);
+                await Promise.all(servePromises);
 
                 // Remove served quick-serve items from selection
                 setQuickServeSelections((prev) => {
@@ -469,6 +469,7 @@ export function useWaiterOrders() {
 
                 // Refresh quick-serve requests to remove processed ones
                 await fetchQuickRequestsForActiveTables();
+                await fetchServedQuickRequests();
             }
 
             return true;
@@ -476,7 +477,7 @@ export function useWaiterOrders() {
             console.error("Error serving dishes:", err);
             return false;
         }
-    }, [allDishes, fetchQuickRequestsForActiveTables]);
+    }, [allDishes, fetchQuickRequestsForActiveTables, serveQuickRequest]);
 
     // Handle requesting remake for dishes
     const handleRequestRemake = useCallback(async (reason?: string) => {
