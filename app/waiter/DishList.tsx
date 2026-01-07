@@ -581,9 +581,27 @@ const DishList: React.FC<DishListProps> = ({
     }, [tableGroups]);
 
     const handleDishClick = (clickedDish: WaiterDish) => {
-        if (activeTab.toString() === 'Đã phục vụ') {
-            // For served dishes, just toggle the individual dish
-            onDishToggle(clickedDish.id);
+        // For served tab, handle differently - only toggle non-quick-serve items from the table
+        if (activeTab.toString() === 'đã phục vụ') {
+            // Get all non-quick-serve dishes from the same table in the current tab
+            const dishesFromSameTable = dishesForTab.filter(
+                d => d.tableNumber === clickedDish.tableNumber && !d.isQuickServe
+            );
+            const isAnyFromTableSelected = dishesFromSameTable.some(d => d.selected);
+
+            if (isAnyFromTableSelected) {
+                // Deselect all non-quick-serve dishes from this table
+                const selectedFromThisTable = dishesFromSameTable.filter(d => d.selected);
+                selectedFromThisTable.forEach(dish => {
+                    safeToggle(dish.id);
+                });
+            } else {
+                // Select all non-quick-serve dishes from this table
+                const unselectedFromTable = dishesFromSameTable.filter(d => !d.selected);
+                unselectedFromTable.forEach(dish => {
+                    safeToggle(dish.id);
+                });
+            }
             return;
         }
 
@@ -640,7 +658,12 @@ const DishList: React.FC<DishListProps> = ({
     };
 
     const toggleTableSelection = (tableNumber: number) => {
-        const firstDish = dishesForTab.find((dish) => dish.tableNumber === tableNumber);
+        // In served tab, only consider non-quick-serve dishes
+        const dishesToConsider = activeTab.toString() === 'đã phục vụ'
+            ? dishesForTab.filter((dish) => dish.tableNumber === tableNumber && !dish.isQuickServe)
+            : dishesForTab.filter((dish) => dish.tableNumber === tableNumber);
+
+        const firstDish = dishesToConsider[0];
         if (firstDish) {
             handleDishClick(firstDish);
         }
@@ -659,9 +682,13 @@ const DishList: React.FC<DishListProps> = ({
 
     const getTableSelectionStatus = (tableNumber: number) => {
         // Only check dishes from the current tab for table status
-        const dishesFromTableInTab = dishesForTab.filter(d => d.tableNumber === tableNumber);
+        // In served tab, exclude quick-serve items from the selection status check
+        const dishesFromTableInTab = activeTab.toString() === 'đã phục vụ'
+            ? dishesForTab.filter(d => d.tableNumber === tableNumber && !d.isQuickServe)
+            : dishesForTab.filter(d => d.tableNumber === tableNumber);
         const selectedFromTable = dishesFromTableInTab.filter(d => d.selected);
 
+        if (dishesFromTableInTab.length === 0) return "none"; // No selectable dishes
         if (selectedFromTable.length === 0) return "none";
         if (selectedFromTable.length === dishesFromTableInTab.length) return "all";
         return "partial";
@@ -762,11 +789,12 @@ const DishList: React.FC<DishListProps> = ({
                 </div>
             )}
 
-            {/* Auto Suggest Toggle */}
-            <div className="flex items-center justify-between bg-white border rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium">Gợi ý chọn món phục vụ</div>
-                    {/* <TooltipProvider>
+            {/* Auto Suggest Toggle - Hide in served tab */}
+            {activeTab.toString() !== 'đã phục vụ' && (
+                <div className="flex items-center justify-between bg-white border rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium">Gợi ý chọn món phục vụ</div>
+                        {/* <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-700 text-[10px] cursor-help">i</span>
@@ -776,13 +804,14 @@ const DishList: React.FC<DishListProps> = ({
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider> */}
+                    </div>
+                    <Switch
+                        checked={autoSuggestEnabled}
+                        onCheckedChange={setAutoSuggestEnabled}
+                        disabled={useRobotDelivery && activeTab === "bắt đầu phục vụ"}
+                    />
                 </div>
-                <Switch
-                    checked={autoSuggestEnabled}
-                    onCheckedChange={setAutoSuggestEnabled}
-                    disabled={useRobotDelivery && activeTab === "bắt đầu phục vụ"}
-                />
-            </div>
+            )}
             {/* Selection Counter with Robot Mode Indicator */}
             <div className={`border rounded-lg p-3 ${useRobotDelivery
                 ? 'bg-blue-100 border-blue-300'

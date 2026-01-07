@@ -51,6 +51,13 @@ export function useWaiterOrders() {
         return `${normalizedBase}/orderNotificationHub`;
     }, []);
 
+    // Moderator dashboard hub URL for table status change notifications (checkout)
+    const moderatorHubUrl = useMemo(() => {
+        const apiUrl = getApiUrl();
+        const normalizedBase = apiUrl.replace(/\/api\/?$/, "");
+        return `${normalizedBase}/hubs/moderator-dashboard`;
+    }, []);
+
     // Memoize productCategoryMap to prevent unnecessary re-creation
     const stableProductCategoryMap = useMemo(
         () => productCategoryMap,
@@ -295,6 +302,11 @@ export function useWaiterOrders() {
                 triggerRealtimeRefresh();
                 fetchQuickRequestsForActiveTables();
             },
+            // Also listen for kitchen notifications (fires when new orders placed)
+            KitchenNotification: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
         }),
         [triggerRealtimeRefresh, fetchQuickRequestsForActiveTables]
     );
@@ -303,6 +315,57 @@ export function useWaiterOrders() {
         url: signalRHubUrl,
         groupName: "Waiters",
         hubMethods,
+    });
+
+    // Hub methods for moderator dashboard - listen for table status changes (checkout/freed)
+    const moderatorHubMethods = useMemo(
+        () => ({
+            // When table status changes (freed/checked out), refresh orders to sync data
+            DashboardTableUpdated: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
+            // Handle snapshot updates as fallback
+            PendingComplainsSnapshotUpdated: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
+        }),
+        [triggerRealtimeRefresh, fetchQuickRequestsForActiveTables]
+    );
+
+    // Second SignalR connection for moderator dashboard table status changes
+    useSignalR({
+        url: moderatorHubUrl,
+        groupName: 'Moderators', // Join as Moderator to receive table update notifications
+        hubMethods: moderatorHubMethods,
+    });
+
+    // Hub methods for Kitchen group - listen for new order notifications
+    const kitchenHubMethods = useMemo(
+        () => ({
+            // When new orders are placed or order status changes, refresh
+            KitchenNotification: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
+            OrderItemStatusChanged: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
+            OrderStatusChanged: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
+        }),
+        [triggerRealtimeRefresh, fetchQuickRequestsForActiveTables]
+    );
+
+    // Third SignalR connection for Kitchen group notifications (new orders)
+    useSignalR({
+        url: signalRHubUrl,
+        groupName: 'Kitchen', // Join Kitchen group to receive new order notifications
+        hubMethods: kitchenHubMethods,
     });
 
     // Transform quick-serve requests to WaiterDish format (each QuickServeItem is already a single item)

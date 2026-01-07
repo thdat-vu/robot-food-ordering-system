@@ -19,6 +19,7 @@ interface Dish {
   createdTime?: string;
   quantity?: number;
   sizeName?: string;
+  isQuickServe?: boolean; // Flag to identify quick-serve items
 }
 
 interface RestaurantMapProps {
@@ -276,8 +277,8 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
 
   // Check if any table in a cluster is selected
   const isClusterPartiallySelected = (clusterTables: number[]): boolean => {
-    return clusterTables.some(tableId => selectedTables.includes(tableId)) && 
-           !isClusterFullySelected(clusterTables);
+    return clusterTables.some(tableId => selectedTables.includes(tableId)) &&
+      !isClusterFullySelected(clusterTables);
   };
 
   // Handle cluster checkbox click
@@ -287,7 +288,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
     }
   };
 
-  // Calculate table stats
+  // Calculate table stats (excluding quick-serve items)
   const tableStats = useMemo(() => {
     const stats: Record<number, {
       total: number;
@@ -296,7 +297,10 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
       lastUpdateTime: string | null;
     }> = {};
 
-    dishes.forEach((dish) => {
+    // Filter out quick-serve items for stats calculation
+    const regularDishes = dishes.filter(dish => !dish.isQuickServe);
+
+    regularDishes.forEach((dish) => {
       const tableId = dish.tableNumber;
       if (!stats[tableId]) {
         stats[tableId] = {
@@ -308,11 +312,11 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
       }
 
       stats[tableId].total++;
-      
+
       if (dish.status === "đang thực hiện" || dish.status === "bắt đầu phục vụ") {
         stats[tableId].preparing++;
       }
-      
+
       if (dish.status === "đã phục vụ") {
         stats[tableId].served++;
       }
@@ -325,8 +329,8 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
       if (tableLastUpdateTimes[tableId]) {
         stats[tableId].lastUpdateTime = tableLastUpdateTimes[tableId];
       } else {
-        // Fallback: Get latest update time from dishes
-        const tableDishes = dishes.filter(d => d.tableNumber === tableId);
+        // Fallback: Get latest update time from regular dishes (not quick-serve)
+        const tableDishes = regularDishes.filter(d => d.tableNumber === tableId);
         const updateTimes = tableDishes
           .map(d => d.createdTime || d.orderTime)
           .filter((t): t is string => !!t);
@@ -366,7 +370,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
       }
       return;
     }
-    
+
     // Normal click - show info card
     if (onTableClick) {
       onTableClick(tableId);
@@ -417,7 +421,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
           const isPartiallySelected = isClusterPartiallySelected(cluster.tables);
           const sortedTables = [...cluster.tables].sort((a, b) => a - b);
           const clusterLabel = `Bàn ${sortedTables.join(", ")}`;
-          
+
           return (
             <div
               key={`cluster-checkbox-${index}`}
@@ -429,25 +433,23 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
               }}
             >
               <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg cursor-pointer transition-all duration-200 ${
-                  isFullySelected
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg cursor-pointer transition-all duration-200 ${isFullySelected
                     ? "bg-red-500 text-white hover:bg-red-600"
                     : isPartiallySelected
-                    ? "bg-orange-400 text-white hover:bg-orange-500"
-                    : "bg-white text-gray-700 hover:bg-blue-50 border border-gray-300"
-                }`}
+                      ? "bg-orange-400 text-white hover:bg-orange-500"
+                      : "bg-white text-gray-700 hover:bg-blue-50 border border-gray-300"
+                  }`}
                 onClick={() => handleClusterCheckboxClick(cluster.tables)}
                 title={isFullySelected ? "Bỏ chọn cả cụm" : "Chọn tất cả bàn trong cụm"}
               >
                 {/* Checkbox icon */}
                 <div
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                    isFullySelected
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isFullySelected
                       ? "bg-white border-white text-red-500"
                       : isPartiallySelected
-                      ? "bg-white border-white text-orange-500"
-                      : "bg-white border-gray-400"
-                  }`}
+                        ? "bg-white border-white text-orange-500"
+                        : "bg-white border-gray-400"
+                    }`}
                 >
                   {isFullySelected && (
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -500,7 +502,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
                   preparingCount={tableStats[tableId].preparing}
                   servedCount={tableStats[tableId].served}
                   lastUpdateTime={tableStats[tableId].lastUpdateTime}
-                  dishes={dishes.filter(d => d.tableNumber === tableId)}
+                  dishes={dishes.filter(d => d.tableNumber === tableId && !d.isQuickServe)}
                   onClose={() => setSelectedTableId(null)}
                 />
               )}

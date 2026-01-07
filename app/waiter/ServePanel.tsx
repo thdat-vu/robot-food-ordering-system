@@ -299,13 +299,22 @@ const ServePanel: React.FC<ServePanelProps> = ({
     ).sort((a, b) => a - b);
 
     // Get tables with served orders (yellow)
+    // Exclude tables that ONLY have served quick-serve items (these are checked-out tables)
     const servedTables = Array.from(
       new Set(
         dishes
           .filter((dish) => dish.status === "đã phục vụ")
           .map((dish) => dish.tableNumber)
       )
-    ).sort((a, b) => a - b);
+    ).filter((tableNumber) => {
+      // Check if this table has any non-quick-serve dishes OR any non-served dishes
+      // If it only has served quick-serve items, it's a checked-out table
+      const tableDishes = dishes.filter((dish) => dish.tableNumber === tableNumber);
+      const hasNonQuickServeDish = tableDishes.some((dish) => !dish.isQuickServe);
+      const hasNonServedDish = tableDishes.some((dish) => dish.status !== "đã phục vụ");
+      // Show as yellow only if table has regular dishes or non-served items
+      return hasNonQuickServeDish || hasNonServedDish;
+    }).sort((a, b) => a - b);
 
     // Get selected tables (red pathways) - multiple tables can be selected
     const selectedTables = Array.from(
