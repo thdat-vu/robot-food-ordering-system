@@ -1,11 +1,11 @@
 "use client";
 
-import React, {useEffect, useMemo, useRef, useState} from "react";
-import {Checkbox} from "@/components/ui/checkbox";
-import {OrderStatus} from "@/types/kitchen";
-import {WaiterDish} from "@/hooks/use-waiter-orders";
-import {Button} from "@/components/ui/button";
-import {toast} from "sonner";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { OrderStatus } from "@/types/kitchen";
+import { WaiterDish } from "@/hooks/use-waiter-orders";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -29,6 +29,7 @@ const CATEGORY_PRIORITY: Record<string, number> = {
     "đồ uống": 0,
     "món chính": 1,
     "tráng miệng": 2,
+    "phục vụ nhanh": 3,
 };
 
 const CATEGORY_STYLES: Record<string, { label: string; bg: string; border: string }> = {
@@ -46,6 +47,11 @@ const CATEGORY_STYLES: Record<string, { label: string; bg: string; border: strin
         label: "Tráng miệng",
         bg: "bg-orange-50",
         border: "border-orange-200",
+    },
+    "phục vụ nhanh": {
+        label: "Phục vụ nhanh",
+        bg: "bg-purple-50",
+        border: "border-purple-200",
     },
     default: {
         label: "Khác",
@@ -79,7 +85,7 @@ const STATUS_BADGES: Record<OrderStatus, { label: string; className: string }> =
 // Parse DD/MM/YYYY HH:mm:ss format to timestamp for sorting
 const parseOrderTime = (timeStr: string | undefined): number => {
     if (!timeStr) return Number.MAX_SAFE_INTEGER;
-    
+
     const match = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
     if (match) {
         const [, day, month, year, hours, minutes, seconds] = match;
@@ -92,7 +98,7 @@ const parseOrderTime = (timeStr: string | undefined): number => {
             parseInt(seconds, 10)
         ).getTime();
     }
-    
+
     const parsed = new Date(timeStr).getTime();
     return isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
 };
@@ -100,27 +106,27 @@ const parseOrderTime = (timeStr: string | undefined): number => {
 // Format time string to show only time (HH:mm:ss) - remove date
 const formatTimeOnly = (timeStr: string | undefined): string => {
     if (!timeStr) return '';
-    
+
     // Try parsing format: "HH:mm:ss dd/MM/yyyy"
     const match1 = timeStr.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
     if (match1) {
         return `${match1[1]}:${match1[2]}:${match1[3]}`;
     }
-    
+
     // Try parsing format: "dd/MM/yyyy HH:mm:ss"
     const match2 = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
     if (match2) {
         const hours = match2[4].padStart(2, '0');
         return `${hours}:${match2[5]}:${match2[6]}`;
     }
-    
+
     // Try parsing as ISO date
     const parsed = new Date(timeStr);
     if (!Number.isNaN(parsed.getTime())) {
         const pad = (value: number) => value.toString().padStart(2, '0');
         return `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
     }
-    
+
     return timeStr;
 };
 
@@ -162,19 +168,19 @@ const areTablesAdjacent = (id1: number, id2: number): boolean => {
 
 const detectTableClusters = (tableNumbers: number[]): number[][] => {
     if (tableNumbers.length === 0) return [];
-    
+
     const visited = new Set<number>();
     const clusters: number[][] = [];
-    
+
     const findCluster = (startId: number): number[] => {
         const cluster: number[] = [];
         const queue: number[] = [startId];
         visited.add(startId);
-        
+
         while (queue.length > 0) {
             const currentId = queue.shift()!;
             cluster.push(currentId);
-            
+
             for (const otherId of tableNumbers) {
                 if (!visited.has(otherId) && areTablesAdjacent(currentId, otherId)) {
                     visited.add(otherId);
@@ -182,16 +188,16 @@ const detectTableClusters = (tableNumbers: number[]): number[][] => {
                 }
             }
         }
-        
+
         return cluster.sort((a, b) => a - b);
     };
-    
+
     for (const tableId of tableNumbers) {
         if (!visited.has(tableId)) {
             clusters.push(findCluster(tableId));
         }
     }
-    
+
     return clusters;
 };
 
@@ -211,16 +217,16 @@ const REMAKE_SUGGESTIONS: string[] = [
 const MAX_SELECTION = Infinity;
 
 const DishList: React.FC<DishListProps> = ({
-                                               activeTab,
-                                               searchQuery,
-                                               onDishToggle,
-                                               dishes,
-                                               getDishesByStatus,
-                                               onRequestRemake,
-                                               useRobotDelivery,
-                                               robotTrayLimit,
-                                               onToggleRobotMode,
-                                           }) => {
+    activeTab,
+    searchQuery,
+    onDishToggle,
+    dishes,
+    getDishesByStatus,
+    onRequestRemake,
+    useRobotDelivery,
+    robotTrayLimit,
+    onToggleRobotMode,
+}) => {
 
     console.log(activeTab)
 
@@ -342,8 +348,8 @@ const DishList: React.FC<DishListProps> = ({
 
         // Mark as done to avoid re-running for this tab until toggled or tab changes
         autoSuggestedTabsRef.current[activeTab] = true;
-    // We intentionally exclude onDishToggle from deps to avoid re-running on its identity changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // We intentionally exclude onDishToggle from deps to avoid re-running on its identity changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [autoSuggestEnabled, activeTab, dishesForTab, selectedCount]);
 
     // When toggling OFF auto-suggest, clear selections ONCE; allow normal manual selection afterwards
@@ -371,7 +377,7 @@ const DishList: React.FC<DishListProps> = ({
         }
 
         prevAutoSuggestRef.current = autoSuggestEnabled;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [autoSuggestEnabled]);
 
     // Filter dishes by search query (for "byDish" view)
@@ -440,13 +446,13 @@ const DishList: React.FC<DishListProps> = ({
             .map(([tableNumber, tableDishes]) => {
                 // Sort dishes within each table by order time (oldest first)
                 tableDishes.sort((a, b) => parseOrderTime(a.orderTime) - parseOrderTime(b.orderTime));
-                
+
                 const selectedDishes = tableDishes.filter((dish) => dish.selected);
                 const selectedCount = selectedDishes.length;
                 const totalCount = tableDishes.length;
                 const selectedQuantity = selectedDishes.reduce((sum, dish) => sum + (dish.quantity || 1), 0);
                 const totalQuantity = tableDishes.reduce((sum, dish) => sum + (dish.quantity || 1), 0);
-                
+
                 // Get oldest order time for this table
                 const oldestOrderTime = tableDishes[0]?.orderTime;
 
@@ -484,12 +490,12 @@ const DishList: React.FC<DishListProps> = ({
     const tableClusters = useMemo<TableCluster[]>(() => {
         const tableNumbers = tableGroups.map(g => g.tableNumber);
         const clusterArrays = detectTableClusters(tableNumbers);
-        
+
         return clusterArrays.map(clusterTables => {
             const clusterGroups = clusterTables
                 .map(tableNum => tableGroups.find(g => g.tableNumber === tableNum))
                 .filter((g): g is TableGroup => g !== undefined);
-            
+
             return {
                 tables: clusterTables,
                 tableGroups: clusterGroups,
@@ -503,7 +509,7 @@ const DishList: React.FC<DishListProps> = ({
     const toggleClusterSelection = (clusterTables: number[]) => {
         const clusterDishes = dishesForTab.filter(d => clusterTables.includes(d.tableNumber));
         const allSelected = clusterDishes.every(d => d.selected);
-        
+
         if (allSelected) {
             // Deselect all
             clusterDishes.filter(d => d.selected).forEach(d => safeToggle(d.id));
@@ -511,7 +517,7 @@ const DishList: React.FC<DishListProps> = ({
         } else {
             // Select all unselected
             const unselected = clusterDishes.filter(d => !d.selected);
-            
+
             // Check robot limit
             if (useRobotDelivery && activeTab === "bắt đầu phục vụ") {
                 const unselectedQuantity = unselected.reduce((sum, d) => sum + (d.quantity || 1), 0);
@@ -520,7 +526,7 @@ const DishList: React.FC<DishListProps> = ({
                     return;
                 }
             }
-            
+
             unselected.forEach(d => safeToggle(d.id));
             toast.success(`Đã chọn cụm bàn ${clusterTables.join(", ")}`);
         }
@@ -530,7 +536,7 @@ const DishList: React.FC<DishListProps> = ({
     const getClusterSelectionStatus = (clusterTables: number[]): "none" | "partial" | "all" => {
         const clusterDishes = dishesForTab.filter(d => clusterTables.includes(d.tableNumber));
         const selectedCount = clusterDishes.filter(d => d.selected).length;
-        
+
         if (selectedCount === 0) return "none";
         if (selectedCount === clusterDishes.length) return "all";
         return "partial";
@@ -671,11 +677,11 @@ const DishList: React.FC<DishListProps> = ({
                 setAutoSuggestEnabled(false);
                 toast.info("Đã tắt gợi ý tự động khi bật chế độ robot");
             }
-            
+
             // Step 2: Clear any current selections in this tab
             const selectedInTab = dishesForTab.filter(d => d.selected);
             selectedInTab.forEach(d => onDishToggle(d.id));
-            
+
             // Step 3: Select dishes until total quantity reaches robotTrayLimit (3)
             // BUG FIX: Must count by quantity, not just number of dishes
             // OLD CODE (BUGGY): const dishesToSelect = unselectedDishes.slice(0, robotTrayLimit);
@@ -683,7 +689,7 @@ const DishList: React.FC<DishListProps> = ({
             const unselectedDishes = dishesForTab.filter(d => !d.selected);
             const dishesToSelect: typeof unselectedDishes = [];
             let totalQuantity = 0;
-            
+
             for (const dish of unselectedDishes) {
                 const dishQuantity = dish.quantity || 1;
                 // Only add dish if it won't exceed the robot tray limit
@@ -696,7 +702,7 @@ const DishList: React.FC<DishListProps> = ({
                     break;
                 }
             }
-            
+
             // Use setTimeout to ensure previous toggles complete first
             setTimeout(() => {
                 dishesToSelect.forEach(dish => onDishToggle(dish.id));
@@ -746,7 +752,7 @@ const DishList: React.FC<DishListProps> = ({
                                 </label>
                             </div>
                         </div>
-                        
+
                         {useRobotDelivery && (
                             <div className="text-xs text-blue-800 bg-blue-100 rounded-lg px-3 py-2 border border-blue-200">
                                 💡 Robot chỉ có {robotTrayLimit} khay, mỗi khay 1 món.
@@ -755,7 +761,7 @@ const DishList: React.FC<DishListProps> = ({
                     </div>
                 </div>
             )}
-            
+
             {/* Auto Suggest Toggle */}
             <div className="flex items-center justify-between bg-white border rounded-lg p-3">
                 <div className="flex items-center gap-2">
@@ -771,22 +777,20 @@ const DishList: React.FC<DishListProps> = ({
                         </Tooltip>
                     </TooltipProvider> */}
                 </div>
-                <Switch 
-                    checked={autoSuggestEnabled} 
+                <Switch
+                    checked={autoSuggestEnabled}
                     onCheckedChange={setAutoSuggestEnabled}
                     disabled={useRobotDelivery && activeTab === "bắt đầu phục vụ"}
                 />
             </div>
             {/* Selection Counter with Robot Mode Indicator */}
-            <div className={`border rounded-lg p-3 ${
-                useRobotDelivery 
-                    ? 'bg-blue-100 border-blue-300' 
-                    : 'bg-blue-50 border-blue-200'
-            }`}>
+            <div className={`border rounded-lg p-3 ${useRobotDelivery
+                ? 'bg-blue-100 border-blue-300'
+                : 'bg-blue-50 border-blue-200'
+                }`}>
                 <div className="flex items-center justify-between">
-                    <span className={`text-sm font-medium ${
-                        useRobotDelivery ? 'text-blue-900' : 'text-blue-800'
-                    }`}>
+                    <span className={`text-sm font-medium ${useRobotDelivery ? 'text-blue-900' : 'text-blue-800'
+                        }`}>
                         {useRobotDelivery ? (
                             <span>🤖 Đã chọn: {selectedCount}/{robotTrayLimit} món</span>
                         ) : (
@@ -808,11 +812,10 @@ const DishList: React.FC<DishListProps> = ({
                         key={tab.key}
                         type="button"
                         onClick={() => setViewMode(tab.key)}
-                        className={`text-sm font-medium py-2 rounded-lg transition-colors ${
-                            viewMode === tab.key
-                                ? "bg-white text-blue-600 shadow"
-                                : "text-gray-500 hover:text-gray-700"
-                        }`}
+                        className={`text-sm font-medium py-2 rounded-lg transition-colors ${viewMode === tab.key
+                            ? "bg-white text-blue-600 shadow"
+                            : "text-gray-500 hover:text-gray-700"
+                            }`}
                     >
                         {tab.label}
                     </button>
@@ -841,41 +844,40 @@ const DishList: React.FC<DishListProps> = ({
                                             useRobotDelivery &&
                                             activeTab === "bắt đầu phục vụ" &&
                                             selectedCount >= robotTrayLimit;
-                                        const cannotSelectDish = !dish.selected && isRobotLimitReached;
+                                        // Disable selection for quick serve items in "đã phục vụ" tab
+                                        const isQuickServeInServedTab =
+                                            activeTab === "đã phục vụ" && dish.isQuickServe === true;
+                                        const cannotSelectDish = !dish.selected && (isRobotLimitReached || isQuickServeInServedTab);
 
                                         return (
                                             <li key={dish.id}>
                                                 <div
-                                                    className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} ${
-                                                        cannotSelectDish
-                                                            ? "opacity-50 cursor-not-allowed"
-                                                            : "cursor-pointer transition-all hover:bg-accent"
-                                                    } ${
-                                                        dish.selected
+                                                    className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} ${cannotSelectDish
+                                                        ? "opacity-50 cursor-not-allowed"
+                                                        : "cursor-pointer transition-all hover:bg-accent"
+                                                        } ${dish.selected
                                                             ? "ring-2 ring-green-500 ring-offset-2 bg-green-50 border-green-300"
                                                             : isTablePartiallySelected
                                                                 ? "ring-1 ring-yellow-400 ring-offset-1 bg-yellow-50 border-yellow-200"
                                                                 : cannotSelectDish
                                                                     ? "bg-gray-100 border-gray-300"
                                                                     : ""
-                                                    }`}
+                                                        }`}
                                                     onClick={() => !cannotSelectDish && handleDishClick(dish)}
-                                                    title={cannotSelectDish ? "🤖 Đã đạt giới hạn robot (3 món)" : undefined}
+                                                    title={cannotSelectDish ? (isQuickServeInServedTab ? "⚡ Món phục vụ nhanh đã phục vụ không thể yêu cầu làm lại" : "🤖 Đã đạt giới hạn robot (3 món)") : undefined}
                                                 >
                                                     <div
-                                                        className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${
-                                                            cannotSelectDish
-                                                                ? "cursor-not-allowed bg-gray-200 border-gray-400"
-                                                                : "cursor-pointer"
-                                                        } transition-colors ${
-                                                            dish.selected
+                                                        className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${cannotSelectDish
+                                                            ? "cursor-not-allowed bg-gray-200 border-gray-400"
+                                                            : "cursor-pointer"
+                                                            } transition-colors ${dish.selected
                                                                 ? "bg-green-500 border-green-700"
                                                                 : isTablePartiallySelected
                                                                     ? "bg-yellow-200 border-yellow-400"
                                                                     : cannotSelectDish
                                                                         ? "bg-gray-200 border-gray-400"
                                                                         : "bg-white border-gray-300 hover:border-gray-400"
-                                                        }`}
+                                                            }`}
                                                         onClick={(e) => !cannotSelectDish && handleIndividualToggle(dish, e)}
                                                         title={
                                                             cannotSelectDish
@@ -931,7 +933,7 @@ const DishList: React.FC<DishListProps> = ({
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        
+
                                                         {/* Note & Toppings */}
                                                         {dish.note && (
                                                             <div className="mt-1 text-[10px] sm:text-xs text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-2 py-1 rounded-md border border-amber-200 break-words">
@@ -943,7 +945,7 @@ const DishList: React.FC<DishListProps> = ({
                                                                 <span className="font-semibold">Toppings:</span> <span className="break-words">{dish.toppings.join(", ")}</span>
                                                             </div>
                                                         )}
-                                                        
+
                                                         {/* Time badges - Horizontal layout with labels - Responsive */}
                                                         <div className="flex items-center gap-1.5 sm:gap-3 mt-2 flex-wrap">
                                                             <TooltipProvider>
@@ -1105,24 +1107,25 @@ const DishList: React.FC<DishListProps> = ({
                                                                 useRobotDelivery &&
                                                                 activeTab === "bắt đầu phục vụ" &&
                                                                 selectedCount >= robotTrayLimit;
-                                                            const cannotSelectDish = !dish.selected && isRobotLimitReached;
+                                                            // Disable selection for quick serve items in "đã phục vụ" tab
+                                                            const isQuickServeInServedTab =
+                                                                activeTab === "đã phục vụ" && dish.isQuickServe === true;
+                                                            const cannotSelectDish = !dish.selected && (isRobotLimitReached || isQuickServeInServedTab);
 
                                                             return (
                                                                 <div
                                                                     key={dish.id}
-                                                                    className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} ${
-                                                                        cannotSelectDish
-                                                                            ? "opacity-50 cursor-not-allowed"
-                                                                            : "cursor-pointer transition-all hover:bg-accent"
-                                                                    } ${
-                                                                        dish.selected
+                                                                    className={`flex items-center px-4 py-3 rounded-xl border ${style.bg} ${style.border} ${cannotSelectDish
+                                                                        ? "opacity-50 cursor-not-allowed"
+                                                                        : "cursor-pointer transition-all hover:bg-accent"
+                                                                        } ${dish.selected
                                                                             ? "ring-2 ring-green-500 ring-offset-2 bg-green-50 border-green-300"
                                                                             : isTablePartiallySelected
                                                                                 ? "ring-1 ring-yellow-400 ring-offset-1 bg-yellow-50 border-yellow-200"
                                                                                 : cannotSelectDish
                                                                                     ? "bg-gray-100 border-gray-300"
                                                                                     : ""
-                                                                    }`}
+                                                                        }`}
                                                                     onClick={() => !cannotSelectDish && handleDishClick(dish)}
                                                                     title={
                                                                         cannotSelectDish
@@ -1131,19 +1134,17 @@ const DishList: React.FC<DishListProps> = ({
                                                                     }
                                                                 >
                                                                     <div
-                                                                        className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${
-                                                                            cannotSelectDish
-                                                                                ? "cursor-not-allowed bg-gray-200 border-gray-400"
-                                                                                : "cursor-pointer"
-                                                                        } transition-colors ${
-                                                                            dish.selected
+                                                                        className={`mr-3 w-6 h-6 border-2 rounded flex items-center justify-center ${cannotSelectDish
+                                                                            ? "cursor-not-allowed bg-gray-200 border-gray-400"
+                                                                            : "cursor-pointer"
+                                                                            } transition-colors ${dish.selected
                                                                                 ? "bg-green-500 border-green-700"
                                                                                 : isTablePartiallySelected
                                                                                     ? "bg-yellow-200 border-yellow-400"
                                                                                     : cannotSelectDish
                                                                                         ? "bg-gray-200 border-gray-400"
                                                                                         : "bg-white border-gray-300 hover:border-gray-400"
-                                                                        }`}
+                                                                            }`}
                                                                         onClick={(e) => !cannotSelectDish && handleIndividualToggle(dish, e)}
                                                                     >
                                                                         {dish.selected && (
@@ -1190,7 +1191,7 @@ const DishList: React.FC<DishListProps> = ({
                                                                                 )}
                                                                             </div>
                                                                         </div>
-                                                                        
+
                                                                         {/* Note & Toppings */}
                                                                         {dish.note && (
                                                                             <div className="mt-1 text-[10px] sm:text-xs text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-2 py-1 rounded-md border border-amber-200 break-words">
@@ -1202,7 +1203,7 @@ const DishList: React.FC<DishListProps> = ({
                                                                                 <span className="font-semibold">Toppings:</span> <span className="break-words">{dish.toppings.join(", ")}</span>
                                                                             </div>
                                                                         )}
-                                                                        
+
                                                                         {/* Time badges - Horizontal layout with labels - Responsive */}
                                                                         <div className="flex items-center gap-1.5 sm:gap-3 mt-2 flex-wrap">
                                                                             <TooltipProvider>
@@ -1340,8 +1341,8 @@ const DishList: React.FC<DishListProps> = ({
                                         {remakeReason === '' ? 'Vui lòng chọn lý do từ gợi ý bên trên' : 'Lý do đã chọn'}
                                     </p>
                                     <span className="text-xs text-gray-400">
-                        {remakeReason.length}/200
-                    </span>
+                                        {remakeReason.length}/200
+                                    </span>
                                 </div>
                             </div>
 
@@ -1369,7 +1370,7 @@ const DishList: React.FC<DishListProps> = ({
                                             setRemakeReason("");
                                             setShowSuggestions(true);
                                         } else {
-                                            toast("Lỗi yêu cầu làm lại", {description: "Có lỗi xảy ra khi gửi yêu cầu làm lại."});
+                                            toast("Lỗi yêu cầu làm lại", { description: "Có lỗi xảy ra khi gửi yêu cầu làm lại." });
                                         }
                                     }}
                                     disabled={remakeReason.trim().length === 0}

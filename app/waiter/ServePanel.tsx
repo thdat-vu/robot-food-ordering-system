@@ -18,27 +18,27 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 // Format time string to show only time (HH:mm:ss) - remove date
 const formatTimeOnly = (timeStr?: string | null): string => {
   if (!timeStr) return '';
-  
+
   // Try parsing format: "HH:mm:ss dd/MM/yyyy"
   const match1 = timeStr.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
   if (match1) {
     return `${match1[1]}:${match1[2]}:${match1[3]}`;
   }
-  
+
   // Try parsing format: "dd/MM/yyyy HH:mm:ss"
   const match2 = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
   if (match2) {
     const hours = match2[4].padStart(2, '0');
     return `${hours}:${match2[5]}:${match2[6]}`;
   }
-  
+
   // Try parsing as ISO date
   const parsed = new Date(timeStr);
   if (!Number.isNaN(parsed.getTime())) {
     const pad = (value: number) => value.toString().padStart(2, '0');
     return `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
   }
-  
+
   return timeStr;
 };
 
@@ -232,10 +232,11 @@ const ServePanel: React.FC<ServePanelProps> = ({
       return "Đồ Uống";
     if (c.includes("chính") || c.includes("main")) return "Món Chính";
     if (c.includes("tráng") || c.includes("dessert")) return "Tráng Miệng";
+    if (c.includes("phục vụ nhanh") || c.includes("quick")) return "Phục vụ nhanh";
     return "Khác";
   };
 
-  const categoryOrder = ["Đồ Uống", "Món Chính", "Tráng Miệng", "Khác"];
+  const categoryOrder = ["Đồ Uống", "Món Chính", "Tráng Miệng", "Phục vụ nhanh", "Khác"];
 
   const sortedDishesForTab = [...dishesForTab].sort(
     (a, b) =>
@@ -262,7 +263,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   // Quick-serve requests
   const { requests, loading, productMapReady, fetchQuickRequestsForActiveTables, serveQuickRequest } = useQuickServe();
-  
+
   // Always fetch - regardless of product map ready state
   // Quick-serve refresh is handled within useQuickServe via SignalR
   // Get ALL selected dishes (not just from current tab)
@@ -278,7 +279,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
     const readyTablesForColor = Array.from(
       new Set(
         dishes
-          .filter((dish) => 
+          .filter((dish) =>
             dish.status === "bắt đầu phục vụ" ||
             dish.status === "đang chờ" ||
             dish.status === "đang thực hiện"
@@ -321,7 +322,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
 
   const selectedTableSequence = React.useMemo(() => {
     const selectedTablesList = Array.from(new Set(allSelectedDishes.map(dish => dish.tableNumber)));
-    
+
     if (selectedTablesList.length === 0) {
       return [];
     }
@@ -355,7 +356,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
       remaining.forEach((tableId) => {
         const tablePos = TABLE_POSITIONS[tableId];
         if (!tablePos) return;
-        
+
         const distance = calculateDistance(staffPosition, tablePos);
         if (distance < nearestDistanceToStaff) {
           nearestDistanceToStaff = distance;
@@ -383,10 +384,10 @@ const ServePanel: React.FC<ServePanelProps> = ({
       remaining.forEach((tableId) => {
         const tablePos = TABLE_POSITIONS[tableId];
         if (!tablePos) return;
-        
+
         const distance = calculateDistance(currentPosition, tablePos);
         const currentNearestPos = nearestTable ? TABLE_POSITIONS[nearestTable] : null;
-        
+
         // If this table is closer, choose it
         if (distance < nearestDistance - TOLERANCE) {
           nearestDistance = distance;
@@ -398,7 +399,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
             nearestTable = tableId;
           }
         } else if (
-          currentNearestPos && 
+          currentNearestPos &&
           Math.abs(tablePos.y - currentNearestPos.y) < 5 && // Same row (within 5px tolerance)
           distance < nearestDistance + SAME_ROW_THRESHOLD && // Within threshold
           tableId < (nearestTable ?? Infinity) // Smaller table number
@@ -428,7 +429,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   // Then sort remaining tables by nearest distance from Bàn 1 (or from staff if Bàn 1 not selected)
   const robotTableSequence = React.useMemo(() => {
     const selectedTablesList = [...tableNumbersByStatus.selected];
-    
+
     if (selectedTablesList.length === 0) {
       return [];
     }
@@ -462,7 +463,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
       remaining.forEach((tableId) => {
         const tablePos = TABLE_POSITIONS[tableId];
         if (!tablePos) return;
-        
+
         const distance = calculateDistance(staffPosition, tablePos);
         if (distance < nearestDistanceToStaff) {
           nearestDistanceToStaff = distance;
@@ -490,10 +491,10 @@ const ServePanel: React.FC<ServePanelProps> = ({
       remaining.forEach((tableId) => {
         const tablePos = TABLE_POSITIONS[tableId];
         if (!tablePos) return;
-        
+
         const distance = calculateDistance(currentPosition, tablePos);
         const currentNearestPos = nearestTable ? TABLE_POSITIONS[nearestTable] : null;
-        
+
         // If this table is closer, choose it
         if (distance < nearestDistance - TOLERANCE) {
           nearestDistance = distance;
@@ -505,7 +506,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
             nearestTable = tableId;
           }
         } else if (
-          currentNearestPos && 
+          currentNearestPos &&
           Math.abs(tablePos.y - currentNearestPos.y) < 5 && // Same row (within 5px tolerance)
           distance < nearestDistance + SAME_ROW_THRESHOLD && // Within threshold
           tableId < (nearestTable ?? Infinity) // Smaller table number
@@ -636,7 +637,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
           {/* Quick Serve Requests Panel - Hidden per requirement */}
 
           {/* Robot delivery mode UI has been moved to DishList (left sidebar) */}
-          
+
           {activeTab === "bắt đầu phục vụ" || activeTab === "phục vụ nhanh" ? (
             <MapPanel
               readyTables={tableNumbersByStatus.ready}
@@ -789,15 +790,15 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   {activeTab === "đã phục vụ"
                     ? "Không có món nào đã phục vụ"
                     : (activeTab as OrderStatus) === "phục vụ nhanh"
-                    ? "Không có yêu cầu phục vụ nhanh"
-                    : `Không có món nào trong trạng thái "${activeTab}"`}
+                      ? "Không có yêu cầu phục vụ nhanh"
+                      : `Không có món nào trong trạng thái "${activeTab}"`}
                 </p>
                 <p className="text-gray-400 text-sm mt-2">
                   {activeTab === "đã phục vụ"
                     ? "Các món đã phục vụ sẽ hiển thị ở đây"
                     : (activeTab as OrderStatus) === "phục vụ nhanh"
-                    ? "Các yêu cầu phục vụ nhanh từ moderator sẽ hiển thị ở đây"
-                    : "Hãy chờ đợi hoặc chuyển sang tab khác"}
+                      ? "Các yêu cầu phục vụ nhanh từ moderator sẽ hiển thị ở đây"
+                      : "Hãy chờ đợi hoặc chuyển sang tab khác"}
                 </p>
               </div>
             </div>
