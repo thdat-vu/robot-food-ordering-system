@@ -12,23 +12,32 @@ export const OrtherServicePage: React.FC = () => {
     const [data, setData] = useState<Camplanin[]>([]);
     const [loading, setLoading] = useState(true);
 
+
+    const fetch = async () => {
+        setLoading(true);
+        const res: BaseEntityResponse_v2<Camplanin[]> = await run(tableId);
+
+        if (res.statusCode == "200") {
+            setData(res.data as Camplanin[]);
+        } else {
+            setData([]);
+        }
+
+        setLoading(false);
+    }
+
     useEffect(() => {
-        (async () => {
-            setLoading(true);
-            const res: BaseEntityResponse_v2<Camplanin[]> = await run(tableId);
-
-            if (res.statusCode == "200") {
-                setData(res.data as Camplanin[]);
-            } else {
-                setData([]);
-            }
-
-            setLoading(false);
-        })();
-    }, []);
+        let isMounted = true;
+        fetch();
+        const interval = setInterval(fetch, 3000);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
+    }, [tableId]);
 
     return (
-        <div className="p-10 flex flex-col gap-3 h-auto bg-gray-50 min-h-screen">
+        <div className="p-5 mt-28 flex flex-col gap-3 bg-gray-50 min-h-screen">
             {loading && (
                 <div className="space-y-3 w-full">
                     <div className="animate-pulse bg-gray-300 h-32 rounded-xl"></div>

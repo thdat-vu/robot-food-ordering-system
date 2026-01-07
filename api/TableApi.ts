@@ -2,15 +2,38 @@ import {Table} from "@/entites/respont/Table";
 import api from "@/api/api";
 import {API_ADD_POIND, API_TABLE} from "@/api-endpoint-env";
 import {BaseEntityResponse_v2} from "@/entites/BaseEntity";
+import {AxiosError} from "axios";
 
 export type ErroTable = {
     message: string;
     status: boolean;
 }
 
-export const GetTableForID = async (id: string, key: string): Promise<Table | ErroTable> => {
-    const res = await api.get(`${API_TABLE}/${id}/scanQrCode/${key}`)
-    return res.data.data;
+export type Erro = {
+    errorCode: string;
+    errorMessage: string;
+    statusCode: string;
+}
+
+export type Additional = {
+    redirectTableId: string;
+    redirectUrl: string;
+}
+
+export type AdditionalData = {
+    additionalData: Additional;
+}
+
+export const GetTableForID = async (id: string, key: string): Promise<Table | ErroTable | Erro> => {
+    try {
+        const res = await api.get(`${API_TABLE}/${id}/scanQrCode/${key}`)
+        return res.data.data;
+    } catch (error) {
+        console.log(error);
+        const err = error as AxiosError<Erro>;
+        return err.response?.data as Erro;
+    }
+
 }
 
 export const ShareTable = async (

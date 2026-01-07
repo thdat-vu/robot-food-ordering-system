@@ -280,13 +280,22 @@ export const BillPDFPreview: React.FC<BillPDFPreviewProps> = ({billData, onClose
                             </button>
 
                             <button
-                                onClick={handleEarnPoints}
+                                onClick={() => router.replace("/end")}
                                 disabled={open}
                                 className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                                 <CheckCircle className="w-4 h-4"/>
-                                {isDownloading ? "Đang xử lý..." : "Tích điểm"}
+                                Bỏ qua
                             </button>
+
+                            {/*<button*/}
+                            {/*    onClick={handleEarnPoints}*/}
+                            {/*    disabled={open}*/}
+                            {/*    className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 flex items-center justify-center gap-2 disabled:opacity-50"*/}
+                            {/*>*/}
+                            {/*    <CheckCircle className="w-4 h-4"/>*/}
+                            {/*    {isDownloading ? "Đang xử lý..." : "Tích điểm"}*/}
+                            {/*</button>*/}
                         </div>
 
                     </div>
@@ -294,7 +303,7 @@ export const BillPDFPreview: React.FC<BillPDFPreviewProps> = ({billData, onClose
             )}
 
             {/* PhoneDialog */}
-            <PhoneDialog open={open} onClose={handlePhoneDialogClose} onCamplet={handlePhoneDialogComplete}/>
+            {/*<PhoneDialog open={open} onClose={handlePhoneDialogClose} onCamplet={handlePhoneDialogComplete}/>*/}
         </>
     );
 };

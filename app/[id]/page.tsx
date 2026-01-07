@@ -9,7 +9,7 @@ import {TABLE_STORE, TOKEN_Bro_VALUE} from "@/name-value-env";
 import {tokenAuthentic} from "@/unit/unit";
 import {Table} from "@/entites/respont/Table";
 import {MobileDialog} from "@/components/common/MobileDialog";
-import {ErroTable} from "@/api/TableApi";
+import {AdditionalData, Erro, ErroTable} from "@/api/TableApi";
 import {ENDPOINT} from "@/api-endpoint-env";
 import {addProduction} from "@/store/ShoppingCart";
 import {Frame1} from "@/app/[id]/Frame1";
@@ -83,7 +83,7 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
     const [step, setStep] = useState<number>(1);
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scannedResult, setScannedResult] = useState<string>("");
-    const [data, setData] = useState<Table>();
+    const [data, setData] = useState<Table | Erro>();
     const [loading, setLoading] = useState<boolean>(true);
     const [isFetchingData, setIsFetchingData] = useState<boolean>(false);
     const [showWebViewPrompt, setShowWebViewPrompt] = useState<boolean>(false);
@@ -163,80 +163,99 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
         initToken();
     }, [showWebViewPrompt, hasRedirected, loading]);
 
-    // ✅ Load table data with loading state
-    useEffect(() => {
-        const loadData = async () => {
-            if (hasFetchedRef.current || showWebViewPrompt || hasRedirected || isInWebView()) {
-                return;
-            }
 
-            const key = localStorage.getItem(TOKEN_Bro_VALUE);
+    const loadData = async () => {
+        if (hasFetchedRef.current || showWebViewPrompt || hasRedirected || isInWebView()) {
+            return;
+        }
 
-            if (!key || !id) {
-                return;
-            }
+        const key = localStorage.getItem(TOKEN_Bro_VALUE);
 
-            hasFetchedRef.current = true;
-            setIsFetchingData(true);
+        if (!key || !id) {
+            return;
+        }
 
-            console.log("Fetching table data...");
+        hasFetchedRef.current = true;
+        setIsFetchingData(true);
 
-            try {
-                const result: Table | ErroTable = await run(id, key);
+        console.log("Fetching table data...");
 
-                if (checkTable(result)) {
-                    setData(result);
-                    localStorage.removeItem(TABLE_STORE);
-                    addProduction<Table>(TABLE_STORE, result);
-                    setErrlog(undefined);
-                    setShouldShowErrorDialog(false);
-                    setHasTableError(false);
-                    console.log("Table loaded successfully:", result);
-                } else if (result && typeof result === 'object' && 'status' in result && 'message' in result) {
-                    const errorResult = result as ErroTable;
+        try {
+            let result: Table | ErroTable | Erro = await run(id, key);
 
-                    setErrlog({
-                        title: "Lỗi",
-                        status: false,
-                        message: result.message
-                    });
-
-                    setErrlog({
-                        title: "Cảnh Báo",
-                        status: errorResult.status,
-                        message: errorResult.message
-                    });
-                    setData(undefined);
-                    setShouldShowErrorDialog(false);
-                    setHasTableError(true);
+            if (result as Table) {
+                const res: Table = result as Table;
+                if (res.redirectTableId) {
+                    result = await run(res.redirectTableId, key);
                 }
-            } catch (error) {
-                console.error('Error loading table data:', error);
+            }
+
+            if (checkTable(result)) {
+                console.log(result);
+                setData(result as Table);
+                localStorage.removeItem(TABLE_STORE);
+                addProduction<Table>(TABLE_STORE, result as Table);
+                setErrlog(undefined);
+                setShouldShowErrorDialog(false);
+                setHasTableError(false);
+                console.log("Table loaded successfully:", result);
+            } else if (result && typeof result === 'object' && 'status' in result && 'message' in result) {
+                const errorResult = result as ErroTable;
+
                 setErrlog({
-                    title: "Lỗi",
+                    title: "Cảnh Báo",
                     status: false,
-                    message: "Không thể tải dữ liệu bàn"
+                    message: result.message
                 });
+
                 setData(undefined);
                 setShouldShowErrorDialog(false);
                 setHasTableError(true);
-            } finally {
-                setIsFetchingData(false); // ✅ Kết thúc loading
             }
-        };
 
+            /*
+            errorCode: string;
+errorMessage: string;
+statusCode: string;
+             */
+            if (result && typeof result === 'object' && 'errorCode' in result && 'errorMessage' in result && 'statusCode' in result) {
+                const d = result as Erro;
+                setErrlog({
+                    title: "Cảnh Báo",
+                    status: false,
+                    message: d.errorMessage
+                });
+                setShouldShowErrorDialog(true);
+                setOpen(true);
+            }
+
+        } catch (error) {
+            console.error('Error loading table data:', error);
+            setErrlog({
+                title: "Lỗi",
+                status: false,
+                message: "Kết nói mạng không ổn định"
+            });
+            setData(undefined);
+            setShouldShowErrorDialog(false);
+            setHasTableError(true);
+        } finally {
+            setIsFetchingData(false);
+        }
+    };
+
+    useEffect(() => {
         loadData();
-    }, []);
+    }, [id]);
     //id, showWebViewPrompt, hasRedirected
 
-    // Set table context effect
     useEffect(() => {
         if (data && checkTable(data)) {
             setTable(id, data.status, data.name);
         }
     }, [data, id, setTable]);
 
-    // QR Scanner effect
+
     useEffect(() => {
         if (!scannerOpen || typeof window === 'undefined') {
             return;
@@ -292,7 +311,7 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
         };
     }, [scannerOpen]);
 
-    // Handle QR code scanned
+
     const handleQRCodeScanned = async (result: string) => {
         try {
             console.log("Processing QR result:", result);
@@ -360,7 +379,7 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
         }
     };
 
-    // Handlers
+
     const handleOpenScanner = () => {
         setScannerOpen(true);
         setScannedResult("");
@@ -376,7 +395,10 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
 
     const handleChangePage = useCallback(() => {
         if (data) {
-            router.push(`/productions/${data.id}`);
+            if (data as Table) {
+                const d = data as Table;
+                router.push(`/productions/${d.id}`);
+            }
         }
     }, [data, router]);
 
@@ -403,6 +425,7 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
     };
 
     const skip = () => {
+
         if (isFetchingData) {
             return;
         } else {
@@ -412,18 +435,24 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
                 setShouldShowErrorDialog(true);
                 setOpen(true);
             } else {
-                setErrlog({
-                    title: "Cảnh Báo",
-                    status: false,
-                    message: "Bàn không còn hiệu lực. Vui lòng quét lại QR code!"
-                });
-                setShouldShowErrorDialog(true);
-                setOpen(true);
+                loadData();
+                skip();
+                // console.log(data)
+                // if (data as Erro) {
+                //     const d = data as Erro;
+                //     setErrlog({
+                //         title: "Cảnh Báo",
+                //         status: false,
+                //         message: d.errorMessage
+                //     });
+                //     setShouldShowErrorDialog(true);
+                //     setOpen(true);
+                // }
             }
         }
     };
 
-    // WebView Prompt UI
+
     if (showWebViewPrompt) {
         const isWeChat = webViewApp === 'WeChat';
 
@@ -488,7 +517,7 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
 
     return (
         <>
-            {/* ✅ Loading Overlay */}
+
             {isFetchingData && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
                     <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">

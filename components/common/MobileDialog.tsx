@@ -76,7 +76,7 @@ export const MobileDialog: React.FC<MobileDialogProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
             <div
                 className={`relative w-full max-w-sm mx-auto ${config.bgColor} ${config.borderColor} border rounded-2xl shadow-xl transform transition-all duration-200 animate-in fade-in zoom-in-95`}>
-                {/* Close button */}
+
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
@@ -95,9 +95,14 @@ export const MobileDialog: React.FC<MobileDialogProps> = ({
                         {config.title}
                     </h3>
 
-                    <p className={`text-center text-sm leading-6 mb-6 ${config.textColor}`}>
-                        {message}
+                    <p
+                        className={`text-center text-sm leading-6 mb-6 ${config.textColor}
+                             whitespace-pre-line`}
+                        style={{wordBreak: "break-word"}}
+                    >
+                        {message?.replace(/,/g, ",\n") ?? ""}
                     </p>
+
 
                     <button
                         onClick={onClose}

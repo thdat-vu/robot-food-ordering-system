@@ -372,27 +372,81 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
 
                                         {/* Quantity Controls */}
                                         <div className="mt-3 flex items-center justify-between">
-                                            <div className="flex items-center space-x-3">
+
+                                            <div className="flex items-center gap-3">
+                                                {/* MINUS */}
                                                 <button
                                                     onClick={() => handleQuantityChange(item, false)}
                                                     disabled={item.quantity <= 1}
-                                                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                                    className={`
+            w-10 h-10 rounded-xl
+            flex items-center justify-center
+            transition-all active:scale-95
+            ${item.quantity <= 1
+                                                        ? 'bg-gray-100 cursor-not-allowed opacity-40'
+                                                        : 'bg-white hover:bg-gray-100'}
+        `}
                                                 >
-                                                    <Minus className="w-4 h-4"/>
+                                                    <Minus className="w-4 h-4 text-gray-700"/>
                                                 </button>
 
-                                                <span
-                                                    className="text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
-                                                    {item.quantity}
-                                                </span>
+                                                {/* INPUT (thay span) */}
+                                                <input
+                                                    type="number"
+                                                    value={item.quantity}
+                                                    min={1}
+                                                    max={20}
+                                                    onChange={(e) => {
+                                                        let newVal = Number(e.target.value);
+                                                        if (isNaN(newVal)) return;
 
+                                                        if (newVal < 1) newVal = 1;
+                                                        if (newVal > 20) newVal = 20;
+
+                                                        const oldVal = item.quantity;
+                                                        if (newVal === oldVal) return;
+
+                                                        // tăng
+                                                        if (newVal > oldVal) {
+                                                            for (let i = 0; i < newVal - oldVal; i++) {
+                                                                handleQuantityChange(item, true);
+                                                            }
+                                                        }
+
+                                                        // giảm
+                                                        if (newVal < oldVal) {
+                                                            for (let i = 0; i < oldVal - newVal; i++) {
+                                                                handleQuantityChange(item, false);
+                                                            }
+                                                        }
+                                                    }}
+                                                    className={`
+            w-12 h-10
+            text-center font-bold text-lg
+            border rounded-xl
+            focus:outline-none focus:ring-2 focus:ring-green-400
+            transition-all
+            text-gray-900 border-gray-300
+        `}
+                                                />
+
+                                                {/* PLUS */}
                                                 <button
                                                     onClick={() => handleQuantityChange(item, true)}
-                                                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-all duration-200"
+                                                    disabled={item.quantity >= 20}
+                                                    className={`
+            w-10 h-10 rounded-xl
+            flex items-center justify-center
+            transition-all active:scale-95
+            ${item.quantity >= 20
+                                                        ? 'bg-green-300 cursor-not-allowed opacity-50'
+                                                        : 'bg-green-500 hover:bg-green-600'}
+        `}
                                                 >
-                                                    <Plus className="w-4 h-4"/>
+                                                    <Plus className="w-4 h-4 text-white"/>
                                                 </button>
                                             </div>
+
 
                                             <div className="text-right">
                                                 <span className="text-sm font-medium text-green-600">

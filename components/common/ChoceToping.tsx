@@ -54,9 +54,9 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
     const [openConfin, setOpenConfin] = useState<boolean>(false);
     const [dataDialog, setDataDialog] = useState<{ status: boolean, text: string }>()
 
-    // State mới cho dialog kiểm tra bàn
     const [openTableInvalid, setOpenTableInvalid] = useState<boolean>(false);
     const [mess, setMess] = useState<string>("")
+
 
     const {
         run: runGetToppingForProduct,
@@ -270,16 +270,53 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
                             <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => setQuanlityPr(Math.max(1, quanlityPr - 1))}
-                                    className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-all active:scale-95"
+                                    disabled={quanlityPr <= 1}
+                                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-95 ${
+                                        quanlityPr <= 1
+                                            ? 'bg-gray-100 cursor-not-allowed opacity-50'
+                                            : 'bg-gray-100 hover:bg-gray-200'
+                                    }`}
                                 >
                                     <Minus className="w-5 h-5 text-gray-700"/>
                                 </button>
 
-                                <span className="text-3xl font-bold text-gray-900 w-12 text-center">{quanlityPr}</span>
+                                <input
+                                    type="number"
+                                    value={quanlityPr}
+                                    min={1}
+                                    max={20}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === "") {
+                                            setQuanlityPr(1);
+                                            return;
+                                        }
+
+                                        const num = Number(value);
+                                        if (!isNaN(num)) {
+                                            setQuanlityPr(num);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        let value = Number(quanlityPr);
+
+                                        if (isNaN(value) || value < 1) value = 1;
+                                        if (value > 20) value = 20;
+
+                                        setQuanlityPr(value);
+                                    }}
+                                    className="w-16 px-2 py-1 border rounded text-center text-lg font-semibold"
+                                />
+
 
                                 <button
-                                    onClick={() => setQuanlityPr(quanlityPr + 1)}
-                                    className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center hover:bg-green-600 transition-all active:scale-95"
+                                    onClick={() => setQuanlityPr(Math.min(20, quanlityPr + 1))}
+                                    disabled={quanlityPr >= 20}
+                                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-95 ${
+                                        quanlityPr >= 20
+                                            ? 'bg-green-300 cursor-not-allowed opacity-50'
+                                            : 'bg-green-500 hover:bg-green-600'
+                                    }`}
                                 >
                                     <Plus className="w-5 h-5 text-white"/>
                                 </button>
@@ -329,28 +366,105 @@ export const ChoceToping: React.FC<ChoceTopingProps> = ({
                                             </div>
 
                                             <div className="flex items-center justify-between">
+
+
                                                 <div className="flex items-center gap-3">
                                                     <button
-                                                        onClick={() => updateToppingQuantity(topping.id, -1 * quanlityPr, topping.name, topping.price * quanlityPr)}
+                                                        onClick={() =>
+                                                            updateToppingQuantity(
+                                                                topping.id,
+                                                                -1 * quanlityPr,
+                                                                topping.name,
+                                                                topping.price * quanlityPr
+                                                            )
+                                                        }
                                                         disabled={quantity === 0}
-                                                        className="w-10 h-10 rounded-xl bg-white flex items-center justify-center disabled:opacity-30 hover:bg-gray-100 transition-all active:scale-95"
+                                                        className={`
+                                                                        w-10 h-10 rounded-xl
+                                                                        flex items-center justify-center
+                                                                        transition-all active:scale-95
+                                                                        ${quantity === 0
+                                                            ? 'bg-gray-100 cursor-not-allowed opacity-40'
+                                                            : 'bg-white hover:bg-gray-100'}
+                                                                    `}
                                                     >
                                                         <Minus className="w-4 h-4 text-gray-700"/>
                                                     </button>
 
-                                                    <span className={`w-8 text-center font-bold text-lg ${
-                                                        quantity > 0 ? 'text-green-600' : 'text-gray-400'
-                                                    }`}>
-                                                        {quantity}
-                                                    </span>
+                                                    {/* INPUT */}
+                                                    <input
+                                                        type="number"
+                                                        value={quantity}
+                                                        min={0}
+                                                        max={20}
+                                                        onChange={(e) => {
+                                                            let newVal = Number(e.target.value);
+                                                            if (isNaN(newVal)) return;
+
+                                                            // clamp 0–20
+                                                            if (newVal < 0) newVal = 0;
+                                                            if (newVal > 20) newVal = 20;
+
+                                                            const oldVal = quantity;
+                                                            if (newVal === oldVal) return;
+
+                                                            // tăng
+                                                            if (newVal > oldVal) {
+                                                                for (let i = 0; i < newVal - oldVal; i++) {
+                                                                    updateToppingQuantity(
+                                                                        topping.id,
+                                                                        +1 * quanlityPr,
+                                                                        topping.name,
+                                                                        topping.price * quanlityPr
+                                                                    );
+                                                                }
+                                                            }
+
+                                                            // giảm
+                                                            if (newVal < oldVal) {
+                                                                for (let i = 0; i < oldVal - newVal; i++) {
+                                                                    updateToppingQuantity(
+                                                                        topping.id,
+                                                                        -1 * quanlityPr,
+                                                                        topping.name,
+                                                                        topping.price * quanlityPr
+                                                                    );
+                                                                }
+                                                            }
+                                                        }}
+                                                        className={`
+            w-12 h-10
+            text-center font-bold text-lg
+            border rounded-xl
+            focus:outline-none focus:ring-2 focus:ring-green-400
+            transition-all
+            ${quantity > 0 ? 'text-green-600 border-green-300' : 'text-gray-400 border-gray-300'}
+        `}
+                                                    />
 
                                                     <button
-                                                        onClick={() => updateToppingQuantity(topping.id, quanlityPr, topping.name, topping.price * quanlityPr)}
-                                                        className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center hover:bg-green-600 transition-all active:scale-95"
+                                                        onClick={() =>
+                                                            updateToppingQuantity(
+                                                                topping.id,
+                                                                +1 * quanlityPr,
+                                                                topping.name,
+                                                                topping.price * quanlityPr
+                                                            )
+                                                        }
+                                                        disabled={quantity >= 20}
+                                                        className={`
+            w-10 h-10 rounded-xl
+            flex items-center justify-center
+            transition-all active:scale-95
+            ${quantity >= 20
+                                                            ? 'bg-green-300 cursor-not-allowed opacity-50'
+                                                            : 'bg-green-500 hover:bg-green-600'}
+        `}
                                                     >
                                                         <Plus className="w-4 h-4 text-white"/>
                                                     </button>
                                                 </div>
+
 
                                                 {quantity > 0 && (
                                                     <div className="font-bold text-green-600">

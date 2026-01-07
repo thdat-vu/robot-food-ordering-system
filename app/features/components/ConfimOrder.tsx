@@ -134,6 +134,15 @@ export const ConfimOrder: React.FC<{
                         const res: BaseEntityData<OrderRespont> = await run(orderRequet);
 
 
+                        if(res.statusCode === '500'){
+                            setMobileDialog({
+                                title: "Thông báo",
+                                text: "Gọi món thất bại",
+                                status: false,
+                            });
+                            setOpenMobileDialog(true);
+                        }
+
                         if (res.data && res.data.id) {
                             setMobileDialog({
                                 title: "Thông báo",
@@ -167,16 +176,22 @@ export const ConfimOrder: React.FC<{
                     if (res.data && res.data.id) {
                         const orderId = res.data.id;
 
+                        console.log(orderId)
                         // 🪙 Gọi API thanh toán
                         const datares = await runPayment(orderId);
 
+                        console.log(datares)
+
                         const paymentUrl = datares?.data?.paymentUrl;
+
+
 
                         if (paymentUrl) {
                             window.location.href = paymentUrl;
                             return;
                         }
                     }
+
 
                     setMobileDialog({
                         title: "Thông báo",

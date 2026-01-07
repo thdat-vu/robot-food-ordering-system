@@ -19,7 +19,6 @@ import {Payment} from "@/app/features/components/Payment";
 import {useTableContext} from "@/hooks/context/Context";
 import {useCreateFeedback} from "@/hooks/customHooks/useFeedbackHooks";
 import {FeedbackRequest} from "@/entites/request/FeedbackRequest";
-import {OrderStatus} from "@/components/common/OrderStatus";
 import {MobileDialog} from "@/components/common/MobileDialog";
 import {Table} from "@/entites/respont/Table";
 import {loadListFromLocalStorage} from "@/store/ShoppingCart";
@@ -29,6 +28,8 @@ import {useRouter} from "next/navigation";
 import {useGetSetting} from "@/hooks/customHooks/useSettingHooks";
 import {BillDialog} from "@/components/common/BillDialog";
 import BasicSpeedDial from "@/components/common/ComplainSpeedDial";
+import {OrderStatus} from "@/components/common/OrderStatus";
+import {StatusLegendMenu} from "@/components/common/StatusLegendMenu";
 
 type OrderDisplay = {
     handleChange: (number: number) => void;
@@ -377,16 +378,17 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
                         </div>
                     </div>
 
-                    <div className="p-3 sm:p-4">
+                    <div className="p-3 sm:p-4 bg-green-50 border-b border-green-100">
                         <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                            <div
-                                className="w-7 h-7 sm:w-8 sm:h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                                <Package size={14} className="text-white sm:w-4 sm:h-4"/>
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <Package size={14} className="text-white sm:w-4 sm:h-4" />
                             </div>
-                            <h3 className="text-sm sm:text-base font-bold text-green-800">
+                            <h3 className="text-sm sm:text-base font-bold text-green-800 flex-1">
                                 Danh sách món ({orderData?.items.length})
                             </h3>
+                            <StatusLegendMenu />
                         </div>
+
 
                         <div className="space-y-2 sm:space-y-3">
                             {grouped.map((group) => {
@@ -424,12 +426,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplay) => {
                                                         <h4 className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
                                                             {item.productName}
                                                         </h4>
-                                                        {/*<button*/}
-                                                        {/*    onClick={() => handleOpenFeedback(isSingle ? [item] : group.items)}*/}
-                                                        {/*    className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-amber-100 hover:bg-amber-200 text-amber-600 rounded-lg flex items-center justify-center transition-all"*/}
-                                                        {/*>*/}
-                                                        {/*    <VscFeedback size={14} className="sm:w-4 sm:h-4"/>*/}
-                                                        {/*</button>*/}
                                                     </div>
 
                                                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
