@@ -262,7 +262,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
   }, [sortedDishesForTab]);
 
   // Quick-serve requests
-  const { requests, loading, productMapReady, fetchQuickRequestsForActiveTables, serveQuickRequest } = useQuickServe();
+  const { requests, loading, fetchQuickRequestsForActiveTables, serveQuickRequest } = useQuickServe();
 
   // Always fetch - regardless of product map ready state
   // Quick-serve refresh is handled within useQuickServe via SignalR

@@ -1,11 +1,11 @@
-import {useState, useEffect, useMemo, useCallback, useRef} from "react";
-import {ordersApi} from "@/lib/api/orders";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { ordersApi } from "@/lib/api/orders";
 import {
     categoriesApi,
     ApiCategoryResponse,
     ApiProductCategoryResponse,
 } from "@/lib/api/categories";
-import {OrderStatus} from "@/types/kitchen";
+import { OrderStatus } from "@/types/kitchen";
 import { useSignalR } from "@/hooks/useSignalR";
 import { getApiUrl } from "@/env.config";
 import { useQuickServe, QuickRequest } from "@/hooks/use-quick-serve";
@@ -79,9 +79,9 @@ export function useWaiterOrders() {
         } catch (err) {
             // Continue with default categories if API fails
             setCategories([
-                {id: "1", name: "Tráng Miệng"},
-                {id: "2", name: "Món Chính"},
-                {id: "3", name: "Đồ Uống"},
+                { id: "1", name: "Tráng Miệng" },
+                { id: "2", name: "Món Chính" },
+                { id: "3", name: "Đồ Uống" },
             ]);
         }
     }, []);
@@ -176,7 +176,7 @@ export function useWaiterOrders() {
                     return rawDishes.map((d) => ({
                         ...(d as WaiterDish),
                         selected: selectedIds.has((d as WaiterDish).id) &&
-                                 (d as WaiterDish).status === "bắt đầu phục vụ",
+                            (d as WaiterDish).status === "bắt đầu phục vụ",
                     }));
                 });
             } else {
@@ -248,8 +248,8 @@ export function useWaiterOrders() {
                     return rawDishes.map((d) => ({
                         ...(d as WaiterDish),
                         // Only set selected=true if: 1) was selected before, AND 2) still in "bắt đầu phục vụ" status
-                        selected: selectedIds.has((d as WaiterDish).id) && 
-                                 (d as WaiterDish).status === "bắt đầu phục vụ",
+                        selected: selectedIds.has((d as WaiterDish).id) &&
+                            (d as WaiterDish).status === "bắt đầu phục vụ",
                     }));
                 });
             } else {
@@ -308,12 +308,12 @@ export function useWaiterOrders() {
     // Transform quick-serve requests to WaiterDish format (each QuickServeItem is already a single item)
     const quickServeDishes = useMemo(() => {
         const dishes: WaiterDish[] = [];
-        
+
         const mapToDish = (req: QuickRequest, isServed: boolean) => {
             const tableNumber = parseInt(req.tableName.replace(/\D/g, "")) || 1;
             const categoryName = "Phục vụ nhanh";
             const category = categories.find((c) => c.name === categoryName) || categories[0];
-            
+
             const dishId = `quick-serve-${req.id}`;
 
             dishes.push({
@@ -340,7 +340,7 @@ export function useWaiterOrders() {
 
         quickServeRequests.forEach((req) => mapToDish(req, false));
         servedQuickServeRequests.forEach((req) => mapToDish(req, true));
-        
+
         return dishes;
     }, [quickServeRequests, servedQuickServeRequests, categories, quickServeSelections]);
 
@@ -409,7 +409,7 @@ export function useWaiterOrders() {
         } else {
             // For regular dishes, update dishes state
             setDishes((prev) =>
-                prev.map((d) => (d.id === id ? {...d, selected: !d.selected} : d))
+                prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d))
             );
         }
     };
@@ -438,7 +438,7 @@ export function useWaiterOrders() {
                 setDishes((prev) =>
                     prev.map((d) =>
                         d.selected && !d.served && d.status === "bắt đầu phục vụ"
-                            ? {...d, served: true, selected: false, status: "đã phục vụ"}
+                            ? { ...d, served: true, selected: false, status: "đã phục vụ" }
                             : d
                     )
                 );
@@ -449,11 +449,11 @@ export function useWaiterOrders() {
                 const servePromises = quickServeDishes.map((dish) =>
                     serveQuickRequest({
                         id: dish.itemId,
-                        complainId: dish.complainId,
-                        tableId: dish.tableId,
+                        complainId: dish.complainId!,
+                        tableId: dish.tableId!,
                         tableName: `Bàn ${dish.tableNumber}`,
                         itemName: dish.name,
-                        isServed: dish.served,
+                        isServed: dish.served!,
                     })
                 );
                 await Promise.all(servePromises);
@@ -513,11 +513,11 @@ export function useWaiterOrders() {
                 prev.map((d) =>
                     d.selected
                         ? {
-                              ...d,
-                              selected: false,
-                              status: "đang thực hiện",
-                              served: false,
-                          }
+                            ...d,
+                            selected: false,
+                            status: "đang thực hiện",
+                            served: false,
+                        }
                         : d
                 )
             );
