@@ -76,10 +76,13 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
 
     try {
       setLoadingOrders(true);
-      const response = await fetch(`${API_BASE}/Order/table/${idTable}`);
+      const response = await fetch(
+        `${API_BASE}/Order/table/${idTable}/for_moderator_checkout`
+      );
       if (!response.ok) throw new Error("Failed to fetch orders");
       const orders = await response.json();
-      console.log(`Orders for table ${idTable}:`, orders.data);
+      console.log("================= fix 07/01/2026========================");
+      console.log(`Orders for table ${idTable}: `, orders.data);
 
       setOrderData(orders?.data || []);
     } catch (err) {
