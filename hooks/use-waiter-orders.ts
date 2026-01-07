@@ -302,6 +302,11 @@ export function useWaiterOrders() {
                 triggerRealtimeRefresh();
                 fetchQuickRequestsForActiveTables();
             },
+            // Also listen for kitchen notifications (fires when new orders placed)
+            KitchenNotification: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
         }),
         [triggerRealtimeRefresh, fetchQuickRequestsForActiveTables]
     );
@@ -334,6 +339,33 @@ export function useWaiterOrders() {
         url: moderatorHubUrl,
         groupName: 'Moderators', // Join as Moderator to receive table update notifications
         hubMethods: moderatorHubMethods,
+    });
+
+    // Hub methods for Kitchen group - listen for new order notifications
+    const kitchenHubMethods = useMemo(
+        () => ({
+            // When new orders are placed or order status changes, refresh
+            KitchenNotification: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
+            OrderItemStatusChanged: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
+            OrderStatusChanged: () => {
+                triggerRealtimeRefresh();
+                fetchQuickRequestsForActiveTables();
+            },
+        }),
+        [triggerRealtimeRefresh, fetchQuickRequestsForActiveTables]
+    );
+
+    // Third SignalR connection for Kitchen group notifications (new orders)
+    useSignalR({
+        url: signalRHubUrl,
+        groupName: 'Kitchen', // Join Kitchen group to receive new order notifications
+        hubMethods: kitchenHubMethods,
     });
 
     // Transform quick-serve requests to WaiterDish format (each QuickServeItem is already a single item)
