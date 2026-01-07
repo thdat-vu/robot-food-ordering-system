@@ -176,6 +176,87 @@ export default function FeedbackTable({
   const getResponseTextFromTextarea = (row: GroupedFeedbackRow) => {
     return responses[row.groupKey]?.trim() || "";
   };
+  const extractQuickRequest = (text: string) => {
+    if (!text) return { isQuick: false, content: "" };
+
+    const match = text.match(/^yêu cầu nhanh\s*:\s*/i);
+    if (!match) {
+      return { isQuick: false, content: text };
+    }
+
+    return {
+      isQuick: true,
+      content: text.slice(match[0].length).trim(),
+    };
+  };
+
+  // 2. Normalize phần nội dung (KHÔNG đụng prefix)
+  const normalizeContent = (text: string): string => {
+    if (!text) return "";
+
+    const parts = text
+      .split(/[,;\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const addSet = new Set<string>();
+    const removeSet = new Set<string>();
+
+    parts.forEach((p) => {
+      const lower = p.toLowerCase();
+      if (lower.startsWith("cho thêm")) {
+        addSet.add(p.replace(/cho thêm/i, "").trim());
+      } else if (lower.startsWith("không")) {
+        removeSet.add(p.replace(/không/i, "").trim());
+      }
+    });
+
+    const result: string[] = [];
+
+    if (addSet.size) {
+      result.push(`Cho thêm: ${Array.from(addSet).join(", ")}`);
+    }
+    if (removeSet.size) {
+      result.push(`Không: ${Array.from(removeSet).join(", ")}`);
+    }
+
+    return result.join(". ");
+  };
+  /**
+   * 🔑 Quyết định text hiển thị
+   * - Expanded hoặc Pending → FULL text
+   * - Collapsed + DONE → normalize + gọn
+   */
+  const getDisplayText = (
+    rawText: string,
+    isExpanded: boolean,
+    isPending: boolean
+  ) => {
+    if (isExpanded || isPending) {
+      return rawText;
+    }
+
+    return getCompactDisplayText(rawText);
+  };
+  const getCompactDisplayText = (rawText: string) => {
+    const { isQuick, content } = extractQuickRequest(rawText);
+    const normalized = normalizeContent(content);
+
+    if (!normalized) return "";
+
+    return isQuick ? `Yêu cầu nhanh: ${normalized}` : normalized;
+  };
+
+  const getExpandedText = (rawText: string) => {
+    if (!rawText) return "";
+
+    const { isQuick, content } = extractQuickRequest(rawText);
+    const normalized = normalizeContent(content);
+
+    if (!normalized) return "";
+
+    return isQuick ? `Yêu cầu nhanh:\n${normalized}` : normalized;
+  };
 
   return (
     <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]">
@@ -217,9 +298,11 @@ export default function FeedbackTable({
             const shouldShowUrgentBadge =
               row.isPending && isQuick && !alreadySentQuick;
             const isSelected = selectedIds.includes(row.complainId);
-            const responseText = row.isPending
+            const rawResponseText = row.isPending
               ? responses[row.groupKey] || ""
               : row.resolutionNote || "";
+
+            const compactResponseText = getExpandedText(rawResponseText);
             const isExpanded = expandedRows.has(row.complainId);
 
             return (
@@ -311,90 +394,102 @@ export default function FeedbackTable({
                         </span>
                       </div>
                     )}
-                    <p className="text-sm text-gray-700 font-medium">
-                      {highlightSearchText(row.feedBack, searchQuery)}
+                    <p
+                      className={`text-sm font-medium transition-all ${
+                        !isExpanded
+                          ? "line-clamp-2 text-gray-500"
+                          : "text-gray-700"
+                      }`}
+                      title={
+                        !isExpanded
+                          ? getDisplayText(
+                              row.feedBack,
+                              isExpanded,
+                              row.isPending
+                            )
+                          : undefined
+                      }
+                    >
+                      {highlightSearchText(
+                        getDisplayText(row.feedBack, isExpanded, row.isPending),
+                        searchQuery
+                      )}
                     </p>
                   </div>
                 </td>
 
-                {/* Response + Actions Combined */}
+                {/* ================= RESPONSE + ACTION ================= */}
                 <td className="px-6 py-4 align-top">
-                  <div className="space-y-3">
-                    {/* Response Section */}
-                    <div className="space-y-2">
-                      {!isExpanded ? (
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`flex-1 px-3 py-2 text-xs rounded-lg truncate ${
-                              row.isPending
-                                ? "bg-white border border-gray-200"
-                                : "bg-gray-50 border border-gray-200 text-gray-500"
-                            }`}
-                          >
-                            {responseText ||
-                              (row.isPending
-                                ? "Chưa có phản hồi"
-                                : "Đã phản hồi")}
-                          </div>
+                  <div className="space-y-2">
+                    {/* ===== COLLAPSED ===== */}
+                    {!isExpanded && (
+                      <div className="flex items-start gap-2">
+                        <div
+                          className={`
+            flex-1 text-xs px-3 py-2 rounded-lg
+            border border-gray-200
+            bg-gray-50 text-gray-600
+            line-clamp-2
+          `}
+                          title={compactResponseText}
+                        >
+                          {compactResponseText ||
+                            (row.isPending
+                              ? "Chưa có phản hồi"
+                              : "Đã phản hồi")}
+                        </div>
+
+                        <button
+                          onClick={() => toggleExpand(row.complainId)}
+                          className="p-1.5 hover:bg-gray-100 rounded-md"
+                        >
+                          <ChevronDown className="w-4 h-4 text-gray-500" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ===== EXPANDED ===== */}
+                    {isExpanded && (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <textarea
+                            value={getExpandedText(rawResponseText)}
+                            onChange={(e) =>
+                              onResponseChange(row.groupKey, e.target.value)
+                            }
+                            disabled={!row.isPending}
+                            className={`
+              flex-1 text-xs p-3 rounded-xl resize-none min-h-[96px]
+              border border-gray-300
+              ${
+                row.isPending
+                  ? "bg-white focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-100 text-gray-500 cursor-not-allowed"
+              }
+            `}
+                          />
+
                           <button
                             onClick={() => toggleExpand(row.complainId)}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-1.5 hover:bg-gray-100 rounded-md"
                           >
-                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                            <ChevronUp className="w-4 h-4 text-gray-500" />
                           </button>
                         </div>
-                      ) : (
-                        <div className="space-y-2.5">
-                          <div className="flex items-start gap-2">
-                            <div className="relative flex-1">
-                              <textarea
-                                value={responseText}
-                                onChange={(e) =>
-                                  onResponseChange(row.groupKey, e.target.value)
-                                }
-                                disabled={!row.isPending}
-                                placeholder={
-                                  row.isPending
-                                    ? "Nhập phản hồi cho khách hàng..."
-                                    : "Đã phản hồi"
-                                }
-                                className={`w-full p-3.5 text-xs leading-relaxed border rounded-2xl transition-all min-h-[90px] resize-none ${
-                                  row.isPending
-                                    ? "bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:bg-blue-50/30 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
-                                    : "bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200 text-gray-500 cursor-not-allowed"
-                                }`}
-                              />
-                              {!row.isPending && responses[row.groupKey] && (
-                                <div className="absolute top-2.5 right-2.5">
-                                  <CheckCircle
-                                    size={14}
-                                    className="text-emerald-500"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => toggleExpand(row.complainId)}
-                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              <ChevronUp className="w-4 h-4 text-gray-500" />
-                            </button>
-                          </div>
 
-                          {row.isPending && (
-                            <ResponsePopover
-                              value={responses[row.groupKey] || ""}
-                              suggestions={responseSuggestions || []}
-                              onChange={(val) =>
-                                onSuggestionPick(row.groupKey, val)
-                              }
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
+                        {row.isPending && (
+                          <ResponsePopover
+                            value={responses[row.groupKey] || ""}
+                            suggestions={responseSuggestions || []}
+                            onChange={(val) =>
+                              onSuggestionPick(row.groupKey, val)
+                            }
+                          />
+                        )}
+                      </div>
+                    )}
 
-                    {/* Action Buttons */}
+                    {/* ===== ACTION ===== */}
                     {row.isPending ? (
                       <button
                         onClick={() =>
@@ -402,38 +497,35 @@ export default function FeedbackTable({
                             ? onSendQuickRequest(row.complainId, row.feedBack)
                             : onSingleCheck(
                                 row.complainId,
-                                getResponseTextFromTextarea(row)
+                                responses[row.groupKey]?.trim() || ""
                               )
                         }
                         disabled={isChecking || alreadySentQuick}
-                        className={`w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-[11px] transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
-                          isQuick
-                            ? alreadySentQuick
-                              ? "bg-gray-100 text-gray-400 border-2 border-gray-200 shadow-none"
-                              : "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-blue-200 hover:shadow-xl hover:from-blue-700 hover:to-blue-800"
-                            : "bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-emerald-200 hover:shadow-xl hover:from-emerald-700 hover:to-emerald-800"
-                        }`}
+                        className={`
+          inline-flex items-center gap-1.5
+          px-3 py-1.5 rounded-full text-[11px] font-semibold
+          transition disabled:opacity-40
+          ${
+            isQuick
+              ? alreadySentQuick
+                ? "bg-gray-200 text-gray-400"
+                : "bg-blue-600 text-white hover:bg-blue-700"
+              : "bg-emerald-600 text-white hover:bg-emerald-700"
+          }
+        `}
                       >
                         {isChecking ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <RefreshCw size={12} className="animate-spin" />
                         ) : (
-                          <Send size={14} />
+                          <Send size={12} />
                         )}
-                        <span className="whitespace-nowrap">
-                          {isQuick
-                            ? alreadySentQuick
-                              ? "Đã gửi"
-                              : "Gửi ngay"
-                            : "Xác nhận"}
-                        </span>
+                        {isQuick ? "Gửi" : "Xác nhận"}
                       </button>
                     ) : (
-                      <div className="py-2.5 px-4 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center gap-2 bg-gray-50/50">
-                        <CheckCircle size={14} className="text-emerald-500" />
-                        <span className="text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">
-                          Xong
-                        </span>
-                      </div>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold rounded-full bg-emerald-50 text-emerald-600">
+                        <CheckCircle size={12} />
+                        Xong
+                      </span>
                     )}
                   </div>
                 </td>

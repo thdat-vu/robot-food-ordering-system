@@ -484,36 +484,33 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
       setIsChecking(false);
     }
   };
-
+  const orderSummary = filteredData.length > 0 ? filteredData[0] : null;
+  // ====== ORDER SUMMARY (DÙNG CHO HEADER) ======
+  const shouldShowOrderStatus =
+    !!orderSummary &&
+    ((orderSummary.kitchenItemCount ?? 0) > 0 ||
+      (orderSummary.waiterItemCount ?? 0) > 0 ||
+      (orderSummary.cancelledItemCount ?? 0) > 0 ||
+      (orderSummary.totalItemCount ?? 0) > 0);
   return (
     <>
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
 
       <div className="h-full flex flex-col">
         {/* Controls Bar */}
-        <SingleTableOrderStatus
-          tableNumber={tableName}
-          lastOrderUpdateTime={
-            filteredData.length > 0 ? filteredData[0].lastOrderUpdateTime : ""
-          }
-          kitchenItemCount={
-            filteredData.length > 0 ? filteredData[0].kitchenItemCount : 0
-          }
-          waiterItemCount={
-            filteredData.length > 0 ? filteredData[0].waiterItemCount : 0
-          }
-          cancelledItemCount={
-            filteredData.length > 0 ? filteredData[0].cancelledItemCount : 0
-          }
-          totalItemCount={
-            filteredData.length > 0 ? filteredData[0].totalItemCount : 0
-          }
-          // status={
-          //   filteredData.length > 0 ? filteredData[0].orderStatus : undefined
-          // }
-          onRefresh={loadFeedbackData} // ✅ thêm dòng này
-          isRefreshing={isLoading}
-        />
+        {shouldShowOrderStatus && (
+          <SingleTableOrderStatus
+            tableNumber={tableName}
+            lastOrderUpdateTime={orderSummary?.lastOrderUpdateTime ?? ""}
+            kitchenItemCount={orderSummary?.kitchenItemCount ?? 0}
+            waiterItemCount={orderSummary?.waiterItemCount ?? 0}
+            cancelledItemCount={orderSummary?.cancelledItemCount ?? 0}
+            totalItemCount={orderSummary?.totalItemCount ?? 0}
+            onRefresh={loadFeedbackData}
+            isRefreshing={isLoading}
+          />
+        )}
+
         <div className="mb-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
             <div className="relative flex-1 max-w-2xl">
