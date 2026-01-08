@@ -1,5 +1,5 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {categoriesApi, ApiProductCategoryResponse} from "@/lib/api/categories";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { categoriesApi, ApiProductCategoryResponse } from "@/lib/api/categories";
 import axios from "@/lib/axios";
 import { useSignalR } from "@/hooks/useSignalR";
 import { getApiUrl } from "@/env.config";
@@ -30,26 +30,41 @@ export function useQuickServe() {
     return `${normalizedBase}/orderNotificationHub`;
   }, [apiBaseUrl]);
 
-  // Fetch pending quick-serve items from backend QuickServe API
+  // Helper to check if a date string is from today
+  const isFromToday = (dateStr?: string): boolean => {
+    if (!dateStr) return false;
+    // Date format: "DD/MM/YYYY HH:mm:ss"
+    const match = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (!match) return false;
+    const [, day, month, year] = match;
+    const now = new Date();
+    return (
+      parseInt(day) === now.getDate() &&
+      parseInt(month) === now.getMonth() + 1 &&
+      parseInt(year) === now.getFullYear()
+    );
+  };
 
+  // Fetch pending quick-serve items from backend QuickServe API
   const fetchQuickRequestsForActiveTables = useCallback(async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${apiBaseUrl}/Complain/QuickServe/pending`);
       const data: any[] = res.data?.data ?? [];
 
-      const mapped: QuickRequest[] = data.map((item) => ({
-        id: item.id,
-        complainId: item.complainId,
-        tableId: item.tableId,
-        tableName: item.tableName,
-        itemName: item.itemName,
-        isServed: item.isServed,
-        createdTime: item.createdTime,
-        lastUpdatedTime: item.lastUpdatedTime,
-      }));
+      const mapped: QuickRequest[] = data
+        .filter((item) => isFromToday(item.createdTime)) // Only items from today
+        .map((item) => ({
+          id: item.id,
+          complainId: item.complainId,
+          tableId: item.tableId,
+          tableName: item.tableName,
+          itemName: item.itemName,
+          isServed: item.isServed,
+          createdTime: item.createdTime,
+          lastUpdatedTime: item.lastUpdatedTime,
+        }));
 
-      console.log('[QuickServe] Pending quick-serve items:', mapped);
       setRequests(mapped);
     } finally {
       setLoading(false);
@@ -61,18 +76,19 @@ export function useQuickServe() {
       const res = await axios.get(`${apiBaseUrl}/Complain/QuickServe/served`);
       const data: any[] = res.data?.data ?? [];
 
-      const mapped: QuickRequest[] = data.map((item) => ({
-        id: item.id,
-        complainId: item.complainId,
-        tableId: item.tableId,
-        tableName: item.tableName,
-        itemName: item.itemName,
-        isServed: item.isServed,
-        createdTime: item.createdTime,
-        lastUpdatedTime: item.lastUpdatedTime,
-      }));
+      const mapped: QuickRequest[] = data
+        .filter((item) => isFromToday(item.createdTime)) // Only items from today
+        .map((item) => ({
+          id: item.id,
+          complainId: item.complainId,
+          tableId: item.tableId,
+          tableName: item.tableName,
+          itemName: item.itemName,
+          isServed: item.isServed,
+          createdTime: item.createdTime,
+          lastUpdatedTime: item.lastUpdatedTime,
+        }));
 
-      console.log('[QuickServe] Served quick-serve items:', mapped);
       setServedRequests(mapped);
     } catch (err) {
       console.warn('[QuickServe] Failed to fetch served items', err);
