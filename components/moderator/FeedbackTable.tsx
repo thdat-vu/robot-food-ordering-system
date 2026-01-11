@@ -10,6 +10,8 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ResponsePopover } from "./ResponsePopover";
+import { getSuggestionsByFeedback } from "../common/feedback-suggestion";
 
 interface FeedbackTableProps {
   rows: GroupedFeedbackRow[];
@@ -35,30 +37,6 @@ interface FeedbackTableProps {
   onClearSelection?: () => void;
 }
 
-const ResponsePopover = ({
-  value,
-  suggestions,
-  onChange,
-}: {
-  value: string;
-  suggestions: string[];
-  onChange: (val: string) => void;
-}) => {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {suggestions.slice(0, 3).map((s, i) => (
-        <button
-          key={i}
-          onClick={() => onChange(s)}
-          className="px-2 py-1 text-[10px] rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium transition-colors"
-        >
-          {s.slice(0, 20)}...
-        </button>
-      ))}
-    </div>
-  );
-};
-
 export default function FeedbackTable({
   rows,
   searchQuery,
@@ -83,11 +61,8 @@ export default function FeedbackTable({
   const toggleExpand = (complainId: string) => {
     setExpandedRows((prev) => {
       const next = new Set(prev);
-      if (next.has(complainId)) {
-        next.delete(complainId);
-      } else {
-        next.add(complainId);
-      }
+      if (next.has(complainId)) next.delete(complainId);
+      else next.add(complainId);
       return next;
     });
   };
@@ -173,16 +148,11 @@ export default function FeedbackTable({
     );
   };
 
-  const getResponseTextFromTextarea = (row: GroupedFeedbackRow) => {
-    return responses[row.groupKey]?.trim() || "";
-  };
   const extractQuickRequest = (text: string) => {
     if (!text) return { isQuick: false, content: "" };
 
     const match = text.match(/^yêu cầu nhanh\s*:\s*/i);
-    if (!match) {
-      return { isQuick: false, content: text };
-    }
+    if (!match) return { isQuick: false, content: text };
 
     return {
       isQuick: true,
@@ -190,7 +160,7 @@ export default function FeedbackTable({
     };
   };
 
-  // 2. Normalize phần nội dung (KHÔNG đụng prefix)
+  // Normalize phần nội dung (KHÔNG đụng prefix)
   const normalizeContent = (text: string): string => {
     if (!text) return "";
 
@@ -212,18 +182,31 @@ export default function FeedbackTable({
     });
 
     const result: string[] = [];
-
-    if (addSet.size) {
-      result.push(`Cho thêm: ${Array.from(addSet).join(", ")}`);
-    }
-    if (removeSet.size) {
+    if (addSet.size) result.push(`Cho thêm: ${Array.from(addSet).join(", ")}`);
+    if (removeSet.size)
       result.push(`Không: ${Array.from(removeSet).join(", ")}`);
-    }
 
     return result.join(". ");
   };
+
+  const getCompactDisplayText = (rawText: string) => {
+    const { isQuick, content } = extractQuickRequest(rawText);
+    const normalized = normalizeContent(content);
+    if (!normalized) return "";
+    return isQuick ? `Yêu cầu nhanh: ${normalized}` : normalized;
+  };
+
+  // Expanded text chỉ để hiển thị preview/tooltip (không dùng làm value textarea)
+  const getExpandedText = (rawText: string) => {
+    if (!rawText) return "";
+    const { isQuick, content } = extractQuickRequest(rawText);
+    const normalized = normalizeContent(content);
+    if (!normalized) return "";
+    return isQuick ? `Yêu cầu nhanh:\n${normalized}` : normalized;
+  };
+
   /**
-   * 🔑 Quyết định text hiển thị
+   * Text hiển thị cho cột "Nội dung yêu cầu"
    * - Expanded hoặc Pending → FULL text
    * - Collapsed + DONE → normalize + gọn
    */
@@ -232,30 +215,8 @@ export default function FeedbackTable({
     isExpanded: boolean,
     isPending: boolean
   ) => {
-    if (isExpanded || isPending) {
-      return rawText;
-    }
-
+    if (isExpanded || isPending) return rawText;
     return getCompactDisplayText(rawText);
-  };
-  const getCompactDisplayText = (rawText: string) => {
-    const { isQuick, content } = extractQuickRequest(rawText);
-    const normalized = normalizeContent(content);
-
-    if (!normalized) return "";
-
-    return isQuick ? `Yêu cầu nhanh: ${normalized}` : normalized;
-  };
-
-  const getExpandedText = (rawText: string) => {
-    if (!rawText) return "";
-
-    const { isQuick, content } = extractQuickRequest(rawText);
-    const normalized = normalizeContent(content);
-
-    if (!normalized) return "";
-
-    return isQuick ? `Yêu cầu nhanh:\n${normalized}` : normalized;
   };
 
   return (
@@ -268,6 +229,7 @@ export default function FeedbackTable({
                 #
                 {selectedIds.length > 0 && onClearSelection && (
                   <button
+                    type="button"
                     onClick={onClearSelection}
                     className="p-1 hover:bg-red-100 rounded-full transition-colors group"
                     title="Bỏ chọn tất cả"
@@ -291,19 +253,24 @@ export default function FeedbackTable({
             </th>
           </tr>
         </thead>
+
         <tbody className="divide-y divide-gray-100">
           {groupedRows.map((row, idx) => {
             const isQuick = isQuickRequest(row);
             const alreadySentQuick = hasSentQuickRequest(row);
             const shouldShowUrgentBadge =
               row.isPending && isQuick && !alreadySentQuick;
-            const isSelected = selectedIds.includes(row.complainId);
-            const rawResponseText = row.isPending
-              ? responses[row.groupKey] || ""
-              : row.resolutionNote || "";
 
-            const compactResponseText = getExpandedText(rawResponseText);
+            const isSelected = selectedIds.includes(row.complainId);
             const isExpanded = expandedRows.has(row.complainId);
+
+            // ✅ RAW textarea value (không normalize ở đây)
+            const rawResponseText = row.isPending
+              ? responses[row.groupKey] ?? ""
+              : row.resolutionNote ?? "";
+
+            // preview/collapsed vẫn normalize để gọn
+            const previewResponseText = getExpandedText(rawResponseText);
 
             return (
               <tr
@@ -386,6 +353,7 @@ export default function FeedbackTable({
                         </span>
                       </div>
                     )}
+
                     {row.isPending && alreadySentQuick && (
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200">
                         <Send size={10} className="text-blue-600" />
@@ -394,6 +362,7 @@ export default function FeedbackTable({
                         </span>
                       </div>
                     )}
+
                     <p
                       className={`text-sm font-medium transition-all ${
                         !isExpanded
@@ -418,28 +387,29 @@ export default function FeedbackTable({
                   </div>
                 </td>
 
-                {/* ================= RESPONSE + ACTION ================= */}
+                {/* Response + Action */}
                 <td className="px-6 py-4 align-top">
                   <div className="space-y-2">
-                    {/* ===== COLLAPSED ===== */}
+                    {/* COLLAPSED */}
                     {!isExpanded && (
                       <div className="flex items-start gap-2">
                         <div
-                          className={`
-            flex-1 text-xs px-3 py-2 rounded-lg
-            border border-gray-200
-            bg-gray-50 text-gray-600
-            line-clamp-2
-          `}
-                          title={compactResponseText}
+                          className="
+                            flex-1 text-xs px-3 py-2 rounded-lg
+                            border border-gray-200
+                            bg-gray-50 text-gray-600
+                            line-clamp-2
+                          "
+                          title={previewResponseText}
                         >
-                          {compactResponseText ||
+                          {previewResponseText ||
                             (row.isPending
                               ? "Chưa có phản hồi"
                               : "Đã phản hồi")}
                         </div>
 
                         <button
+                          type="button"
                           onClick={() => toggleExpand(row.complainId)}
                           className="p-1.5 hover:bg-gray-100 rounded-md"
                         >
@@ -448,28 +418,30 @@ export default function FeedbackTable({
                       </div>
                     )}
 
-                    {/* ===== EXPANDED ===== */}
+                    {/* EXPANDED */}
                     {isExpanded && (
                       <div className="space-y-2">
                         <div className="flex items-start gap-2">
                           <textarea
-                            value={getExpandedText(rawResponseText)}
+                            // ✅ FIX: value raw, không normalize
+                            value={rawResponseText}
                             onChange={(e) =>
                               onResponseChange(row.groupKey, e.target.value)
                             }
                             disabled={!row.isPending}
                             className={`
-              flex-1 text-xs p-3 rounded-xl resize-none min-h-[96px]
-              border border-gray-300
-              ${
-                row.isPending
-                  ? "bg-white focus:ring-2 focus:ring-blue-500"
-                  : "bg-gray-100 text-gray-500 cursor-not-allowed"
-              }
-            `}
+                              flex-1 text-xs p-3 rounded-xl resize-none min-h-[96px]
+                              border border-gray-300
+                              ${
+                                row.isPending
+                                  ? "bg-white focus:ring-2 focus:ring-blue-500"
+                                  : "bg-gray-100 text-gray-500 cursor-not-allowed"
+                              }
+                            `}
                           />
 
                           <button
+                            type="button"
                             onClick={() => toggleExpand(row.complainId)}
                             className="p-1.5 hover:bg-gray-100 rounded-md"
                           >
@@ -477,42 +449,50 @@ export default function FeedbackTable({
                           </button>
                         </div>
 
-                        {row.isPending && (
-                          <ResponsePopover
-                            value={responses[row.groupKey] || ""}
-                            suggestions={responseSuggestions || []}
-                            onChange={(val) =>
-                              onSuggestionPick(row.groupKey, val)
-                            }
-                          />
-                        )}
+                        {row.isPending &&
+                          (console.log(
+                            "Rendering ResponsePopover for row:",
+                            getSuggestionsByFeedback(row.feedBack)
+                          ),
+                          (
+                            <ResponsePopover
+                              value={responses[row.groupKey] ?? ""}
+                              suggestions={getSuggestionsByFeedback(
+                                row.feedBack
+                              )}
+                              onChange={(val) =>
+                                onSuggestionPick(row.groupKey, val)
+                              }
+                            />
+                          ))}
                       </div>
                     )}
 
-                    {/* ===== ACTION ===== */}
+                    {/* ACTION */}
                     {row.isPending ? (
                       <button
+                        type="button"
                         onClick={() =>
                           isQuick
                             ? onSendQuickRequest(row.complainId, row.feedBack)
                             : onSingleCheck(
                                 row.complainId,
-                                responses[row.groupKey]?.trim() || ""
+                                (responses[row.groupKey] ?? "").trim()
                               )
                         }
                         disabled={isChecking || alreadySentQuick}
                         className={`
-          inline-flex items-center gap-1.5
-          px-3 py-1.5 rounded-full text-[11px] font-semibold
-          transition disabled:opacity-40
-          ${
-            isQuick
-              ? alreadySentQuick
-                ? "bg-gray-200 text-gray-400"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-              : "bg-emerald-600 text-white hover:bg-emerald-700"
-          }
-        `}
+                          inline-flex items-center gap-1.5
+                          px-3 py-1.5 rounded-full text-[11px] font-semibold
+                          transition disabled:opacity-40
+                          ${
+                            isQuick
+                              ? alreadySentQuick
+                                ? "bg-gray-200 text-gray-400"
+                                : "bg-blue-600 text-white hover:bg-blue-700"
+                              : "bg-emerald-600 text-white hover:bg-emerald-700"
+                          }
+                        `}
                       >
                         {isChecking ? (
                           <RefreshCw size={12} className="animate-spin" />
