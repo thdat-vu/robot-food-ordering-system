@@ -31,6 +31,7 @@ import { useModeratorRealtimeTables } from "@/hooks/moderator/useModeratorRealti
 
 type FilterStatus =
   | "all"
+  | "feedback"
   | "empty"
   | "ordered"
   | "served"
@@ -43,6 +44,8 @@ const ModeratorScreen: React.FC = () => {
     useModeratorRealtimeTables();
 
   const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [onlyFeedback, setOnlyFeedback] = useState(false);
+
   const [idTable, setIdTable] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -160,14 +163,24 @@ const ModeratorScreen: React.FC = () => {
     setHighlightedTable("");
   }, []);
 
+  const getComplainCount = (t: any) =>
+    t.complainCount ?? t.complains?.length ?? 0;
   const processedData = useMemo(
     () =>
       Object.entries(data)
-        .filter(([, tableData]) =>
-          filterStatus === "all"
-            ? true
-            : getTableStatus(tableData) === filterStatus
-        )
+        .filter(([, tableData]) => {
+          const status = getTableStatus(tableData);
+          const hasFeedback = (tableData.counter ?? 0) > 0;
+
+          if (filterStatus === "all") return true;
+
+          // ✅ feedback: chỉ lấy bàn đang hoạt động (không phải empty) + có counter
+          if (filterStatus === "feedback") {
+            return status !== "empty" && hasFeedback;
+          }
+
+          return status === filterStatus;
+        })
         .sort(([, a], [, b]) => {
           const getNumber = (name: string) => {
             const match = name.match(/\d+/);
@@ -182,6 +195,11 @@ const ModeratorScreen: React.FC = () => {
 
   const statusCounts = useMemo(
     () => ({
+      feedback: Object.values(data).filter((t) => {
+        const status = getTableStatus(t);
+        return status !== "empty" && (t.counter ?? 0) > 0;
+      }).length,
+
       empty: Object.values(data).filter((t) => getTableStatus(t) === "empty")
         .length,
       ordered: Object.values(data).filter(
@@ -197,6 +215,15 @@ const ModeratorScreen: React.FC = () => {
     }),
     [data]
   );
+
+  const feedbackCounts = useMemo(() => {
+    const tables = Object.values(data);
+
+    const total = tables.reduce((sum, t) => sum + (t.counter ?? 0), 0);
+    const tablesHas = tables.filter((t) => (t.counter ?? 0) > 0).length;
+
+    return { total, tablesHas };
+  }, [data]);
 
   const activeTables = useMemo(
     () => totalTables - statusCounts.empty,
@@ -356,6 +383,23 @@ const ModeratorScreen: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col gap-2">
+                  <FilterBtn
+                    active={filterStatus === "feedback"}
+                    onClick={() => setFilterStatus("feedback")}
+                    left={
+                      <>
+                        <MessageSquareWarning size={18} className="shrink-0" />{" "}
+                        Phản hồi
+                      </>
+                    }
+                    right={statusCounts.feedback}
+                    className={
+                      statusCounts.feedback > 0 && filterStatus !== "feedback"
+                        ? "ring-2 ring-orange-300 bg-white/20"
+                        : ""
+                    }
+                  />
+
                   <FilterBtn
                     active={filterStatus === "all"}
                     onClick={() => setFilterStatus("all")}
