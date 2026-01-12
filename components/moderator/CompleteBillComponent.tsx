@@ -12,10 +12,11 @@ import { Bill } from "@/entites/moderator/BillModel";
 
 interface CompleteBillComponentProps {
   invoiceId: string;
+  onBillDataLoaded?: (bill: Bill) => void;
 }
 
 // Main Component
-const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
+const CompleteBillComponent = ({ invoiceId, onBillDataLoaded }: CompleteBillComponentProps) => {
   const [billData, setBillData] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +42,7 @@ const CompleteBillComponent = ({ invoiceId }: CompleteBillComponentProps) => {
       if (response.statusCode === 200 && response.data) {
         console.log("fetch data successfully: invoice", response.data);
         setBillData(response.data); // ✅ Bill
+        onBillDataLoaded?.(response.data); // ✅ Pass data to parent
       } else {
         setBillData(null);
         setError(response.message || "Không thể tải hóa đơn");
