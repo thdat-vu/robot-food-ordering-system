@@ -33,13 +33,17 @@ import {
   RefreshCw,
   TrendingUp,
 } from "lucide-react";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { vi } from "date-fns/locale";
 
-// format mặc định theo hôm nay
-const getDefaultValue = (mode: "year" | "month" | "day") => {
-  const now = new Date();
-  const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+// Helper to format display value from Date
+const formatDisplayValue = (date: Date | null, mode: "year" | "month" | "day"): string => {
+  if (!date) return "";
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   if (mode === "year") return year;
   if (mode === "month") return `${month}/${year}`;
@@ -57,7 +61,7 @@ const BAR_COLORS = [
 
 export default function DashboardPage() {
   const [mode, setMode] = useState<Mode>("year");
-  const [value, setValue] = useState<string>(() => getDefaultValue("year"));
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date());
   const [data, setData] = useState<topMostOrderedProducts | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -65,23 +69,19 @@ export default function DashboardPage() {
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
-    setValue(getDefaultValue(newMode));
+    // Keep the same date when switching modes
   };
 
   // Tạo params để gọi API
   const buildQuery = () => {
-    if (!value) return null;
+    if (!selectedDate) return null;
 
-    if (mode === "year") return { Year: value };
+    const year = String(selectedDate.getFullYear());
+    const month = String(selectedDate.getMonth() + 1);
+    const day = String(selectedDate.getDate());
 
-    if (mode === "month") {
-      const [month, year] = value.split("/");
-      if (!month || !year) return null;
-      return { Year: year, Month: month };
-    }
-
-    const [day, month, year] = value.split("/");
-    if (!day || !month || !year) return null;
+    if (mode === "year") return { Year: year };
+    if (mode === "month") return { Year: year, Month: month };
     return { Year: year, Month: month, Day: day };
   };
 
@@ -106,7 +106,7 @@ export default function DashboardPage() {
 
     return () => window.clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, value]);
+  }, [mode, selectedDate]);
 
   // Chart safe
   const chartData = Array.isArray(data?.top5MostOrderedProducts)
@@ -147,10 +147,10 @@ export default function DashboardPage() {
                     {mode === "year"
                       ? "Năm"
                       : mode === "month"
-                      ? "Tháng"
-                      : "Ngày"}
+                        ? "Tháng"
+                        : "Ngày"}
                   </div>
-                  <div className="text-sm font-black">{value}</div>
+                  <div className="text-sm font-black">{formatDisplayValue(selectedDate, mode)}</div>
                 </div>
               </div>
             </div>
@@ -164,11 +164,10 @@ export default function DashboardPage() {
               <div className="flex gap-3 flex-wrap">
                 <button
                   onClick={() => handleModeChange("year")}
-                  className={`px-8 py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 ${
-                    mode === "year"
+                  className={`px-8 py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 ${mode === "year"
                       ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-lg shadow-violet-500/50"
                       : "bg-slate-100 text-slate-800 hover:bg-slate-200 hover:shadow-md"
-                  }`}
+                    }`}
                   type="button"
                 >
                   Năm
@@ -176,11 +175,10 @@ export default function DashboardPage() {
 
                 <button
                   onClick={() => handleModeChange("month")}
-                  className={`px-8 py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 ${
-                    mode === "month"
+                  className={`px-8 py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 ${mode === "month"
                       ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-lg shadow-violet-500/50"
                       : "bg-slate-100 text-slate-800 hover:bg-slate-200 hover:shadow-md"
-                  }`}
+                    }`}
                   type="button"
                 >
                   Tháng
@@ -188,29 +186,103 @@ export default function DashboardPage() {
 
                 <button
                   onClick={() => handleModeChange("day")}
-                  className={`px-8 py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 ${
-                    mode === "day"
+                  className={`px-8 py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 ${mode === "day"
                       ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-lg shadow-violet-500/50"
                       : "bg-slate-100 text-slate-800 hover:bg-slate-200 hover:shadow-md"
-                  }`}
+                    }`}
                   type="button"
                 >
                   Ngày
                 </button>
               </div>
 
-              <input
-                className="flex-1 border-2 border-slate-300 rounded-2xl px-5 py-3 text-slate-900 font-semibold placeholder:text-slate-400 focus:outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/20 transition-all bg-white/90 backdrop-blur-sm hover:bg-white"
-                placeholder={
-                  mode === "year"
-                    ? "VD: 2025"
-                    : mode === "month"
-                    ? "VD: 12/2025"
-                    : "VD: 10/12/2025"
-                }
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-              />
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+                <div className="flex-1">
+                  {mode === "year" && (
+                    <DatePicker
+                      views={["year"]}
+                      value={selectedDate}
+                      onChange={(newValue) => setSelectedDate(newValue)}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          sx: {
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: "1rem",
+                              backgroundColor: "rgba(255, 255, 255, 0.9)",
+                              fontWeight: 600,
+                              "&:hover": {
+                                backgroundColor: "white",
+                              },
+                              "&.Mui-focused": {
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  borderColor: "#7c3aed",
+                                  borderWidth: 2,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  )}
+                  {mode === "month" && (
+                    <DatePicker
+                      views={["year", "month"]}
+                      value={selectedDate}
+                      onChange={(newValue) => setSelectedDate(newValue)}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          sx: {
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: "1rem",
+                              backgroundColor: "rgba(255, 255, 255, 0.9)",
+                              fontWeight: 600,
+                              "&:hover": {
+                                backgroundColor: "white",
+                              },
+                              "&.Mui-focused": {
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  borderColor: "#7c3aed",
+                                  borderWidth: 2,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  )}
+                  {mode === "day" && (
+                    <DatePicker
+                      value={selectedDate}
+                      onChange={(newValue) => setSelectedDate(newValue)}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          sx: {
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: "1rem",
+                              backgroundColor: "rgba(255, 255, 255, 0.9)",
+                              fontWeight: 600,
+                              "&:hover": {
+                                backgroundColor: "white",
+                              },
+                              "&.Mui-focused": {
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  borderColor: "#7c3aed",
+                                  borderWidth: 2,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  )}
+                </div>
+              </LocalizationProvider>
             </div>
           </CardContent>
         </Card>
@@ -288,39 +360,39 @@ export default function DashboardPage() {
               data.totalComplains > 0 ||
               data.totalComplainsHandled > 0 ||
               data.totalComplainsPending > 0) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <KpiCard
-                  title="Tổng người dùng"
-                  value={data.totalUsers}
-                  icon={<Users className="w-6 h-6" />}
-                  color="blue"
-                />
-                <KpiCard
-                  title="Tổng sản phẩm"
-                  value={data.totalProducts}
-                  icon={<Package className="w-6 h-6" />}
-                  color="emerald"
-                />
-                <KpiCard
-                  title="Tổng lượt gọi món"
-                  value={data.totalOrderItems}
-                  icon={<ShoppingCart className="w-6 h-6" />}
-                  color="purple"
-                />
-                <KpiCard
-                  title="Số món bị huỷ"
-                  value={data.totalCancelledItems}
-                  icon={<XCircle className="w-6 h-6" />}
-                  color="rose"
-                />
-                <KpiCard
-                  title="Số món làm lại"
-                  value={data.totalRemakeItems}
-                  icon={<RefreshCw className="w-6 h-6" />}
-                  color="cyan"
-                />
-              </div>
-            )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                  <KpiCard
+                    title="Tổng người dùng"
+                    value={data.totalUsers}
+                    icon={<Users className="w-6 h-6" />}
+                    color="blue"
+                  />
+                  <KpiCard
+                    title="Tổng sản phẩm"
+                    value={data.totalProducts}
+                    icon={<Package className="w-6 h-6" />}
+                    color="emerald"
+                  />
+                  <KpiCard
+                    title="Tổng lượt gọi món"
+                    value={data.totalOrderItems}
+                    icon={<ShoppingCart className="w-6 h-6" />}
+                    color="purple"
+                  />
+                  <KpiCard
+                    title="Số món bị huỷ"
+                    value={data.totalCancelledItems}
+                    icon={<XCircle className="w-6 h-6" />}
+                    color="rose"
+                  />
+                  <KpiCard
+                    title="Số món làm lại"
+                    value={data.totalRemakeItems}
+                    icon={<RefreshCw className="w-6 h-6" />}
+                    color="cyan"
+                  />
+                </div>
+              )}
 
             {/* Highlight Cards - Only show if both products exist */}
             {(data.mostOrderedProduct || data.leastOrderedProduct) && (
@@ -694,14 +766,14 @@ function KpiCard({
   value: number;
   icon: React.ReactNode;
   color:
-    | "blue"
-    | "emerald"
-    | "purple"
-    | "rose"
-    | "slate"
-    | "amber"
-    | "orange"
-    | "cyan";
+  | "blue"
+  | "emerald"
+  | "purple"
+  | "rose"
+  | "slate"
+  | "amber"
+  | "orange"
+  | "cyan";
 }) {
   const colorStyles = {
     blue: {
