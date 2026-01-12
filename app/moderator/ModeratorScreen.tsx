@@ -290,7 +290,12 @@ const ModeratorScreen: React.FC = () => {
     className?: string;
   }) => (
     <button
-      onClick={onClick}
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
       className={[
         "w-full rounded-2xl px-4 py-3 transition-all duration-200 flex items-center justify-between",
         active
@@ -299,11 +304,9 @@ const ModeratorScreen: React.FC = () => {
         className ?? "",
       ].join(" ")}
     >
-      {/* LEFT: to hơn 1 nấc */}
       <span className="flex items-center gap-3 text-lg font-semibold">
         {left}
       </span>
-
       <span className="font-extrabold tabular-nums text-xl">{right}</span>
     </button>
   );
@@ -373,8 +376,8 @@ const ModeratorScreen: React.FC = () => {
         {/* ✅ 3-COLUMN LAYOUT (LEFT / CENTER / RIGHT) */}
         <div className="grid grid-cols-1 2xl:grid-cols-[260px,minmax(0,1fr),300px] gap-6">
           {/* ================= LEFT FILTER ================= */}
-          <aside className="hidden 2xl:block">
-            <div className="sticky top-1/2 -translate-y-1/2">
+          <aside className="hidden 2xl:block relative z-50 pointer-events-auto">
+            <div className="sticky top-1/2 -translate-y-1/2 z-50">
               {/* không bọc khung to: chỉ một panel nhỏ gọn */}
               <div className="rounded-3xl bg-white/12 backdrop-blur-xl border border-white/20 p-3 shadow-2xl">
                 <div className="flex items-center gap-2 mb-2 px-1">
@@ -395,7 +398,7 @@ const ModeratorScreen: React.FC = () => {
                     right={statusCounts.feedback}
                     className={
                       statusCounts.feedback > 0 && filterStatus !== "feedback"
-                        ? "ring-2 ring-orange-300 bg-white/20"
+                        ? "!bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 !text-white ring-4 ring-orange-300 ring-offset-2 ring-offset-purple-600 animate-pulse shadow-[0_0_20px_rgba(251,146,60,0.6)]"
                         : ""
                     }
                   />
@@ -478,7 +481,7 @@ const ModeratorScreen: React.FC = () => {
           </aside>
 
           {/* ================= CENTER ================= */}
-          <main className="min-w-0">
+          <main className="min-w-0 flex flex-col justify-center min-h-[calc(100vh-200px)]">
             {/* HEADER (nén lại để fit) */}
             <div className="hidden 2xl:block pt-1">
               {/* ép nó “đứng yên” ở đầu, không chơi floating theo scroll */}

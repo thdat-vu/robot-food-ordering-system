@@ -33,6 +33,13 @@ import { useDateFilterUI } from "@/hooks/moderator/useDateFilterUI";
 import { OrderData } from "@/entites/moderator/tableModel";
 import { DateRangeFilter } from "./DateRangeFilter";
 import { ordersApi } from "@/lib/api/orders";
+import {
+  getStatusBadge,
+  getStatusIcon,
+  getStatusLabel,
+  getStatusColorClass,
+  getPaymentStatusBadge,
+} from "@/lib/utils/statusBadge";
 
 const OrderCard: React.FC<OrderCardProps> = ({
   tableId,
@@ -157,84 +164,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
     return `${days} ngày trước`;
   };
 
-  const getOrderStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return <Clock className="w-4 h-4" />;
-      case "preparing":
-        return <Utensils className="w-4 h-4" />;
-      case "ready":
-        return <PackageCheck className="w-4 h-4" />;
-      case "delivering":
-        return <Truck className="w-4 h-4" />;
-      case "completed":
-        return <CheckCircle className="w-4 h-4" />;
-      case "cancelled":
-        return <XCircle className="w-4 h-4" />;
-      case "redorequested":
-        return <RefreshCw className="w-4 h-4" />;
-      case "abandoned":
-        return <LogOut className="w-4 h-4 text-gray-500" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
-  };
-
-  const getOrderStatusLabel = (status: string): string => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return "Đang chờ xác nhận";
-      case "preparing":
-        return "Đang chuẩn bị món";
-      case "ready":
-        return "Sẵn sàng phục vụ";
-      case "delivering":
-        return "Đang giao món";
-      case "completed":
-        return "Đã hoàn thành";
-      case "cancelled":
-        return "Đã hủy";
-      case "requestcancel":
-        return "Yêu cầu hủy món";
-      case "redorequested":
-        return "Yêu cầu đổi món";
-      case "abandoned":
-        return "Khách rời đi";
-      default:
-        return "Không xác định";
-    }
-  };
-
-  const getPaymentStatusLabel = (status: string): string => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return "Chưa thanh toán";
-      case "paid":
-        return "Đã thanh toán";
-      default:
-        return "Không xác định";
-    }
-  };
-
-  const getOrderStatusColor = (status: string): string => {
-    const colors = {
-      pending: "bg-amber-50 text-amber-700 border-amber-200",
-      preparing: "bg-orange-50 text-orange-700 border-orange-200",
-      delivering: "bg-cyan-50 text-cyan-700 border-cyan-200",
-      ready: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      completed: "bg-blue-50 text-blue-700 border-blue-200",
-      cancelled: "bg-red-50 text-red-700 border-red-200",
-      redorequested: "bg-purple-50 text-purple-700 border-purple-200",
-      requestcancel: "bg-violet-50 text-violet-700 border-violet-200",
-      served: "bg-teal-50 text-teal-700 border-teal-200",
-      abandoned: "bg-gray-50 text-gray-700 border-gray-200",
-      paid: "bg-green-50 text-green-700 border-green-200",
-    };
-    return (
-      colors[status.toLowerCase() as keyof typeof colors] ||
-      "bg-gray-50 text-gray-700 border-gray-200"
-    );
-  };
+  // Using shared status utility from lib/utils/statusBadge.tsx
 
   const OrderItemStatusLabel: Record<string, string> = {
     pending: "Đang chờ xác nhận",
@@ -455,32 +385,12 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
                         {/* Order Status */}
                         <td className="px-6 py-5 align-top">
-                          <span
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border ${getOrderStatusColor(
-                              order.status
-                            )}`}
-                          >
-                            {getOrderStatusIcon(order.status)}
-                            {getOrderStatusLabel(order.status)}
-                          </span>
+                          {getStatusBadge(order.status, "lg")}
                         </td>
 
                         {/* Payment Status */}
                         <td className="px-6 py-5 align-top">
-                          <span
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border ${getOrderStatusColor(
-                              order.paymentStatus === "Paid"
-                                ? "paid"
-                                : "pending"
-                            )}`}
-                          >
-                            {order.paymentStatus === "Paid" ? (
-                              <CheckCircle className="w-4 h-4" />
-                            ) : (
-                              <Hourglass className="w-4 h-4" />
-                            )}
-                            {getPaymentStatusLabel(order.paymentStatus)}
-                          </span>
+                          {getPaymentStatusBadge(order.paymentStatus, "lg")}
                         </td>
 
                         {/* Items Summary */}
@@ -649,17 +559,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
                                           {/* CỘT TRẠNG THÁI */}
                                           <td className="px-4 py-3 text-center">
-                                            <span
-                                              className={`px-3 py-1 text-xs font-medium rounded-full ${getOrderStatusColor(
-                                                item.status
-                                              )}`}
-                                            >
-                                              {
-                                                OrderItemStatusLabel[
-                                                  item.status.toLowerCase()
-                                                ]
-                                              }
-                                            </span>
+                                            {getStatusBadge(item.status, "sm")}
                                           </td>
 
                                           {/* CỘT GIÁ */}

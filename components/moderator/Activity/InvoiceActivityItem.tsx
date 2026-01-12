@@ -8,9 +8,12 @@ import {
   ArrowUpRight,
   Calendar,
   X,
+  FileText,
+  ShoppingCart,
 } from "lucide-react";
 
 import CompleteBillComponent from "@/components/moderator/CompleteBillComponent";
+import OrderDetailsComponent from "@/components/moderator/OrderDetailsComponent";
 
 // =====================
 // Types
@@ -124,6 +127,8 @@ const InvoiceActivityItem: React.FC<InvoiceActivityItemProps> = ({
   className,
 }) => {
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"invoice" | "order">("invoice");
+  const [billData, setBillData] = useState<any>(null);
 
   const type = normalizeType(activity?.type);
   const data = activity?.data;
@@ -230,25 +235,78 @@ const InvoiceActivityItem: React.FC<InvoiceActivityItemProps> = ({
           onClick={() => setOpen(false)} // click nền đóng
         >
           <div
-            className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="relative w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()} // chặn click trong modal
           >
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <div className="font-semibold text-gray-900">
-                Chi tiết hóa đơn #{data.invoiceCode}
+            {/* Header */}
+            <div className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
+              <div className="flex items-center justify-between px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-600 rounded-lg p-2">
+                    <ReceiptText className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-gray-900 text-lg">
+                      Chi tiết hóa đơn #{data.invoiceCode}
+                    </h2>
+                    <p className="text-sm text-gray-600">
+                      {formatDateTimeVN(headerTime)}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg p-2 hover:bg-gray-100 transition-colors"
+                  aria-label="Đóng"
+                >
+                  <X className="h-5 w-5 text-gray-600" />
+                </button>
               </div>
 
-              <button
-                onClick={() => setOpen(false)}
-                className="rounded-lg p-2 hover:bg-gray-100"
-                aria-label="Đóng"
-              >
-                <X className="h-5 w-5 text-gray-600" />
-              </button>
+              {/* Tabs */}
+              <div className="flex gap-1 px-6">
+                <button
+                  onClick={() => setActiveTab("invoice")}
+                  className={[
+                    "flex items-center gap-2 px-4 py-3 font-medium text-sm transition-all rounded-t-lg",
+                    activeTab === "invoice"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50",
+                  ].join(" ")}
+                >
+                  <FileText className="w-4 h-4" />
+                  Hóa đơn
+                </button>
+                <button
+                  onClick={() => setActiveTab("order")}
+                  className={[
+                    "flex items-center gap-2 px-4 py-3 font-medium text-sm transition-all rounded-t-lg",
+                    activeTab === "order"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50",
+                  ].join(" ")}
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Chi tiết đơn hàng
+                </button>
+              </div>
             </div>
 
-            <div className="max-h-[80vh] overflow-auto">
-              <CompleteBillComponent invoiceId={data.invoiceId} />
+            {/* Content */}
+            <div className="max-h-[75vh] overflow-auto">
+              {activeTab === "invoice" ? (
+                <CompleteBillComponent
+                  invoiceId={data.invoiceId}
+                  onBillDataLoaded={(bill) => setBillData(bill)}
+                />
+              ) : (
+                <OrderDetailsComponent
+                  orderItems={billData?.details || []}
+                  loading={!billData}
+                  error={null}
+                />
+              )}
             </div>
           </div>
         </div>
