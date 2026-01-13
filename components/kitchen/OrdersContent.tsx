@@ -49,80 +49,80 @@ export function OrdersContent({
   onToggleSelection
 }: OrdersContentProps) {
   const renderClockIcon = () => (
-    <svg 
-      className="w-4 h-4 text-black opacity-90" 
-      aria-hidden="true" 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      fill="none" 
+    <svg
+      className="w-4 h-4 text-black opacity-90"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      fill="none"
       viewBox="0 0 24 24"
     >
-      <path 
-        stroke="currentColor" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth="2" 
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
         d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
       />
     </svg>
   );
 
   const renderCreatedTimeIcon = () => (
-    <svg 
-      className="w-4 h-4 text-gray-500" 
-      aria-hidden="true" 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      fill="none" 
+    <svg
+      className="w-4 h-4 text-gray-500"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      fill="none"
       viewBox="0 0 24 24"
     >
-      <path 
-        stroke="currentColor" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth="2" 
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
         d="M12 4.5v15m7.5-7.5h-15"
       />
     </svg>
   );
 
   const renderReadyTimeIcon = () => (
-    <svg 
-      className="w-3.5 h-3.5 text-emerald-500" 
-      aria-hidden="true" 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      fill="none" 
+    <svg
+      className="w-3.5 h-3.5 text-emerald-500"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      fill="none"
       viewBox="0 0 24 24"
     >
-      <path 
-        stroke="currentColor" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth="2" 
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
         d="M5 13l4 4L19 7"
       />
     </svg>
   );
 
   const renderRemakedTimeIcon = () => (
-    <svg 
-      className="w-3.5 h-3.5 text-red-500" 
-      aria-hidden="true" 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      fill="none" 
+    <svg
+      className="w-3.5 h-3.5 text-red-500"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      fill="none"
       viewBox="0 0 24 24"
     >
-      <path 
-        stroke="currentColor" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth="2" 
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
       />
     </svg>
@@ -152,31 +152,31 @@ export function OrdersContent({
   // Visual badges for status and time to improve scanning
   const renderStatusBadge = (status: OrderStatus) => {
     const styleMap: Record<OrderStatus, { classes: string; icon: React.ReactNode }> = {
-      'đang chờ': { 
+      'đang chờ': {
         classes: 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200 shadow-sm',
         icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
       },
-      'đang thực hiện': { 
+      'đang thực hiện': {
         classes: 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200 shadow-sm',
         icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
       },
-      'bắt đầu phục vụ': { 
+      'bắt đầu phục vụ': {
         classes: 'bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border border-emerald-200 shadow-sm',
         icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
       },
-      'phục vụ nhanh': { 
+      'phục vụ nhanh': {
         classes: 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200 shadow-sm',
         icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
       },
-      'yêu cầu làm lại': { 
+      'yêu cầu làm lại': {
         classes: 'bg-gradient-to-r from-red-50 to-orange-50 text-red-700 border border-red-200 shadow-sm',
         icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
       },
-      'đã phục vụ': { 
+      'đã phục vụ': {
         classes: 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-700 border border-gray-200 shadow-sm',
         icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
       },
-      'đã huỷ': { 
+      'đã huỷ': {
         classes: 'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-600 border border-gray-300 shadow-sm',
         icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
       },
@@ -366,8 +366,8 @@ export function OrdersContent({
         {/* Individual Item Cards */}
         <div className="space-y-4 mb-6">
           {groupOrders.map((order, index) => (
-            <Card 
-              key={order.id} 
+            <Card
+              key={order.id}
               className={`hover:shadow-md transition-shadow duration-200 ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
             >
               <CardHeader className="flex flex-row items-center gap-4">
@@ -382,7 +382,7 @@ export function OrdersContent({
                     )}
                     {' '}x{order.quantity > 0 ? order.quantity : 1} - Bàn {order.tableNumber}
                   </h3>
-                  
+
                   {/* Secondary Info: Note & Toppings - More prominent */}
                   {order.note && (
                     <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
@@ -394,7 +394,7 @@ export function OrdersContent({
                       <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
                     </div>
                   )}
-                  
+
                   {/* Tertiary Info: Time & Date - Horizontal layout with labels */}
                   <div className="flex items-center gap-3 mt-2.5 flex-wrap">
                     <div className="flex items-center gap-1 text-gray-500">
@@ -489,7 +489,7 @@ export function OrdersContent({
     const [itemName, orderGroup] = Object.entries(groupedOrders)[0];
     const order = orderGroup[0];
     const isSelectedSingle = selectedIds ? selectedIds.has(order.id) : false;
-    
+
     // Get category accent color
     const getCategoryGradient = (category?: string) => {
       switch (category) {
@@ -499,17 +499,16 @@ export function OrdersContent({
         default: return 'from-gray-500 to-gray-600';
       }
     };
-    
+
     // Check if order should be highlighted (isUrgent or has remakedTime)
     const isHighlighted = order.isUrgent || (order.remakedTime !== null && order.remakedTime !== undefined);
-    
+
     return (
       <div className="flex-1 p-6 overflow-y-auto">
-        <Card className={`relative overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 ${
-          isSelectedSingle ? 'border-blue-500 shadow-blue-100 ring-2 ring-blue-200' : 
+        <Card className={`relative overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 ${isSelectedSingle ? 'border-blue-500 shadow-blue-100 ring-2 ring-blue-200' :
           isHighlighted ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50' :
-          'border-transparent'
-        } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
+            'border-transparent'
+          } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
         >
           {/* Urgent badge - top right corner */}
           {order.isUrgent && (
@@ -524,7 +523,7 @@ export function OrdersContent({
           )}
           {/* Top gradient accent bar */}
           <div className={`h-1.5 bg-gradient-to-r ${getCategoryGradient(order.category)}`}></div>
-          
+
           <CardHeader className="flex flex-row items-center gap-4 p-5" onClick={() => onGroupClick(itemName)}>
             <div className="flex-1 min-w-0">
               {/* Primary Info: Title + Size + Table on same line */}
@@ -540,13 +539,13 @@ export function OrdersContent({
                   Bàn {order.tableNumber}: x{order.quantity > 0 ? order.quantity : 1}
                 </span>
               </h3>
-              
+
               {/* Note & Toppings with modern styling */}
               {order.note && (
                 <div className="mt-3 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-2.5 rounded-xl border border-amber-200 shadow-sm">
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <span><span className="font-semibold">Ghi chú:</span> {order.note}</span>
                   </div>
@@ -557,7 +556,7 @@ export function OrdersContent({
                 <div className="mt-3 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-2.5 rounded-xl border-l-4 border-red-500 shadow-sm">
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     <span><span className="font-semibold">Lý do làm lại:</span> {order.remarkNote}</span>
                   </div>
@@ -567,13 +566,13 @@ export function OrdersContent({
                 <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-4 py-2.5 rounded-xl border border-emerald-200 shadow-sm">
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                     <span><span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}</span>
                   </div>
                 </div>
               )}
-              
+
               {/* Time badges with improved styling */}
               <div className="flex items-center gap-3 mt-4">
                 {renderTimeBadge(order.estimatedTime)}
@@ -620,7 +619,7 @@ export function OrdersContent({
                 </TooltipProvider>
               </div>
             </div>
-            
+
             {/* Action buttons */}
             {onCancelClick && (
               <CardAction>
@@ -631,7 +630,7 @@ export function OrdersContent({
             )}
             {activeTab === 'yêu cầu làm lại' && onAcceptRedoClick && (
               <CardAction>
-                <Button 
+                <Button
                   onClick={e => { e.stopPropagation(); onAcceptRedoClick(order.id, order.itemName); }}
                   className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-lg"
                   size="sm"
@@ -645,13 +644,13 @@ export function OrdersContent({
             )}
           </CardHeader>
         </Card>
-        
+
         {/* Bottom sticky CTA with improved styling */}
         <div className="sticky bottom-0 z-10 mt-6 py-4 flex justify-center">
           {activeTab === 'đang chờ' && isSelectedSingle && (
-            <Button 
-              onClick={() => onPrepareClick(order.id, order.itemName)} 
-              size="lg" 
+            <Button
+              onClick={() => onPrepareClick(order.id, order.itemName)}
+              size="lg"
               className="font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transform hover:scale-105 transition-all duration-300"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -661,9 +660,9 @@ export function OrdersContent({
             </Button>
           )}
           {activeTab === 'đang thực hiện' && (
-            <Button 
-              onClick={() => onServeClick(order)} 
-              size="lg" 
+            <Button
+              onClick={() => onServeClick(order)}
+              size="lg"
               className="font-bold text-lg px-8 py-4 rounded-2xl shadow-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white transform hover:scale-105 transition-all duration-300"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -684,7 +683,7 @@ export function OrdersContent({
     const sortedOrders = [...allOrders].sort(
       (a, b) => categoryPriority(a.category) - categoryPriority(b.category)
     );
-    
+
     // Get category accent color
     const getCategoryGradient = (category?: string) => {
       switch (category) {
@@ -694,7 +693,7 @@ export function OrdersContent({
         default: return 'from-gray-500 to-gray-600';
       }
     };
-    
+
     if (allOrders.length === 0) {
       return (
         <div className="flex-1 p-6 overflow-y-auto">
@@ -716,125 +715,124 @@ export function OrdersContent({
           {sortedOrders.map((order, index) => {
             // Check if order should be highlighted (isUrgent or has remakedTime)
             const isHighlighted = order.isUrgent || (order.remakedTime !== null && order.remakedTime !== undefined);
-            
+
             return (
-            <div
-              key={order.id}
-              className={`relative overflow-hidden bg-white rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
-                selectedIds && selectedIds.has(order.id) 
-                  ? 'border-emerald-500 shadow-emerald-200 ring-2 ring-emerald-200' 
+              <div
+                key={order.id}
+                className={`relative overflow-hidden bg-white rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${selectedIds && selectedIds.has(order.id)
+                  ? 'border-emerald-500 shadow-emerald-200 ring-2 ring-emerald-200'
                   : isHighlighted
-                  ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
-                  : 'border-gray-100 hover:border-emerald-300'
-              } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
-            >
-              {/* Urgent badge - top right corner */}
-              {order.isUrgent && (
-                <div className="absolute top-3 right-3 z-10">
-                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
-                    <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span className="text-sm">KHẨN CẤP</span>
+                    ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
+                    : 'border-gray-100 hover:border-emerald-300'
+                  } ${animatingOutIds.has(order.id) ? 'animating-out' : ''}`}
+              >
+                {/* Urgent badge - top right corner */}
+                {order.isUrgent && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-white shadow-2xl backdrop-blur-md border-2 bg-red-600 border-red-300 animate-[bounce_1s_infinite]">
+                      <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span className="text-sm">KHẨN CẤP</span>
+                    </div>
                   </div>
-                </div>
-              )}
-              {/* Left gradient accent bar */}
-              <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(order.category)}`}></div>
-              
-              <div className="flex items-center gap-4 p-4 pl-5">
-                {/* Order number badge */}
-                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white text-lg font-bold">{index + 1}</span>
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  {/* Primary Info: Name + Size + Quantity + Table on same line */}
-                  <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2 flex items-center gap-2 flex-wrap">
-                    <span>{order.itemName}</span>
-                    {order.sizeName && (
-                      <span className="px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
-                        {order.sizeName.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                    <span className="text-base font-semibold text-gray-600">
-                      x{order.quantity > 0 ? order.quantity : 1}
-                    </span>
-                    <span className="text-gray-400 font-normal">-</span>
-                    <span className="text-base font-semibold text-gray-600">
-                      Bàn {order.tableNumber}
-                    </span>
-                  </h3>
-                  
-                  {/* Note & Toppings */}
-                  {order.note && (
-                    <div className="mt-2 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2 rounded-xl border border-amber-200">
-                      <span className="font-semibold">Ghi chú:</span> {order.note}
-                    </div>
-                  )}
-                  {/* Remark Note for remade orders - only show in "đang thực hiện" tab */}
-                  {order.remakedTime && order.remarkNote && (
-                    <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
-                      <span className="font-semibold">Lý do làm lại:</span> {order.remarkNote}
-                    </div>
-                  )}
-                  {order.toppings && order.toppings.length > 0 && (
-                    <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-2 rounded-xl border border-emerald-200">
-                      <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
-                    </div>
-                  )}
-                  
-                  {/* Time badges - Horizontal layout with labels */}
-                  <div className="flex items-center gap-3 mt-2 flex-wrap">
-                    {renderTimeBadge(order.estimatedTime)}
-                    <TooltipProvider>
-                      {order.createdTime && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-50">
-                              {renderCreatedTimeIcon()}
-                              <span className="text-gray-600 font-semibold">Tạo:</span>
-                              <span className="text-gray-500">{order.createdTime}</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Ngày giờ tạo món</p>
-                          </TooltipContent>
-                        </Tooltip>
+                )}
+                {/* Left gradient accent bar */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(order.category)}`}></div>
+
+                <div className="flex items-center gap-4 p-4 pl-5">
+                  {/* Order number badge */}
+                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-white text-lg font-bold">{index + 1}</span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    {/* Primary Info: Name + Size + Quantity + Table on same line */}
+                    <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2 flex items-center gap-2 flex-wrap">
+                      <span>{order.itemName}</span>
+                      {order.sizeName && (
+                        <span className="px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full border border-blue-200">
+                          {order.sizeName.charAt(0).toUpperCase()}
+                        </span>
                       )}
-                      {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
-                      {order.isUrgent && order.remakedTime ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-red-600 cursor-help hover:text-red-700 transition-colors px-2 py-1 rounded-md hover:bg-red-50">
-                              {renderRemakedTimeIcon()}
-                              <span className="text-red-700 font-semibold">Trả lại:</span>
-                              <span className="text-red-600">{order.remakedTime}</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Ngày giờ món bị trả lại</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : order.readyTime ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
-                              {renderReadyTimeIcon()}
-                              <span className="text-emerald-700 font-semibold">Xong:</span>
-                              <span className="text-emerald-600">{order.readyTime}</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Ngày giờ xong</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : null}
-                    </TooltipProvider>
+                      <span className="text-base font-semibold text-gray-600">
+                        x{order.quantity > 0 ? order.quantity : 1}
+                      </span>
+                      <span className="text-gray-400 font-normal">-</span>
+                      <span className="text-base font-semibold text-gray-600">
+                        Bàn {order.tableNumber}
+                      </span>
+                    </h3>
+
+                    {/* Note & Toppings */}
+                    {order.note && (
+                      <div className="mt-2 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2 rounded-xl border border-amber-200">
+                        <span className="font-semibold">Ghi chú:</span> {order.note}
+                      </div>
+                    )}
+                    {/* Remark Note for remade orders - only show in "đang thực hiện" tab */}
+                    {order.remakedTime && order.remarkNote && (
+                      <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
+                        <span className="font-semibold">Lý do làm lại:</span> {order.remarkNote}
+                      </div>
+                    )}
+                    {order.toppings && order.toppings.length > 0 && (
+                      <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-2 rounded-xl border border-emerald-200">
+                        <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
+                      </div>
+                    )}
+
+                    {/* Time badges - Horizontal layout with labels */}
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      {renderTimeBadge(order.estimatedTime)}
+                      <TooltipProvider>
+                        {order.createdTime && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-50">
+                                {renderCreatedTimeIcon()}
+                                <span className="text-gray-600 font-semibold">Tạo:</span>
+                                <span className="text-gray-500">{order.createdTime}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ tạo món</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {/* Show remakedTime for urgent/remade items, otherwise show readyTime */}
+                        {order.isUrgent && order.remakedTime ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1.5 text-xs font-medium text-red-600 cursor-help hover:text-red-700 transition-colors px-2 py-1 rounded-md hover:bg-red-50">
+                                {renderRemakedTimeIcon()}
+                                <span className="text-red-700 font-semibold">Trả lại:</span>
+                                <span className="text-red-600">{order.remakedTime}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ món bị trả lại</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : order.readyTime ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-2 py-1 rounded-md hover:bg-emerald-50">
+                                {renderReadyTimeIcon()}
+                                <span className="text-emerald-700 font-semibold">Xong:</span>
+                                <span className="text-emerald-600">{order.readyTime}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ngày giờ xong</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                      </TooltipProvider>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
             );
           })}
         </div>
@@ -860,7 +858,7 @@ export function OrdersContent({
     });
     // Only consider selected orders for bulk actions
     const selectedSortedOrders = selectedIds ? sortedOrders.filter(order => selectedIds.has(order.id)) : [];
-    
+
     // Get category accent color
     const getCategoryGradient = (category?: string) => {
       switch (category) {
@@ -870,7 +868,7 @@ export function OrdersContent({
         default: return 'from-gray-500 to-gray-600';
       }
     };
-    
+
     if (allOrders.length === 0) {
       return (
         <div className="flex-1 p-6 overflow-y-auto">
@@ -914,7 +912,7 @@ export function OrdersContent({
             const first = orders[0];
             const groupSelected = selectedIds ? orders.some(o => selectedIds.has(o.id)) : false;
             const anyAnimating = orders.some(o => animatingOutIds.has(o.id));
-            
+
             // Group orders by table to show quantity per table
             const ordersByTable = new Map<number, Order[]>();
             orders.forEach(order => {
@@ -924,30 +922,29 @@ export function OrdersContent({
               }
               ordersByTable.get(tableNum)!.push(order);
             });
-            
+
             // Format table badges
             const tableBadges = Array.from(ordersByTable.entries())
               .sort(([a], [b]) => a - b);
-            
+
             // Get all order IDs in this group
             const orderIds = orders.map(o => o.id);
-            
+
             // Check if any order in group should be highlighted (isUrgent or has remakedTime)
             const isHighlighted = orders.some(o => o.isUrgent || (o.remakedTime !== null && o.remakedTime !== undefined));
-            
+
             // Check if any order in group is urgent
             const hasUrgent = orders.some(o => o.isUrgent);
-            
+
             return (
               <div
                 key={`${itemName}-${sizeName}-${noteKey}`}
-                className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
-                  groupSelected 
-                    ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
-                    : isHighlighted
+                className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${groupSelected
+                  ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200'
+                  : isHighlighted
                     ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                     : 'border-gray-100 hover:border-blue-300'
-                } ${anyAnimating ? 'animating-out' : ''}`}
+                  } ${anyAnimating ? 'animating-out' : ''}`}
                 onClick={() => {
                   // Toggle selection when clicking on the card
                   if (onToggleSelection) {
@@ -969,7 +966,7 @@ export function OrdersContent({
                 )}
                 {/* Left gradient accent bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(first.category)}`}></div>
-                
+
                 <div className="flex items-center gap-4 p-4 pl-5">
                   {/* Checkbox for selection */}
                   <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -984,12 +981,12 @@ export function OrdersContent({
                       aria-label="Chọn món"
                     />
                   </div>
-                  
+
                   {/* Total quantity badge - large number */}
                   <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
                     <span className="text-white text-xl font-bold">{orders.length}</span>
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     {/* Primary Info: Name + Size + Table info on same line */}
                     <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2">
@@ -1007,13 +1004,13 @@ export function OrdersContent({
                         </span>
                       ))}
                     </h3>
-                    
+
                     {/* Note */}
                     {displayNote && (
                       <div className="mt-2 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2 rounded-xl border border-amber-200">
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                           </svg>
                           <span><span className="font-semibold">Ghi chú:</span> {displayNote}</span>
                         </div>
@@ -1024,13 +1021,57 @@ export function OrdersContent({
                       <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
                           <span><span className="font-semibold">Lý do làm lại:</span> {orders.find(o => o.remakedTime && o.remarkNote)?.remarkNote}</span>
                         </div>
                       </div>
                     )}
-                    
+
+                    {/* Toppings display - collect and count from all orders */}
+                    {(() => {
+                      const allToppings = orders.flatMap(order => order.toppings || []);
+                      if (allToppings.length === 0) return null;
+
+                      // Find max count of each topping per individual order (not total sum)
+                      const toppingMaxCounts: Record<string, number> = {};
+                      orders.forEach(order => {
+                        const orderToppings = order.toppings || [];
+                        const orderToppingCounts: Record<string, number> = {};
+                        orderToppings.forEach(topping => {
+                          orderToppingCounts[topping] = (orderToppingCounts[topping] || 0) + 1;
+                        });
+                        // Update max count for each topping
+                        Object.entries(orderToppingCounts).forEach(([topping, count]) => {
+                          toppingMaxCounts[topping] = Math.max(toppingMaxCounts[topping] || 0, count);
+                        });
+                      });
+
+                      return (
+                        <div className="mt-2 flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-purple-600 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Topping:
+                          </span>
+                          {Object.entries(toppingMaxCounts).map(([topping, count]) => (
+                            <span
+                              key={topping}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200"
+                            >
+                              {topping}
+                              {count > 1 && (
+                                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-purple-200 text-purple-800 text-[10px] font-bold">
+                                  x{count}
+                                </span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
                     {/* Time badges */}
                     <div className="flex items-center gap-3 mt-2">
                       {renderTimeBadge(first.estimatedTime)}
@@ -1077,13 +1118,12 @@ export function OrdersContent({
                       </TooltipProvider>
                     </div>
                   </div>
-                  
+
                   {/* Arrow indicator */}
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    groupSelected 
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg' 
-                      : 'bg-gray-100'
-                  }`}>
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${groupSelected
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg'
+                    : 'bg-gray-100'
+                    }`}>
                     {groupSelected ? (
                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1099,11 +1139,11 @@ export function OrdersContent({
             );
           })}
         </div>
-        
+
         {/* Bottom sticky CTA with improved styling */}
         <div className="sticky bottom-0 z-10 py-4 mt-6 flex justify-center">
           {activeTab === 'đang chờ' && selectedSortedOrders.length > 0 && onPrepareMultipleOrders && (
-            <Button 
+            <Button
               onClick={() => onPrepareMultipleOrders(selectedSortedOrders.map(order => ({
                 itemName: order.itemName,
                 tableNumber: order.tableNumber,
@@ -1119,7 +1159,7 @@ export function OrdersContent({
             </Button>
           )}
           {activeTab === 'đang thực hiện' && selectedSortedOrders.length > 0 && onServeMultipleOrders && (
-            <Button 
+            <Button
               onClick={() => onServeMultipleOrders(selectedSortedOrders.map(order => ({
                 itemName: order.itemName,
                 tableNumber: order.tableNumber,
@@ -1158,7 +1198,7 @@ export function OrdersContent({
             const groupSelected = selectedIds ? orders.some(o => selectedIds!.has(o.id)) : false;
             const anyAnimating = orders.some(o => animatingOutIds.has(o.id));
             const representative = orders[0];
-            
+
             // Group orders by table to show quantity per table
             const ordersByTable = new Map<number, Order[]>();
             orders.forEach(order => {
@@ -1168,27 +1208,26 @@ export function OrdersContent({
               }
               ordersByTable.get(tableNum)!.push(order);
             });
-            
+
             // Format table badges
             const tableBadges = Array.from(ordersByTable.entries())
               .sort(([a], [b]) => a - b);
-            
+
             // Check if any order in group should be highlighted (isUrgent or has remakedTime)
             const isHighlighted = orders.some(o => o.isUrgent || (o.remakedTime !== null && o.remakedTime !== undefined));
-            
+
             // Check if any order in group is urgent
             const hasUrgent = orders.some(o => o.isUrgent);
-            
+
             return (
-              <div 
-                key={`${itemName}-${representative.sizeName || ''}-${noteKey}`} 
-                className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${
-                  groupSelected 
-                    ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200' 
-                    : isHighlighted
+              <div
+                key={`${itemName}-${representative.sizeName || ''}-${noteKey}`}
+                className={`relative overflow-hidden bg-white rounded-2xl cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border-2 shadow-md ${groupSelected
+                  ? 'border-blue-500 shadow-blue-200 ring-2 ring-blue-200'
+                  : isHighlighted
                     ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                     : 'border-gray-100 hover:border-blue-300'
-                } ${anyAnimating ? 'animating-out' : ''}`}
+                  } ${anyAnimating ? 'animating-out' : ''}`}
               >
                 {/* Urgent badge - top right corner */}
                 {hasUrgent && (
@@ -1203,7 +1242,7 @@ export function OrdersContent({
                 )}
                 {/* Left gradient accent bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getCategoryGradient(representative.category)}`}></div>
-                
+
                 <div className="flex items-center gap-4 p-4 pl-5" onClick={() => onGroupClick(itemName)}>
                   <div className="flex-1 min-w-0">
                     {/* Primary Info: Name + Size + Table info on same line */}
@@ -1222,13 +1261,13 @@ export function OrdersContent({
                         </span>
                       ))}
                     </h3>
-                    
+
                     {/* Note & Toppings */}
                     {displayNote && (
                       <div className="mt-2 text-sm text-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2 rounded-xl border border-amber-200">
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                           </svg>
                           <span><span className="font-semibold">Ghi chú:</span> {displayNote}</span>
                         </div>
@@ -1239,7 +1278,7 @@ export function OrdersContent({
                       <div className="mt-2 text-sm text-red-800 bg-gradient-to-r from-red-50 to-orange-50 px-3 py-2 rounded-xl border-l-4 border-red-500">
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
                           <span><span className="font-semibold">Lý do làm lại:</span> {orders.find(o => o.remakedTime && o.remarkNote)?.remarkNote}</span>
                         </div>
@@ -1249,13 +1288,13 @@ export function OrdersContent({
                       <div className="mt-2 text-sm text-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-2 rounded-xl border border-emerald-200">
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
                           <span><span className="font-semibold">Toppings:</span> {representative.toppings.join(', ')}</span>
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Time badges */}
                     <div className="flex items-center gap-3 mt-2">
                       {renderTimeBadge(getGroupEstimatedTime(orders))}
@@ -1302,11 +1341,11 @@ export function OrdersContent({
                       </TooltipProvider>
                     </div>
                   </div>
-                  
+
                   {/* Action button with modern styling */}
                   {activeTab === 'đang chờ' && (
                     <div className="flex-shrink-0">
-                      <Button 
+                      <Button
                         onClick={e => {
                           e.stopPropagation();
                           if (onPrepareMultipleOrders) {

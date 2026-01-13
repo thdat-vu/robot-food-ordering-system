@@ -42,15 +42,15 @@ export const mapFrontendStatusToApi = (frontendStatus: OrderStatus): number => {
 // Get category based on product name (you might want to get this from API later)
 const getCategoryFromProductName = (productName: string): string => {
   const lowerName = productName.toLowerCase();
-  
+
   if (lowerName.includes('nước') || lowerName.includes('trà') || lowerName.includes('cacao') || lowerName.includes('juice') || lowerName.includes('cà phê')) {
     return 'Đồ uống';
   }
-  
+
   if (lowerName.includes('phở') || lowerName.includes('bún') || lowerName.includes('cơm') || lowerName.includes('mì')) {
     return 'Món chính';
   }
-  
+
   if (
     lowerName.includes('gỏi') ||
     lowerName.includes('chả') ||
@@ -63,42 +63,42 @@ const getCategoryFromProductName = (productName: string): string => {
   ) {
     return 'Tráng miệng';
   }
-  
+
   return 'Món chính'; // Default
 };
 
 // Get image based on product name
 const getImageFromProductName = (productName: string): string => {
   const lowerName = productName.toLowerCase();
-  
+
   if (lowerName.includes('chanh dây') || lowerName.includes('passion')) {
     return '/avatars/passion-fruit-juice.jpg';
   }
-  
+
   if (lowerName.includes('trà đào') || lowerName.includes('peach tea')) {
     return '/avatars/peach-tea.jpg';
   }
-  
+
   if (lowerName.includes('cacao')) {
     return '/avatars/iced-cacao.jpg';
   }
-  
+
   if (lowerName.includes('phở bò') || lowerName.includes('pho bo')) {
     return '/avatars/pho-bo.jpg';
   }
-  
+
   if (lowerName.includes('bún bò') || lowerName.includes('bun bo')) {
     return '/avatars/bun-bo-hue.jpg';
   }
-  
+
   if (lowerName.includes('gỏi cuốn') || lowerName.includes('goi cuon')) {
     return '/avatars/goi-cuon.jpg';
   }
-  
+
   if (lowerName.includes('chả cá') || lowerName.includes('cha ca')) {
     return '/avatars/cha-ca.jpg';
   }
-  
+
   return '/avatars/pho-bo.jpg'; // Default image
 };
 
@@ -109,7 +109,7 @@ export const transformApiOrderItemToOrder = (
   orderIndex: number
 ): Order => {
   const tableNumber = parseInt(order.tableName.replace(/\D/g, '')) || 1;
-  
+
   // Parse date in formats like "dd/MM/yyyy HH:mm:ss" or ISO
   const parseVnDateTime = (input?: string): Date | null => {
     if (!input) return null;
@@ -130,10 +130,10 @@ export const transformApiOrderItemToOrder = (
     tableNumber,
     quantity: 1, // Each API item represents 1 individual item (no quantity field in new API)
     status: mapApiStatusToFrontend(orderItem.status),
-    image: orderItem.imageUrl || getImageFromProductName(orderItem.productName), 
-    orderTime: new Date().toLocaleTimeString('vi-VN', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    image: orderItem.imageUrl || getImageFromProductName(orderItem.productName),
+    orderTime: new Date().toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit'
     }),
     createdTime: (() => {
       const dateValue = orderItem.createdTime || order.createdTime;
@@ -163,7 +163,7 @@ export const transformApiOrderItemToOrder = (
       const year = dt.getFullYear();
       return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
     })(), // Convert Ready Date to string format: HH:mm:ss dd/MM/yyyy
-    estimatedTime: getEstimatedTime(orderItem.productName),
+    estimatedTime: orderItem.durationTime != null ? `${orderItem.durationTime} phút` : getEstimatedTime(orderItem.productName),
     sizeName: orderItem.sizeName, // Add size name from API
     toppings: orderItem.toppings?.map(topping => topping.name) || [], // Add toppings from API
     note: orderItem.note, // Add note from API
@@ -193,23 +193,23 @@ export const transformApiOrderItemToOrder = (
 // Get estimated time based on product name
 const getEstimatedTime = (productName: string): string => {
   const lowerName = productName.toLowerCase();
-  
+
   if (lowerName.includes('nước') || lowerName.includes('trà') || lowerName.includes('cacao')) {
     return '5 phút';
   }
-  
+
   if (lowerName.includes('phở') || lowerName.includes('bún')) {
     return '20 phút';
   }
-  
+
   if (lowerName.includes('gỏi')) {
     return '12 phút';
   }
-  
+
   if (lowerName.includes('chả')) {
     return '15 phút';
   }
-  
+
   return '10 phút'; // Default
 };
 
@@ -217,13 +217,13 @@ const getEstimatedTime = (productName: string): string => {
 export const transformApiOrdersToOrders = (apiOrders: ApiOrderResponse[]): Order[] => {
   const orders: Order[] = [];
   let orderIndex = 0;
-  
+
   apiOrders.forEach(apiOrder => {
     apiOrder.items.forEach(item => {
       orders.push(transformApiOrderItemToOrder(item, apiOrder, orderIndex));
       orderIndex++;
     });
   });
-  
+
   return orders;
 }; 

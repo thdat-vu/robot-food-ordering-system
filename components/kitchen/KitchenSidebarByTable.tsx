@@ -59,7 +59,7 @@ type DisplayOrderGroup = {
 // ============================================================================
 
 const groupOrdersForDisplay = (
-  orders: Order[], 
+  orders: Order[],
   tableNumber: number,
   itemNameToCategory?: Record<string, string>,
   allOrders?: Order[] // All pending orders for context analysis
@@ -90,8 +90,8 @@ const groupOrdersForDisplay = (
 
   // Detect if any item has note or toppings
   map.forEach((group) => {
-    group.hasVariations = group.orders.some(order => 
-      (order.note && order.note.trim().length > 0) || 
+    group.hasVariations = group.orders.some(order =>
+      (order.note && order.note.trim().length > 0) ||
       (order.toppings && order.toppings.length > 0)
     );
   });
@@ -99,13 +99,13 @@ const groupOrdersForDisplay = (
   // ============================================================================
   // Context-Aware Priority Sorting
   // ============================================================================
-  
+
   // Build table context if we have the necessary data
   const getTableCategoryContext = (): Map<number, Set<string>> => {
     const tableContext = new Map<number, Set<string>>();
-    
+
     if (!allOrders || !itemNameToCategory) return tableContext;
-    
+
     allOrders.filter(order => order.status === 'đang chờ').forEach(order => {
       if (!tableContext.has(order.tableNumber)) {
         tableContext.set(order.tableNumber, new Set());
@@ -115,7 +115,7 @@ const groupOrdersForDisplay = (
         tableContext.get(order.tableNumber)!.add(category);
       }
     });
-    
+
     return tableContext;
   };
 
@@ -128,7 +128,7 @@ const groupOrdersForDisplay = (
     }
 
     const category = itemNameToCategory[itemName];
-    
+
     // Base priority
     const basePriority = (() => {
       switch (category) {
@@ -142,28 +142,28 @@ const groupOrdersForDisplay = (
           return 3;
       }
     })();
-    
+
     // If not dessert, return base priority
     if (category !== 'Tráng miệng') {
       return basePriority;
     }
-    
+
     // Check table context
     const tableCategories = tableContext.get(tableNumber);
     if (!tableCategories || tableCategories.size === 0) {
       return basePriority;
     }
-    
+
     // BOOST PRIORITY: If table only has dessert (no drinks and no main dishes), 
     // treat dessert as main dish priority
-    const hasOnlyDessert = tableCategories.has('Tráng miệng') && 
-                          !tableCategories.has('Đồ uống') && 
-                          !tableCategories.has('Món chính');
-    
+    const hasOnlyDessert = tableCategories.has('Tráng miệng') &&
+      !tableCategories.has('Đồ uống') &&
+      !tableCategories.has('Món chính');
+
     if (hasOnlyDessert) {
       return 1; // Boost to main dish priority
     }
-    
+
     return basePriority;
   };
 
@@ -178,12 +178,12 @@ const groupOrdersForDisplay = (
   return Array.from(map.values()).sort((a, b) => {
     const priorityA = getContextualPriority(a.itemName);
     const priorityB = getContextualPriority(b.itemName);
-    
+
     // Sort by priority first
     if (priorityA !== priorityB) {
       return priorityA - priorityB;
     }
-    
+
     // If same priority, sort by ID (time order)
     const firstA = a.orders[0]?.id ?? 0;
     const firstB = b.orders[0]?.id ?? 0;
@@ -329,7 +329,7 @@ export function KitchenSidebarByTable({
 
   const formatOrderDateTime = (dateString?: string): string => {
     if (!dateString) return '';
-    
+
     // Try parsing as already formatted string (HH:mm:ss dd/MM/yyyy)
     const alreadyFormatted = dateString.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
     if (alreadyFormatted) {
@@ -353,60 +353,60 @@ export function KitchenSidebarByTable({
   };
 
   const renderCreatedTimeIcon = () => (
-    <svg 
-      className="w-3 h-3 text-gray-400" 
-      aria-hidden="true" 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      fill="none" 
+    <svg
+      className="w-3 h-3 text-gray-400"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      fill="none"
       viewBox="0 0 24 24"
     >
-      <path 
-        stroke="currentColor" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth="2" 
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
         d="M12 4.5v15m7.5-7.5h-15"
       />
     </svg>
   );
 
   const renderReadyTimeIcon = () => (
-    <svg 
-      className="w-3 h-3 text-emerald-500" 
-      aria-hidden="true" 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      fill="none" 
+    <svg
+      className="w-3 h-3 text-emerald-500"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      fill="none"
       viewBox="0 0 24 24"
     >
-      <path 
-        stroke="currentColor" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth="2" 
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
         d="M5 13l4 4L19 7"
       />
     </svg>
   );
 
   const renderRemakedTimeIcon = () => (
-    <svg 
-      className="w-3 h-3 text-red-500" 
-      aria-hidden="true" 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      fill="none" 
+    <svg
+      className="w-3 h-3 text-red-500"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      fill="none"
       viewBox="0 0 24 24"
     >
-      <path 
-        stroke="currentColor" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth="2" 
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
       />
     </svg>
@@ -452,20 +452,18 @@ export function KitchenSidebarByTable({
             return (
               <div
                 key={tableNumber}
-                className={`relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border-2 ${
-                  isSelected || isMultiSelected 
-                    ? 'border-blue-500 ring-2 ring-blue-200 shadow-blue-100' 
-                    : 'border-transparent hover:border-blue-300'
-                }`}
+                className={`relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border-2 ${isSelected || isMultiSelected
+                  ? 'border-blue-500 ring-2 ring-blue-200 shadow-blue-100'
+                  : 'border-transparent hover:border-blue-300'
+                  }`}
               >
                 {/* Late dish warning overlay */}
                 {tableData && !hideLateWarning && <LateDishWarning table={tableData} borderRadius="rounded-2xl" />}
-                
+
                 {/* Header with gradient */}
                 <div
-                  className={`flex items-center justify-between px-4 py-4 cursor-pointer transition-colors ${
-                    isSelected || isMultiSelected ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : 'hover:bg-gray-50'
-                  }`}
+                  className={`flex items-center justify-between px-4 py-4 cursor-pointer transition-colors ${isSelected || isMultiSelected ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : 'hover:bg-gray-50'
+                    }`}
                   onClick={() => onGroupSelection(tableSelection)}
                 >
                   <div className="flex items-center gap-4">
@@ -507,11 +505,10 @@ export function KitchenSidebarByTable({
                         [tableNumber]: !(prev[tableNumber] ?? true),
                       }));
                     }}
-                    className={`h-10 w-10 flex items-center justify-center rounded-xl border-2 transition-all duration-300 ${
-                      isExpanded 
-                        ? 'bg-gray-100 border-gray-200 text-gray-600' 
-                        : 'bg-blue-50 border-blue-200 text-blue-600'
-                    } hover:scale-105`}
+                    className={`h-10 w-10 flex items-center justify-center rounded-xl border-2 transition-all duration-300 ${isExpanded
+                      ? 'bg-gray-100 border-gray-200 text-gray-600'
+                      : 'bg-blue-50 border-blue-200 text-blue-600'
+                      } hover:scale-105`}
                     aria-label={isExpanded ? 'Thu gọn bàn' : 'Mở rộng bàn'}
                   >
                     {isExpanded ? <IconMinus size={18} /> : <IconPlus size={18} />}
@@ -547,7 +544,7 @@ export function KitchenSidebarByTable({
                       const representativeOrder = group.orders[0];
                       const totalQuantity =
                         group.quantity > 0 ? group.quantity : group.orders.length;
-                      
+
                       // Calculate total count of items with same name (regardless of size) in this table
                       const totalItemsWithSameName = orders.filter(
                         order => order.itemName === group.itemName
@@ -555,11 +552,11 @@ export function KitchenSidebarByTable({
                         const qty = order.quantity && order.quantity > 0 ? order.quantity : 1;
                         return sum + qty;
                       }, 0);
-                      
+
                       // Check if order should be highlighted (isUrgent or has remakedTime)
                       const isUrgentOrRemade = representativeOrder?.isUrgent || (representativeOrder?.remakedTime !== null && representativeOrder?.remakedTime !== undefined);
                       const finalHighlighted = isHighlighted || isUrgentOrRemade;
-                      
+
                       // Get category info for styling
                       const category = itemNameToCategory?.[group.itemName];
                       const categoryAccent = getCategoryAccent(category);
@@ -567,13 +564,12 @@ export function KitchenSidebarByTable({
                       return (
                         <div
                           key={group.key}
-                          className={`relative overflow-hidden flex items-start gap-3 rounded-xl border-2 p-3 transition-all duration-300 cursor-pointer hover:shadow-md ${
-                            isHighlighted 
-                              ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm' 
-                              : isUrgentOrRemade
+                          className={`relative overflow-hidden flex items-start gap-3 rounded-xl border-2 p-3 transition-all duration-300 cursor-pointer hover:shadow-md ${isHighlighted
+                            ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm'
+                            : isUrgentOrRemade
                               ? 'border-red-300 shadow-red-100 ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-orange-50'
                               : 'border-gray-100 bg-gray-50 hover:border-blue-200'
-                          }`}
+                            }`}
                           onClick={() => {
                             if (representativeOrder) {
                               onSidebarItemClick(toSelectionItem(representativeOrder));
@@ -592,10 +588,10 @@ export function KitchenSidebarByTable({
                               </div>
                             </div>
                           )}
-                          
+
                           {/* Left accent bar */}
                           <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${categoryAccent.bg}`}></div>
-                          
+
                           {/* Item checkbox - hidden when hideCheckboxes is true */}
                           {!hideCheckboxes && (
                             <Checkbox
@@ -609,7 +605,7 @@ export function KitchenSidebarByTable({
                               aria-label={`Chọn món ${group.itemName}`}
                             />
                           )}
-                          
+
                           <div className={`flex-1 min-w-0 ${hideCheckboxes ? 'ml-3' : 'ml-1'}`}>
                             {/* Item name, total count, size and quantity on same line */}
                             <h4 className="text-sm font-bold text-gray-900 leading-tight mb-2 flex items-center gap-2 flex-wrap">
@@ -633,13 +629,58 @@ export function KitchenSidebarByTable({
                               {group.hasVariations && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
                                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                   </svg>
                                   Ghi chú
                                 </span>
                               )}
                             </h4>
-                            
+
+                            {/* Toppings display line */}
+                            {(() => {
+                              // Collect all toppings from all orders in this group
+                              const allToppings = group.orders.flatMap(order => order.toppings || []);
+                              if (allToppings.length === 0) return null;
+
+                              // Find max count of each topping per individual order (not total sum)
+                              const toppingMaxCounts: Record<string, number> = {};
+                              group.orders.forEach(order => {
+                                const orderToppings = order.toppings || [];
+                                const orderToppingCounts: Record<string, number> = {};
+                                orderToppings.forEach(topping => {
+                                  orderToppingCounts[topping] = (orderToppingCounts[topping] || 0) + 1;
+                                });
+                                // Update max count for each topping
+                                Object.entries(orderToppingCounts).forEach(([topping, count]) => {
+                                  toppingMaxCounts[topping] = Math.max(toppingMaxCounts[topping] || 0, count);
+                                });
+                              });
+
+                              return (
+                                <div className="mt-1 flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-semibold text-purple-600 flex items-center gap-1">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    Topping:
+                                  </span>
+                                  {Object.entries(toppingMaxCounts).map(([topping, count]) => (
+                                    <span
+                                      key={topping}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200"
+                                    >
+                                      {topping}
+                                      {count > 1 && (
+                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-purple-200 text-purple-800 text-[10px] font-bold">
+                                          x{count}
+                                        </span>
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+
                             {/* Timestamps - Horizontal layout with labels */}
                             <TooltipProvider>
                               <div className="mt-2 flex items-center gap-3 flex-wrap">
@@ -688,11 +729,10 @@ export function KitchenSidebarByTable({
                               </div>
                             </TooltipProvider>
                           </div>
-                          
+
                           {/* Arrow indicator */}
-                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
-                            isHighlighted ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
-                          }`}>
+                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${isHighlighted ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+                            }`}>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
