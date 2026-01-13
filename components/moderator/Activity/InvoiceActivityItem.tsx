@@ -26,6 +26,8 @@ export interface InvoiceData {
   paymentStatus: string | number;
   orderCode?: string;
   createdAtUtc?: string | number | Date;
+  customerName?: string;
+  customerPhone?: string;
 }
 
 export interface Activity {

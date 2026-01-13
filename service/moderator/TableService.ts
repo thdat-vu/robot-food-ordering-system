@@ -1,4 +1,4 @@
-import { ApiResponse, Bill } from "@/entites/moderator/BillModel";
+import { ApiResponse, Bill, CustomerLatestInvoice } from "@/entites/moderator/BillModel";
 import { TableActivityLog } from "@/entites/moderator/TableActivityLog";
 import { getApiUrl } from "@/env.config";
 
@@ -44,15 +44,15 @@ function normalizePaginated<T>(json: any): { items: T[]; totalCount: number } {
   const items: T[] = Array.isArray(payload?.items)
     ? payload.items
     : Array.isArray(payload)
-    ? payload
-    : [];
+      ? payload
+      : [];
 
   const totalCount =
     typeof payload?.totalCount === "number"
       ? payload.totalCount
       : typeof json?.totalCount === "number"
-      ? json.totalCount
-      : items.length;
+        ? json.totalCount
+        : items.length;
 
   return { items, totalCount };
 }
@@ -119,23 +119,44 @@ export const tableService = {
   // ✅ Endpoint của bạn đang là /Invoice/Order/{orderId}/invoice => param phải là orderId
   async getInvoiceById(invoiceId: string | null): Promise<ApiResponse<Bill> | null> {
     if (!invoiceId) return null;
-  
+
     const url = `${API_BASE_URL}/Invoice/invoice/${encodeURIComponent(invoiceId)}`;
-  
-  
+
+
     const response = await fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     });
-  
-   
+
+
     if (!response.ok) {
       const bodyText = await response.text().catch(() => "");
       throw new Error(
         `GET ${url} failed: ${response.status} ${response.statusText}${bodyText ? ` | ${bodyText}` : ""}`
       );
     }
-  
+
     return (await response.json()) as ApiResponse<Bill>;
+  },
+
+  async getLatestInvoiceByPhone(phone: string): Promise<ApiResponse<CustomerLatestInvoice> | null> {
+    if (!phone) return null;
+
+    const url = `${API_BASE_URL}/Invoice/latest-by-phone?phone=${encodeURIComponent(phone)}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      const bodyText = await response.text().catch(() => "");
+      throw new Error(
+        `GET ${url} failed: ${response.status} ${response.statusText}${bodyText ? ` | ${bodyText}` : ""}`
+      );
+    }
+
+    return (await response.json()) as ApiResponse<CustomerLatestInvoice>;
   }
 }

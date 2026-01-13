@@ -17,6 +17,7 @@ import {
   Search,
   Zap,
   RefreshCw,
+  FileText,
 } from "lucide-react";
 
 import { useToastModerator } from "@/hooks/use-toast-moderator";
@@ -24,6 +25,7 @@ import { ToastContainer } from "@/components/moderator/ToastContainer";
 
 import { DialogModeratorMainPage } from "@/app/moderator/DialogModeratorMainPage";
 import { SmartServeDialog, GlobalServeDialog } from "@/components/moderator/QuickServeDialogs";
+import InvoiceSearchModal from "@/components/moderator/InvoiceSearchModal";
 
 
 import { TableData, Complain } from "@/entites/moderator/FeedbackModole";
@@ -68,6 +70,7 @@ const ModeratorScreen: React.FC = () => {
   const [initialTab, setInitialTab] = useState<"home" | "feedback">("home");
   const [isGlobalProcessing, setIsGlobalProcessing] = useState(false);
   const [handledComplainIds, setHandledComplainIds] = useState<Set<string>>(new Set());
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   const { toasts, addToast, removeToast } = useToastModerator();
   const { run: runCheck } = useCheckSS();
@@ -523,6 +526,14 @@ const ModeratorScreen: React.FC = () => {
                   placeholder="Tìm kiếm bàn, món ăn..."
                   onSearch={(q) => handleSearch(q)}
                 />
+
+                <button
+                  onClick={() => setIsSearchModalOpen(true)}
+                  className="mr-3 flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-2xl transition-all active:scale-95 border border-white/20 whitespace-nowrap shadow-lg shadow-purple-900/20 group"
+                >
+                  <FileText className="w-5 h-5 text-blue-300 group-hover:scale-110 transition-transform" />
+                  <span className="font-bold text-sm">Tra cứu hóa đơn</span>
+                </button>
 
                 <input
                   type="text"
@@ -1023,6 +1034,10 @@ const ModeratorScreen: React.FC = () => {
         }}
       />
 
+      <InvoiceSearchModal 
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+      />
 
     </div>
   );
