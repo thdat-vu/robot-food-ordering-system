@@ -12,6 +12,8 @@ import {
   CalendarClock,
   Table2,
   LucideIcon,
+  MapPin,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +46,8 @@ interface ConfirmDialog {
 
 type FormState = {
   restaurantName: string;
+  restaurantAddress: string;
+  restaurantPhone: string;
   openingTime: string;
   closingTime: string;
   openingHours: string;
@@ -55,6 +59,8 @@ type FormState = {
 
 const emptyForm: FormState = {
   restaurantName: "",
+  restaurantAddress: "",
+  restaurantPhone: "",
   openingTime: "",
   closingTime: "",
   openingHours: "",
@@ -114,6 +120,8 @@ export const ConfigPage: React.FC = () => {
       const sanitizedTax = taxFromDb.replace("%", "").trim();
       const next: FormState = {
         restaurantName: map.RestaurantName ?? "",
+        restaurantAddress: map.RestaurantAddress ?? "",
+        restaurantPhone: map.RestaurantPhone ?? "",
         openingTime: map.OpeningTime ?? "",
         closingTime: map.ClosingTime ?? "",
         openingHours: map.OpeningHours ?? "",
@@ -283,6 +291,16 @@ export const ConfigPage: React.FC = () => {
     } else if (name.length > 200) {
       nextErrors.restaurantName = "RestaurantName tối đa 200 ký tự";
     }
+    
+    const address = form.restaurantAddress.trim();
+    if (address.length > 500) {
+      nextErrors.restaurantAddress = "Địa chỉ tối đa 500 ký tự";
+    }
+
+    const phone = form.restaurantPhone.trim();
+    if (phone.length > 20) {
+      nextErrors.restaurantPhone = "Số điện thoại tối đa 20 ký tự";
+    }
 
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!form.openingTime.trim()) {
@@ -360,6 +378,8 @@ export const ConfigPage: React.FC = () => {
 
     return {
       restaurantName: name,
+      restaurantAddress: address,
+      restaurantPhone: phone,
       openingTime: form.openingTime.trim(),
       closingTime: form.closingTime.trim(),
       openingHours: openingHoursText || form.openingHours || undefined,
@@ -671,6 +691,22 @@ export const ConfigPage: React.FC = () => {
                     "Sweet & Salt Factory - Steakhouse",
                     "Tối đa 200 ký tự",
                     { type: "text", icon: Store }
+                  )}
+
+                  {renderInput(
+                    "restaurantAddress",
+                    "Địa chỉ",
+                    "449c Trần Hưng Đạo, Cầu Kho, Quận 1...",
+                    "Tối đa 500 ký tự",
+                    { type: "text", icon: MapPin }
+                  )}
+
+                  {renderInput(
+                    "restaurantPhone",
+                    "Số điện thoại",
+                    "0937142618",
+                    "Tối đa 20 ký tự",
+                    { type: "text", icon: Phone }
                   )}
 
                   {renderTimePicker(

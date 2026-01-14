@@ -157,13 +157,7 @@ const CompleteBillComponent = ({ invoiceId, onBillDataLoaded }: CompleteBillComp
   const receiptNumber = billData.id.slice(-6).toUpperCase();
   const isPaid = ["1", "2", "3", 1, 2, 3].includes(billData.paymentMethod);
 
-  // Store info - Replace with your actual store data
-  const storeInfo = {
-    name: "Sweet & Salt Factory - Steakhouse",
-    address:
-      "449c Trần Hưng Đạo, Cầu Kho, Quận 1, Thành phố Hồ Chí Minh 700000, Việt Nam",
-    phone: "0937142618",
-  };
+  // No longer using hard-coded storeInfo
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
@@ -199,12 +193,16 @@ const CompleteBillComponent = ({ invoiceId, onBillDataLoaded }: CompleteBillComp
             {/* Store Header */}
             <div className="text-center mb-6 pb-6 border-b-2 border-dashed border-gray-300">
               <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                {storeInfo.name}
+                {billData.restaurantName || "Nhà hàng"}
               </h1>
-              <p className="text-xs text-gray-600 leading-relaxed mb-1">
-                {storeInfo.address}
-              </p>
-              <p className="text-xs text-gray-600">{storeInfo.phone}</p>
+              {billData.restaurantAddress && (
+                <p className="text-xs text-gray-600 leading-relaxed mb-1">
+                  {billData.restaurantAddress}
+                </p>
+              )}
+              {billData.restaurantPhone && (
+                <p className="text-xs text-gray-600">{billData.restaurantPhone}</p>
+              )}
             </div>
 
             {/* Receipt Title */}
@@ -240,6 +238,38 @@ const CompleteBillComponent = ({ invoiceId, onBillDataLoaded }: CompleteBillComp
                   {billData.tableName}
                 </span>
               </div>
+              {billData.customerName && (
+                <div className="flex justify-between border-t border-gray-200 mt-2 pt-2">
+                  <span className="text-gray-600">Khách hàng:</span>
+                  <span className="font-semibold text-gray-800">
+                    {billData.customerName}
+                  </span>
+                </div>
+              )}
+              {billData.customerPhone && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">SĐT:</span>
+                  <span className="font-semibold text-gray-800">
+                    {billData.customerPhone}
+                  </span>
+                </div>
+              )}
+              {billData.checkIn && (
+                <div className="flex justify-between border-t border-gray-200 mt-2 pt-2">
+                  <span className="text-gray-600">Giờ vào:</span>
+                  <span className="font-semibold text-gray-800">
+                    {billData.checkIn}
+                  </span>
+                </div>
+              )}
+              {billData.checkOut && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Giờ ra:</span>
+                  <span className="font-semibold text-gray-800">
+                    {billData.checkOut}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Divider */}

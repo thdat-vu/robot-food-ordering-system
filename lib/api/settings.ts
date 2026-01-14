@@ -4,6 +4,8 @@ export type PaymentPolicy = "Prepay" | "Postpay";
 
 export type BusinessSettings = {
   restaurantName?: string;
+  restaurantAddress?: string;
+  restaurantPhone?: string;
   openingTime?: string;
   closingTime?: string;
   openingHours?: string;

@@ -15,13 +15,22 @@ import {
   Utensils,
   AlarmClock,
   Search,
+  Zap,
+  RefreshCw,
+  FileText,
 } from "lucide-react";
 
 import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { ToastContainer } from "@/components/moderator/ToastContainer";
+
 import { DialogModeratorMainPage } from "@/app/moderator/DialogModeratorMainPage";
-import { TableData } from "@/entites/moderator/FeedbackModole";
+import { SmartServeDialog, GlobalServeDialog } from "@/components/moderator/QuickServeDialogs";
+import InvoiceSearchModal from "@/components/moderator/InvoiceSearchModal";
+
+
+import { TableData, Complain } from "@/entites/moderator/FeedbackModole";
 import { LegendFloating } from "./LegendFloating";
+import { useCheckSS } from "@/hooks/moderator/useFeedbackHooks";
 import LateDishWarning from "@/components/moderator/LateDishWarning";
 import LastUpdateBadge from "@/components/moderator/LastUpdateBadge";
 import ExpandableSearch from "@/components/moderator/ExpandableSearch";
@@ -44,6 +53,14 @@ const ModeratorScreen: React.FC = () => {
     useModeratorRealtimeTables();
 
   const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [quickServeConfirmOpen, setQuickServeConfirmOpen] = useState(false);
+  const [globalConfirmOpen, setGlobalConfirmOpen] = useState(false);
+  const [pendingQuickServeData, setPendingQuickServeData] = useState<{
+    tableId: string; 
+    complaints: Complain[];
+    otherTableNames: string[];
+  } | null>(null);
+
   const [onlyFeedback, setOnlyFeedback] = useState(false);
 
   const [idTable, setIdTable] = useState<string>("");
@@ -51,8 +68,157 @@ const ModeratorScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [highlightedTable, setHighlightedTable] = useState<string>("");
   const [initialTab, setInitialTab] = useState<"home" | "feedback">("home");
+  const [isGlobalProcessing, setIsGlobalProcessing] = useState(false);
+  const [handledComplainIds, setHandledComplainIds] = useState<Set<string>>(new Set());
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   const { toasts, addToast, removeToast } = useToastModerator();
+  const { run: runCheck } = useCheckSS();
+
+  // 👉 Helper xác định feedback là "yêu cầu nhanh" (Logic giống FeedbackPage.tsx)
+  const isQuickRequest = useCallback((description: string): boolean => {
+    const text = (description || "").toLowerCase();
+
+    // Danh sách các danh từ chỉ đồ dùng/gia vị
+    const quickItems = [
+      "mắm",
+      "tương",
+      "xì dầu",
+      "ớt",
+      "muối",
+      "tiêu",
+      "chanh",
+      "tỏi",
+      "đá",
+      "nước",
+      "khăn",
+      "giấy",
+      "đũa",
+      "muỗng",
+      "thìa",
+      "chén",
+      "bát",
+    ];
+
+    // Danh sách các động từ chỉ yêu cầu
+    const quickActions = ["thêm", "them", "cho", "xin", "lấy", "lay", "mang"];
+
+    // Kiểm tra nếu có sự kết hợp giữa "Hành động" và "Đồ vật"
+    const matchesAction = quickActions.some((action) => text.includes(action));
+    const matchesItem = quickItems.some((item) => text.includes(item));
+
+    // Đặc biệt ưu tiên các câu bắt đầu bằng "thêm" hoặc chứa từ khóa nhạy cảm
+    return (
+      (matchesAction && matchesItem) ||
+      text.includes("gấp") ||
+      text.includes("ngay")
+    );
+  }, []);
+
+  const processSingleTableQuickServe = async (tableId: string, complaints: Complain[]) => {
+      try {
+        const ids = complaints.map(c => c.complainId);
+        // Construct message from items
+        const content = complaints.flatMap(c => 
+          (c.quickServeItems && c.quickServeItems.length > 0) 
+              ? c.quickServeItems 
+              : [c.description]
+        ).join(", ");
+
+        await runCheck(tableId, ids, `Yêu cầu nhanh: ${content}`, true);
+        
+        // Optimistic update
+        setHandledComplainIds(prev => {
+          const next = new Set(prev);
+          ids.forEach(id => next.add(id));
+          return next;
+        });
+
+        addToast(`Đã gửi ${ids.length} yêu cầu nhanh cho phục vụ`, "success");
+      } catch (error) {
+        console.error("Quick serve error:", error);
+        addToast("Có lỗi xảy ra khi gửi yêu cầu nhanh", "error");
+      }
+  };
+
+  const handleQuickServe = async (tableId: string, complaints: Complain[]) => {
+    // Check if there are other tables with quick serve requests
+    const otherTablesCount = totalQuickServeItems - complaints.length;
+
+    if (otherTablesCount > 0) {
+        // Calculate other table names
+        const otherTableNames = Object.entries(data).filter(([tID, table]) => {
+           if (tID === tableId) return false;
+           // Check if this table has pending quick serve requests
+           const quickComplains = table.listComplain?.filter(c => {
+              if (handledComplainIds.has(c.complainId)) return false;
+               const title = c.Title || (c as any).title;
+               if (title === "Phục vụ nhanh") return false; 
+                return isQuickRequest(c.description) || (c.quickServeItems && c.quickServeItems.length > 0);
+           }) || [];
+           return quickComplains.length > 0;
+        }).map(([, table]) => table.tableName);
+
+        setPendingQuickServeData({ tableId, complaints, otherTableNames });
+        setQuickServeConfirmOpen(true);
+        return;
+    }
+
+    await processSingleTableQuickServe(tableId, complaints);
+  };
+
+  const handleProcessAllQuickServe = async () => {
+     const allTablesWithQuickServe = Object.entries(data).filter(([, table]) => {
+        return table.listComplain?.some(c => {
+             if (handledComplainIds.has(c.complainId)) return false;
+             const title = c.Title || (c as any).title;
+             if (title === "Phục vụ nhanh") return false;
+             return isQuickRequest(c.description) || (c.quickServeItems && c.quickServeItems.length > 0);
+        });
+     });
+
+     if (allTablesWithQuickServe.length === 0) {
+        addToast("Không có yêu cầu phục vụ nhanh nào", "warning");
+        return;
+     }
+
+     setIsGlobalProcessing(true);
+     try {
+        let totalProcessed = 0;
+        
+        for (const [tableId, table] of allTablesWithQuickServe) {
+            const quickComplains = table.listComplain?.filter(c => {
+                if (handledComplainIds.has(c.complainId)) return false;
+                const title = c.Title || (c as any).title;
+                if (title === "Phục vụ nhanh") return false;
+                return isQuickRequest(c.description) || (c.quickServeItems && c.quickServeItems.length > 0);
+            }) || [];
+            
+            if (quickComplains.length > 0) {
+                 const ids = quickComplains.map(c => c.complainId);
+                  const content = quickComplains.flatMap(c => 
+                    (c.quickServeItems && c.quickServeItems.length > 0) 
+                        ? c.quickServeItems 
+                        : [c.description]
+                  ).join(", ");
+
+                 await runCheck(tableId, ids, `Phục vụ nhanh: ${content}`, true);
+                 setHandledComplainIds(prev => {
+                    const next = new Set(prev);
+                    ids.forEach(id => next.add(id));
+                    return next;
+                 });
+                 totalProcessed += ids.length;
+            }
+        }
+        addToast(`Đã gửi tổng cộng ${totalProcessed} yêu cầu cho phục vụ`, "success");
+     } catch (error) {
+         console.error("Global quick serve error:", error);
+         addToast("Có lỗi xảy ra khi gửi hàng loạt", "error");
+     } finally {
+         setIsGlobalProcessing(false);
+     }
+  };
 
   React.useEffect(() => {
     if (error) addToast(error, "error");
@@ -164,7 +330,23 @@ const ModeratorScreen: React.FC = () => {
   }, []);
 
   const getComplainCount = (t: any) =>
-    t.complainCount ?? t.complains?.length ?? 0;
+    t.complainCount ?? t.complains?.length ?? t.listComplain?.length ?? 0;
+
+  const totalQuickServeItems = useMemo(() => {
+    let count = 0;
+    Object.values(data).forEach(table => {
+      table.listComplain?.forEach(c => {
+        if (handledComplainIds.has(c.complainId)) return;
+        const title = c.Title || (c as any).title;
+        if (title === "Phục vụ nhanh") return;
+
+        if (isQuickRequest(c.description) || (c.quickServeItems && c.quickServeItems.length > 0)) {
+          count++;
+        }
+      });
+    });
+    return count;
+  }, [data, isQuickRequest, handledComplainIds]);
   const processedData = useMemo(
     () =>
       Object.entries(data)
@@ -344,6 +526,14 @@ const ModeratorScreen: React.FC = () => {
                   placeholder="Tìm kiếm bàn, món ăn..."
                   onSearch={(q) => handleSearch(q)}
                 />
+
+                <button
+                  onClick={() => setIsSearchModalOpen(true)}
+                  className="mr-3 flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-2xl transition-all active:scale-95 border border-white/20 whitespace-nowrap shadow-lg shadow-purple-900/20 group"
+                >
+                  <FileText className="w-5 h-5 text-blue-300 group-hover:scale-110 transition-transform" />
+                  <span className="font-bold text-sm">Tra cứu hóa đơn</span>
+                </button>
 
                 <input
                   type="text"
@@ -528,6 +718,39 @@ const ModeratorScreen: React.FC = () => {
                           {tableData.totalItems}
                         </div>
 
+                        {/* Quick Serve Button (Left) */}
+                        {(() => {
+                            const quickComplains = tableData.listComplain?.filter(c => {
+                                if (handledComplainIds.has(c.complainId)) return false;
+                                const title = c.Title || (c as any).title;
+                                if (title === "Phục vụ nhanh") return false;
+                                return isQuickRequest(c.description) || (c.quickServeItems && c.quickServeItems.length > 0);
+                            }) || [];
+
+                            if (quickComplains.length > 0) {
+                                return (
+                                    <button
+                                        type="button"
+                                        className="absolute left-2 top-1/2 -translate-y-1/2 z-30 bg-purple-100/90 backdrop-blur-md rounded-full p-1 hover:scale-110 transition-transform shadow-lg border border-purple-200 group/zap"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleQuickServe(tableId, quickComplains);
+                                        }}
+                                        title="Gửi yêu cầu phục vụ nhanh"
+                                    >
+                                        <div className="relative">
+                                            <Zap size={18} className="text-purple-600 fill-purple-600 animate-pulse" />
+                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[12px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center border border-white">
+                                                {quickComplains.length}
+                                            </span>
+                                        </div>
+                                    </button>
+                                );
+                            }
+                            return null;
+                        })()}
+
                         {tableData.counter > 0 && (
                           <button
                             type="button"
@@ -563,6 +786,8 @@ const ModeratorScreen: React.FC = () => {
                         </div>
                       </div>
                     ) : null}
+
+
 
                     {tableData.tableStatus !== 0 && (
                       <div
@@ -669,6 +894,8 @@ const ModeratorScreen: React.FC = () => {
                       lastUpdateTime={tableData.lastOrderUpdatedTime}
                     />
 
+
+
                     <div className="pointer-events-none absolute inset-0 bg-white/10 rounded-3xl 2xl:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                     {isHighlighted && (
@@ -701,6 +928,8 @@ const ModeratorScreen: React.FC = () => {
                   <div className="bg-white/10 rounded-2xl p-2 border border-white/15">
                     <ClockCard />
                   </div>
+
+
 
                   <StatsCard
                     icon={<Users className="w-5 h-5 text-emerald-300" />}
@@ -735,6 +964,81 @@ const ModeratorScreen: React.FC = () => {
         tableName={data?.[idTable]?.tableName ?? "Bàn"}
         initialTab={initialTab}
       />
+
+      {totalQuickServeItems > 0 && (
+        <button
+          onClick={() => setGlobalConfirmOpen(true)}
+          className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all animate-bounce duration-[2000ms] group border-4 border-white/20 backdrop-blur-sm"
+          title="Xử lý nhanh tất cả yêu cầu"
+        >
+          <div className="absolute inset-0 bg-white/20 rounded-full blur-xl group-hover:blur-2xl transition-all opacity-0 group-hover:opacity-100" />
+          <div className="relative">
+            {isGlobalProcessing ? (
+                <RefreshCw className="w-8 h-8 text-white animate-spin" />
+            ) : (
+                <Zap className="w-8 h-8 fill-yellow-300 text-yellow-300 drop-shadow-md" />
+            )}
+            {!isGlobalProcessing && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-lg">
+                {totalQuickServeItems}
+                </span>
+            )}
+          </div>
+        </button>
+      )}
+
+
+
+
+
+      <GlobalServeDialog 
+        open={globalConfirmOpen}
+        onOpenChange={setGlobalConfirmOpen}
+        count={totalQuickServeItems}
+        tableNames={Object.entries(data).filter(([, table]) => {
+            const quickComplains = table.listComplain?.filter(c => {
+                if (handledComplainIds.has(c.complainId)) return false;
+                const title = c.Title || (c as any).title;
+                if (title === "Phục vụ nhanh") return false;
+                return isQuickRequest(c.description) || (c.quickServeItems && c.quickServeItems.length > 0);
+            }) || [];
+            return quickComplains.length > 0;
+        }).map(([, table]) => table.tableName)}
+        onConfirm={() => {
+            handleProcessAllQuickServe();
+            setGlobalConfirmOpen(false);
+        }}
+        onCancel={() => setGlobalConfirmOpen(false)}
+      />
+
+      <SmartServeDialog 
+        open={quickServeConfirmOpen}
+        onOpenChange={setQuickServeConfirmOpen}
+        otherCount={totalQuickServeItems - (pendingQuickServeData?.complaints.length || 0)}
+        otherTableNames={pendingQuickServeData?.otherTableNames || []}
+        onProcessSingle={() => {
+            if (pendingQuickServeData) {
+                processSingleTableQuickServe(pendingQuickServeData.tableId, pendingQuickServeData.complaints);
+            }
+            setQuickServeConfirmOpen(false);
+            setPendingQuickServeData(null);
+        }}
+        onProcessAll={() => {
+            handleProcessAllQuickServe();
+            setQuickServeConfirmOpen(false);
+            setPendingQuickServeData(null);
+        }}
+        onCancel={() => {
+            setQuickServeConfirmOpen(false);
+            setPendingQuickServeData(null);
+        }}
+      />
+
+      <InvoiceSearchModal 
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+      />
+
     </div>
   );
 };
