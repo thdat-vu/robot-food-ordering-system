@@ -427,28 +427,28 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
               key={`cluster-checkbox-${index}`}
               className="absolute z-30"
               style={{
-                left: cluster.boundingBox.x,
-                top: cluster.boundingBox.y - cluster.boundingBox.height / 2 - 20,
+                left: cluster.boundingBox.x + cluster.boundingBox.width / 2 + 10,
+                top: cluster.boundingBox.y - cluster.boundingBox.height / 2 - 5,
                 transform: "translate(-50%, -50%)",
               }}
             >
               <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg cursor-pointer transition-all duration-200 ${isFullySelected
-                    ? "bg-red-500 text-white hover:bg-red-600"
-                    : isPartiallySelected
-                      ? "bg-orange-400 text-white hover:bg-orange-500"
-                      : "bg-white text-gray-700 hover:bg-blue-50 border border-gray-300"
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg shadow-lg cursor-pointer transition-all duration-200 ${isFullySelected
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : isPartiallySelected
+                    ? "bg-orange-400 text-white hover:bg-orange-500"
+                    : "bg-white text-gray-700 hover:bg-blue-50 border border-gray-300"
                   }`}
                 onClick={() => handleClusterCheckboxClick(cluster.tables)}
-                title={isFullySelected ? "Bỏ chọn cả cụm" : "Chọn tất cả bàn trong cụm"}
+                title={isFullySelected ? `Bỏ chọn cụm ${cluster.tables.length} bàn` : `Chọn cụm ${cluster.tables.length} bàn`}
               >
                 {/* Checkbox icon */}
                 <div
                   className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isFullySelected
-                      ? "bg-white border-white text-red-500"
-                      : isPartiallySelected
-                        ? "bg-white border-white text-orange-500"
-                        : "bg-white border-gray-400"
+                    ? "bg-white border-white text-red-500"
+                    : isPartiallySelected
+                      ? "bg-white border-white text-orange-500"
+                      : "bg-white border-gray-400"
                     }`}
                 >
                   {isFullySelected && (
@@ -462,9 +462,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
                     </svg>
                   )}
                 </div>
-                <span className="text-xs font-semibold whitespace-nowrap">
-                  Chọn cụm ({cluster.tables.length} bàn)
-                </span>
+                <span className="text-[10px] font-bold">{cluster.tables.length}</span>
               </div>
             </div>
           );

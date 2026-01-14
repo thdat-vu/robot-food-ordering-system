@@ -36,20 +36,20 @@ const parseDateTime = (dateStr: string): Date | null => {
 // Calculate relative time (e.g., "5 phút trước")
 const getRelativeTime = (dateStr: string | null | undefined): string | null => {
   if (!dateStr) return null;
-  
+
   const date = parseDateTime(dateStr);
   if (!date) return null;
-  
+
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
-  
+
   if (diffMins < 1) return "Vừa xong";
   if (diffMins < 60) return `${diffMins} phút trước`;
-  
+
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours} giờ trước`;
-  
+
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} ngày trước`;
 };
@@ -96,15 +96,14 @@ export const Table: React.FC<TableProps> = ({
   // Show special cursor and border for selectable tables
   const selectableStyle = isSelectable && !isActive
     ? "ring-2 ring-blue-400 ring-offset-2 ring-offset-transparent"
-    : isActive 
-    ? "ring-2 ring-red-400 ring-offset-2 ring-offset-transparent"
-    : "";
+    : isActive
+      ? "ring-2 ring-red-400 ring-offset-2 ring-offset-transparent"
+      : "";
 
   return (
     <div
-      className={`absolute transition-all duration-300 z-10 ${
-        isActive ? "scale-105" : "hover:scale-105"
-      } cursor-pointer`}
+      className={`absolute transition-all duration-300 z-10 ${isActive ? "scale-105" : "hover:scale-105"
+        } cursor-pointer`}
       style={{
         left: position.x,
         top: position.y,
@@ -120,7 +119,7 @@ export const Table: React.FC<TableProps> = ({
           <div className="text-2xl mb-1">🍽️</div>
           <span className="text-xs font-bold">Bàn {id}</span>
         </div>
-        
+
         {/* Checkbox for selectable tables */}
         {isSelectable && (
           <div
@@ -129,11 +128,10 @@ export const Table: React.FC<TableProps> = ({
             title={isActive ? "Bỏ chọn bàn này" : "Chọn tất cả món bàn này"}
           >
             <div
-              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all duration-200 shadow-md ${
-                isActive
-                  ? "bg-white border-red-500 text-red-600"
-                  : "bg-white border-gray-400 hover:border-blue-500 text-transparent hover:bg-blue-50"
-              }`}
+              className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all duration-200 shadow-md ${isActive
+                ? "bg-white border-red-500 text-red-600"
+                : "bg-white border-gray-400 hover:border-blue-500 text-transparent hover:bg-blue-50"
+                }`}
             >
               {isActive && (
                 <svg
@@ -157,9 +155,8 @@ export const Table: React.FC<TableProps> = ({
         {/* Status indicator for non-selectable tables */}
         {!isSelectable && (isReady || isServed) && (
           <div
-            className={`absolute -top-2 -right-2 w-5 h-5 rounded-full ${
-              isReady ? "bg-blue-500 animate-pulse" : "bg-yellow-500"
-            }`}
+            className={`absolute -top-2 -right-2 w-5 h-5 rounded-full ${isReady ? "bg-blue-500 animate-pulse" : "bg-yellow-500"
+              }`}
           />
         )}
 
@@ -172,7 +169,7 @@ export const Table: React.FC<TableProps> = ({
 
         {/* Show last update time for selectable tables (blue - ready to serve) */}
         {isSelectable && lastUpdateTime && (
-          <div className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full shadow-sm border border-amber-300 whitespace-nowrap">
+          <div className="absolute -top-9 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full shadow-sm border border-amber-300 whitespace-nowrap">
             <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -182,7 +179,7 @@ export const Table: React.FC<TableProps> = ({
 
         {/* Show last update time for ready tables (blue - pending/preparing) that are not selectable */}
         {isReady && !isSelectable && lastUpdateTime && (
-          <div className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full shadow-sm border border-blue-300 whitespace-nowrap">
+          <div className="absolute -top-9 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full shadow-sm border border-blue-300 whitespace-nowrap">
             <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -192,7 +189,7 @@ export const Table: React.FC<TableProps> = ({
 
         {/* Show last update time for served tables (yellow) */}
         {isServed && !isSelectable && !isReady && lastUpdateTime && (
-          <div className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full shadow-sm border border-yellow-300 whitespace-nowrap">
+          <div className="absolute -top-9 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full shadow-sm border border-yellow-300 whitespace-nowrap">
             <svg className="w-3.5 h-3.5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
