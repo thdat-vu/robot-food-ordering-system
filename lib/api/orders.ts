@@ -29,6 +29,7 @@ export interface ApiOrderItemResponse {
     servedTime?: string; // Served time from API (e.g., "03/01/2026 20:30:53")
     isUrgent?: boolean; // Whether the order is urgent
     remakedTime?: string | null; // Time when the order was remade (e.g., "03/01/2026 21:18:32")
+    durationTime?: number; // Duration time in minutes from API (e.g., 5 for "5 phút")
     toppings: ApiToppingResponse[];
 }
 
@@ -82,7 +83,7 @@ export const ordersApi = {
     // Get all orders
     async getOrders(page: number = 1, pageSize: number = 50) {
         const response = await apiClient.get<ApiPaginatedResponse<ApiOrderResponse>>('/Order', {
-            params: {page, pageSize}
+            params: { page, pageSize }
         });
         // Transform the paginated response to match the expected structure
         return {
@@ -147,14 +148,14 @@ export const ordersApi = {
     },
 
     // NEW: Get orders by table ID only (for payment)
-    async getOrdersByTableIdOnly(tableId: string ,startDate?: string | null, endDate?: string | null) {
+    async getOrdersByTableIdOnly(tableId: string, startDate?: string | null, endDate?: string | null) {
         const response = await apiClient.get<ApiBaseResponse<ApiOrderResponse[]>>(`/Order/table/${tableId}`,
-        {
-            params: {
-                startDate,
-                endDate
-            }   
-        });
+            {
+                params: {
+                    startDate,
+                    endDate
+                }
+            });
         return response;
     },
 
@@ -170,7 +171,7 @@ export const ordersApi = {
     async initiatePayment(orderId: string, paymentMethod: number) {
         const response = await apiClient.post<ApiBaseResponse<OrderPaymentResponse>>(
             `/Order/${orderId}/pay`,
-            {paymentMethod}
+            { paymentMethod }
         );
         return response.data;
     }
