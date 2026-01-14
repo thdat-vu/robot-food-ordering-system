@@ -173,10 +173,6 @@ export const BillPDFPreview: React.FC<BillPDFPreviewProps> = ({billData, onClose
                                 {/* BILL HEADER */}
                                 <div className="text-center border-b-2 border-gray-800 pb-4 mb-6">
                                     <h1 className="text-3xl font-bold text-gray-900 mb-2">HÓA ĐƠN</h1>
-                                    <p className="text-sm text-gray-600">Số:
-                                        #{billData.id.substring(0, 8).toUpperCase()}</p>
-                                    <p className="text-sm text-gray-600">Ngày
-                                        đặt: {formatDateTime(billData.createdTime)}</p>
                                     <p className="text-sm font-semibold text-gray-600">Ngày
                                         xuất: {formatDateTimeFull(exportTime)}</p>
                                 </div>

@@ -11,12 +11,11 @@ const api = axios.create({
     },
 });
 
-// Request interceptor - optimize requests
 api.interceptors.request.use(
     (config) => {
         // Add cache control for GET requests
         if (config.method === 'get') {
-            config.headers['Cache-Control'] = 'max-age=300'; // 5 minutes
+            config.headers['Cache-Control'] = 'max-age=300';
         }
         return config;
     },
@@ -25,7 +24,6 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor - handle errors efficiently
 api.interceptors.response.use(
     (response) => response,
     (error) => {

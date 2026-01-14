@@ -7,8 +7,11 @@ import {useRouter} from "next/navigation";
 import {useTableContext} from "@/hooks/context/Context";
 import {useCheckoutTable} from "@/hooks/customHooks/useTableHooks";
 import {MobileDialogB2} from "@/components/common/MobileDialogB2";
-import {BaseEntityResponse_v2} from "@/entites/BaseEntity";
 import {CheckoutErrorResponse, CheckoutSuccessResponse} from "@/api/TableApi";
+import PhoneInput from 'react-phone-number-input'
+import 'react-phone-number-input/style.css'
+import {E164Number} from "libphonenumber-js";
+
 
 interface BillDialogProps extends OrderRespontGetByID {
     isOpen: boolean;
@@ -41,6 +44,7 @@ export const BillDialog: React.FC<BillDialogProps> = ({
     const {setTable} = useTableContext();
     const {run} = useCheckoutTable();
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
+    const [numberPhone, setNumberPhone] = useState<E164Number | undefined>();
 
     const createKeyFromOrderDetail = (item: InForProductOrderDetail): string => {
         let toppingString = '';
@@ -105,11 +109,12 @@ export const BillDialog: React.FC<BillDialogProps> = ({
 
     const handleConfirmBill = () => {
         handleCheckout();
+        handleProceedToPDF()
     };
 
     const handleProceedToPDF = () => {
-        setShowConfirmDialog(false);
         setShowPDFPreview(true);
+        setShowConfirmDialog(false);
     };
 
     const handlePDFComplete = () => {
@@ -119,9 +124,8 @@ export const BillDialog: React.FC<BillDialogProps> = ({
 
     const handleCheckout = async () => {
         try {
-            const res = await run(tableId);
+            const res = await run(tableId, numberPhone);
 
-            console.log("CHECKOUT RESPONSE:", res);
 
             if ("data" in res && res.statusCode === 200) {
                 setShowConfirmDialog(true);
@@ -336,7 +340,7 @@ export const BillDialog: React.FC<BillDialogProps> = ({
                                 Quay lại
                             </button>
                             <button
-                                onClick={handleConfirmBill}
+                                onClick={() => setShowConfirmDialog(true)}
                                 className="flex-1 px-5 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-bold rounded-xl hover:from-emerald-700 hover:to-green-700 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
                             >
                                 <CheckCircle className="w-4 h-4 flex-shrink-0"/>
@@ -347,34 +351,52 @@ export const BillDialog: React.FC<BillDialogProps> = ({
                 </div>
             </div>
 
-            {/* Confirm Dialog */}
             {showConfirmDialog && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[60] p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl animate-scale-in overflow-hidden">
-                        <div className="bg-gradient-to-r from-emerald-600 to-green-600 p-6">
-                            <div
-                                className="flex items-center justify-center w-16 h-16 mx-auto bg-white/20 backdrop-blur-sm rounded-2xl">
-                                <FileText className="w-8 h-8 text-white"/>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+                    <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+                        {/* Header */}
+                        <div className="px-5 pt-5 pb-4 bg-emerald-600 text-white">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+                                <FileText className="h-6 w-6" />
                             </div>
-                        </div>
-                        <div className="p-6">
-                            <h3 className="text-2xl font-bold text-center text-gray-900 mb-2">
-                                Xác nhận xuất hóa đơn
-                            </h3>
-                            <p className="text-center text-gray-600 mb-6">
-                                Bạn có chắc chắn muốn xuất hóa đơn cho<br/>
-                                <span className="font-bold text-emerald-600 text-lg">{tableName}</span> không?
+                            <h3 className="mt-3 text-center text-lg font-semibold">Xác nhận xuất hóa đơn</h3>
+                            <p className="mt-1 text-center text-sm text-white/90">
+                                Xuất hóa đơn cho <span className="font-semibold">{tableName}</span>
                             </p>
-                            <div className="flex gap-3">
+                        </div>
+
+
+                        <div className="px-5 py-5">
+                            <label className="mb-2 block text-sm font-medium text-gray-700">
+                                Nhập số điện thoại để dễ dàng tra cứu hóa đơn (Không bắt buộc)
+                            </label>
+
+                            <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 focus-within:ring-2 focus-within:ring-emerald-500">
+                                <PhoneInput
+                                    defaultCountry="VN"
+                                    international={false}
+                                    countryCallingCodeEditable={false}
+                                    placeholder="Nhập số điện thoại"
+                                    value={numberPhone}
+                                    onChange={setNumberPhone}
+                                    className="PhoneInput"
+                                    numberInputProps={{
+                                        className: "w-full bg-transparent text-sm outline-none",
+                                    }}
+                                />
+                            </div>
+
+                            <div className="mt-5 flex gap-3">
                                 <button
                                     onClick={() => setShowConfirmDialog(false)}
-                                    className="flex-1 px-5 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 active:scale-95 transition-all border border-gray-200"
+                                    className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition"
                                 >
                                     Hủy
                                 </button>
+
                                 <button
-                                    onClick={handleProceedToPDF}
-                                    className="flex-1 px-5 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-bold rounded-xl hover:from-emerald-700 hover:to-green-700 active:scale-95 transition-all shadow-lg"
+                                    onClick={handleConfirmBill}
+                                    className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:scale-[0.98] transition"
                                 >
                                     Xác nhận
                                 </button>

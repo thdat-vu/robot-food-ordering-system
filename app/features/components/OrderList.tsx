@@ -26,7 +26,7 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
                     >
                         <IoIosArrowBack className="text-black text-3xl"/>
                     </button>
-                    <h2 className="flex-1 text-center text-xl font-bold text-gray-800">
+                    <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 truncate max-w-[75%] sm:max-w-[80%]">
                         {tableName}
                     </h2>
                     <button

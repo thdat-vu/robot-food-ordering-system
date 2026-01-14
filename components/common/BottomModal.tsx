@@ -1,6 +1,5 @@
 import React, {useEffect} from "react";
-import {X} from 'lucide-react';
-
+import {X} from "lucide-react";
 
 export const BottomModal: React.FC<{
     id: string;
@@ -9,78 +8,97 @@ export const BottomModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
     onSave?: () => void;
-}> = ({
-          id,
-          title,
-          children,
-          isOpen,
-          onClose,
-          onSave
-      }) => {
+}> = ({id, title, children, isOpen, onClose}) => {
 
+    // lock body scroll
     useEffect(() => {
         if (isOpen) {
-            document.body.style.overflow = 'hidden';
+            document.body.style.overflow = "hidden";
         } else {
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = "unset";
         }
 
         return () => {
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = "unset";
         };
     }, [isOpen]);
 
-    if (!isOpen) return null;
+    // ESC close
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && isOpen) onClose();
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [isOpen, onClose]);
 
+    if (!isOpen) return null;
 
     return (
         <div
-            className="fixed inset-0 z-50 overflow-hidden"
+            className="fixed inset-0 z-50"
             role="dialog"
             aria-labelledby={`${id}-title`}
             aria-modal="true"
         >
+            {/* OVERLAY: tối + blur + click đóng */}
             <div
-                className={`fixed inset-0 bg-while transition-opacity duration-300 ${
-                    isOpen ? 'opacity-50' : 'opacity-0'
-                }`}
+                className={`
+                    absolute inset-0
+                    bg-black/40
+                    backdrop-blur-[2px]
+                    transition-opacity duration-200
+                    ${isOpen ? "opacity-100" : "opacity-0"}
+                `}
                 onClick={onClose}
             />
 
-            <div className="fixed inset-0 flex items-end justify-center p-4">
+            {/* SHEET */}
+            <div className="absolute inset-x-0 bottom-0 flex justify-center px-4 pb-4">
                 <div
-                    className={`w-full max-w-lg bg-white border border-gray-200 shadow-2xl rounded-t-xl transform transition-transform duration-300 ease-out ${
-                        isOpen ? 'translate-y-0' : 'translate-y-full'
-                    } `}
+                    className={`
+                        w-full max-w-lg
+                        bg-white
+                        border border-gray-200
+                        shadow-2xl
+                        rounded-t-2xl
+                        overflow-hidden
+                        transform transition-transform duration-200 ease-out
+                        ${isOpen ? "translate-y-0" : "translate-y-full"}
+                    `}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div
-                        className="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                         <h3
                             id={`${id}-title`}
-                            className="font-bold text-gray-800 dark:text-white"
+                            className="font-bold text-gray-900"
                         >
                             {title}
                         </h3>
+
                         <button
                             type="button"
                             onClick={onClose}
-                            className="size-8 inline-flex justify-center items-center rounded-full border border-transparent
-                             bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 disabled:opacity-50
-                              disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600"
+                            className="
+                                h-9 w-9
+                                inline-flex items-center justify-center
+                                rounded-full
+                                bg-gray-100 hover:bg-gray-200
+                                active:scale-95 transition
+                            "
                             aria-label="Close"
                         >
-                            <X className="size-4"/>
+                            <X className="h-4 w-4 text-gray-700"/>
                         </button>
                     </div>
 
-                    <div className="p-4 h-full">
+                    {/* Body: scroll trong modal */}
+                    <div className="p-4 max-h-[80vh] overflow-y-auto">
                         {children}
                     </div>
                 </div>
             </div>
         </div>
     );
-
 };
-

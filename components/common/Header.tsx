@@ -6,15 +6,13 @@ import {useTableContext} from "@/hooks/context/Context";
 import {ShoppingCart} from "@/entites/Props/ShoppingCart";
 import {SHOPPING_CARTS} from "@/key-store";
 import {FaSearch} from "react-icons/fa";
-import {IoOptionsOutline} from "react-icons/io5";
 
 export const Header: React.FC<{ id: string; handeChangName: (name: string) => void }> = ({
                                                                                              id,
                                                                                              handeChangName,
                                                                                          }) => {
     const [data, setData] = useState<ShoppingCart[]>([]);
-    const context = useTableContext();
-    const {tableName} = context;
+    const {tableName} = useTableContext();
     const router = useRouter();
 
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -55,80 +53,138 @@ export const Header: React.FC<{ id: string; handeChangName: (name: string) => vo
     }, [isSearchOpen, searchValue]);
 
     return (
-        <div className="w-full bg-white text-black shadow-sm sticky top-0 z-50">
-            <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 gap-2">
-                {/* Button Profile */}
-                <button
-                    onClick={() => router.push(`/profile/${id}`)}
-                    className="p-1.5 rounded-full hover:bg-gray-100 transition-colors duration-200 flex-shrink-0"
-                    aria-label="Hồ sơ"
-                >
-                    <IoOptionsOutline className="text-2xl sm:text-3xl"/>
-                </button>
+        <header className="sticky top-0 z-50 w-full">
+            <div className="bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-b border-gray-200">
+                <div className="mx-auto max-w-screen-xl px-3 sm:px-4">
+                    <div className="h-14 sm:h-16 flex items-center gap-2">
+                        <div className="w-10 sm:w-12 flex-shrink-0" />
 
-                {/* Middle Section: Title or Search */}
-                {!isSearchOpen ? (
-                    <>
-                        <span className="text-xl sm:text-2xl md:text-3xl font-semibold whitespace-nowrap flex-1 text-center px-2 truncate">
-                          {tableName === "!" ? "" : tableName}
-                        </span>
-                        <button
-                            onClick={handleSearchClick}
-                            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors duration-200 flex-shrink-0"
-                            aria-label="Tìm kiếm"
-                        >
-                            <FaSearch className="text-gray-500 hover:text-blue-500 cursor-pointer text-xl transition-all duration-200"/>
-                        </button>
-                    </>
-                ) : (
-                    <div className="flex-1 min-w-0 px-1">
-                        <div className="relative w-full">
-                            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"/>
-                            <input
-                                value={searchValue}
-                                onChange={(e) => handleChange(e.target.value)}
-                                autoFocus
-                                type="search"
-                                placeholder="Tìm kiếm món ăn..."
-                                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-full
-                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                           hover:border-gray-300
-                           outline-none transition-all duration-200
-                           bg-white shadow-sm text-sm
-                           placeholder:text-gray-400"
-                            />
+                        <div className="flex-1 min-w-0">
+                            {!isSearchOpen ? (
+                                <div className="flex items-center justify-center">
+                                    <h1 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 truncate max-w-[75%] sm:max-w-[80%]">
+                                        {tableName === "!" ? "" : tableName}
+                                    </h1>
+                                </div>
+                            ) : (
+                                <div className="relative w-full animate-in fade-in zoom-in-95 duration-150">
+                                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"/>
+                                    <input
+                                        value={searchValue}
+                                        onChange={(e) => handleChange(e.target.value)}
+                                        autoFocus
+                                        type="search"
+                                        placeholder="Tìm kiếm món ăn..."
+                                        className="
+                                          w-full h-10 sm:h-11
+                                          pl-9 pr-10
+                                          rounded-full
+                                          bg-gray-50
+                                          border border-gray-200
+                                          text-sm sm:text-[15px]
+                                          placeholder:text-gray-400
+                                          outline-none
+                                          transition
+                                          focus:bg-white
+                                          focus:border-blue-500
+                                          focus:ring-2 focus:ring-blue-200
+                                        "
+                                    />
+
+                                    {searchValue.length > 0 && (
+                                        <button
+                                            onClick={() => {
+                                                handleChange("");
+                                                setTimeout(() => (timeoutRef.current && clearTimeout(timeoutRef.current)), 0);
+                                            }}
+                                            className="
+                                              absolute right-2 top-1/2 -translate-y-1/2
+                                              h-7 w-7 rounded-full
+                                              grid place-items-center
+                                              text-gray-500 hover:text-gray-700
+                                              hover:bg-gray-200/60
+                                              transition
+                                            "
+                                            aria-label="Xóa tìm kiếm"
+                                            type="button"
+                                        >
+                                            <span className="text-lg leading-none">×</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                            {!isSearchOpen && (
+                                <button
+                                    onClick={handleSearchClick}
+                                    className="
+                                      h-10 w-10 sm:h-11 sm:w-11
+                                      rounded-full
+                                      grid place-items-center
+                                      hover:bg-gray-100
+                                      active:scale-95
+                                      transition
+                                    "
+                                    aria-label="Tìm kiếm"
+                                    type="button"
+                                >
+                                    <FaSearch className="text-gray-600 text-lg sm:text-xl"/>
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => router.push(`/productions/order/${id}`)}
+                                className="
+                                  h-10 w-10 sm:h-11 sm:w-11
+                                  rounded-full
+                                  grid place-items-center
+                                  hover:bg-gray-100
+                                  active:scale-95
+                                  transition
+                                  relative
+                                "
+                                aria-label="Giỏ hàng"
+                                type="button"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-6 w-6 sm:h-7 sm:w-7 text-gray-800"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                                    />
+                                </svg>
+
+                                {data.length > 0 && (
+                                    <span
+                                        className="
+                                          absolute -top-0.5 -right-0.5
+                                          min-w-[18px] h-[18px] sm:min-w-[20px] sm:h-[20px]
+                                          px-1
+                                          rounded-full
+                                          bg-red-500 text-white
+                                          text-[10px] sm:text-xs font-bold
+                                          grid place-items-center
+                                          shadow
+                                          ring-2 ring-white
+                                        "
+                                    >
+                                        {data.length}
+                                    </span>
+                                )}
+                            </button>
                         </div>
                     </div>
-                )}
-
-                {/* Cart Button */}
-                <button
-                    onClick={() => router.push(`/productions/order/${id}`)}
-                    className="p-1.5 relative rounded-full hover:bg-gray-100 transition-colors duration-200 flex-shrink-0"
-                    aria-label="Giỏ hàng"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6 sm:h-7 sm:w-7"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                        />
-                    </svg>
-
-                    {data.length > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center shadow">
-                          {data.length}
-                        </span>
-                    )}
-                </button>
+                </div>
             </div>
-        </div>
+        </header>
     );
 };

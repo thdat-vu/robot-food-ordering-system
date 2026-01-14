@@ -103,10 +103,13 @@ export interface CheckoutErrorResponse {
 }
 
 export const CheckoutTable = async (
-    idTable: string
+    idTable: string, customerPhone: string | undefined
 ): Promise<any> => {
     try {
-        const res = await api.patch(`${API_TABLE}/${idTable}/Checkout`, {});
+        const res = await api.patch(`${API_TABLE}/${idTable}/Checkout`, {
+            customerName: customerPhone ? customerPhone : "",
+            customerPhone: customerPhone ? customerPhone : ""
+        });
         return res.data;
     } catch (err: any) {
         if (err.response?.data) {

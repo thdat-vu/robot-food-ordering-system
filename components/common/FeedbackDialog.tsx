@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useRef} from "react";
-import {X, MessageSquare, Plus, Trash2} from "lucide-react";
+import {X, MessageSquare, Plus} from "lucide-react";
 import {useCreateFeedback} from "@/hooks/customHooks/useFeedbackHooks";
 import {useTableContext} from "@/hooks/context/Context";
 import {FeedbackRequest} from "@/entites/request/FeedbackRequest";
@@ -30,6 +30,53 @@ interface SelectedItem {
 
 const FEEDBACK_SENT_KEY = "feedback_sent";
 const EXPIRY_TIME = 30 * 60 * 1000;
+
+// =================== PROFANITY FILTER ===================
+// Bạn thêm/bớt tuỳ ý
+const BAD_WORDS = [
+    "dm", "dmm", "clm", "cmn", "vcl", "vkl",
+    "dit", "du", "lon", "lol", "cac", "buoi", "dai",
+    "oc cho", "khon nan", "mat day", "vo hoc"
+];
+
+function escapeRegExp(s: string) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Mask từ tục => "**" (giữ nguyên phần còn lại)
+ * - match theo "biên" từ (không dính trong chữ khác)
+ * - không phân biệt hoa/thường
+ * - hỗ trợ unicode (tiếng Việt)
+ */
+function maskBadWords(text: string) {
+    if (!text) return text;
+
+    const sorted = [...BAD_WORDS].sort((a, b) => b.length - a.length);
+    const pattern = new RegExp(
+        `(^|[^\\p{L}\\p{N}])(${sorted.map(escapeRegExp).join("|")})(?=[^\\p{L}\\p{N}]|$)`,
+        "giu"
+    );
+
+    return text.replace(pattern, (_m, p1) => `${p1}**`);
+}
+
+/**
+ * Check còn từ tục hay không (dựa trên regex y hệt)
+ */
+function hasBadWords(text: string) {
+    if (!text) return false;
+
+    const sorted = [...BAD_WORDS].sort((a, b) => b.length - a.length);
+    const pattern = new RegExp(
+        `(^|[^\\p{L}\\p{N}])(${sorted.map(escapeRegExp).join("|")})(?=[^\\p{L}\\p{N}]|$)`,
+        "giu"
+    );
+
+    return pattern.test(text);
+}
+
+// =========================================================
 
 export default function FeedbackDialog({isOpen, onClose}: FeedbackDialogProps) {
     const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
@@ -129,6 +176,7 @@ export default function FeedbackDialog({isOpen, onClose}: FeedbackDialogProps) {
             setCustomText("");
             setExpandedCategories(new Set());
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     useEffect(() => {
@@ -157,11 +205,8 @@ export default function FeedbackDialog({isOpen, onClose}: FeedbackDialogProps) {
     const toggleCategory = (category: string) => {
         setExpandedCategories(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(category)) {
-                newSet.delete(category);
-            } else {
-                newSet.add(category);
-            }
+            if (newSet.has(category)) newSet.delete(category);
+            else newSet.add(category);
             return newSet;
         });
     };
@@ -178,16 +223,20 @@ export default function FeedbackDialog({isOpen, onClose}: FeedbackDialogProps) {
     };
 
     const handleAddCustom = () => {
-        if (customText.trim()) {
-            const customId = `custom_${Date.now()}`;
-            setSelectedItems([...selectedItems, {
-                id: customId,
-                text: customText.trim(),
-                isCustom: true
-            }]);
-            setCustomText("");
-            setShowCustomInput(false);
-        }
+        const raw = customText.trim();
+        if (!raw) return;
+
+        // mask ngay khi add
+        const masked = maskBadWords(raw);
+
+        const customId = `custom_${Date.now()}`;
+        setSelectedItems([
+            ...selectedItems,
+            {id: customId, text: masked, isCustom: true}
+        ]);
+
+        setCustomText("");
+        setShowCustomInput(false);
     };
 
     const handleSubmit = async () => {
@@ -198,7 +247,18 @@ export default function FeedbackDialog({isOpen, onClose}: FeedbackDialogProps) {
 
         setIsSubmitting(true);
         try {
-            const feedbackContent = selectedItems.map(i => i.text).join(", ");
+            // mask toàn bộ lần cuối trước khi gửi
+            const feedbackContentRaw = selectedItems.map(i => i.text).join(", ");
+            const feedbackContent = maskBadWords(feedbackContentRaw);
+
+            // OPTIONAL: nếu bạn muốn CHẶN gửi khi user vẫn cố nhập từ tục (trước khi mask)
+            // Ở đây vì ta đã mask, nên thường không cần chặn.
+            // Nếu bạn muốn chặn theo raw customText trước khi add thì đã có thể check ở handleAddCustom().
+            // if (hasBadWords(feedbackContentRaw)) {
+            //     alert("Nội dung có từ ngữ không phù hợp!");
+            //     return;
+            // }
+
             const payload: FeedbackRequest = {
                 tableId,
                 complainNote: feedbackContent,
@@ -288,7 +348,11 @@ export default function FeedbackDialog({isOpen, onClose}: FeedbackDialogProps) {
                                 ref={customInputRef}
                                 type="text"
                                 value={customText}
-                                onChange={(e) => setCustomText(e.target.value)}
+                                onChange={(e) => {
+                                    // mask ngay khi gõ
+                                    const raw = e.target.value;
+                                    setCustomText(maskBadWords(raw));
+                                }}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                         handleAddCustom();
@@ -316,9 +380,13 @@ export default function FeedbackDialog({isOpen, onClose}: FeedbackDialogProps) {
                                 Hủy
                             </button>
                         </div>
+
+                        {/* OPTIONAL: cảnh báo nếu còn từ tục (trước mask) - ở đây đã mask nên thường false */}
+                        {/* {hasBadWords(customText) && (
+                            <p className="mt-2 text-xs text-red-600">Nội dung có từ ngữ không phù hợp.</p>
+                        )} */}
                     </div>
                 )}
-
 
                 <div className="flex-1 overflow-y-auto px-6 py-4">
                     {!showCustomInput && (
@@ -330,6 +398,7 @@ export default function FeedbackDialog({isOpen, onClose}: FeedbackDialogProps) {
                             <span>Khác (Nhập tùy chỉnh)</span>
                         </button>
                     )}
+
                     <div className="space-y-3">
                         {Object.entries(groupedSuggestions).map(([category, items]) => (
                             <div key={category} className="border border-gray-200 rounded-xl overflow-hidden">
@@ -368,7 +437,6 @@ export default function FeedbackDialog({isOpen, onClose}: FeedbackDialogProps) {
                                 )}
                             </div>
                         ))}
-
                     </div>
                 </div>
 

@@ -1,82 +1,17 @@
-// import React from "react";
-// import {Catagory} from "@/entites/respont/Catagory";
-//
-// type Props = {
-//     category: Catagory[];
-//     handleChange: (category: string) => void;
-//     selectedCategory?: string;
-// }
-//
-// export const CategoryList: React.FC<Props> = ({
-//                                                   category,
-//                                                   handleChange,
-//                                                   selectedCategory
-//                                               }) => {
-//
-//
-//     return (
-//         <div className="w-full pt-[10px] rounded-b-lg shadow-lg p-1 sm:p-6">
-//             <div className="overflow-x-auto">
-//                 <div className="flex flex-nowrap gap-2 sm:gap-3">
-//                     {category.map((c) => (
-//                         <label key={c.id} className="cursor-pointer">
-//                             <input
-//                                 type="radio"
-//                                 name="category-filter"
-//                                 value={c.name}
-//                                 checked={selectedCategory === c.name}
-//                                 onChange={() => handleChange(c.name)}
-//                                 className="sr-only"
-//                             />
-//                             <div className={`
-//                                               relative px-5 py-2 ml-1 mt-1 sm:px-6 sm:py-3
-//                                               text-sm sm:text-base font-medium
-//                                               rounded-full border-2 transition-all duration-200
-//                                               select-none active:scale-95 whitespace-nowrap
-//                                               ${selectedCategory === c.name
-//                                 ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-//                                 : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-blue-50 hover:border-green-300 hover:text-green-700'
-//                             }
-//                                     `}>
-//                                 {c.name}
-//                                 {selectedCategory === c.name && (
-//                                     <div
-//                                         className="absolute inset-0 bg-blue-600 rounded-full animate-pulse opacity-20"></div>
-//                                 )}
-//                             </div>
-//                         </label>
-//                     ))}
-//                 </div>
-//             </div>
-//
-//             {category.length === 0 && (
-//                 <div className="text-center py-8 text-gray-500">
-//                     <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor"
-//                          viewBox="0 0 24 24">
-//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-//                               d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-//                     </svg>
-//                     <p className="text-sm">Không có danh mục nào</p>
-//                 </div>
-//             )}
-//         </div>
-//     );
-// };
-
-import React, {useState, useRef, useEffect} from "react";
+import React, {useState, useRef, useEffect, useMemo} from "react";
 import {Catagory} from "@/entites/respont/Catagory";
-import {ChevronDown} from "lucide-react";
+import {ChevronDown, Check} from "lucide-react";
 
 type Props = {
     category: Catagory[];
     handleChange: (category: string) => void;
     selectedCategory?: string;
-}
+};
 
 export const CategoryList: React.FC<Props> = ({
                                                   category,
                                                   handleChange,
-                                                  selectedCategory
+                                                  selectedCategory,
                                               }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -87,7 +22,6 @@ export const CategoryList: React.FC<Props> = ({
                 setIsOpen(false);
             }
         };
-
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
@@ -97,72 +31,138 @@ export const CategoryList: React.FC<Props> = ({
         setIsOpen(false);
     };
 
-    const selectedCategoryName = category.find(c => c.name === selectedCategory)?.name || "Tất cả danh mục";
+    const selectedCategoryName = useMemo(() => {
+        return category.find((c) => c.name === selectedCategory)?.name || "Tất cả danh mục";
+    }, [category, selectedCategory]);
 
     return (
-        <div className="w-full pt-[10px] rounded-b-lg shadow-lg p-1 sm:p-6">
-            <div className="relative" ref={dropdownRef}>
+        <div className="w-full">
+            <div ref={dropdownRef} className="relative">
+                {/* Trigger */}
                 <button
-                    onClick={() => setIsOpen(!isOpen)}
+                    type="button"
+                    onClick={() => setIsOpen((v) => !v)}
                     className={`
-                        w-full px-4 py-3 sm:px-6 sm:py-3.5
-                        flex items-center justify-between
-                        text-sm sm:text-base font-medium
-                        rounded-lg border-2 transition-all duration-200
-                        ${isOpen
-                        ? 'bg-blue-50 border-blue-600 text-blue-700'
-                        : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
-                    }
-                    `}
+            w-full h-11 sm:h-12
+            px-4 sm:px-5
+            flex items-center justify-between gap-3
+            rounded-2xl
+            border
+            bg-white/90 backdrop-blur
+            shadow-sm
+            transition-all duration-200
+            hover:shadow-md
+            active:scale-[0.99]
+            ${isOpen
+                        ? "border-blue-500 ring-2 ring-blue-100"
+                        : "border-gray-200 hover:border-gray-300"}
+          `}
                 >
-                    <span className="truncate">{selectedCategoryName}</span>
-                    <ChevronDown
-                        className={`w-5 h-5 ml-2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                    />
+          <span className="min-w-0 flex-1 text-left text-sm sm:text-[15px] font-semibold text-gray-900 truncate">
+            {selectedCategoryName}
+          </span>
+
+                    <span
+                        className={`
+              h-8 w-8 flex items-center justify-center
+              rounded-full
+              transition-colors
+              ${isOpen ? "bg-blue-50 text-blue-700" : "bg-gray-50 text-gray-600"}
+            `}
+                    >
+            <ChevronDown
+                className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+            />
+          </span>
                 </button>
 
+                {/* Dropdown */}
                 {isOpen && (
                     <div
-                        className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl max-h-[300px] overflow-y-auto">
-                        {category.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500">
-                                <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                          d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
-                                <p className="text-sm">Không có danh mục nào</p>
-                            </div>
-                        ) : (
-                            <div className="py-1">
-                                {category.map((c) => (
-                                    <button
-                                        key={c.id}
-                                        onClick={() => handleSelect(c.name)}
-                                        className={`
-                                            w-full px-4 py-2.5 sm:px-6 sm:py-3
-                                            text-left text-sm sm:text-base font-medium
-                                            transition-colors duration-150
-                                            ${selectedCategory === c.name
-                                            ? 'bg-blue-600 text-white'
-                                            : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
-                                        }
-                                        `}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <span>{c.name}</span>
-                                            {selectedCategory === c.name && (
-                                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd"
-                                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                          clipRule="evenodd"/>
-                                                </svg>
+                        className="
+              absolute z-50 w-full mt-2
+              rounded-2xl
+              border border-gray-200
+              bg-white
+              shadow-xl
+              overflow-hidden
+            "
+                    >
+                        {/* Header nhỏ (tuỳ chọn) */}
+                        <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/60">
+                            <p className="text-xs sm:text-sm font-semibold text-gray-700">
+                                Chọn danh mục
+                            </p>
+                        </div>
+
+                        {/* List */}
+                        <div className="max-h-[280px] overflow-y-auto py-1">
+                            {category.length === 0 ? (
+                                <div className="px-5 py-10 text-center">
+                                    <div
+                                        className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-gray-100 grid place-items-center">
+                                        <span className="text-gray-400 text-xl">#</span>
+                                    </div>
+                                    <p className="text-sm text-gray-500">Không có danh mục nào</p>
+                                </div>
+                            ) : (
+                                category.map((c) => {
+                                    const active = selectedCategory === c.name;
+
+                                    return (
+                                        <button
+                                            key={c.id}
+                                            type="button"
+                                            onClick={() => handleSelect(c.name)}
+                                            className={`
+                        w-full
+                        px-4 sm:px-5 py-2.5
+                        flex items-center justify-between gap-3
+                        text-left
+                        transition
+                        ${active
+                                                ? "bg-blue-600 text-white"
+                                                : "text-gray-800 hover:bg-blue-50"}
+                      `}
+                                        >
+                      <span className="text-sm sm:text-[15px] font-medium truncate">
+                        {c.name}
+                      </span>
+
+                                            {active ? (
+                                                <span
+                                                    className="h-7 w-7 rounded-full bg-white/20 grid place-items-center">
+                          <Check className="h-4 w-4 text-white"/>
+                        </span>
+                                            ) : (
+                                                <span
+                                                    className="h-7 w-7 rounded-full bg-gray-100/70 grid place-items-center opacity-0 group-hover:opacity-100"/>
                                             )}
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                                        </button>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Footer nhỏ (tuỳ chọn) */}
+                        <div className="px-4 sm:px-5 py-3 border-t border-gray-100 bg-white">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    handleSelect("");
+                                }}
+                                className="
+                  w-full h-10
+                  rounded-xl
+                  border border-gray-200
+                  text-sm font-semibold text-gray-700
+                  hover:bg-gray-50
+                  transition
+                "
+                            >
+                                Reset về tất cả
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

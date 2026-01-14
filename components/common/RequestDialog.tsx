@@ -1,7 +1,7 @@
 import React, {useState, useRef, useEffect} from "react";
 import {Autocomplete, TextField, Chip, Popper} from "@mui/material";
 import top1000request from "@/components/common/top1000request";
-import {X, Plus, Send, Sparkles, Search, ChevronDown} from "lucide-react";
+import {X, Plus, Send, Sparkles} from "lucide-react";
 import {useTableContext} from "@/hooks/context/Context";
 import {useCreateFeedback} from "@/hooks/customHooks/useFeedbackHooks";
 import {FeedbackRequest} from "@/entites/request/FeedbackRequest";
@@ -11,14 +11,45 @@ type Prop = {
     onClose: () => void;
 };
 
+// =================== SENSITIVE WORD FILTER ===================
+const SENSITIVE_WORDS = [
+    "đm", "dmm", "dm",
+    "địt", "đụ",
+    "cặc", "lồn",
+    "vcl", "vl",
+    "đéo", "deo",
+    "cc", "chó"
+];
+
+function escapeRegExp(s: string) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function maskSensitiveWords(text: string) {
+    if (!text) return text;
+
+    const sorted = [...SENSITIVE_WORDS].sort((a, b) => b.length - a.length);
+    const pattern = new RegExp(
+        `(^|[^\\p{L}\\p{N}])(${sorted.map(escapeRegExp).join("|")})(?=[^\\p{L}\\p{N}]|$)`,
+        "giu"
+    );
+
+    return text.replace(pattern, (_m, p1) => `${p1}**`);
+}
+// =============================================================
+
 export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
     const [items, setItems] = useState<string[]>([]);
     const [inputValue, setInputValue] = useState("");
     const [isAnimating, setIsAnimating] = useState(false);
+
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Fix MUI Autocomplete tự "reset" input về option vừa chọn
+    const ignoreNextResetRef = useRef(false);
+
     const {tableId} = useTableContext();
     const {run} = useCreateFeedback();
-
 
     useEffect(() => {
         if (open) {
@@ -31,41 +62,28 @@ export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
 
     if (!open) return null;
 
-    const handleSubmit = async () => {
-        if (items.length === 0) {
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn?.classList.add('animate-shake');
-            setTimeout(() => submitBtn?.classList.remove('animate-shake'), 500);
-            return;
-        }
-
-
-        const content = items.join(", ");
-
-        const payload: FeedbackRequest = {
-            tableId,
-            complainNote: content,
-            title: " Phản hồi",
-        };
-
-        const ok = await run(payload);
-
-        setItems([]);
+    const clearInputAndFocus = () => {
+        ignoreNextResetRef.current = true;
         setInputValue("");
-        onClose();
+        setTimeout(() => {
+            ignoreNextResetRef.current = false;
+            inputRef.current?.focus();
+        }, 0);
     };
 
     const handleAddItem = (value: string) => {
-        const v = value.trim();
-        if (!v) return;
-        if (items.includes(v)) {
-            setInputValue("");
+        const vRaw = value.trim();
+        if (!vRaw) {
+            clearInputAndFocus();
             return;
         }
 
-        setItems(prev => [...prev, v]);
-        setInputValue("");
-        setTimeout(() => inputRef.current?.focus(), 0);
+        const v = maskSensitiveWords(vRaw);
+
+        // ✅ Chống x2 tuyệt đối (dù bị gọi 2 lần trong 1 tick)
+        setItems(prev => (prev.includes(v) ? prev : [...prev, v]));
+
+        clearInputAndFocus();
     };
 
     const handleRemoveItem = (idx: number) => {
@@ -73,25 +91,48 @@ export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
         setTimeout(() => inputRef.current?.focus(), 0);
     };
 
+    const handleSubmit = async () => {
+        if (items.length === 0) {
+            const submitBtn = document.getElementById("submit-btn");
+            submitBtn?.classList.add("animate-shake");
+            setTimeout(() => submitBtn?.classList.remove("animate-shake"), 500);
+            return;
+        }
+
+        const content = maskSensitiveWords(items.join(", "));
+
+        const payload: FeedbackRequest = {
+            tableId,
+            complainNote: content,
+            title: " Phản hồi",
+        };
+
+        await run(payload);
+
+        setItems([]);
+        setInputValue("");
+        onClose();
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-            {/* Overlay with animation */}
+            {/* Overlay */}
             <div
                 className={`absolute inset-0 bg-gradient-to-br from-black/60 to-black/40 backdrop-blur-sm transition-opacity duration-300 ${
-                    isAnimating ? 'opacity-100' : 'opacity-0'
+                    isAnimating ? "opacity-100" : "opacity-0"
                 }`}
                 onClick={onClose}
             />
 
-            {/* Dialog with slide + scale animation */}
+            {/* Dialog */}
             <div
                 className={`relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-300 ${
                     isAnimating
-                        ? 'translate-y-0 sm:scale-100 opacity-100'
-                        : 'translate-y-full sm:translate-y-0 sm:scale-95 opacity-0'
+                        ? "translate-y-0 sm:scale-100 opacity-100"
+                        : "translate-y-full sm:translate-y-0 sm:scale-95 opacity-0"
                 }`}
             >
-                {/* Gradient Header */}
+                {/* Header */}
                 <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-5">
                     <div className="flex items-center justify-between text-white">
                         <div className="flex items-center gap-2">
@@ -115,8 +156,7 @@ export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
                     {/* Empty State */}
                     {items.length === 0 && (
                         <div className="text-center py-8 animate-fade-in">
-                            <div
-                                className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+                            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
                                 <Plus className="w-10 h-10 text-blue-600"/>
                             </div>
                             <p className="text-gray-600 font-medium">Chưa có yêu cầu nào</p>
@@ -124,7 +164,7 @@ export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
                         </div>
                     )}
 
-                    {/* Chips with stagger animation */}
+                    {/* Chips */}
                     {items.length > 0 && (
                         <div className="space-y-3 mb-6">
                             <div className="flex items-center justify-between">
@@ -150,24 +190,24 @@ export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
                                             onDelete={() => handleRemoveItem(idx)}
                                             variant="outlined"
                                             sx={{
-                                                borderRadius: '12px',
-                                                borderColor: '#3b82f6',
-                                                borderWidth: '2px',
-                                                color: '#1e40af',
+                                                borderRadius: "12px",
+                                                borderColor: "#3b82f6",
+                                                borderWidth: "2px",
+                                                color: "#1e40af",
                                                 fontWeight: 600,
-                                                fontSize: '0.875rem',
-                                                padding: '4px 8px',
-                                                transition: 'all 0.2s',
-                                                '&:hover': {
-                                                    borderColor: '#2563eb',
-                                                    backgroundColor: '#eff6ff',
-                                                    transform: 'translateY(-2px)',
-                                                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.15)',
+                                                fontSize: "0.875rem",
+                                                padding: "4px 8px",
+                                                transition: "all 0.2s",
+                                                "&:hover": {
+                                                    borderColor: "#2563eb",
+                                                    backgroundColor: "#eff6ff",
+                                                    transform: "translateY(-2px)",
+                                                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
                                                 },
-                                                '& .MuiChip-deleteIcon': {
-                                                    color: '#3b82f6',
-                                                    '&:hover': {
-                                                        color: '#1e40af',
+                                                "& .MuiChip-deleteIcon": {
+                                                    color: "#3b82f6",
+                                                    "&:hover": {
+                                                        color: "#1e40af",
                                                     },
                                                 },
                                             }}
@@ -183,24 +223,28 @@ export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
                         <label className="block text-sm font-semibold text-gray-700">
                             Thêm yêu cầu
                         </label>
+
                         <Autocomplete
                             freeSolo
                             openOnFocus
                             clearOnBlur={false}
                             options={top1000request.map(o => o.label)}
                             inputValue={inputValue}
-                            onInputChange={(_, v) => setInputValue(v)}
-                            onChange={(_, value) => {
-                                if (typeof value === "string") {
+                            onInputChange={(_, v, reason) => {
+                                // chặn MUI reset input về option vừa chọn
+                                if (ignoreNextResetRef.current && reason === "reset") return;
+                                setInputValue(maskSensitiveWords(v));
+                            }}
+                            onChange={(_, value, reason) => {
+                                // ✅ Chỉ add ở đây để tránh x2
+                                // - createOption: user gõ + Enter
+                                // - selectOption: chọn từ dropdown (click/Enter)
+                                if ((reason === "createOption" || reason === "selectOption") && typeof value === "string") {
                                     handleAddItem(value);
                                 }
                             }}
                             PopperComponent={(props) => (
-                                <Popper
-                                    {...props}
-                                    placement="bottom-start"
-                                    sx={{zIndex: 2000}}
-                                />
+                                <Popper {...props} placement="bottom-start" sx={{zIndex: 2000}}/>
                             )}
                             renderInput={(params) => (
                                 <TextField
@@ -208,26 +252,19 @@ export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
                                     inputRef={inputRef}
                                     placeholder="Gõ hoặc chọn từ gợi ý..."
                                     fullWidth
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            e.preventDefault();
-                                            handleAddItem(inputValue);
-                                        }
-                                    }}
+                                    // ❌ Bỏ onKeyDown Enter để tránh add lần 2
                                     sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '16px',
-                                            paddingY: '8px',
-                                            backgroundColor: '#f9fafb',
-                                            transition: 'all 0.2s',
-                                            '&:hover': {
-                                                backgroundColor: '#f3f4f6',
-                                            },
-                                            '&.Mui-focused': {
-                                                backgroundColor: 'white',
-                                                '& fieldset': {
-                                                    borderColor: '#3b82f6',
-                                                    borderWidth: '2px',
+                                        "& .MuiOutlinedInput-root": {
+                                            borderRadius: "16px",
+                                            paddingY: "8px",
+                                            backgroundColor: "#f9fafb",
+                                            transition: "all 0.2s",
+                                            "&:hover": {backgroundColor: "#f3f4f6"},
+                                            "&.Mui-focused": {
+                                                backgroundColor: "white",
+                                                "& fieldset": {
+                                                    borderColor: "#3b82f6",
+                                                    borderWidth: "2px",
                                                 },
                                             },
                                         },
@@ -235,13 +272,12 @@ export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
                                 />
                             )}
                         />
-                        <p className="text-xs text-gray-500">
-                            💡 Nhấn Enter để thêm nhanh
-                        </p>
+
+                        <p className="text-xs text-gray-500">💡 Nhấn Enter để thêm nhanh</p>
                     </div>
                 </div>
 
-                {/* Actions with gradient button */}
+                {/* Actions */}
                 <div className="px-6 py-5 bg-gray-50 border-t flex gap-3">
                     <button
                         onClick={onClose}
@@ -269,44 +305,21 @@ export const RequestDialog: React.FC<Prop> = ({open, onClose}) => {
 
             <style>{`
                 @keyframes fade-in {
-                    from {
-                        opacity: 0;
-                        transform: translateY(10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    from { opacity: 0; transform: translateY(10px); }
+                    to   { opacity: 1; transform: translateY(0); }
                 }
-
                 @keyframes scale-in {
-                    from {
-                        opacity: 0;
-                        transform: scale(0.8);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: scale(1);
-                    }
+                    from { opacity: 0; transform: scale(0.8); }
+                    to   { opacity: 1; transform: scale(1); }
                 }
-
                 @keyframes shake {
                     0%, 100% { transform: translateX(0); }
                     25% { transform: translateX(-10px); }
                     75% { transform: translateX(10px); }
                 }
-
-                .animate-fade-in {
-                    animation: fade-in 0.3s ease-out;
-                }
-
-                .animate-scale-in {
-                    animation: scale-in 0.3s ease-out backwards;
-                }
-
-                .animate-shake {
-                    animation: shake 0.3s ease-in-out;
-                }
+                .animate-fade-in { animation: fade-in 0.3s ease-out; }
+                .animate-scale-in { animation: scale-in 0.3s ease-out backwards; }
+                .animate-shake { animation: shake 0.3s ease-in-out; }
             `}</style>
         </div>
     );
