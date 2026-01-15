@@ -134,20 +134,20 @@ export const OrtherServicePage: React.FC = () => {
                                 Phản hồi của bạn
                             </h1>
                             <div className="mt-1 flex flex-wrap items-center gap-2">
-                <span
-                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-normal text-gray-700">
-                  <span className="h-2 w-2 rounded-full bg-amber-500"/>
-                  Chờ xử lý <span className="font-medium text-gray-900">{counts.pending}</span>
-                </span>
                                 <span
                                     className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-normal text-gray-700">
-                  <span className="h-2 w-2 rounded-full bg-emerald-600"/>
-                  Đã xử lý <span className="font-medium text-gray-900">{counts.done}</span>
-                </span>
+                                  <span className="h-2 w-2 rounded-full bg-amber-500"/>
+                                  Chờ xử lý <span className="font-medium text-gray-900">{counts.pending}</span>
+                                </span>
                                 <span
                                     className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-normal text-gray-700">
-                  Tổng <span className="font-medium text-gray-900">{counts.total}</span>
-                </span>
+                                      <span className="h-2 w-2 rounded-full bg-emerald-600"/>
+                                      Đã xử lý <span className="font-medium text-gray-900">{counts.done}</span>
+                                    </span>
+                                <span
+                                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-normal text-gray-700">
+                                      Tổng <span className="font-medium text-gray-900">{counts.total}</span>
+                                </span>
                             </div>
                         </div>
 
@@ -155,9 +155,9 @@ export const OrtherServicePage: React.FC = () => {
                             {refreshing && !initialLoading && (
                                 <span
                                     className="hidden sm:inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-normal text-gray-600">
-                  <span className="h-2 w-2 rounded-full bg-gray-400 animate-pulse"/>
-                  Đang cập nhật
-                </span>
+                                  <span className="h-2 w-2 rounded-full bg-gray-400 animate-pulse"/>
+                                  Đang cập nhật
+                                </span>
                             )}
                             <button
                                 type="button"
@@ -233,14 +233,14 @@ export const OrtherServicePage: React.FC = () => {
                                                 : "bg-emerald-50 text-emerald-800 border-emerald-200"
                                         }`}
                                     >
-                                                          <span
-                                                              className={`h-2 w-2 rounded-full ${pending ? "bg-amber-500" : "bg-emerald-600"}`}/>
+                                                        <span
+                                                            className={`h-2 w-2 rounded-full ${pending ? "bg-amber-500" : "bg-emerald-600"}`}/>
                                         {pending ? "Chưa xử lý" : "Đã xử lý"}
                                                         </span>
 
                                         <span className="text-xs text-gray-400 whitespace-nowrap">
-                                          {String(item?.createData ?? "")}
-                                        </span>
+                                                          {String(item?.createData ?? "")}
+                                                        </span>
                                     </div>
 
                                     <div className="mt-3">

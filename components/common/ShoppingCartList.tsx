@@ -351,13 +351,13 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
                                                     </h3>
 
                                                     <div className="mt-1 flex items-center gap-2">
-                            <span
-                                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                              {item.shc.size.name}
-                            </span>
+                                                        <span
+                                                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                                                          {item.shc.size.name}
+                                                        </span>
                                                         <span className="text-sm font-bold text-gray-700">
-                              {formatCurrency(item.shc.size.price)}
-                            </span>
+                                                          {formatCurrency(item.shc.size.price)}
+                                                        </span>
                                                     </div>
                                                 </div>
 
@@ -365,27 +365,25 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
                                                     onClick={() => initiateDelete(item.shc.id, item.shc.name)}
                                                     disabled={isRemoving === item.shc.id}
                                                     className="h-9 w-9 rounded-2xl grid place-items-center
-                                     text-gray-400 hover:text-red-600 hover:bg-red-50
-                                     border border-transparent hover:border-red-100
-                                     transition active:scale-[0.98] disabled:opacity-50"
+                                                             text-gray-400 hover:text-red-600 hover:bg-red-50
+                                                             border border-transparent hover:border-red-100
+                                                             transition active:scale-[0.98] disabled:opacity-50"
                                                     title="Xóa khỏi giỏ hàng"
                                                 >
                                                     <Trash2 className="w-4 h-4"/>
                                                 </button>
                                             </div>
 
-                                            {/* Qty */}
                                             <div className="mt-4 flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => handleQuantityChange(item, false)}
                                                         disabled={item.quantity <= 1}
                                                         className={`
-                              h-10 w-10 rounded-2xl border transition active:scale-95
-                              ${item.quantity <= 1
-                                                            ? "bg-gray-100 text-gray-300 border-gray-100 cursor-not-allowed"
+                                                                  h-10 w-10 rounded-2xl border transition active:scale-95
+                                                                  ${item.quantity <= 1 ? "bg-gray-100 text-gray-300 border-gray-100 cursor-not-allowed"
                                                             : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"}
-                            `}
+                                                                `}
                                                     >
                                                         <div className="flex items-center justify-center">
                                                             <Minus className="w-4 h-4"/>
@@ -413,23 +411,23 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
                                                             }
                                                         }}
                                                         className="
-                              w-14 h-10 rounded-2xl
-                              border border-gray-200
-                              text-center font-extrabold text-base text-gray-900
-                              focus:outline-none focus:ring-2 focus:ring-green-400
-                              transition
-                            "
+                                                                  w-14 h-10 rounded-2xl
+                                                                  border border-gray-200
+                                                                  text-center font-extrabold text-base text-gray-900
+                                                                  focus:outline-none focus:ring-2 focus:ring-green-400
+                                                                  transition
+                                                                "
                                                     />
 
                                                     <button
                                                         onClick={() => handleQuantityChange(item, true)}
                                                         disabled={item.quantity >= 20}
                                                         className={`
-                              h-10 w-10 rounded-2xl transition active:scale-95
-                              ${item.quantity >= 20
+                                                                      h-10 w-10 rounded-2xl transition active:scale-95
+                                                                      ${item.quantity >= 20
                                                             ? "bg-green-200 text-white cursor-not-allowed opacity-60"
                                                             : "bg-green-600 hover:bg-green-700 text-white shadow-sm"}
-                            `}
+                                                                    `}
                                                     >
                                                         <div className="flex items-center justify-center">
                                                             <Plus className="w-4 h-4"/>
@@ -457,7 +455,6 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
                                     </div>
                                 </div>
 
-                                {/* Toppings */}
                                 {item.shc.toppings.length > 0 && (
                                     <div className="px-4 pb-4">
                                         <div className="border-t border-gray-100 pt-3">
@@ -477,7 +474,6 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
                                     </div>
                                 )}
 
-                                {/* Item total */}
                                 <div className="bg-gray-50 px-4 py-3 border-t border-gray-100">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-bold text-gray-600">Tổng món này</span>
@@ -490,7 +486,6 @@ export const ShoppingCartList: React.FC<Props> = ({onChange}) => {
                         ))}
                 </div>
 
-                {/* Footer */}
                 <div className="fixed bottom-0 left-0 right-0 z-20">
                     <div className="bg-white/95 backdrop-blur border-t border-gray-200">
                         <div className="px-4 py-4 space-y-3">
@@ -543,12 +538,12 @@ const ActionButtons: React.FC<{ handle: () => void }> = ({handle}) => {
             <button
                 onClick={handle}
                 className="
-          flex-1 h-12 rounded-2xl
-          bg-green-600 text-white font-extrabold
-          hover:bg-green-700 active:scale-[0.99]
-          transition shadow-lg shadow-green-600/20
-          flex items-center justify-center gap-2
-        "
+                          flex-1 h-12 rounded-2xl
+                          bg-green-600 text-white font-extrabold
+                          hover:bg-green-700 active:scale-[0.99]
+                          transition shadow-lg shadow-green-600/20
+                          flex items-center justify-center gap-2
+                        "
             >
                 <ShoppingBag className="w-5 h-5"/>
                 Gọi Món

@@ -78,7 +78,6 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
     const router = useRouter();
 
 
-    console.log(orderId)
 
     useEffect(() => {
         try {
@@ -166,7 +165,6 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
             const newOrderId = orderRes.data.id;
             if (createErro.status !== 200) {
                 setError("Không thể gọi món");
-                console.log(error)
             }
             setCurrentOrderId(newOrderId);
             return newOrderId;
@@ -192,7 +190,6 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
 
         try {
             const orderIdToUse = await createOrderIfNeeded();
-            console.log(orderIdToUse)
             if (!orderIdToUse) {
                 return;
             }
@@ -220,7 +217,6 @@ export const Payment: React.FC<PaymentProps> = ({id, isOpen, onClose, onSave, or
             onClose();
             router.forward();
         } catch (error: any) {
-            console.error('Payment error:', error);
             showAlert(
                 'Lỗi hệ thống',
                 error?.message || 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và thử lại.',

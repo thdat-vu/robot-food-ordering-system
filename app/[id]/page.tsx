@@ -111,8 +111,6 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
                 }
 
                 const targetUrl = `${ENDPOINT}/${id}`;
-                console.log('WebView detected, redirecting to browser:', targetUrl);
-
                 openInBrowser(targetUrl);
                 setHasRedirected(true);
 
@@ -146,7 +144,6 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
             if (!storedToken) {
                 try {
                     const temp = await tokenAuthentic();
-                    console.log("New token:", temp);
 
                     if (temp) {
                         deviceTokenContext.setDeviceToken(temp);
@@ -178,7 +175,6 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
         hasFetchedRef.current = true;
         setIsFetchingData(true);
 
-        console.log("Fetching table data...");
 
         try {
             let result: Table | ErroTable | Erro = await run(id, key);
@@ -191,14 +187,12 @@ export default function Home({params}: { params: Promise<{ id: string }> }) {
             }
 
             if (checkTable(result)) {
-                console.log(result);
                 setData(result as Table);
                 localStorage.removeItem(TABLE_STORE);
                 addProduction<Table>(TABLE_STORE, result as Table);
                 setErrlog(undefined);
                 setShouldShowErrorDialog(false);
                 setHasTableError(false);
-                console.log("Table loaded successfully:", result);
             } else if (result && typeof result === 'object' && 'status' in result && 'message' in result) {
                 const errorResult = result as ErroTable;
 
@@ -230,7 +224,6 @@ statusCode: string;
             }
 
         } catch (error) {
-            console.error('Error loading table data:', error);
             setErrlog({
                 title: "Lỗi",
                 status: false,
@@ -279,7 +272,6 @@ statusCode: string;
 
                     scannerRef.current.render(
                         (decodedText: string) => {
-                            console.log("QR Code scanned:", decodedText);
                             setScannedResult(decodedText);
 
                             if (scannerRef.current) {
@@ -314,7 +306,6 @@ statusCode: string;
 
     const handleQRCodeScanned = async (result: string) => {
         try {
-            console.log("Processing QR result:", result);
 
             const currentDeviceToken = deviceTokenContext.deviceToken;
 
@@ -339,7 +330,6 @@ statusCode: string;
                 shareUrl = `${result}?newDeviceId=${currentDeviceToken}`;
             }
 
-            console.log("Full share URL:", shareUrl);
 
             const response = await fetch(shareUrl, {
                 method: 'POST',
@@ -349,7 +339,6 @@ statusCode: string;
             });
 
             const responseData = await response.json();
-            console.log("API Response:", responseData);
 
             if (responseData.statusCode === 200 || responseData.statusCode === '200') {
                 setErrlog({
@@ -368,7 +357,6 @@ statusCode: string;
             }
 
         } catch (error: any) {
-            console.error("Error processing QR code:", error);
             setErrlog({
                 title: "Lỗi",
                 status: false,
@@ -437,7 +425,6 @@ statusCode: string;
             } else {
                 loadData();
                 skip();
-                // console.log(data)
                 // if (data as Erro) {
                 //     const d = data as Erro;
                 //     setErrlog({

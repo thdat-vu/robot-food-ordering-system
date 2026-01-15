@@ -48,8 +48,6 @@ export default function SuccessPageContent() {
             setLoading(true);
 
             const res: Table | ErroTable = await runGetTable(id, deviceToken);
-            console.log("SUCCESS API:", res);
-
             if (res && "id" in res) {
                 const t = res;
                 setTable(t.id, t.status, t.name);

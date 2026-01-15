@@ -15,7 +15,6 @@ export default function Page({params}: { params: Promise<{ tableId: string }> })
         if (!storedToken) {
             try {
                 const temp = await tokenAuthentic();
-                console.log(temp);
 
                 if (temp) {
                     setDeviceToken(temp);

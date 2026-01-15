@@ -29,7 +29,6 @@ export const GetTableForID = async (id: string, key: string): Promise<Table | Er
         const res = await api.get(`${API_TABLE}/${id}/scanQrCode/${key}`)
         return res.data.data;
     } catch (error) {
-        console.log(error);
         const err = error as AxiosError<Erro>;
         return err.response?.data as Erro;
     }

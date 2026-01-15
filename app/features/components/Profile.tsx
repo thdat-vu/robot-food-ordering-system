@@ -45,8 +45,6 @@ export default function Profile({id}: { id: string }) {
                 expireAt: string;
             }> = await runShareTable(tableId, deviceToken);
 
-            console.log("Share response:", res);
-
             if (res.statusCode == `200` || res.statusCode == "200") {
                 setQr(res.data.shareUrl);
                 setOpen(true);
@@ -65,15 +63,9 @@ export default function Profile({id}: { id: string }) {
             setIsChecking(true);
             const res: Table | ErroTable = await runGetTable(id, deviceToken);
 
-            console.log("Table check result:", res);
-
             if (!checkTable(res)) {
                 const errorResult = res as ErroTable;
-                console.log("Bàn không còn thuộc về bạn:", errorResult.message);
-
                 stopTableChecking();
-
-                // Redirect về home
                 router.push(`/${tableId}`);
                 return;
             }
@@ -81,7 +73,6 @@ export default function Profile({id}: { id: string }) {
             // Nếu là Table nhưng status không hợp lệ hoặc không khớp
             const tableResult = res as Table;
             if (tableResult.id !== id) {
-                console.log("Table ID không khớp, redirect về home");
                 stopTableChecking();
                 router.push(`${tableResult.id}`);
                 return;
@@ -91,8 +82,6 @@ export default function Profile({id}: { id: string }) {
             setTable(tableResult.id, tableResult.status, tableResult.name);
 
         } catch (error) {
-            console.error("Lỗi khi kiểm tra bàn:", error);
-            // Có thể redirect về home nếu gặp lỗi
             stopTableChecking();
             router.push(`/`);
         } finally {
@@ -114,8 +103,6 @@ export default function Profile({id}: { id: string }) {
         intervalRef.current = setInterval(() => {
             checkTableOwnership();
         }, 3000); // 3 giây
-
-        console.log("Bắt đầu kiểm tra bàn liên tục");
     };
 
     // Dừng kiểm tra bàn
@@ -123,7 +110,6 @@ export default function Profile({id}: { id: string }) {
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
-            console.log("Dừng kiểm tra bàn");
         }
     };
 
@@ -136,14 +122,11 @@ export default function Profile({id}: { id: string }) {
 
                     if (checkTable(res)) {
                         setTable(res.id, res.status, res.name);
-                        console.log("Loaded table:", res);
                     } else {
                         const errorResult = res as ErroTable;
-                        console.error("Error loading table:", errorResult.message);
                         router.push(`/${tableId}`);
                     }
                 } catch (error) {
-                    console.error("Fetch error:", error);
                     router.push(`/${tableId}`);
                 }
             })();

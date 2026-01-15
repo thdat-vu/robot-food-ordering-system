@@ -69,7 +69,6 @@ export function useSignalRTableMoved(tableId: string) {
     useEffect(() => {
         // Skip if tableId is invalid
         if (!tableId || tableId === 'default_id' || tableId.trim() === '') {
-            console.log('⚠️ useSignalRTableMoved: Invalid tableId, skipping SignalR connection');
             return;
         }
 
@@ -81,12 +80,10 @@ export function useSignalRTableMoved(tableId: string) {
                 // Load SignalR library dynamically
                 if (typeof window === 'undefined') return;
 
-                console.log('📦 Loading SignalR library...');
 
                 // Check if SignalR is already loaded
                 if (window.signalR) {
                     signalRRef.current = window.signalR;
-                    console.log('✅ SignalR library already loaded');
                 } else {
                     // Load from CDN
                     const script = document.createElement('script');
@@ -96,11 +93,9 @@ export function useSignalRTableMoved(tableId: string) {
                     await new Promise<void>((resolve, reject) => {
                         script.onload = () => {
                             signalRRef.current = window.signalR;
-                            console.log('✅ SignalR library loaded from CDN');
                             resolve();
                         };
                         script.onerror = () => {
-                            console.error('❌ Failed to load SignalR library');
                             reject(new Error('Failed to load SignalR'));
                         };
                         document.head.appendChild(script);
@@ -108,7 +103,6 @@ export function useSignalRTableMoved(tableId: string) {
                 }
 
                 if (!signalRRef.current || isUnmounted) {
-                    console.warn('⚠️ SignalR not available or component unmounted');
                     return;
                 }
 
@@ -132,9 +126,6 @@ export function useSignalRTableMoved(tableId: string) {
                 const baseUrl = getBaseUrl();
                 const hubUrl = `${baseUrl}/hubs/customer-table`;
 
-                console.log('🔌 Connecting to SignalR hub:', hubUrl);
-                console.log('📋 Current tableId:', tableId);
-
                 // Create connection
                 const builder = new signalRRef.current.HubConnectionBuilder();
                 const connection = builder
@@ -149,24 +140,13 @@ export function useSignalRTableMoved(tableId: string) {
 
                 // Listen for TableMoved event
                 connection.on('TableMoved', (notification: TableMovedNotification) => {
-                    console.log('🚚 TableMoved notification received:', notification);
-                    console.log('🚚 Full notification object:', JSON.stringify(notification, null, 2));
 
                     // Normalize IDs for comparison
                     const oldTableIdNormalized = normalizeTableId(notification.oldTableId);
                     const currentTableIdNormalized = normalizeTableId(tableId);
                     const newTableIdNormalized = normalizeTableId(notification.newTableId);
-
-                    console.log('🔍 Comparing IDs:');
-                    console.log('  - Notification oldTableId (raw):', notification.oldTableId);
-                    console.log('  - Notification oldTableId (normalized):', oldTableIdNormalized);
-                    console.log('  - Current tableId (raw):', tableId);
-                    console.log('  - Current tableId (normalized):', currentTableIdNormalized);
-                    console.log('  - Match:', oldTableIdNormalized === currentTableIdNormalized);
-
                     // Chỉ xử lý nếu notification là cho bàn hiện tại
                     if (oldTableIdNormalized === currentTableIdNormalized) {
-                        console.log(`✅ Table moved from ${notification.oldTableName} to ${notification.newTableName}`);
 
                         // Update table context
                         setTable(
@@ -214,7 +194,6 @@ export function useSignalRTableMoved(tableId: string) {
 
                 // Connection events
                 connection.onreconnected(() => {
-                    console.log('🔄 SignalR reconnected');
                     // Rejoin table group after reconnect
                     if (tableId) {
                         connection.invoke('JoinTableGroup', tableId).catch(console.error);
@@ -233,9 +212,6 @@ export function useSignalRTableMoved(tableId: string) {
                 connection.start()
                     .then(() => {
                         if (isUnmounted) return;
-                        console.log('✅ SignalR connected to CustomerTableHub');
-                        console.log('📋 Connection state:', connection.state);
-                        console.log('📋 Connection ID:', (connection as any).connectionId);
 
                         // Join table group
                         if (tableId && tableId !== 'default_id') {
@@ -243,7 +219,6 @@ export function useSignalRTableMoved(tableId: string) {
                             (async () => {
                                 await getTable(normalizedTableId);
                             })()
-                            console.log(`🔄 Joining table group: CustomerTable_${normalizedTableId}`);
                             return connection.invoke('JoinTableGroup', normalizedTableId);
                         } else {
                             console.warn('⚠️ TableId is empty or default, skipping join group');
@@ -259,12 +234,6 @@ export function useSignalRTableMoved(tableId: string) {
                             (async () => {
                                 await getTable(normalizedTableId);
                             })()
-
-
-                            console.log(localStorage.getItem(TABLE_STORE));
-                            console.log(`✅ Successfully joined table group: CustomerTable_${normalizedTableId}`);
-                            console.log('👂 Listening for TableMoved events...');
-                            console.log('📋 Waiting for notifications for table:', normalizedTableId);
                         }
                     })
                     .catch((err: Error) => {

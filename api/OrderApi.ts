@@ -8,11 +8,8 @@ import {PaymentRespont} from "@/entites/respont/Payment";
 
 export const createOrderApi = async (orderRequest: OrderRequest):
     Promise<BaseEntityData<OrderRespont>> => {
-
-    console.log(orderRequest)
     try {
         const res = await api.post(`${API_ORDERING}/handle`, orderRequest);
-        console.log(res)
         return res.data;
     } catch (e) {
         throw e;
@@ -22,7 +19,6 @@ export const createOrderApi = async (orderRequest: OrderRequest):
 export const GetOrderByIdAndTaibleId = async (id: string, idTable: string): Promise<BaseEntityData<OrderRespontGetByID>> => {
     try {
         const res = await api.get(`${API_ORDERING}/${id}/table/${idTable}`);
-        console.log(res)
         return res.data;
     } catch (e) {
         throw e;
@@ -32,11 +28,7 @@ export const GetOrderByIdAndTaibleId = async (id: string, idTable: string): Prom
 
 export const CreatePayment = async (id: string, paymentMethor: PaymentRequest): Promise<BaseEntityData<PaymentRespont>> => {
     try {
-        console.log(paymentMethor);
-        console.log(id);
-
         const res = await api.post(`${API_ORDERING}/${id}/pay`, paymentMethor);
-        console.log(res);
         return res.data;
     } catch (e) {
         throw e;

@@ -43,7 +43,7 @@ type Grouped = {
 };
 
 type GroupedWithKey = Grouped & {
-    __key: string; // ✅ key unique cho React
+    __key: string;
 };
 
 export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
@@ -52,15 +52,12 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
 
     const [orderData, setOrderData] = useState<OrderRespontGetByID | null>(null);
 
-    // ✅ chỉ loading full-screen lần đầu
     const [initialLoading, setInitialLoading] = useState<boolean>(true);
 
-    // ✅ background update nhẹ, không giật UI
     const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // ✅ Payment: chỉ mount khi mở
     const [isPaymentOpen, setIsPaymentOpen] = useState<boolean>(false);
     const [paymentOrderId, setPaymentOrderId] = useState<string>("");
 
@@ -82,14 +79,11 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const isMountedRef = useRef(true);
 
-    // so sánh data nhẹ để tránh JSON.stringify nặng
     const lastSigRef = useRef<string>("");
 
-    // cooldown gọi nhân viên/thanh toán (feedback)
     const cooldownRef = useRef<NodeJS.Timeout | null>(null);
     const [isCooldown, setIsCooldown] = useState(false);
 
-    // ===== Utils =====
     const getSizeShortName = (sizeName: string): string => {
         const s = (sizeName || "").toLowerCase();
         if (s.includes("large") || s.includes("lớn")) return "L";
@@ -142,7 +136,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
         }));
     }, [orderData]);
 
-    // ✅ luôn unique key cho React (né warning duplicate key)
     const grouped: GroupedWithKey[] = useMemo(() => {
         const base = groupedItems();
         const seen = new Map<string, number>();
@@ -157,7 +150,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
         setExpandedProducts((prev) => ({...prev, [key]: !prev[key]}));
     };
 
-    // ===== Load local storage =====
     useEffect(() => {
         const temp: Table[] = loadListFromLocalStorage(TABLE_STORE);
         if (temp?.length > 0) setIdTable(temp[0].id);
@@ -166,7 +158,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
         if (tokenValue) setToken(tokenValue);
     }, []);
 
-    // ===== Load payment setting =====
     useEffect(() => {
         (async () => {
             try {
@@ -178,10 +169,9 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
         })();
     }, [runSetting]);
 
-    // ===== Fetch Order =====
     const fetchOrderData = useCallback(
         async (isBackgroundUpdate = false) => {
-            if (!idTable || !token) return;
+           if (!idTable || !token) return;
 
             if (isBackgroundUpdate) setIsUpdating(true);
 
@@ -205,31 +195,33 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
                 setIsUpdating(false);
             }
         },
-        [idTable, token, runGet, handleChange]
+        [idTable, token, handleChange]
     );
 
-    // first load
     useEffect(() => {
-        if (idTable && token) fetchOrderData(false);
-    }, [idTable, token, fetchOrderData]);
 
-    // polling (không phụ thuộc orderData để tránh reset interval liên tục)
+        if (idTable && token) fetchOrderData(false);
+
+    }, [idTable, token]);
+
     useEffect(() => {
+
         if (intervalRef.current) clearInterval(intervalRef.current);
 
         if (idTable && token) {
             intervalRef.current = setInterval(() => {
                 fetchOrderData(true);
-            }, 3000);
+                console.log()
+            }, 10000);
         }
 
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
             intervalRef.current = null;
         };
-    }, [idTable, token, fetchOrderData]);
 
-    // mount/unmount
+    }, [idTable, token]);
+
     useEffect(() => {
         isMountedRef.current = true;
         return () => {
@@ -247,14 +239,12 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
 
     const handleGoBack = () => router.back();
 
-    // ✅ MỞ PAYMENT: set orderId 1 lần, tránh polling làm Payment spam
     const openPayment = () => {
         if (!orderData?.id) return;
         setPaymentOrderId(orderData.id);
         setIsPaymentOpen(true);
     };
 
-    // gọi nhân viên thanh toán (feedback) — giữ nguyên logic của bạn
     const callStaffPayment = async () => {
         if (isCooldown) {
             setDialogData({status: false, text: "Vui lòng chờ 30 giây trước khi gọi lại"});
@@ -283,7 +273,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
         }
     };
 
-    // ===== UI =====
     if (initialLoading) {
         return (
             <div
@@ -339,7 +328,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
     }
 
     const showStaffPaymentButton = orderData.paymentStatus !== "Paid" && paymentmeth === 2;
-    // Nếu bạn muốn bật Payment UI (VNPay) khi paymentmeth === 1:
     const showOnlinePaymentButton = orderData.paymentStatus !== "Paid" && paymentmeth === 1;
 
     return (
@@ -383,7 +371,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
                                 </p>
                             </div>
 
-                            {/* ✅ 3 case */}
                             {showOnlinePaymentButton ? (
                                 <button
                                     onClick={openPayment}
@@ -412,7 +399,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
                         </div>
                     </div>
 
-                    {/* List */}
                     <div className="p-3 sm:p-4 bg-green-50 border-b border-green-100">
                         <div className="flex items-center gap-2 mb-3 sm:mb-4">
                             <div
@@ -436,7 +422,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
                                         <div
                                             className="bg-white border border-green-100 rounded-2xl p-3 sm:p-4 hover:shadow-md hover:border-green-300 transition-all">
                                             <div className="flex gap-2 sm:gap-3">
-                                                {/* image */}
                                                 <div className="relative flex-shrink-0">
                                                     <div
                                                         className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-green-100">
@@ -477,10 +462,10 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
                                                     </div>
 
                                                     <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                            <span
-                                className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-green-100 text-green-700 rounded-lg text-xs sm:text-sm font-bold">
-                              {getSizeShortName(item.sizeName)}
-                            </span>
+                                                        <span
+                                                            className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-green-100 text-green-700 rounded-lg text-xs sm:text-sm font-bold">
+                                                          {getSizeShortName(item.sizeName)}
+                                                        </span>
                                                         <OrderStatus status={item.status}/>
                                                     </div>
 
@@ -498,7 +483,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
                                                         </div>
                                                     )}
 
-                                                    {/* Toppings */}
                                                     {item.toppings && item.toppings.length > 0 && (
                                                         <div
                                                             className="p-2 bg-green-50 border border-green-200 rounded-xl">
@@ -509,23 +493,23 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
                                                             <div className="space-y-1.5">
                                                                 {item.toppings.map((topping, idx) => (
                                                                     <div
-                                                                        key={`${topping.id}-${idx}`} // ✅ né trùng id
+                                                                        key={`${topping.id}-${idx}`}
                                                                         className="flex items-center justify-between bg-white rounded-lg p-1.5 sm:p-2"
                                                                     >
-                                    <span className="text-xs sm:text-sm font-medium text-green-700">
-                                      {topping.name}
-                                    </span>
+                                                                        <span
+                                                                            className="text-xs sm:text-sm font-medium text-green-700">
+                                                                          {topping.name}
+                                                                        </span>
                                                                         <span
                                                                             className="text-xs sm:text-sm font-bold text-green-900">
-                                      {formatCurrency(topping.price)}
-                                    </span>
+                                                                          {formatCurrency(topping.price)}
+                                                                        </span>
                                                                     </div>
                                                                 ))}
                                                             </div>
                                                         </div>
                                                     )}
 
-                                                    {/* Expanded list */}
                                                     {isExpanded && group.items.length > 1 && (
                                                         <div
                                                             className="mt-3 p-2 bg-white rounded-xl border border-gray-100">
@@ -535,12 +519,13 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
                                                             <div className="space-y-2">
                                                                 {group.items.map((it, idx) => (
                                                                     <div
-                                                                        key={`${it.id}-${idx}`} // ✅ né trùng id item
+                                                                        key={`${it.id}-${idx}`}
                                                                         className="flex items-center justify-between text-xs sm:text-sm bg-gray-50 rounded-lg px-2 py-2"
                                                                     >
-                                    <span className="text-gray-700 font-medium truncate pr-2">
-                                      #{idx + 1} • {it.productName} • {getSizeShortName(it.sizeName)}
-                                    </span>
+                                                                        <span
+                                                                            className="text-gray-700 font-medium truncate pr-2">
+                                                                          #{idx + 1} • {it.productName} • {getSizeShortName(it.sizeName)}
+                                                                        </span>
                                                                         <OrderStatus status={it.status}/>
                                                                     </div>
                                                                 ))}
@@ -573,7 +558,6 @@ export const OrderDisplay = ({handleChange}: OrderDisplayProps) => {
                 </div>
             </div>
 
-            {/* ✅ FIX QUAN TRỌNG: chỉ mount Payment khi mở */}
             {isPaymentOpen && paymentOrderId && (
                 <Payment
                     id=""

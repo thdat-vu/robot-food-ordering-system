@@ -15,7 +15,6 @@ export const OrderList: React.FC<{ id: string }> = ({id}) => {
     const [count, setCount] = useState<number>(0);
     const {tableName} = useTableContext();
 
-
     return (
         <>
             <div className="w-full bg-white text-black shadow-sm fixed top-0 left-0 z-50">

@@ -14,14 +14,6 @@ export const CreateFeedback = async (feedback: FeedbackRequest): Promise<BaseEnt
 }
 
 export const CreateNewFeedback = async (tableId: string, orderItemId: string, rating: number, comment: string): Promise<BaseEntityData<string>> => {
-    console.log({
-        tableId,
-        orderItemId,
-        rating,
-        comment,
-        type: 0,
-    });
-
     const res = await api.post(`${api_feedback}`, {
         tableId,
         orderItemId,
