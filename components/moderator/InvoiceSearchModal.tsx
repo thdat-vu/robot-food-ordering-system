@@ -10,21 +10,50 @@ import { Star } from "lucide-react";
 interface InvoiceSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onShowToast?: (message: string, type: "success" | "error" | "warning") => void;
 }
 
-const InvoiceSearchModal: React.FC<InvoiceSearchModalProps> = ({ isOpen, onClose }) => {
+const InvoiceSearchModal: React.FC<InvoiceSearchModalProps> = ({ isOpen, onClose, onShowToast }) => {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [searchResult, setSearchResult] = useState<CustomerLatestInvoice | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Validate Vietnamese phone number format
+  const validatePhoneNumber = (phoneNumber: string): boolean => {
+    // Remove all spaces and special characters
+    const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+    
+    // Vietnamese phone number: 10 digits, starting with 0
+    const phoneRegex = /^0\d{9}$/;
+    
+    return phoneRegex.test(cleanPhone);
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    setValidationError(null);
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim()) return;
+    
+    if (!phone.trim()) {
+      setValidationError("Vui lòng nhập số điện thoại");
+      onShowToast?.("Vui lòng nhập số điện thoại", "warning");
+      return;
+    }
+
+    // Validate phone format
+    if (!validatePhoneNumber(phone)) {
+      setValidationError("Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số, bắt đầu bằng số 0");
+      onShowToast?.("Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số, bắt đầu bằng số 0", "error");
+      return;
+    }
 
     try {
       setLoading(true);
-      setError(null);
+      setValidationError(null);
       setSearchResult(null);
 
       const response = await tableService.getLatestInvoiceByPhone(phone);
@@ -32,10 +61,21 @@ const InvoiceSearchModal: React.FC<InvoiceSearchModalProps> = ({ isOpen, onClose
       if (response && response.data) {
         setSearchResult(response.data);
       } else {
-        setError("Không tìm thấy dữ liệu cho số điện thoại này.");
+        onShowToast?.("Không tìm thấy hóa đơn cho số điện thoại này.", "warning");
       }
     } catch (err: any) {
-      setError(err?.message || "Đã xảy ra lỗi khi tìm kiếm.");
+      console.error("Invoice search error:", err);
+      
+      // Handle different error types with toast notifications
+      if (err.message?.includes("404")) {
+        onShowToast?.("Không tìm thấy hóa đơn cho số điện thoại này.", "warning");
+      } else if (err.message?.includes("400")) {
+        onShowToast?.("Số điện thoại không hợp lệ. Vui lòng kiểm tra lại.", "error");
+      } else if (err.message?.includes("500")) {
+        onShowToast?.("Lỗi hệ thống. Vui lòng thử lại sau.", "error");
+      } else {
+        onShowToast?.("Đã xảy ra lỗi khi tìm kiếm. Vui lòng thử lại.", "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -76,11 +116,18 @@ const InvoiceSearchModal: React.FC<InvoiceSearchModalProps> = ({ isOpen, onClose
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
                 placeholder="Nhập số điện thoại khách hàng..."
-                className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                className={`w-full pl-12 pr-4 py-3 bg-white border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
+                  validationError ? "border-red-300 focus:ring-red-500" : "border-slate-200"
+                }`}
                 autoFocus
               />
+              {validationError && (
+                <div className="absolute left-0 -bottom-5 text-xs text-red-500 font-medium">
+                  {validationError}
+                </div>
+              )}
             </div>
             <button
               type="submit"
@@ -105,13 +152,12 @@ const InvoiceSearchModal: React.FC<InvoiceSearchModalProps> = ({ isOpen, onClose
             </div>
           )}
 
-          {error && !loading && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="bg-red-50 p-4 rounded-full mb-4">
-                <AlertCircle className="h-10 w-10 text-red-500" />
+          {!loading && !searchResult && (
+            <div className="flex flex-col items-center justify-center py-20 opacity-50">
+              <div className="bg-slate-200 p-6 rounded-full mb-4">
+                <FileText className="h-12 w-12 text-slate-400" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Không tìm thấy kết quả</h3>
-              <p className="text-slate-500 max-w-xs">{error}</p>
+              <p className="text-slate-500 font-medium">Kết quả tìm kiếm sẽ hiển thị tại đây</p>
             </div>
           )}
 
@@ -147,15 +193,6 @@ const InvoiceSearchModal: React.FC<InvoiceSearchModalProps> = ({ isOpen, onClose
                   <p className="text-slate-500 font-medium">Khách hàng chưa có hóa đơn nào.</p>
                 </div>
               )}
-            </div>
-          )}
-
-          {!searchResult && !loading && !error && (
-            <div className="flex flex-col items-center justify-center py-20 opacity-50">
-              <div className="bg-slate-200 p-6 rounded-full mb-4">
-                <FileText className="h-12 w-12 text-slate-400" />
-              </div>
-              <p className="text-slate-500 font-medium">Kết quả tìm kiếm sẽ hiển thị tại đây</p>
             </div>
           )}
         </div>

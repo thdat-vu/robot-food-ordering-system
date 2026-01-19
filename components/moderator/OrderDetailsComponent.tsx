@@ -21,7 +21,7 @@ const OrderDetailsComponent: React.FC<OrderDetailsComponentProps> = ({
   loading = false,
   error = null,
 }) => {
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [expandedRows, setExpandedRows] = React.useState<Set<number>>(new Set());
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount);
@@ -37,7 +37,32 @@ const OrderDetailsComponent: React.FC<OrderDetailsComponentProps> = ({
     setExpandedRows(newExpanded);
   };
 
-  // Using shared status badge utility
+  // Group items with same productName, unitPrice, status, and toppings
+  const groupedItems = React.useMemo(() => {
+    if (!orderItems) return [];
+
+    const groups: Record<string, OrderItemDetail> = {};
+
+    orderItems.forEach((item) => {
+      // Create a stable key for toppings
+      const toppingsKey = (item.toppings || [])
+        .map((t) => t.id || t.name)
+        .sort()
+        .join("|");
+
+      const key = `${item.productName}-${item.unitPrice}-${item.status}-${toppingsKey}`;
+
+      if (groups[key]) {
+        groups[key].quantity += item.quantity || 1;
+        groups[key].totalMoney += item.totalMoney;
+      } else {
+        // Deep clone or spread to avoid mutating original data
+        groups[key] = { ...item, quantity: item.quantity || 1 };
+      }
+    });
+
+    return Object.values(groups);
+  }, [orderItems]);
 
   // Loading State
   if (loading) {
@@ -140,12 +165,12 @@ const OrderDetailsComponent: React.FC<OrderDetailsComponentProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {orderItems.map((item, index) => {
+                {groupedItems.map((item, index) => {
                   const hasToppings = item.toppings && item.toppings.length > 0;
                   const isExpanded = expandedRows.has(index);
 
                   return (
-                    <React.Fragment key={item.orderItemId || index}>
+                    <React.Fragment key={index}>
                       <tr className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {hasToppings ? (
@@ -179,8 +204,8 @@ const OrderDetailsComponent: React.FC<OrderDetailsComponentProps> = ({
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-700 rounded-lg font-semibold text-sm">
-                            {item.quantity || 1}
+                          <span className="inline-flex items-center justify-center min-w-[32px] px-1 h-8 bg-blue-100 text-blue-700 rounded-lg font-semibold text-sm">
+                            {item.quantity}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right text-sm text-gray-700">

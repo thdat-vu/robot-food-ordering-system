@@ -1097,6 +1097,7 @@ const ModeratorScreen: React.FC = () => {
       <InvoiceSearchModal
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
+        onShowToast={addToast}
       />
     </div>
   );
