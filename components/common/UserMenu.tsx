@@ -121,13 +121,13 @@ export function UserMenu({ onProfile, profileHref = '/profile', className }: Use
             {userInfo?.email && <div className="text-xs text-gray-500">{userInfo.email}</div>}
             {userInfo?.roleName && <div className="text-xs text-gray-500">{userInfo.roleName}</div>}
           </div>
-          <button
+          {/* <button
             className="flex w-full items-center gap-2 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50"
             onClick={handleProfile}
           >
             <EditIcon />
             <span>Chỉnh sửa hồ sơ</span>
-          </button>
+          </button> */}
           <button
             className="flex w-full items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-gray-50"
             onClick={handleLogout}
