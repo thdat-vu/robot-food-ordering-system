@@ -123,9 +123,8 @@ export default function SingleTableOrderStatus({
                 className="p-1.5 rounded hover:bg-white/50 disabled:opacity-50 transition-colors"
               >
                 <RefreshCw
-                  className={`w-4 h-4 text-slate-600 ${
-                    isRefreshing ? "animate-spin" : ""
-                  }`}
+                  className={`w-4 h-4 text-slate-600 ${isRefreshing ? "animate-spin" : ""
+                    }`}
                 />
               </button>
             )}
@@ -252,9 +251,8 @@ function DetailRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between text-sm ${
-        highlight ? "font-medium" : ""
-      }`}
+      className={`flex items-center justify-between text-sm ${highlight ? "font-medium" : ""
+        }`}
     >
       <span className="text-slate-600">{label}</span>
       <span
