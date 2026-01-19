@@ -11,7 +11,6 @@ export const GetFeedbackByIdtable = async (
     try {
       // Có thể giữ log này nếu muốn, hoặc bỏ luôn cho sạch
       if (process.env.NODE_ENV === "development") {
-        console.log(`[FeedbackApi] Calling GET ${API_FEEDBACK}/${id}`);
       }
   
       const res = await apiClient.get<BaseEntityDataError<FeedbackgGetTableId[]>>(
@@ -44,10 +43,7 @@ export const GetFeedbackByIdtable = async (
   
       // 👇 Không dùng console.error nữa để tránh error đỏ trong console
       if (process.env.NODE_ENV === "development") {
-        console.warn(
-          `[FeedbackApi] (${statusCode ?? "NETWORK"}) for table ${id}:`,
-          backendMsg
-        );
+   
       }
   
       // Luôn trả về mảng rỗng + message để FE xử lý UI (toast / hiển thị “không có dữ liệu”)

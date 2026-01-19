@@ -86,7 +86,6 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       setTotalActivities(totalCount);
       setTotalPages(Math.max(1, Math.ceil(totalCount / limit)));
     } catch (err) {
-      console.error("Load activities error", err);
       setActivities([]);
       setTotalActivities(0);
       setTotalPages(1);

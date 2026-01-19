@@ -144,7 +144,6 @@ export default function ModeratorTableManagement() {
         hasPreviousPage: json.hasPreviousPage,
       }));
     } catch (err) {
-      console.error("Error fetching tables:", err);
       if (!silent) setError("Failed to load tables");
     } finally {
       if (!silent) setLoading(false);
@@ -165,9 +164,6 @@ export default function ModeratorTableManagement() {
   const fetchOrdersForTable = async (tableId: string) => {
     if (loadingOrders[tableId]) return;
     if (orderData[tableId] && orderData[tableId].length > 0) {
-      console.log(
-        `Orders for table ${tableId} already loaded, skipping fetch.`
-      );
       return;
     }
     try {
@@ -175,14 +171,12 @@ export default function ModeratorTableManagement() {
       const response = await fetch(`${API_BASE}/Order/table/${tableId}`);
       if (!response.ok) throw new Error("Failed to fetch orders");
       const orders = await response.json();
-      console.log(`Orders for table ${tableId}:`, orders.data);
 
       setOrderData((prev) => ({
         ...prev,
         [tableId]: orders?.data || [],
       }));
     } catch (err) {
-      console.error("Error fetching orders:", err);
       setOrderData((prev) => ({
         ...prev,
         [tableId]: [],
@@ -235,7 +229,6 @@ export default function ModeratorTableManagement() {
 
   const getNextStatus = (currentStatus: string | number): number => {
     const current = getStatusValue(currentStatus);
-    console.log("Current status value:", current);
     if (current === TableStatus.Available) {
       return TableStatus.Occupied; // Available → Occupied
     } else current === TableStatus.Occupied;
@@ -245,8 +238,6 @@ export default function ModeratorTableManagement() {
   const handleToggleStatus = (table: TableItem) => {
     const currentStatus = table.status;
     const newStatus = getNextStatus(currentStatus);
-
-    console.log(`Changing status from ${currentStatus} to ${newStatus}`);
 
     setPendingStatus((prev) => ({
       ...prev,
@@ -269,13 +260,8 @@ export default function ModeratorTableManagement() {
     const newStatus = pendingStatus[tableId];
 
     if (newStatus === undefined) {
-      console.error("No pending status found");
       return;
     }
-
-    console.log(
-      `Confirming status change for table: ${tableName} -> ${newStatus}`
-    );
 
     try {
       const response = await axios.put(`${API_BASE}/Table/${tableId}/status`, {
@@ -283,20 +269,12 @@ export default function ModeratorTableManagement() {
         reason: reason,
       });
 
-      console.log("API Response:", response.data);
-
       setData((prev) =>
         prev.map((item) =>
           item.id === tableId ? { ...item, status: newStatus.toString() } : item
         )
       );
-
-      console.log(`Status updated successfully for table: ${tableName}`);
     } catch (err: any) {
-      console.log(
-        "Error updating table status:",
-        err.response.data.errorMessage
-      );
       if (err) {
         // addToast(err.response.data.errorMessage, "error");
         addToast(err.response.data.errorMessage.toString(), "error");
@@ -391,24 +369,6 @@ export default function ModeratorTableManagement() {
     ? pendingStatus[selectedTableForOrders.id] ||
       getNextStatus(selectedTableForOrders.status)
     : "";
-
-  console.log("Selected table for orders:", selectedTableForOrders?.status);
-  console.log("Computed status:", computedStatus);
-
-  // SignalR connection
-  // useSignalR({
-  //     url: "https://be-robo.zd-dev.xyz/orderNotificationHub",
-  //     groupName: "Moderators",
-  //     hubMethods: {
-  //         OrderItemStatusChanged: (notification) => {
-  //             console.log("📩 Moderator nhận:", notification);
-  //             addToast(
-  //                 `Món ${notification.productName} (${notification.newStatus})`,
-  //                 "System notification"
-  //             );
-  //         }
-  //     }
-  // });
 
   // Mobile Card Component
   const TableCard = ({ table }: { table: TableItem }) => (

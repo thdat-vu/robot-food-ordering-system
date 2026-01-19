@@ -77,7 +77,6 @@ export const tableService = {
     }
 
     const json = await res.json();
-    console.log("🔍 RAW /TableActivity json:", json);
 
     const { items, totalCount } = normalizePaginated<any>(json);
 

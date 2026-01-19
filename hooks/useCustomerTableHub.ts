@@ -80,7 +80,6 @@ export function useCustomerTableHub(
 
     // Build hub URL từ environment config
     const hubUrl = getSignalRHubUrl('/hubs/customer-table');
-    console.log('🔌 Connecting to CustomerTableHub:', hubUrl);
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
@@ -94,38 +93,33 @@ export function useCustomerTableHub(
 
     // Event handlers
     connection.on('HandleOrderResponse', (response) => {
-      console.log('📦 HandleOrderResponse:', response);
       onHandleOrderResponse?.(response);
     });
 
     connection.on('GetOrdersByTableResponse', (response) => {
-      console.log('📋 GetOrdersByTableResponse:', response);
       onGetOrdersResponse?.(response);
     });
 
     connection.on('GetComplainsByTableResponse', (response) => {
-      console.log('📝 GetComplainsByTableResponse:', response);
       onGetComplainsResponse?.(response);
     });
 
     connection.on('ChangeTableResponse', (response) => {
-      console.log('🔄 ChangeTableResponse:', response);
       onChangeTableResponse?.(response);
     });
 
     // TableMoved notification từ OrderNotificationHub hoặc CustomerTableHub
     connection.on('TableMoved', (notification: TableMovedNotification) => {
-      console.log('🚚 TableMoved notification:', notification);
-      
+
       // Chỉ xử lý nếu notification là cho bàn hiện tại
       if (notification.oldTableId === currentTableId) {
         // Leave group bàn cũ và join group bàn mới
-        connection.invoke('LeaveTableGroup', notification.oldTableId).catch(console.error);
-        connection.invoke('JoinTableGroup', notification.newTableId).catch(console.error);
-        
+        connection.invoke('LeaveTableGroup', notification.oldTableId).catch(() => { });
+        connection.invoke('JoinTableGroup', notification.newTableId).catch(() => { });
+
         // Cập nhật current table ID
         setCurrentTableId(notification.newTableId);
-        
+
         // Call callback
         onTableMoved?.(notification);
       }
@@ -133,18 +127,16 @@ export function useCustomerTableHub(
 
     // Connection events
     connection.onreconnecting(() => {
-      console.log('🔄 Reconnecting to CustomerTableHub...');
+      // Reconnecting
     });
 
     connection.onreconnected(() => {
-      console.log('✅ Reconnected to CustomerTableHub');
       setIsConnected(true);
       // Rejoin table group
-      connection.invoke('JoinTableGroup', currentTableId).catch(console.error);
+      connection.invoke('JoinTableGroup', currentTableId).catch(() => { });
     });
 
     connection.onclose(() => {
-      console.log('⚠️ CustomerTableHub connection closed');
       setIsConnected(false);
     });
 
@@ -153,15 +145,12 @@ export function useCustomerTableHub(
       try {
         await connection.start();
         if (isUnmounted) return;
-        
-        console.log('✅ Connected to CustomerTableHub');
+
         setIsConnected(true);
-        
+
         // Join table group
         await connection.invoke('JoinTableGroup', currentTableId);
-        console.log(`✅ Joined table group: ${currentTableId}`);
       } catch (err) {
-        console.error('❌ CustomerTableHub connection error:', err);
         setIsConnected(false);
         // Retry after 2 minutes
         setTimeout(start, 120000);
@@ -187,7 +176,6 @@ export function useCustomerTableHub(
       try {
         return await connectionRef.current.invoke('HandleOrder', currentTableId, request);
       } catch (err) {
-        console.error('❌ HandleOrder error:', err);
         throw err;
       }
     } else {
@@ -205,7 +193,6 @@ export function useCustomerTableHub(
           endDate?.toISOString()
         );
       } catch (err) {
-        console.error('❌ GetOrdersByTable error:', err);
         throw err;
       }
     } else {
@@ -218,7 +205,6 @@ export function useCustomerTableHub(
       try {
         return await connectionRef.current.invoke('GetComplainsByTable', currentTableId, isCustomer);
       } catch (err) {
-        console.error('❌ GetComplainsByTable error:', err);
         throw err;
       }
     } else {
@@ -232,7 +218,6 @@ export function useCustomerTableHub(
         const request: MoveTableRequest = { newTableId, reason };
         return await connectionRef.current.invoke('ChangeTable', currentTableId, request);
       } catch (err) {
-        console.error('❌ ChangeTable error:', err);
         throw err;
       }
     } else {

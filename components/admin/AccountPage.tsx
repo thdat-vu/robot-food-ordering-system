@@ -32,23 +32,17 @@ export default function AccountPage() {
         setLoading(true);
         setError(null);
 
-        console.log("Fetching users for page:", page);
-
         // API expects PageNumber (capitalized)
         const res = await authsApi.getAllUsers({
           PageNumber: page,
           PageSize: pageSize,
         });
 
-        console.log("Full API Response:", res);
-        console.log("res.data:", res?.data);
-
         // Handle different response structures
         // Could be res.data or res.data.data
         let payload = res?.items ?? res?.items;
 
         const items = payload;
-        console.log("Items count:", items);
 
         const mapped: AccountRow[] = items.map((u: any) => ({
           id: u.employmentCode || u.email,
@@ -73,29 +67,13 @@ export default function AccountPage() {
         );
         const nextPage = Boolean(payload.hasNextPage ?? payload.HasNextPage);
 
-        console.log("Pagination info:", {
-          currentPage,
-          totPages,
-          totCount,
-          prevPage,
-          nextPage,
-        });
-
         setPageNumber(currentPage);
         setTotalPages(totPages);
         setTotalCount(totCount);
         setHasPrev(prevPage);
         setHasNext(nextPage);
-
-        console.log("Successfully loaded accounts");
       } catch (e: any) {
         setAccounts([]);
-        console.error("Fetch users error:", e);
-        console.error("Error details:", {
-          message: e?.message,
-          response: e?.response,
-          responseData: e?.response?.data,
-        });
 
         setError(
           e?.response?.data?.message ??
@@ -159,20 +137,17 @@ export default function AccountPage() {
   };
 
   const handleCreateAccount = async () => {
-    console.log("Creating account:", addAccountForm);
     setAddAccountModal(false);
     setAddAccountForm({ name: "", phone: "", email: "", role: "waiter" });
     await fetchUsers(pageNumber);
   };
 
   const handleSaveEdit = async () => {
-    console.log("Saving account:", editFormData);
     setEditAccountModal(false);
     await fetchUsers(pageNumber);
   };
 
   const handleConfirmDelete = async () => {
-    console.log("Deleting account:", selectedAccount);
     setDeleteAccountModal(false);
     await fetchUsers(pageNumber);
   };

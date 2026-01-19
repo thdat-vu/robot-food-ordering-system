@@ -54,9 +54,7 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
     try {
       const res = await ModeratorOrderApi.getProducts();
       setProducts(res.items);
-    } catch (error) {
-      console.error("Error loading products:", error);
-    }
+    } catch (error) {}
     setLoading(false);
   };
 
@@ -78,9 +76,7 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
       // ✅ tránh dính state cũ
       setSelectedSize(details.data.sizes?.[0] ?? null);
       setSelectedToppings([]);
-    } catch (error) {
-      console.error("Error loading product details:", error);
-    }
+    } catch (error) {}
     setLoading(false);
   };
 
@@ -169,7 +165,6 @@ const ModeratorOrderSystem: React.FC<ModeratorOrderSystemProps> = ({
       await ModeratorOrderApi.submitOrder(orderData);
       addToast("Bạn đã order tại bàn thành công!", "success");
     } catch (error) {
-      // console.error("Error submitting order:", error);
       addToast("Lỗi trong khi tạo Order", "error");
     }
     setLoading(false);

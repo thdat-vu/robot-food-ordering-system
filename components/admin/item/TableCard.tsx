@@ -17,7 +17,6 @@ export const TableCard: React.FC<Props> = ({ table, handle, onEdit }) => {
 
   // Safety check
   if (!table) {
-    console.error("TableCard: table prop is undefined");
     return null;
   }
 

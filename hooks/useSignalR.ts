@@ -49,9 +49,8 @@ export function useSignalR({ url, hubMethods = {}, groupName }: UseSignalROption
             await connectionRef.current.invoke("JoinTableGroup", groupName);
             break;
         }
-        console.log(`✅ Joined group: ${groupName}`);
       } catch (err) {
-        console.error("❌ JoinGroup Error:", err);
+        // Error handled silently
       }
     };
 
@@ -60,27 +59,22 @@ export function useSignalR({ url, hubMethods = {}, groupName }: UseSignalROption
         await connection.start();
         if (isUnmounted) return;
         setIsConnected(true);
-        console.log("✅ SignalR Connected");
         await joinGroup();
       } catch (err) {
-        console.error("❌ SignalR Connect Error:", err);
         setTimeout(start, 120000); // retry sau 2 phut
       }
     };
 
     // sự kiện khi reconnect thành công → join group lại
     connection.onreconnected(() => {
-      console.log("🔄 Reconnected");
       setIsConnected(true);
       joinGroup();
     });
 
     // sự kiện khi disconnect
     connection.onclose(() => {
-      console.log("⚠️ Connection closed");
       setIsConnected(false);
     });
-    console.count("useSignalR mount");
     start();
 
     return () => {
@@ -90,17 +84,15 @@ export function useSignalR({ url, hubMethods = {}, groupName }: UseSignalROption
       });
       connection.stop();
     };
-  }, [url,  groupName]);
+  }, [url, groupName]);
 
   const sendMessage = async (method: string, ...args: any[]) => {
     if (connectionRef.current && isConnected) {
       try {
         await connectionRef.current.invoke(method, ...args);
       } catch (err) {
-        console.error("❌ Send Error:", err);
+        // Error handled silently
       }
-    } else {
-      console.warn("⚠️ Cannot send, not connected");
     }
   };
 

@@ -27,8 +27,6 @@ export const tablesApi = {
   // Get table by ID
   async getTableById(tableId: string) {
     const response = await apiClient.get<ApiBaseResponse<ApiTableResponse>>(`/Table/${tableId}`);
-    console.log('Raw table response:', response);
-    console.log('Table response data:', response.data);
     return response.data;
   }
 }; 

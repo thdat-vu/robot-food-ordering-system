@@ -42,7 +42,6 @@ export function useKitchenOrders() {
       setOrders(orders);
       setIdMappings([]);
     } catch (err) {
-      console.error('Error fetching orders:', err);
       setError('Error fetching orders');
       // Fallback to mock data if API fails
       setOrders(MOCK_ORDERS);
@@ -62,7 +61,6 @@ export function useKitchenOrders() {
       setOrders(orders);
       setIdMappings([]);
     } catch (err) {
-      console.error('Error silently fetching orders:', err);
       // Don't set error for silent refresh to avoid UI disruption
     }
   }, []);
@@ -78,14 +76,11 @@ export function useKitchenOrders() {
     refreshDebounceTimeout.current = setTimeout(async () => {
       // If a refresh is already in progress, wait a bit more
       if (realtimeFetchInFlight.current) {
-        console.log('⏳ Refresh in progress, scheduling another refresh...');
         setTimeout(async () => {
           if (!realtimeFetchInFlight.current) {
             realtimeFetchInFlight.current = true;
             try {
-              console.log('🔄 Executing scheduled refresh...');
               await silentFetchOrders();
-              console.log('✅ Scheduled refresh completed');
             } finally {
               realtimeFetchInFlight.current = false;
             }
@@ -94,11 +89,9 @@ export function useKitchenOrders() {
         return;
       }
 
-      console.log('🔄 Triggering realtime refresh...');
       realtimeFetchInFlight.current = true;
       try {
         await silentFetchOrders();
-        console.log('✅ Realtime refresh completed');
       } finally {
         realtimeFetchInFlight.current = false;
       }
@@ -261,7 +254,6 @@ export function useKitchenOrders() {
       // Find the order to get its API ID
       const order = orders.find(o => o.id === orderId);
       if (!order) {
-        console.error('Order not found:', orderId);
         return;
       }
 
@@ -281,10 +273,7 @@ export function useKitchenOrders() {
         throw new Error(response.message || 'Failed to update order status');
       }
 
-      console.log('Order status updated successfully via API');
-
     } catch (err) {
-      console.error('Error updating order status:', err);
       // Revert the change if API call fails
       setOrders(prevOrders =>
         prevOrders.map(order =>
@@ -303,7 +292,6 @@ export function useKitchenOrders() {
       // Find the order to get its API ID
       const order = orders.find(o => o.id === orderId);
       if (!order) {
-        console.error('Order not found:', orderId);
         return;
       }
 
@@ -322,10 +310,7 @@ export function useKitchenOrders() {
         throw new Error(response.message || 'Failed to update order status');
       }
 
-      console.log('Order status updated successfully via API');
-
     } catch (err) {
-      console.error('Error updating order status:', err);
       // Revert the change if API call fails
       setOrders(prevOrders =>
         prevOrders.map(order =>
@@ -344,7 +329,6 @@ export function useKitchenOrders() {
       // Find the order to get its API ID
       const order = orders.find(o => o.id === orderId);
       if (!order) {
-        console.error('Order not found:', orderId);
         return;
       }
 
@@ -363,10 +347,7 @@ export function useKitchenOrders() {
         throw new Error(response.message || 'Failed to update order status');
       }
 
-      console.log('Redo request accepted successfully via API');
-
     } catch (err) {
-      console.error('Error accepting redo request:', err);
       // Revert the change if API call fails
       setOrders(prevOrders =>
         prevOrders.map(order =>
@@ -385,7 +366,6 @@ export function useKitchenOrders() {
       // Find the order to get its API ID
       const order = orders.find(o => o.id === orderId);
       if (!order) {
-        console.error('Order not found:', orderId);
         return;
       }
 
@@ -400,10 +380,7 @@ export function useKitchenOrders() {
         throw new Error(response.message || 'Failed to update order status');
       }
 
-      console.log('Redo request rejected successfully via API');
-
     } catch (err) {
-      console.error('Error rejecting redo request:', err);
       // Revert the change if API call fails
       setOrders(prevOrders =>
         prevOrders.map(order =>
@@ -421,7 +398,6 @@ export function useKitchenOrders() {
     try {
       const order = orders.find(o => o.id === orderId);
       if (!order) {
-        console.error('Order not found:', orderId);
         return;
       }
 
@@ -434,7 +410,6 @@ export function useKitchenOrders() {
         throw new Error(response.message || 'Failed to cancel order item');
       }
     } catch (err) {
-      console.error('Error cancelling order item:', err);
       // If failed, refetch to restore accurate state
       await fetchOrders();
       throw err;
