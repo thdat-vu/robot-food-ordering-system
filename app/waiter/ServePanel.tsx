@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapPin, RotateCcw, Loader2, Send, Package, CheckCircle } from "lucide-react";
+import {
+  MapPin,
+  RotateCcw,
+  Loader2,
+  Send,
+  Package,
+  CheckCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,30 +20,41 @@ import { toast } from "sonner";
 import { useQuickServe } from "@/hooks/use-quick-serve";
 import { RestaurantMap } from "@/features/restaurant-map/RestaurantMap";
 import { TABLE_POSITIONS } from "@/features/restaurant-map/constants";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 // Format time string to show only time (HH:mm:ss) - remove date
 const formatTimeOnly = (timeStr?: string | null): string => {
-  if (!timeStr) return '';
+  if (!timeStr) return "";
 
   // Try parsing format: "HH:mm:ss dd/MM/yyyy"
-  const match1 = timeStr.match(/^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/);
+  const match1 = timeStr.match(
+    /^(\d{2}):(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})$/
+  );
   if (match1) {
     return `${match1[1]}:${match1[2]}:${match1[3]}`;
   }
 
   // Try parsing format: "dd/MM/yyyy HH:mm:ss"
-  const match2 = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+  const match2 = timeStr.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/
+  );
   if (match2) {
-    const hours = match2[4].padStart(2, '0');
+    const hours = match2[4].padStart(2, "0");
     return `${hours}:${match2[5]}:${match2[6]}`;
   }
 
   // Try parsing as ISO date
   const parsed = new Date(timeStr);
   if (!Number.isNaN(parsed.getTime())) {
-    const pad = (value: number) => value.toString().padStart(2, '0');
-    return `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
+    const pad = (value: number) => value.toString().padStart(2, "0");
+    return `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(
+      parsed.getSeconds()
+    )}`;
   }
 
   return timeStr;
@@ -95,7 +113,11 @@ const MapPanel = ({
   const [showMap, setShowMap] = useState(false);
 
   React.useEffect(() => {
-    if (selectedTables.length > 0 || readyTables.length > 0 || servedTables.length > 0) {
+    if (
+      selectedTables.length > 0 ||
+      readyTables.length > 0 ||
+      servedTables.length > 0
+    ) {
       setShowMap(true);
     } else {
       setShowMap(false);
@@ -143,8 +165,18 @@ const MapPanel = ({
               className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 hover:shadow-lg transition-all"
               title="Xóa hết lựa chọn"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
               Xóa hết lựa chọn
             </button>
@@ -184,7 +216,9 @@ const MapPanel = ({
             <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
               <MapPin className="w-10 h-10 text-blue-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-3">Bản đồ nhà hàng</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-3">
+              Bản đồ nhà hàng
+            </h3>
             <p className="text-gray-600 leading-relaxed text-base">
               {selectedTables.length > 0
                 ? `Đang hiển thị đường đi cho bàn ${getSelectedTableNumbers()}`
@@ -218,8 +252,6 @@ const ServePanel: React.FC<ServePanelProps> = ({
   // Get dishes for current tab
   const dishesForTab = getDishesByStatus(activeTab);
 
-  console.log(dishesForTab);
-
   const normalizeCategory = (cat?: string) => {
     if (!cat) return "Khác";
     const c = cat.toLowerCase();
@@ -232,25 +264,25 @@ const ServePanel: React.FC<ServePanelProps> = ({
       return "Đồ Uống";
     if (c.includes("chính") || c.includes("main")) return "Món Chính";
     if (c.includes("tráng") || c.includes("dessert")) return "Tráng Miệng";
-    if (c.includes("phục vụ nhanh") || c.includes("quick")) return "Phục vụ nhanh";
+    if (c.includes("phục vụ nhanh") || c.includes("quick"))
+      return "Phục vụ nhanh";
     return "Khác";
   };
 
-  const categoryOrder = ["Đồ Uống", "Món Chính", "Tráng Miệng", "Phục vụ nhanh", "Khác"];
+  const categoryOrder = [
+    "Đồ Uống",
+    "Món Chính",
+    "Tráng Miệng",
+    "Phục vụ nhanh",
+    "Khác",
+  ];
 
   const sortedDishesForTab = [...dishesForTab].sort(
     (a, b) =>
       categoryOrder.indexOf(normalizeCategory(a.categoryName)) -
       categoryOrder.indexOf(normalizeCategory(b.categoryName))
   );
-  // console.log(
-  //   "DishesForTab:",
-  //   dishesForTab.map((d) => d.categoryName)
-  // );
-  // console.log(
-  //   "Normalized:",
-  //   dishesForTab.map((d) => normalizeCategory(d.categoryName))
-  // );
+
   const groupedDishes = React.useMemo(() => {
     const groups: Record<string, WaiterDish[]> = {};
     sortedDishesForTab.forEach((dish) => {
@@ -262,7 +294,12 @@ const ServePanel: React.FC<ServePanelProps> = ({
   }, [sortedDishesForTab]);
 
   // Quick-serve requests
-  const { requests, loading, fetchQuickRequestsForActiveTables, serveQuickRequest } = useQuickServe();
+  const {
+    requests,
+    loading,
+    fetchQuickRequestsForActiveTables,
+    serveQuickRequest,
+  } = useQuickServe();
 
   // Always fetch - regardless of product map ready state
   // Quick-serve refresh is handled within useQuickServe via SignalR
@@ -270,7 +307,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
   const allSelectedDishes = dishes.filter((dish) => dish.selected);
 
   // Get selected dishes for the current tab
-  const selectedDishes = dishes.filter((dish) => dish.selected && dish.status === activeTab);
+  const selectedDishes = dishes.filter(
+    (dish) => dish.selected && dish.status === activeTab
+  );
 
   // Get table numbers by status
   const tableNumbersByStatus = React.useMemo(() => {
@@ -279,10 +318,11 @@ const ServePanel: React.FC<ServePanelProps> = ({
     const readyTablesForColor = Array.from(
       new Set(
         dishes
-          .filter((dish) =>
-            dish.status === "bắt đầu phục vụ" ||
-            dish.status === "đang chờ" ||
-            dish.status === "đang thực hiện"
+          .filter(
+            (dish) =>
+              dish.status === "bắt đầu phục vụ" ||
+              dish.status === "đang chờ" ||
+              dish.status === "đang thực hiện"
           )
           .map((dish) => dish.tableNumber)
       )
@@ -306,15 +346,23 @@ const ServePanel: React.FC<ServePanelProps> = ({
           .filter((dish) => dish.status === "đã phục vụ")
           .map((dish) => dish.tableNumber)
       )
-    ).filter((tableNumber) => {
-      // Check if this table has any non-quick-serve dishes OR any non-served dishes
-      // If it only has served quick-serve items, it's a checked-out table
-      const tableDishes = dishes.filter((dish) => dish.tableNumber === tableNumber);
-      const hasNonQuickServeDish = tableDishes.some((dish) => !dish.isQuickServe);
-      const hasNonServedDish = tableDishes.some((dish) => dish.status !== "đã phục vụ");
-      // Show as yellow only if table has regular dishes or non-served items
-      return hasNonQuickServeDish || hasNonServedDish;
-    }).sort((a, b) => a - b);
+    )
+      .filter((tableNumber) => {
+        // Check if this table has any non-quick-serve dishes OR any non-served dishes
+        // If it only has served quick-serve items, it's a checked-out table
+        const tableDishes = dishes.filter(
+          (dish) => dish.tableNumber === tableNumber
+        );
+        const hasNonQuickServeDish = tableDishes.some(
+          (dish) => !dish.isQuickServe
+        );
+        const hasNonServedDish = tableDishes.some(
+          (dish) => dish.status !== "đã phục vụ"
+        );
+        // Show as yellow only if table has regular dishes or non-served items
+        return hasNonQuickServeDish || hasNonServedDish;
+      })
+      .sort((a, b) => a - b);
 
     // Get selected tables (red pathways) - multiple tables can be selected
     const selectedTables = Array.from(
@@ -330,7 +378,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
   }, [dishes, allSelectedDishes]);
 
   const selectedTableSequence = React.useMemo(() => {
-    const selectedTablesList = Array.from(new Set(allSelectedDishes.map(dish => dish.tableNumber)));
+    const selectedTablesList = Array.from(
+      new Set(allSelectedDishes.map((dish) => dish.tableNumber))
+    );
 
     if (selectedTablesList.length === 0) {
       return [];
@@ -340,7 +390,10 @@ const ServePanel: React.FC<ServePanelProps> = ({
     const staffPosition = { x: 90, y: 300 };
 
     // Calculate Euclidean distance between two positions
-    const calculateDistance = (pos1: { x: number; y: number }, pos2: { x: number; y: number }): number => {
+    const calculateDistance = (
+      pos1: { x: number; y: number },
+      pos2: { x: number; y: number }
+    ): number => {
       const dx = pos2.x - pos1.x;
       const dy = pos2.y - pos1.y;
       return Math.sqrt(dx * dx + dy * dy);
@@ -395,7 +448,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
         if (!tablePos) return;
 
         const distance = calculateDistance(currentPosition, tablePos);
-        const currentNearestPos = nearestTable ? TABLE_POSITIONS[nearestTable] : null;
+        const currentNearestPos = nearestTable
+          ? TABLE_POSITIONS[nearestTable]
+          : null;
 
         // If this table is closer, choose it
         if (distance < nearestDistance - TOLERANCE) {
@@ -447,7 +502,10 @@ const ServePanel: React.FC<ServePanelProps> = ({
     const staffPosition = { x: 90, y: 40 };
 
     // Calculate Euclidean distance between two positions
-    const calculateDistance = (pos1: { x: number; y: number }, pos2: { x: number; y: number }): number => {
+    const calculateDistance = (
+      pos1: { x: number; y: number },
+      pos2: { x: number; y: number }
+    ): number => {
       const dx = pos2.x - pos1.x;
       const dy = pos2.y - pos1.y;
       return Math.sqrt(dx * dx + dy * dy);
@@ -502,7 +560,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
         if (!tablePos) return;
 
         const distance = calculateDistance(currentPosition, tablePos);
-        const currentNearestPos = nearestTable ? TABLE_POSITIONS[nearestTable] : null;
+        const currentNearestPos = nearestTable
+          ? TABLE_POSITIONS[nearestTable]
+          : null;
 
         // If this table is closer, choose it
         if (distance < nearestDistance - TOLERANCE) {
@@ -653,7 +713,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
               readyTablesForCluster={tableNumbersByStatus.readyForCluster}
               servedTables={tableNumbersByStatus.served}
               selectedTables={tableNumbersByStatus.selected}
-              tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
+              tableSequence={
+                useRobotDelivery ? robotTableSequence : selectedTableSequence
+              }
               isRobotMode={useRobotDelivery}
               legacyMapUrl={mapUrl}
               dishes={dishes}
@@ -702,11 +764,25 @@ const ServePanel: React.FC<ServePanelProps> = ({
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <div className="flex items-center gap-1 text-[10px] sm:text-xs font-medium text-gray-500 cursor-help hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-50 flex-shrink-0">
-                                            <svg className="w-3 h-3 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            <svg
+                                              className="w-3 h-3 text-gray-500 flex-shrink-0"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M12 4v16m8-8H4"
+                                              />
                                             </svg>
-                                            <span className="text-gray-600 font-semibold hidden sm:inline">Tạo:</span>
-                                            <span className="text-gray-500">{formatTimeOnly(d.orderTime)}</span>
+                                            <span className="text-gray-600 font-semibold hidden sm:inline">
+                                              Tạo:
+                                            </span>
+                                            <span className="text-gray-500">
+                                              {formatTimeOnly(d.orderTime)}
+                                            </span>
                                           </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
@@ -718,11 +794,25 @@ const ServePanel: React.FC<ServePanelProps> = ({
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <div className="flex items-center gap-1 text-[10px] sm:text-xs font-medium text-emerald-600 cursor-help hover:text-emerald-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-emerald-50 flex-shrink-0">
-                                            <svg className="w-3 h-3 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            <svg
+                                              className="w-3 h-3 text-emerald-500 flex-shrink-0"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M5 13l4 4L19 7"
+                                              />
                                             </svg>
-                                            <span className="text-emerald-700 font-semibold hidden sm:inline">Ra món:</span>
-                                            <span className="text-emerald-600">{formatTimeOnly(d.readyTime)}</span>
+                                            <span className="text-emerald-700 font-semibold hidden sm:inline">
+                                              Ra món:
+                                            </span>
+                                            <span className="text-emerald-600">
+                                              {formatTimeOnly(d.readyTime)}
+                                            </span>
                                           </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
@@ -730,22 +820,37 @@ const ServePanel: React.FC<ServePanelProps> = ({
                                         </TooltipContent>
                                       </Tooltip>
                                     )}
-                                    {activeTab === "đã phục vụ" && d.servedTime && (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <div className="flex items-center gap-1 text-[10px] sm:text-xs font-medium text-green-600 cursor-help hover:text-green-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-green-50 flex-shrink-0">
-                                            <svg className="w-3 h-3 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            <span className="text-green-700 font-semibold hidden sm:inline">Đã phục vụ:</span>
-                                            <span className="text-green-600">{formatTimeOnly(d.servedTime)}</span>
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>Ngày giờ đã phục vụ</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    )}
+                                    {activeTab === "đã phục vụ" &&
+                                      d.servedTime && (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1 text-[10px] sm:text-xs font-medium text-green-600 cursor-help hover:text-green-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-green-50 flex-shrink-0">
+                                              <svg
+                                                className="w-3 h-3 text-green-500 flex-shrink-0"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
+                                              </svg>
+                                              <span className="text-green-700 font-semibold hidden sm:inline">
+                                                Đã phục vụ:
+                                              </span>
+                                              <span className="text-green-600">
+                                                {formatTimeOnly(d.servedTime)}
+                                              </span>
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Ngày giờ đã phục vụ</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )}
                                   </TooltipProvider>
                                 </div>
                                 {d.note && (
@@ -780,7 +885,11 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   readyTablesForCluster={tableNumbersByStatus.readyForCluster}
                   servedTables={tableNumbersByStatus.served}
                   selectedTables={tableNumbersByStatus.selected}
-                  tableSequence={useRobotDelivery ? robotTableSequence : selectedTableSequence}
+                  tableSequence={
+                    useRobotDelivery
+                      ? robotTableSequence
+                      : selectedTableSequence
+                  }
                   isRobotMode={useRobotDelivery}
                   dishes={dishes}
                   tableLastUpdateTimes={tableLastUpdateTimes}
@@ -799,15 +908,15 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   {activeTab === "đã phục vụ"
                     ? "Không có món nào đã phục vụ"
                     : (activeTab as OrderStatus) === "phục vụ nhanh"
-                      ? "Không có yêu cầu phục vụ nhanh"
-                      : `Không có món nào trong trạng thái "${activeTab}"`}
+                    ? "Không có yêu cầu phục vụ nhanh"
+                    : `Không có món nào trong trạng thái "${activeTab}"`}
                 </p>
                 <p className="text-gray-400 text-sm mt-2">
                   {activeTab === "đã phục vụ"
                     ? "Các món đã phục vụ sẽ hiển thị ở đây"
                     : (activeTab as OrderStatus) === "phục vụ nhanh"
-                      ? "Các yêu cầu phục vụ nhanh từ moderator sẽ hiển thị ở đây"
-                      : "Hãy chờ đợi hoặc chuyển sang tab khác"}
+                    ? "Các yêu cầu phục vụ nhanh từ moderator sẽ hiển thị ở đây"
+                    : "Hãy chờ đợi hoặc chuyển sang tab khác"}
                 </p>
               </div>
             </div>
@@ -815,22 +924,23 @@ const ServePanel: React.FC<ServePanelProps> = ({
         </div>
 
         {/* Show serve button for "bắt đầu phục vụ" and "phục vụ nhanh" tabs */}
-        {(activeTab === "bắt đầu phục vụ" || activeTab === "phục vụ nhanh") && hasSelected && (
-          <div className="w-full flex justify-center gap-4 mb-6">
-            <Button
-              onClick={handleServeClick}
-              className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-            >
-              {useRobotDelivery ? '🤖 Phục vụ bằng Robot' : '🚀 Phục vụ'}
-            </Button>
-            {/* <Button
+        {(activeTab === "bắt đầu phục vụ" || activeTab === "phục vụ nhanh") &&
+          hasSelected && (
+            <div className="w-full flex justify-center gap-4 mb-6">
+              <Button
+                onClick={handleServeClick}
+                className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              >
+                {useRobotDelivery ? "🤖 Phục vụ bằng Robot" : "🚀 Phục vụ"}
+              </Button>
+              {/* <Button
               onClick={() => setShowRemakeConfirmation(true)}
               className="px-8 py-4 text-lg rounded-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
               🔄 Yêu cầu làm lại
             </Button> */}
-          </div>
-        )}
+            </div>
+          )}
 
         {/* Remake confirmation modal removed; now located in DishList */}
 
@@ -906,8 +1016,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
               Yêu cầu phục vụ nhanh ({dishesForTab.length})
             </h3>
             <p className="text-purple-700 leading-relaxed">
-              Các yêu cầu phục vụ nhanh từ khách hàng (ví dụ: thêm nước mắm, nước tương).
-              Vui lòng phục vụ ngay và đánh dấu đã xử lý sau khi hoàn thành.
+              Các yêu cầu phục vụ nhanh từ khách hàng (ví dụ: thêm nước mắm,
+              nước tương). Vui lòng phục vụ ngay và đánh dấu đã xử lý sau khi
+              hoàn thành.
             </p>
           </div>
         )}

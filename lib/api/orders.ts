@@ -161,8 +161,6 @@ export const ordersApi = {
 
     // NEW: Get orders by table ID with Delivering status (for payment)
     async getOrdersByTableIdWithStatus(tableId: string, status: string) {
-        console.log("------------------------------------");
-        console.log(status);
         const response = await apiClient.get<ApiBaseResponse<ApiOrderResponse[]>>(`/Order/table/${tableId}/status/${status}`);
         return response.data;
     },

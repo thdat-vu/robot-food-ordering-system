@@ -131,8 +131,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
 
       setData(sorted);
     } catch (error: any) {
-      console.error("Error fetching feedback:", error);
-
       const errorMessage =
         error?.response?.data?.errorMessage ||
         error?.response?.data?.message ||
@@ -198,7 +196,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
 
       addToast(`Đã đánh dấu ${listId.length} phản hồi là đã xử lý`, "success");
     } catch (error) {
-      console.error("Error checking feedbacks:", error);
       addToast(
         "Có lỗi xảy ra khi đánh dấu phản hồi. Vui lòng thử lại.",
         "error"
@@ -242,7 +239,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
 
       addToast("Đã xử lý phản hồi", "success");
     } catch (error) {
-      console.error("Error checking single feedback:", error);
       addToast("Có lỗi xảy ra khi xử lý phản hồi", "error");
     } finally {
       setIsChecking(false);
@@ -345,12 +341,8 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
     const matchesAction = quickActions.some((action) => text.includes(action));
     const matchesItem = quickItems.some((item) => text.includes(item));
 
-    // Đặc biệt ưu tiên các câu bắt đầu bằng "thêm" hoặc chứa từ khóa nhạy cảm
-    return (
-      (matchesAction && matchesItem) ||
-      text.includes("gấp") ||
-      text.includes("ngay")
-    );
+    // Bắt buộc phải có cả hành động (thêm/cho/xin...) VÀ đồ vật (tương/ớt/khăn...)
+    return matchesAction && matchesItem;
   };
 
   // 👉 Đã gửi yêu cầu nhanh trước đó chưa
@@ -414,9 +406,6 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
 
   const pendingCount = data.filter((item) => item.isPending).length;
   const processedCount = data.filter((item) => !item.isPending).length;
-
-  console.log("filteredData", filteredData);
-  console.log("data", data);
 
   // 👉 Những phản hồi pending mà cho phép chọn (không phải yêu cầu nhanh)
   const selectablePendingIds = filteredData

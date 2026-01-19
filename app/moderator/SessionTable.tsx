@@ -42,9 +42,6 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
         });
 
         setSessions(response.items || []);
-        // setTotalPages(response.to || 0);
-        // setTotalRecords(response.totalRecords || 0);
-        console.log("Fetched sessions by table :", response.items);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
         // Use sample data as fallback for demo

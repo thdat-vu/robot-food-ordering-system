@@ -35,7 +35,6 @@ export default function AdminDashboard() {
         if (stored) {
           setUser(JSON.parse(stored) as DecodedToken);
         }
-        console.log("user info from local storage:");
         if (!mounted) return;
         setPaymentMethod(policy === "Prepay" ? "prepay" : "postpay");
       } finally {

@@ -91,16 +91,12 @@ export function useQuickServe() {
 
       setServedRequests(mapped);
     } catch (err) {
-      console.warn('[QuickServe] Failed to fetch served items', err);
+      // Error handled silently
     }
   }, [apiBaseUrl]);
 
   const serveQuickRequest = useCallback(async (req: QuickRequest) => {
-    console.log('[QuickServe] Serving quick item:', req.itemName, 'for table:', req.tableName);
-
     await axios.post(`${apiBaseUrl}/Complain/QuickServe/serve/${req.id}`);
-
-    console.log('[QuickServe] Marked quick-serve item as served:', req.id);
   }, [apiBaseUrl]);
 
   const triggerRealtimeRefresh = useCallback(async () => {

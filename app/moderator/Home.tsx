@@ -57,11 +57,9 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE}/Table/${idTable}`);
-      console.log("Table data:", response.data);
       setTableData(response.data);
       setQrImageError(false);
     } catch (error: any) {
-      console.error("Error fetching table:", error);
       addToast(
         error?.response?.data?.errorMessage || "Không thể tải thông tin bàn",
         "error"
@@ -81,12 +79,9 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
       );
       if (!response.ok) throw new Error("Failed to fetch orders");
       const orders = await response.json();
-      console.log("================= fix 07/01/2026========================");
-      console.log(`Orders for table ${idTable}: `, orders.data);
 
       setOrderData(orders?.data || []);
     } catch (err) {
-      console.error("Error fetching orders:", err);
       setOrderData([]);
     } finally {
       setLoadingOrders(false);
@@ -133,8 +128,6 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
     const currentStatus = tableData.status;
     const newStatus = getNextStatus(currentStatus);
 
-    console.log(`Changing status from ${currentStatus} to ${newStatus}`);
-
     setPendingStatus(newStatus);
 
     // Fetch orders if not already loaded
@@ -151,10 +144,6 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
     const { id: tableId, name: tableName } = tableData;
     const newStatus = pendingStatus;
 
-    console.log(
-      `Confirming status change for table: ${tableName} -> ${newStatus}`
-    );
-
     try {
       setActionLoading(true);
 
@@ -163,16 +152,11 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
         reason: reason,
       });
 
-      console.log("API Response:", response.data);
-
       // Update local state
       setTableData((prev) => (prev ? { ...prev, status: newStatus } : null));
 
       addToast(`Đã cập nhật trạng thái bàn ${tableName} thành công`, "success");
-
-      console.log(`Status updated successfully for table: ${tableName}`);
     } catch (err: any) {
-      console.error("Error updating table status:", err);
       const errorMessage =
         err?.response?.data?.errorMessage ||
         "Không thể cập nhật trạng thái bàn";
@@ -212,14 +196,6 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
       setActionLoading(true);
 
       // ⚠️ MOCK - Fake API call
-      console.warn("⚠️ Block feature is MOCKED - no real API call");
-      console.log(
-        `Mock ${willBeBlocked ? "blocking" : "unblocking"} table ${idTable}`,
-        {
-          reason: reason || "No reason provided",
-        }
-      );
-
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       setTableData((prev) =>
@@ -236,8 +212,6 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
       setShowReasonDialog(false);
       setBlockReason("");
     } catch (error: any) {
-      console.error("Error toggling block:", error);
-
       const errorMessage =
         error?.response?.data?.errorMessage ||
         error?.response?.data?.message ||
@@ -279,7 +253,6 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
       window.URL.revokeObjectURL(blobUrl);
       addToast("Đã tải xuống mã QR", "success");
     } catch (error) {
-      console.error("Error downloading QR:", error);
       addToast("Không thể tải xuống mã QR", "error");
     }
   };

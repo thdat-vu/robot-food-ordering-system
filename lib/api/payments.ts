@@ -1,6 +1,6 @@
 import apiClient from '../axios';
 import api from "@/api/api";
-import {API_PAYMENT} from "@/api-endpoint-env";
+import { API_PAYMENT } from "@/api-endpoint-env";
 
 export interface PaymentCreateRequest {
     moneyUnit?: string;
@@ -63,6 +63,6 @@ export const Payment = async (orderId: string): Promise<any> => {
         });
         return res.data;
     } catch (err) {
-        console.log(err);
+        // Error handled silently
     }
 }
