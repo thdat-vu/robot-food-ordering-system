@@ -30,6 +30,16 @@ export const ActivityTypeBadge: React.FC<ActivityTypeBadgeProps> = ({
       label: "Cập nhật món",
       className: "bg-amber-100 text-amber-700",
     },
+    CancelOrderItem: {
+      icon: Package,
+      label: "Huỷ món",
+      className: "bg-red-100 text-red-700",
+    },
+    RemakeOrderItem: {
+      icon: Package,
+      label: "Làm lại món",
+      className: "bg-purple-100 text-purple-700",
+    },
   };
 
   const config = configs[type] ?? {

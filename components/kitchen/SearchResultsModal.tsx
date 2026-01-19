@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Order } from '@/types/kitchen';
 import {
   Dialog,
@@ -34,13 +34,9 @@ export function SearchResultsModal({
   onCancelOrder
 }: SearchResultsModalProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<number>>(new Set());
-  const [pendingCancellations, setPendingCancellations] = useState<Order[]>([]);
-  const [totalCancellationCount, setTotalCancellationCount] = useState<number>(0);
-  // Use ref to maintain cancellation queue that persists across refreshes
-  const cancellationQueueRef = useRef<Order[]>([]);
-  const isProcessingRef = useRef(false);
+  const [ordersToCancel, setOrdersToCancel] = useState<Order[]>([]);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Filter orders that can be cancelled
   const cancellableOrders = useMemo(() => {
@@ -76,107 +72,59 @@ export function SearchResultsModal({
   };
 
   const handleCancelClick = (order: Order) => {
-    setOrderToCancel(order);
+    setOrdersToCancel([order]);
     setShowCancelConfirm(true);
   };
 
   const handleCancelSelected = () => {
     if (selectedOrderIds.size === 0) return;
-    
+
     const selectedOrders = orders.filter(order => selectedOrderIds.has(order.id));
     if (selectedOrders.length === 0) return;
 
-    // Store orders to cancel in both state and ref
-    cancellationQueueRef.current = [...selectedOrders];
-    setPendingCancellations(selectedOrders);
-    setTotalCancellationCount(selectedOrders.length);
-    setOrderToCancel(selectedOrders[0]);
+    setOrdersToCancel(selectedOrders);
     setShowCancelConfirm(true);
   };
 
+  // Batch cancel: gọi API cho tất cả orders với cùng 1 reason
   const handleConfirmCancel = async (reason: string) => {
-    if (!orderToCancel || isProcessingRef.current) {
-      return;
-    }
+    if (ordersToCancel.length === 0 || isCancelling) return;
 
-    isProcessingRef.current = true;
-    
-    // Get current order and queue from ref to ensure we have the latest
-    const currentOrderToCancel = orderToCancel;
-    const currentQueue = [...cancellationQueueRef.current];
-    
-    // Verify the order is still in the queue
-    if (!currentQueue.find(o => o.id === currentOrderToCancel.id)) {
-      console.warn('Order not found in queue, aborting');
-      isProcessingRef.current = false;
-      return;
-    }
+    setIsCancelling(true);
 
     try {
-      // Wait for cancellation to complete before proceeding to next order
-      await onCancelOrder(currentOrderToCancel, reason);
-      
-      // Remove cancelled order from selectedOrderIds
-      setSelectedOrderIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(currentOrderToCancel.id);
-        return newSet;
-      });
-    } catch (error) {
-      // Even if cancellation fails, continue with remaining orders
-      console.error('Error cancelling order:', error);
-    }
-    
-    // Remove this order from cancellation queue
-    const updatedQueue = currentQueue.filter(
-      order => order.id !== currentOrderToCancel.id
-    );
-    cancellationQueueRef.current = updatedQueue;
-    
-    // Update state from updated queue
-    setPendingCancellations(updatedQueue);
-    
-    if (updatedQueue.length > 0) {
-      // Show modal for next order
-      setOrderToCancel(updatedQueue[0]);
-      // Keep modal open for next order
-      isProcessingRef.current = false;
-    } else {
-      // All orders processed, close both modals and clear selection
-      cancellationQueueRef.current = [];
-      setPendingCancellations([]);
-      setTotalCancellationCount(0);
-      setOrderToCancel(null);
-      setShowCancelConfirm(false);
+      // Gọi API cancel cho tất cả orders - chạy song song
+      await Promise.all(
+        ordersToCancel.map(order => onCancelOrder(order, reason))
+      );
+
+      // Clear selection sau khi cancel thành công
       setSelectedOrderIds(new Set());
-      isProcessingRef.current = false;
-      // Close the search results modal after all cancellations are done
+      setOrdersToCancel([]);
+      setShowCancelConfirm(false);
+
+      // Đóng modal chính
       onClose();
+    } catch (error) {
+      console.error('Error cancelling orders:', error);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
   const handleCancelConfirmClose = () => {
-    // Only clear if not currently processing
-    if (!isProcessingRef.current) {
-      // Clear cancellation queue and state
-      cancellationQueueRef.current = [];
-      setPendingCancellations([]);
-      setTotalCancellationCount(0);
-      setOrderToCancel(null);
+    if (!isCancelling) {
+      setOrdersToCancel([]);
+      setShowCancelConfirm(false);
     }
-    setShowCancelConfirm(false);
   };
 
   // Reset selection when modal closes
   React.useEffect(() => {
     if (!isOpen) {
       setSelectedOrderIds(new Set());
-      setPendingCancellations([]);
-      setTotalCancellationCount(0);
-      setOrderToCancel(null);
+      setOrdersToCancel([]);
       setShowCancelConfirm(false);
-      cancellationQueueRef.current = [];
-      isProcessingRef.current = false;
     }
   }, [isOpen]);
 
@@ -209,20 +157,20 @@ export function SearchResultsModal({
   };
 
   const renderCalendarIcon = () => (
-    <svg 
-      className="w-4 h-4 text-gray-500" 
-      aria-hidden="true" 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      fill="none" 
+    <svg
+      className="w-4 h-4 text-gray-500"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      fill="none"
       viewBox="0 0 24 24"
     >
-      <path 
-        stroke="currentColor" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth="2" 
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
         d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
       />
     </svg>
@@ -272,7 +220,7 @@ export function SearchResultsModal({
             )}
           </div>
         </DialogHeader>
-        
+
         <div className="overflow-y-auto max-h-[60vh] space-y-4 pr-2">
           {orders.length === 0 ? (
             <div className="text-center py-8">
@@ -310,7 +258,7 @@ export function SearchResultsModal({
                       </h3>
                       {renderStatusBadge(order.status)}
                     </div>
-                    
+
                     {/* Secondary Info: Note & Toppings - More prominent */}
                     {order.note && (
                       <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-md border-l-4 border-orange-500">
@@ -322,7 +270,7 @@ export function SearchResultsModal({
                         <span className="font-semibold">Toppings:</span> {order.toppings.join(', ')}
                       </div>
                     )}
-                    
+
                     {/* Tertiary Info: Time & Date - Subtle */}
                     <div className="flex items-center gap-4 mt-2.5 text-xs text-gray-400">
                       <div className="flex items-center gap-1">
@@ -337,7 +285,7 @@ export function SearchResultsModal({
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Cancel button removed - use checkbox and bulk cancel button instead */}
                 </CardHeader>
               </Card>
@@ -350,14 +298,10 @@ export function SearchResultsModal({
           isOpen={showCancelConfirm}
           onClose={handleCancelConfirmClose}
           onConfirm={handleConfirmCancel}
-          order={orderToCancel}
-          remainingCount={
-            pendingCancellations.length > 0 && totalCancellationCount > 0
-              ? pendingCancellations.length
-              : undefined
-          }
-          totalCount={totalCancellationCount > 0 ? totalCancellationCount : undefined}
-          allPendingOrders={pendingCancellations}
+          order={ordersToCancel.length > 0 ? ordersToCancel[0] : null}
+          remainingCount={ordersToCancel.length > 1 ? ordersToCancel.length : undefined}
+          totalCount={ordersToCancel.length > 1 ? ordersToCancel.length : undefined}
+          allPendingOrders={ordersToCancel}
         />
       </DialogContent>
     </Dialog>
