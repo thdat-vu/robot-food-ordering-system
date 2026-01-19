@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePayment } from "@/hooks/use-payment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Payment } from "@/lib/api/payments";
 import { useToastKitchen } from "@/hooks/use-toast-kitchen";
+import { ordersApi } from "@/lib/api/orders";
 
 export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
   const {
@@ -41,6 +42,7 @@ export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
   const [invoiceTotal, setInvoiceTotal] = useState<number>(0);
 
   const [localPaid, setLocalPaid] = useState(false);
+  const [pollingOrderId, setPollingOrderId] = useState<string | null>(null);
 
   const lastFetchedTableRef = useRef<string | null>(null);
 
@@ -111,6 +113,46 @@ export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
     if (showInvoice) setShowIframe(false);
   }, [showInvoice]);
 
+  // Polling để detect thanh toán PayOS thành công
+  useEffect(() => {
+    if (!pollingOrderId || !showIframe) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await ordersApi.getOrderById(pollingOrderId);
+        const payStatus = normalize(res?.data?.paymentStatus);
+
+        if (payStatus === "paid" || payStatus === "2") {
+          // Thanh toán thành công!
+          clearInterval(pollInterval);
+          setShowIframe(false);
+          setPollingOrderId(null);
+          setLocalPaid(true);
+
+          // Refresh orders để cập nhật UI
+          refreshOrders();
+
+          toast("Thanh toán thành công", {
+            description: `Đã thanh toán qua PayOS - ${totalForView.toLocaleString("vi-VN")}đ`,
+          });
+        }
+      } catch (err) {
+        console.error("Polling payment status failed:", err);
+      }
+    }, 2000); // Poll mỗi 2 giây
+
+    // Timeout sau 5 phút
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+      setPollingOrderId(null);
+    }, 5 * 60 * 1000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, [pollingOrderId, showIframe, refreshOrders, totalForView]);
+
   const mapSize = (size?: string | null) => {
     if (!size) return "";
     const v = size.toLowerCase();
@@ -145,30 +187,29 @@ export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
       <table>
         <tr><th>Món</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr>
         ${ordersForView
-          .flatMap((order) =>
-            order.items.map((item) => {
-              const qty = item.quantity || 1;
-              const itemPrice = (item.price || 0) * qty;
+        .flatMap((order) =>
+          order.items.map((item) => {
+            const qty = item.quantity || 1;
+            const itemPrice = (item.price || 0) * qty;
 
-              const toppingUnit = item.toppings.reduce(
-                (sum, t) => sum + (t.price || 0),
-                0
-              );
-              const toppingsPrice = toppingUnit * qty;
+            const toppingUnit = item.toppings.reduce(
+              (sum, t) => sum + (t.price || 0),
+              0
+            );
+            const toppingsPrice = toppingUnit * qty;
 
-              const totalItemPrice = itemPrice + toppingsPrice;
+            const totalItemPrice = itemPrice + toppingsPrice;
 
-              return `<tr>
-                <td>${item.productName} ${
-                item.sizeName ? `(${mapSize(item.sizeName)})` : ""
+            return `<tr>
+                <td>${item.productName} ${item.sizeName ? `(${mapSize(item.sizeName)})` : ""
               }</td>
                 <td>${qty}</td>
                 <td>${(item.price || 0).toLocaleString("vi-VN")}đ</td>
                 <td>${totalItemPrice.toLocaleString("vi-VN")}đ</td>
               </tr>`;
-            })
-          )
-          .join("")}
+          })
+        )
+        .join("")}
       </table>
       <div class="total">Tổng cộng: ${grandTotal.toLocaleString("vi-VN")}đ</div>
       <p style="text-align:center;font-size:11px;margin-top:10px;">Xin cảm ơn quý khách!</p>
@@ -204,9 +245,8 @@ export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
         handlePrint();
 
         toast("Thanh toán thành công", {
-          description: `${
-            selectedTableName || `Bàn ${selectedTable}`
-          } - ${total.toLocaleString("vi-VN")}đ`,
+          description: `${selectedTableName || `Bàn ${selectedTable}`
+            } - ${total.toLocaleString("vi-VN")}đ`,
         });
       } else {
         toast("Lỗi thanh toán", {
@@ -241,6 +281,7 @@ export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
       if (url) {
         setPaymentUrl(url);
         setShowIframe(true);
+        setPollingOrderId(firstOrder.id); // Start polling
       } else {
         throw new Error("paymentUrl is null");
       }
@@ -304,9 +345,8 @@ export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
                   </span>
                 </span>
                 <div
-                  className={`transition-transform duration-200 ${
-                    showList ? "rotate-180" : ""
-                  }`}
+                  className={`transition-transform duration-200 ${showList ? "rotate-180" : ""
+                    }`}
                 >
                   <ChevronDown className="w-5 h-5 text-gray-600" />
                 </div>
@@ -436,14 +476,12 @@ export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
               </div>
             ) : (
               <div
-                className={`grid gap-8 ${
-                  showIframe ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"
-                }`}
+                className={`grid gap-8 ${showIframe ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"
+                  }`}
               >
                 <div
-                  className={`space-y-6 ${
-                    showIframe ? "lg:pr-6" : "max-w-4xl mx-auto w-full"
-                  }`}
+                  className={`space-y-6 ${showIframe ? "lg:pr-6" : "max-w-4xl mx-auto w-full"
+                    }`}
                 >
                   <div className="bg-gradient-to-br from-white to-gray-50/50 shadow-lg rounded-2xl border border-gray-200/60 overflow-hidden">
                     <Button
@@ -461,9 +499,8 @@ export const PaymentPage: React.FC<{ idTable: string }> = ({ idTable }) => {
                         </span>
                       </span>
                       <div
-                        className={`transition-transform duration-200 ${
-                          showList ? "rotate-180" : ""
-                        }`}
+                        className={`transition-transform duration-200 ${showList ? "rotate-180" : ""
+                          }`}
                       >
                         <ChevronDown className="w-5 h-5 text-gray-600" />
                       </div>
