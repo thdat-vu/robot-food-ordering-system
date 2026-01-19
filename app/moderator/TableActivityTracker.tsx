@@ -115,27 +115,29 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   };
 
   const getActivityLabel = (type: string) =>
-    ((
-      {
-        CheckIn: "Check-in",
-        ScanAgain: "Quét lại QR",
-        CreateOrder: "Tạo đơn hàng",
-        AddOrderItems: "Thêm món",
-        UpdateOrderItemStatus: "Cập nhật món",
-        PartialPayment: "Thanh toán một phần",
-        FullPayment: "Thanh toán đầy đủ",
-        MoveTable: "Chuyển bàn",
-        ShareStart: "Chia sẻ bàn",
-        ShareJoin: "Thiết bị tham gia",
-        ShareStop: "Dừng chia sẻ",
-        RequestCheckout: "Yêu cầu thanh toán",
-        CreateInvoice: "Tạo hóa đơn",
-        CloseSession: "Đóng phiên",
-        AutoRelease: "Tự động giải phóng",
-        AutoReleaseNoOrderTimeout: "Tự động (không đơn)",
-        AttachDeviceFromModerator: "Gán thiết bị",
-      } as Record<string, string>
-    )[type] || type);
+  ((
+    {
+      CheckIn: "Check-in",
+      ScanAgain: "Quét lại QR",
+      CreateOrder: "Tạo đơn hàng",
+      AddOrderItems: "Thêm món",
+      UpdateOrderItemStatus: "Cập nhật món",
+      CancelOrderItem: "Huỷ món",
+      RemakeOrderItem: "Làm lại món",
+      PartialPayment: "Thanh toán một phần",
+      FullPayment: "Thanh toán đầy đủ",
+      MoveTable: "Chuyển bàn",
+      ShareStart: "Chia sẻ bàn",
+      ShareJoin: "Thiết bị tham gia",
+      ShareStop: "Dừng chia sẻ",
+      RequestCheckout: "Yêu cầu thanh toán",
+      CreateInvoice: "Tạo hóa đơn",
+      CloseSession: "Đóng phiên",
+      AutoRelease: "Tự động giải phóng",
+      AutoReleaseNoOrderTimeout: "Tự động (không đơn)",
+      AttachDeviceFromModerator: "Gán thiết bị",
+    } as Record<string, string>
+  )[type] || type);
 
   const getActivityIcon = (type: string) => {
     const icons: Record<string, React.ReactNode> = {
@@ -144,6 +146,8 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       CreateOrder: <ShoppingCart className="w-5 h-5" />,
       AddOrderItems: <ShoppingCart className="w-5 h-5" />,
       UpdateOrderItemStatus: <Edit className="w-5 h-5" />,
+      CancelOrderItem: <XCircle className="w-5 h-5" />,
+      RemakeOrderItem: <Edit className="w-5 h-5" />,
       MoveTable: <ArrowRight className="w-5 h-5" />,
       ShareJoin: <Users className="w-5 h-5" />,
       ShareStart: <Users className="w-5 h-5" />,
@@ -164,6 +168,8 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       CreateOrder: "text-blue-600",
       AddOrderItems: "text-indigo-600",
       UpdateOrderItemStatus: "text-amber-600",
+      CancelOrderItem: "text-red-600",
+      RemakeOrderItem: "text-purple-600",
       MoveTable: "text-purple-600",
       CloseSession: "text-rose-600",
       FullPayment: "text-green-600",
@@ -181,6 +187,8 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       CreateOrder: "bg-blue-50 text-blue-700 border-blue-200",
       AddOrderItems: "bg-indigo-50 text-indigo-700 border-indigo-200",
       UpdateOrderItemStatus: "bg-amber-50 text-amber-700 border-amber-200",
+      CancelOrderItem: "bg-red-50 text-red-700 border-red-200",
+      RemakeOrderItem: "bg-purple-50 text-purple-700 border-purple-200",
       MoveTable: "bg-purple-50 text-purple-700 border-purple-200",
       CloseSession: "bg-rose-50 text-rose-700 border-rose-200",
       FullPayment: "bg-green-50 text-green-700 border-green-200",
@@ -442,26 +450,26 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
                               {(activity.type === "CreateOrder" ||
                                 activity.type === "AddOrderItems") && (
-                                <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xs text-blue-700">
-                                      <span className="font-semibold">
-                                        {data.itemCount || data.newItemCount}
-                                      </span>{" "}
-                                      món
-                                    </span>
-                                    <span className="text-xs text-blue-700">
-                                      •
-                                    </span>
-                                    <span className="text-xs font-semibold text-blue-900">
-                                      {(
-                                        data.totalPrice || data.addedTotal
-                                      )?.toLocaleString("vi-VN")}{" "}
-                                      ₫
-                                    </span>
+                                  <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-xs text-blue-700">
+                                        <span className="font-semibold">
+                                          {data.itemCount || data.newItemCount}
+                                        </span>{" "}
+                                        món
+                                      </span>
+                                      <span className="text-xs text-blue-700">
+                                        •
+                                      </span>
+                                      <span className="text-xs font-semibold text-blue-900">
+                                        {(
+                                          data.totalPrice || data.addedTotal
+                                        )?.toLocaleString("vi-VN")}{" "}
+                                        ₫
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
 
                               {activity.type === "UpdateOrderItemStatus" && (
                                 <div className="bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
@@ -497,26 +505,25 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
                               {activity.type ===
                                 "AutoReleaseNoOrderTimeout" && (
-                                <ActivityNote
-                                  tone="amber"
-                                  title="Tự động giải phóng"
-                                  message={humanizeAutoReleaseNoOrderTimeout(
-                                    data
-                                  )}
-                                  badges={["Hệ thống"]}
-                                />
-                              )}
+                                  <ActivityNote
+                                    tone="amber"
+                                    title="Tự động giải phóng"
+                                    message={humanizeAutoReleaseNoOrderTimeout(
+                                      data
+                                    )}
+                                    badges={["Hệ thống"]}
+                                  />
+                                )}
                             </div>
                           </td>
 
                           {/* Source Column */}
                           <td className="px-6 py-5 align-top">
                             <span
-                              className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold ${
-                                actor === "Hệ thống"
+                              className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold ${actor === "Hệ thống"
                                   ? "bg-gray-100 text-gray-700 border border-gray-200"
                                   : "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                              }`}
+                                }`}
                             >
                               {actor}
                             </span>
