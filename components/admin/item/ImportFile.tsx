@@ -15,6 +15,7 @@ import {Loader2} from "lucide-react";
 
 type Props = {
     open: boolean;
+    title?: string;
     conten: string;
     excelFile: File | null;
     setExcelFile: (file: File | null) => void;
@@ -22,7 +23,7 @@ type Props = {
     isClose: () => void;
     handle: () => void,
 }
-export const ImportFile: React.FC<Props> = ({handle, setExcelFile, excelFile, loading, open, isClose, conten}) => {
+export const ImportFile: React.FC<Props> = ({handle, setExcelFile, excelFile, loading, open, isClose, conten, title}) => {
 
 
     return (
@@ -30,7 +31,7 @@ export const ImportFile: React.FC<Props> = ({handle, setExcelFile, excelFile, lo
             <Dialog open={open} onOpenChange={isClose}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
-                        <DialogTitle>Nhập món ăn từ Excel</DialogTitle>
+                        <DialogTitle>{title || "Nhập món ăn từ Excel"}</DialogTitle>
                         <DialogDescription>
                             {conten}
                         </DialogDescription>

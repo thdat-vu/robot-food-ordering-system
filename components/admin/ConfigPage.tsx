@@ -84,9 +84,9 @@ export const ConfigPage: React.FC = () => {
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [initialForm, setInitialForm] = useState<FormState>(emptyForm);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>(
-    {}
-  );
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof FormState, string>>
+  >({});
 
   const [resultDialog, setResultDialog] = useState<{
     open: boolean;
@@ -106,7 +106,6 @@ export const ConfigPage: React.FC = () => {
       const policy = await getPaymentPolicy();
       setPaymentMethod(policy === "Prepay" ? "prepay" : "postpay");
     } catch (err) {
-      console.error("Get payment policy failed:", err);
     } finally {
       setLoadingPolicy(false);
     }
@@ -291,7 +290,7 @@ export const ConfigPage: React.FC = () => {
     } else if (name.length > 200) {
       nextErrors.restaurantName = "RestaurantName tối đa 200 ký tự";
     }
-    
+
     const address = form.restaurantAddress.trim();
     if (address.length > 500) {
       nextErrors.restaurantAddress = "Địa chỉ tối đa 500 ký tự";
@@ -465,9 +464,7 @@ export const ConfigPage: React.FC = () => {
       {helper && (
         <p className="text-xs text-muted-foreground leading-snug">{helper}</p>
       )}
-      {errors[field] && (
-        <p className="text-xs text-red-500">{errors[field]}</p>
-      )}
+      {errors[field] && <p className="text-xs text-red-500">{errors[field]}</p>}
     </div>
   );
 
@@ -545,7 +542,7 @@ export const ConfigPage: React.FC = () => {
                 Chính sách thanh toán
               </div>
               <h2 className="text-2xl font-bold text-foreground">
-                Chính sách thanh toán 
+                Chính sách thanh toán
               </h2>
               <p className="text-muted-foreground">
                 {loadingPolicy
@@ -557,7 +554,9 @@ export const ConfigPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card
                 className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
-                  loadingPolicy || savingPolicy ? "opacity-60 pointer-events-none" : ""
+                  loadingPolicy || savingPolicy
+                    ? "opacity-60 pointer-events-none"
+                    : ""
                 } ${
                   paymentMethod === "prepay"
                     ? "border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg shadow-primary/20"
@@ -600,7 +599,9 @@ export const ConfigPage: React.FC = () => {
 
               <Card
                 className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
-                  loadingPolicy || savingPolicy ? "opacity-60 pointer-events-none" : ""
+                  loadingPolicy || savingPolicy
+                    ? "opacity-60 pointer-events-none"
+                    : ""
                 } ${
                   paymentMethod === "postpay"
                     ? "border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg shadow-primary/20"
@@ -648,16 +649,22 @@ export const ConfigPage: React.FC = () => {
                 Thông tin áp dụng
               </div>
               <div>
-                <span className="font-medium text-foreground">Chính sách thanh toán:</span>{" "}
+                <span className="font-medium text-foreground">
+                  Chính sách thanh toán:
+                </span>{" "}
                 {pendingPolicy
                   ? toPolicyLabel(pendingPolicy)
-                  : toPolicyLabel(paymentMethod === "prepay" ? "Prepay" : "Postpay")}
+                  : toPolicyLabel(
+                      paymentMethod === "prepay" ? "Prepay" : "Postpay"
+                    )}
               </div>
               <div>
-                <span className="font-medium text-foreground">Có hiệu lực lúc:</span>{" "}
+                <span className="font-medium text-foreground">
+                  Có hiệu lực lúc:
+                </span>{" "}
                 {effectiveDate ? formatDateTimeVn(effectiveDate) : "--"}
               </div>
-                {/* <div className="text-xs text-muted-foreground">
+              {/* <div className="text-xs text-muted-foreground">
                   Chính sách mới sẽ được áp dụng lúc 00:00 ngày hôm sau. Bạn có thể
                   dùng API apply-pending để kích hoạt thủ công nếu cần.
                 </div> */}
@@ -726,7 +733,13 @@ export const ConfigPage: React.FC = () => {
                     "Thuế VAT (%)",
                     "8%",
                     "0 - 100%. Có thể nhập 8 hoặc 8% (ví dụ 8%)",
-                    { type: "number", min: 0, max: 100, step: 0.1, icon: Percent }
+                    {
+                      type: "number",
+                      min: 0,
+                      max: 100,
+                      step: 0.1,
+                      icon: Percent,
+                    }
                   )}
 
                   {renderInput(
@@ -750,7 +763,13 @@ export const ConfigPage: React.FC = () => {
                     "Thời gian tối đa dọn bàn (ngày)",
                     "1",
                     "Ví dụ: 1 ngày. Sau một ngày thì bàn sẽ được dọn và cấp cho khách hàng khác",
-                    { type: "number", min: 1, max: 365, step: 1, icon: CalendarClock }
+                    {
+                      type: "number",
+                      min: 1,
+                      max: 365,
+                      step: 1,
+                      icon: CalendarClock,
+                    }
                   )}
 
                   {/* <div className="space-y-1">
@@ -815,7 +834,9 @@ export const ConfigPage: React.FC = () => {
               Hủy
             </Button>
             <Button onClick={confirmChangePolicy} disabled={savingPolicy}>
-              {savingPolicy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {savingPolicy && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Đồng ý
             </Button>
           </DialogFooter>

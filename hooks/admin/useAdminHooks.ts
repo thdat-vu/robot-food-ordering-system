@@ -1,12 +1,12 @@
 import {
     CategoryApi, DashboadApi, DeleteTable, DeleteTopping,
     DishsApi,
-    GetExportExcel, GetTableApi,
+    GetExportExcel, GetExportExcelTable, GetTableApi,
     PostFileExcel, PostFileExcelTable, PostFileExcelTopping,
     ProductionDetailApi,
     ProductToppingApi
 } from "@/api/admin/adminApi";
-import {useApiHandler} from "@/hooks/useApiHandler";
+import { useApiHandler } from "@/hooks/useApiHandler";
 
 export const usePostFileExcel = () => {
     return useApiHandler(PostFileExcel)
@@ -18,6 +18,10 @@ export const usePostFileExcelTable = () => {
 
 export const useGetExportExcel = () => {
     return useApiHandler(GetExportExcel)
+}
+
+export const useGetExportExcelTable = () => {
+    return useApiHandler(GetExportExcelTable)
 }
 
 export const useCategoryApi = () => {

@@ -168,7 +168,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         [tableId]: orders?.data || [],
       }));
     } catch (err) {
-      console.error("Error fetching orders:", err);
       setOrderData((prev) => ({
         ...prev,
         [tableId]: [],
@@ -286,7 +285,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         [feedbackId]: "",
       }));
     } catch (error) {
-      console.error("Error sending response:", error);
       addToast("Có lỗi xảy ra khi gửi phản hồi. Vui lòng thử lại.", "error");
     }
   };
@@ -319,7 +317,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
       addToast(`Đã đánh dấu ${listId.length} phản hồi là đã xử lý`, `success`);
     } catch (error) {
-      console.error("Error checking feedbacks:", error);
       addToast(
         "Có lỗi xảy ra khi đánh dấu phản hồi. Vui lòng thử lại.",
         `error`
@@ -352,7 +349,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
 
       addToast("Đã đánh dấu phản hồi là đã xử lý", `success`);
     } catch (error) {
-      console.error("Error checking single feedback:", error);
       addToast(
         "Có lỗi xảy ra khi đánh dấu phản hồi. Vui lòng thử lại.",
         `error`
@@ -385,7 +381,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
         }
       }
     } catch (error) {
-      console.error("Error fetching feedback:", error);
       setData([]);
 
       // Set initial tab even on error
@@ -438,7 +433,6 @@ export const ModeratorFeedbackFromTable: React.FC<Prop> = ({
   };
 
   const filteredData = data.filter((item) => {
-    console.log("Filtering item:", item);
     const matchesFilter =
       selectedFilter === "all" ||
       (selectedFilter === "pending" && item.isPending) ||

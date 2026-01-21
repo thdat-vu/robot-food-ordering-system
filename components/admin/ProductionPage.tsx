@@ -13,6 +13,8 @@ import {Category, Production} from "@/api/admin/adminApi";
 import {BaseEntity, BaseEntityDataError} from "@/entites/BaseEntity";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {ImportFile} from "@/components/admin/item/ImportFile";
+import { ToastContainer } from "@/components/admin/item/ToastContainer";
+import { useToastAdmin } from "@/hooks/use-toast-admin";
 
 export const ProductionPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState<string>("");
@@ -23,6 +25,7 @@ export const ProductionPage: React.FC = () => {
     const [productions, setProductions] = useState<Production[]>([])
     const [selectedCategory, setSelectedCategory] = useState<string>("");
     const [search, setSearch] = useState<string>("")
+    const { toasts, addToast, removeToast } = useToastAdmin();
 
     const {run} = usePostFileExcel();
     const {run: runGetFile} = useGetExportExcel();
@@ -64,13 +67,39 @@ export const ProductionPage: React.FC = () => {
     }, [search, selectedCategory]);
 
     const handleConfirmImport = async () => {
-        if (!excelFile) return;
+        if (!excelFile) {
+            addToast("Vui lòng chọn file Excel trước khi import", "error");
+            return;
+        }
         setLoading(true);
         try {
             const res = await run(excelFile);
-            await handleLoadingPriduction();
-            setAddDishModal(false);
-            setExcelFile(null);
+            if (res.data === true) {
+                addToast("Nhập dữ liệu món ăn thành công!", "success");
+                await handleLoadingPriduction();
+                setAddDishModal(false);
+                setExcelFile(null);
+            } else {
+                addToast(res.message || "Nhập dữ liệu thất bại", "error");
+            }
+        } catch (error: any) {
+            addToast(error?.message || "Có lỗi xảy ra khi import", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleExportExcel = async () => {
+        setLoading(true);
+        try {
+            const res = await runGetFile();
+            if (res.data === true) {
+                addToast("Xuất dữ liệu món ăn thành công!", "success");
+            } else {
+                addToast(res.message || "Xuất dữ liệu thất bại", "error");
+            }
+        } catch (error: any) {
+            addToast(error?.message || "Có lỗi xảy ra khi export", "error");
         } finally {
             setLoading(false);
         }
@@ -141,6 +170,15 @@ export const ProductionPage: React.FC = () => {
                             <FaFileImport className="w-4 h-4"/>
                             Nhập dữ liệu
                         </Button>
+
+                        <Button 
+                            className="gap-2 h-10 bg-emerald-600 hover:bg-emerald-700 text-white" 
+                            onClick={handleExportExcel}
+                            disabled={loading}
+                        >
+                            <CiExport className="w-4 h-4"/>
+                            Xuất dữ liệu
+                        </Button>
                     </div>
                 </div>
 
@@ -177,14 +215,15 @@ export const ProductionPage: React.FC = () => {
             </div>
 
 
-            <ImportFile open={addDishModal}
-                        conten="Chọn file Excel chứa danh sách món ăn để nhập vào hệ thống"
-                        loading={loading}
-                        excelFile={excelFile}
-                        setExcelFile={setExcelFile}
-                        isClose={() => setAddDishModal(false)}
-                        handle={handleConfirmImport}/>
-
+                <ImportFile open={addDishModal}
+                            title="Nhập danh sách món ăn từ Excel"
+                            conten="Chọn file Excel chứa danh sách món ăn để nhập vào hệ thống"
+                            loading={loading}
+                            excelFile={excelFile}
+                            setExcelFile={setExcelFile}
+                            isClose={() => setAddDishModal(false)}
+                            handle={handleConfirmImport}/>
+            <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
         </>
     )
 }

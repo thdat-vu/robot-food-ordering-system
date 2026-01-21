@@ -11,19 +11,26 @@ import { RxDownload } from "react-icons/rx";
 import { downloadPublicFile } from "@/unit/Unit";
 import { ImportFile } from "./ImportFile";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
-import { usePostFileExcelTable } from "@/hooks/admin/useAdminHooks";
+import { usePostFileExcelTable, useGetExportExcelTable } from "@/hooks/admin/useAdminHooks";
+import { CiExport } from "react-icons/ci";
+
+import { ToastContainer } from "./ToastContainer";
+import { useToastAdmin } from "@/hooks/use-toast-admin";
 
 type Props = {
   tables: Table[];
   onDelete: (id: string) => void;
   onAddTable?: () => void;
+  onImportSuccess?: () => void;
 };
 
 export const TableDashboard: React.FC<Props> = ({
   tables,
   onDelete,
   onAddTable,
+  onImportSuccess,
 }) => {
+  const { toasts, addToast, removeToast } = useToastAdmin();
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,6 +39,7 @@ export const TableDashboard: React.FC<Props> = ({
   const [selected, setSelected] = useState<Table | null>(null);
 
   const { run: runPostExcelTable } = usePostFileExcelTable();
+  const { run: runGetExcelTable } = useGetExportExcelTable();
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -80,19 +88,60 @@ export const TableDashboard: React.FC<Props> = ({
 
   // Handle import confirmation
   const handleConfirmImport = useCallback(async () => {
-    if (!excelFile) return;
+    if (!excelFile) {
+      addToast("Vui lòng chọn file Excel trước khi import", "error");
+      return;
+    }
+
     setLoading(true);
+
     try {
-      await runPostExcelTable(excelFile);
-      setOpen(false);
-      setExcelFile(null);
+      console.log("Start importing file:", excelFile.name);
+
+      const res = await runPostExcelTable(excelFile);
+
+      console.log("Import response:", res);
+
+      const isSuccess =
+        res?.code === "SUCCESS" ||
+        res?.codes === "SUCCESS" ||
+        res?.statusCode === "200" ||
+        res?.data === true;
+
+      if (isSuccess) {
+        addToast("Nhập dữ liệu bàn thành công!", "success");
+        setOpen(false);
+        setExcelFile(null);
+
+        onImportSuccess?.();
+      } else {
+        console.error("Import failed:", res);
+
+        addToast(
+          res?.message ||
+            res?.error ||
+            "Nhập dữ liệu thất bại. Vui lòng kiểm tra lại file Excel.",
+          "error"
+        );
+      }
+    } catch (error: any) {
+      console.error("Import exception:", error);
+
+      addToast(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Có lỗi xảy ra trong quá trình import. Vui lòng thử lại.",
+        "error"
+      );
     } finally {
       setLoading(false);
     }
-  }, [excelFile, runPostExcelTable]);
+  }, [excelFile, runPostExcelTable, onImportSuccess, addToast]);
 
+ 
   return (
     <div className="space-y-6">
+      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
@@ -201,6 +250,7 @@ export const TableDashboard: React.FC<Props> = ({
             <FaFileImport className="w-4 h-4" />
             Nhập dữ liệu
           </Button>
+          
         </div>
       </div>
 
@@ -241,6 +291,7 @@ export const TableDashboard: React.FC<Props> = ({
       {/* Import File Modal */}
       <ImportFile
         open={open}
+        title="Nhập danh sách bàn từ Excel"
         conten="Chọn file Excel chứa danh sách bàn"
         loading={loading}
         excelFile={excelFile}
