@@ -8,6 +8,7 @@ import {Table} from "@/entites/respont/Table";
 import {ErroTable} from "@/api/TableApi";
 import {TOKEN_Bro_VALUE} from "@/name-value-env";
 import {useSignalRTableMoved} from "@/hooks/customHooks/useSignalRTableMoved";
+import {useSignalRTableStatusChanged} from "@/hooks/customHooks/useSignalRTableStatusChanged";
 
 
 export default function Page({params}: { params: Promise<{ id: string }> }) {
@@ -18,6 +19,10 @@ export default function Page({params}: { params: Promise<{ id: string }> }) {
 
     // Listen for table moved notifications via SignalR
     useSignalRTableMoved(id);
+
+    // Listen for table status changed notifications via SignalR
+    // When moderator marks table as "Trống", redirect to /end
+    useSignalRTableStatusChanged(id);
 
 
     useEffect(() => {
