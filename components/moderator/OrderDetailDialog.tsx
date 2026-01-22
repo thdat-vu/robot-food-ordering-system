@@ -105,7 +105,12 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [showFinalConfirm, countdown, isSwitchingToEmpty, orderStats.notServedItems]);
+  }, [
+    showFinalConfirm,
+    countdown,
+    isSwitchingToEmpty,
+    orderStats.notServedItems,
+  ]);
 
   // Early return if not open or no table
   if (!isOpen || !table) return null;
@@ -120,7 +125,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
 
     // Reset countdown if there are pending items
     if (isSwitchingToEmpty && orderStats.notServedItems > 0) {
-      setCountdown(60);
+      setCountdown(10);
     } else {
       setCountdown(0);
     }
@@ -272,20 +277,33 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
                             )}
                           </p>
 
-                          <p 
+                          <p
                             className="text-xl font-bold border-l-4 border-yellow-400 pl-3 py-1 cursor-pointer hover:bg-white/10 transition-colors flex items-center justify-between"
-                            onClick={() => setShowPendingDetails(!showPendingDetails)}
+                            onClick={() =>
+                              setShowPendingDetails(!showPendingDetails)
+                            }
                           >
-                            <span>⚠️ CÒN {orderStats.notServedItems} MÓN CHƯA XONG</span>
-                            <span className="text-xs font-normal underline">{showPendingDetails ? "Thu gọn" : "Xem chi tiết"}</span>
+                            <span>
+                              ⚠️ CÒN {orderStats.notServedItems} MÓN CHƯA XONG
+                            </span>
+                            <span className="text-xs font-normal underline">
+                              {showPendingDetails ? "Thu gọn" : "Xem chi tiết"}
+                            </span>
                           </p>
 
                           {showPendingDetails && (
                             <div className="bg-black/30 rounded-lg p-3 mt-2 space-y-1 border border-white/20 max-h-40 overflow-y-auto animate-in slide-in-from-top-2 duration-300">
                               {orderStats.pendingItemsList.map((item, idx) => (
-                                <div key={idx} className="flex justify-between text-sm py-1 border-b border-white/10 last:border-0">
-                                  <span className="font-medium">{item.name}</span>
-                                  <span className="bg-yellow-400 text-black px-2 py-0.5 rounded-md font-bold text-xs flex items-center">x{item.qty}</span>
+                                <div
+                                  key={idx}
+                                  className="flex justify-between text-sm py-1 border-b border-white/10 last:border-0"
+                                >
+                                  <span className="font-medium">
+                                    {item.name}
+                                  </span>
+                                  <span className="bg-yellow-400 text-black px-2 py-0.5 rounded-md font-bold text-xs flex items-center">
+                                    x{item.qty}
+                                  </span>
                                 </div>
                               ))}
                             </div>
@@ -293,8 +311,10 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
 
                           <p className="text-sm font-medium opacity-90 italic">
                             Bạn PHẢI kiểm tra lại tất cả order trước khi cho
-                            phép chuyển bàn sang trạng thái 
-                            <span className="bg-white text-red-700 px-2 py-0.5 rounded ml-1 font-bold">TRỐNG</span>
+                            phép chuyển bàn sang trạng thái
+                            <span className="bg-white text-red-700 px-2 py-0.5 rounded ml-1 font-bold">
+                              TRỐNG
+                            </span>
                           </p>
                         </div>
                       </>
@@ -379,17 +399,21 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
       {/* Final Yes/No Confirmation Dialog */}
       {showFinalConfirm && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[60] p-4">
-          <div className={`bg-white rounded-3xl shadow-[0_0_30px_rgba(239,68,68,0.25)] w-full max-w-md overflow-hidden border-4 transition-all duration-300 ${
-            isSwitchingToEmpty && orderStats.notServedItems > 0
-              ? "border-red-500 scale-105"
-              : "border-amber-400"
-          }`}>
-            {/* Header */}
-            <div className={`p-6 text-white ${
+          <div
+            className={`bg-white rounded-3xl shadow-[0_0_30px_rgba(239,68,68,0.25)] w-full max-w-md overflow-hidden border-4 transition-all duration-300 ${
               isSwitchingToEmpty && orderStats.notServedItems > 0
-                ? "bg-gradient-to-br from-red-500 via-red-600 to-red-700 ring-inset ring-4 ring-white/10"
-                : "bg-gradient-to-r from-amber-500 to-orange-500"
-            }`}>
+                ? "border-red-500 scale-105"
+                : "border-amber-400"
+            }`}
+          >
+            {/* Header */}
+            <div
+              className={`p-6 text-white ${
+                isSwitchingToEmpty && orderStats.notServedItems > 0
+                  ? "bg-gradient-to-br from-red-500 via-red-600 to-red-700 ring-inset ring-4 ring-white/10"
+                  : "bg-gradient-to-r from-amber-500 to-orange-500"
+              }`}
+            >
               <div className="flex items-center justify-center mb-2">
                 {isSwitchingToEmpty && orderStats.notServedItems > 0 ? (
                   <AlertCircle className="w-16 h-16 animate-[ping_1.5s_infinite] text-white" />
@@ -398,7 +422,9 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
                 )}
               </div>
               <h3 className="text-3xl font-black text-center uppercase tracking-tighter">
-                {isSwitchingToEmpty && orderStats.notServedItems > 0 ? "⚠️ CẢNH BÁO NGUY HIỂM" : "⚠️ Bạn chắc chứ?"}
+                {isSwitchingToEmpty && orderStats.notServedItems > 0
+                  ? "⚠️ CẢNH BÁO NGUY HIỂM"
+                  : "⚠️ Bạn chắc chứ?"}
               </h3>
             </div>
 
@@ -420,39 +446,56 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
 
                 {/* Tóm tắt nhanh từ orders trong confirm cuối */}
                 {isSwitchingToEmpty && orderStats.totalOrders > 0 && (
-                  <div className={`mt-4 p-4 rounded-xl border-2 transition-all duration-300 ${
-                    orderStats.notServedItems > 0
-                      ? "bg-red-500 text-white border-white/40 shadow-inner"
-                      : "bg-emerald-100 text-emerald-900 border-emerald-200"
-                  }`}>
+                  <div
+                    className={`mt-4 p-4 rounded-xl border-2 transition-all duration-300 ${
+                      orderStats.notServedItems > 0
+                        ? "bg-red-500 text-white border-white/40 shadow-inner"
+                        : "bg-emerald-100 text-emerald-900 border-emerald-200"
+                    }`}
+                  >
                     {orderStats.notServedItems > 0 ? (
                       <div className="space-y-2">
                         <p className="text-2xl font-black text-center animate-pulse leading-none py-1">
                           DỪNG LẠI!
                         </p>
-                        <p 
+                        <p
                           className="text-lg font-bold text-center border-y border-white/30 py-2 cursor-pointer hover:bg-black/10 transition-colors"
-                          onClick={() => setShowPendingDetails(!showPendingDetails)}
+                          onClick={() =>
+                            setShowPendingDetails(!showPendingDetails)
+                          }
                         >
                           BẠN VẪN CHƯA PHỤC VỤ HẾT MÓN!
                           <span className="block text-[10px] font-normal uppercase opacity-80 mt-1">
-                            {showPendingDetails ? "↑ Nhấn để đóng danh sách" : "↓ Nhấn xem món nào chưa xong"}
+                            {showPendingDetails
+                              ? "↑ Nhấn để đóng danh sách"
+                              : "↓ Nhấn xem món nào chưa xong"}
                           </span>
                         </p>
-                        
+
                         {showPendingDetails && (
                           <div className="bg-black/20 rounded-lg p-2 space-y-1 max-h-32 overflow-y-auto animate-in fade-in zoom-in-95 duration-200 shadow-inner">
                             {orderStats.pendingItemsList.map((item, idx) => (
-                              <div key={idx} className="flex justify-between text-xs py-1 border-b border-white/10 last:border-0">
-                                <span className="font-semibold truncate mr-2">{item.name}</span>
-                                <span className="bg-yellow-400 text-red-900 px-1.5 py-0.5 rounded font-black">x{item.qty}</span>
+                              <div
+                                key={idx}
+                                className="flex justify-between text-xs py-1 border-b border-white/10 last:border-0"
+                              >
+                                <span className="font-semibold truncate mr-2">
+                                  {item.name}
+                                </span>
+                                <span className="bg-yellow-400 text-red-900 px-1.5 py-0.5 rounded font-black">
+                                  x{item.qty}
+                                </span>
                               </div>
                             ))}
                           </div>
                         )}
                         <div className="text-sm bg-black/20 p-2 rounded text-left font-medium">
-                          Bàn này vẫn còn <span className="text-yellow-300 font-bold underline text-base">{orderStats.notServedItems} món chưa hoàn tất</span>. 
-                          Việc chuyển sang TRỐNG bây giờ sẽ làm mất dấu vết phục vụ!
+                          Bàn này vẫn còn{" "}
+                          <span className="text-yellow-300 font-bold underline text-base">
+                            {orderStats.notServedItems} món chưa hoàn tất
+                          </span>
+                          . Việc chuyển sang TRỐNG bây giờ sẽ làm mất dấu vết
+                          phục vụ!
                         </div>
                       </div>
                     ) : (
