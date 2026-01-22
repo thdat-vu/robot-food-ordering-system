@@ -38,21 +38,20 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [reason, setReason] = useState<string>("");
   const [showFinalConfirm, setShowFinalConfirm] = useState<boolean>(false);
-
-  // 🔹 Lý do hợp lệ khi khác rỗng
-  const isReasonValid = reason.trim().length > 0;
+  const [countdown, setCountdown] = useState<number>(0);
+  const [showPendingDetails, setShowPendingDetails] = useState<boolean>(false);
 
   // 🔹 Tính thống kê từ orders để cảnh báo
   const orderStats = React.useMemo(() => {
     let totalOrders = orders.length;
     let totalItems = 0;
     let notServedItems = 0;
+    let pendingItemsList: { name: string; qty: number }[] = [];
+
     console.log("Calculating order stats from orders:", orders);
 
     orders.forEach((order) => {
       const o: any = order as any;
-
-      // tuỳ cấu trúc OrderData của bạn: items / orderItems / orderDetails...
       const items: any[] = o.items ?? o.orderItems ?? o.orderDetails ?? [];
 
       items.forEach((item: any) => {
@@ -68,16 +67,45 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
 
         if (!isServed && !isCancelled) {
           notServedItems += qty;
+          const itemName = item.productName ?? item.name ?? "Món không tên";
+          // Grouping logic (optional)
+          const existing = pendingItemsList.find((p) => p.name === itemName);
+          if (existing) {
+            existing.qty += qty;
+          } else {
+            pendingItemsList.push({ name: itemName, qty });
+          }
         }
       });
     });
 
-    return { totalOrders, totalItems, notServedItems };
+    return { totalOrders, totalItems, notServedItems, pendingItemsList };
   }, [orders]);
 
   const normalizedNewStatus = newStatus.toString().toLowerCase();
   const isSwitchingToEmpty =
     normalizedNewStatus === "0" || normalizedNewStatus === "available";
+
+  // 🔹 Lý do hợp lệ khi khác rỗng
+  const isReasonValid = reason.trim().length > 0;
+
+  // 🔹 Timer logic for final confirmation delay
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (
+      showFinalConfirm &&
+      isSwitchingToEmpty &&
+      orderStats.notServedItems > 0 &&
+      countdown > 0
+    ) {
+      timer = setTimeout(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showFinalConfirm, countdown, isSwitchingToEmpty, orderStats.notServedItems]);
 
   // Early return if not open or no table
   if (!isOpen || !table) return null;
@@ -89,6 +117,14 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
   const handleConfirmClick = () => {
     // Chỉ mở dialog confirm cuối nếu đã có lý do
     if (!isReasonValid) return;
+
+    // Reset countdown if there are pending items
+    if (isSwitchingToEmpty && orderStats.notServedItems > 0) {
+      setCountdown(60);
+    } else {
+      setCountdown(0);
+    }
+
     setShowFinalConfirm(true);
   };
 
@@ -198,16 +234,16 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
               {/* 🔹 Warning từ OrderData khi chuẩn bị chuyển sang Trống */}
               {isSwitchingToEmpty && orderStats.totalOrders > 0 && (
                 <div
-                  className={`rounded-2xl border px-4 py-3 flex items-start gap-3 ${
+                  className={`rounded-2xl border px-5 py-4 flex items-center gap-5 transition-all duration-500 shadow-lg ${
                     orderStats.notServedItems > 0
-                      ? "bg-red-50 border-red-200"
+                      ? "bg-gradient-to-r from-red-500 to-red-600 border-red-300 animate-pulse ring-4 ring-red-400/20"
                       : "bg-emerald-50 border-emerald-200"
                   }`}
                 >
                   <AlertCircle
-                    className={`mt-1 w-6 h-6 ${
+                    className={`mt-1 w-12 h-12 flex-shrink-0 ${
                       orderStats.notServedItems > 0
-                        ? "text-red-600"
+                        ? "text-white animate-pulse"
                         : "text-emerald-600"
                     }`}
                   />
@@ -215,50 +251,52 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
                   <div className="text-sm sm:text-base text-left leading-relaxed">
                     {orderStats.notServedItems > 0 ? (
                       <>
-                        <p className="font-bold text-red-800 uppercase tracking-wide">
-                          ⚠️ Bàn này vẫn{" "}
-                          <span className="underline">
-                            CHƯA HOÀN TẤT PHỤC VỤ
-                          </span>
+                        <p className="font-black text-white uppercase tracking-tighter text-2xl mb-2 flex items-center gap-2">
+                          <span>🚨</span> BÀN NÀY VẪN CHƯA HOÀN TẤT PHỤC VỤ!
                         </p>
 
-                        <p className="text-red-800 mt-2">
-                          <span className="font-semibold">Hiện có</span>{" "}
-                          <span className="font-extrabold text-red-900">
-                            {orderStats.totalOrders} order
-                          </span>
-                          {orderStats.totalItems > 0 && (
-                            <>
-                              {" "}
-                              với khoảng{" "}
-                              <span className="font-extrabold text-red-900">
-                                {orderStats.totalItems} món
-                              </span>
-                            </>
+                        <div className="bg-black/20 backdrop-blur-sm p-4 rounded-xl border border-white/30 text-white space-y-2">
+                          <p className="text-lg">
+                            <span className="font-bold">Hiện có:</span>{" "}
+                            <span className="font-extrabold text-yellow-300">
+                              {orderStats.totalOrders} order
+                            </span>
+                            {orderStats.totalItems > 0 && (
+                              <>
+                                {" "}
+                                –{" "}
+                                <span className="font-extrabold text-yellow-300">
+                                  {orderStats.totalItems} món ăn
+                                </span>
+                              </>
+                            )}
+                          </p>
+
+                          <p 
+                            className="text-xl font-bold border-l-4 border-yellow-400 pl-3 py-1 cursor-pointer hover:bg-white/10 transition-colors flex items-center justify-between"
+                            onClick={() => setShowPendingDetails(!showPendingDetails)}
+                          >
+                            <span>⚠️ CÒN {orderStats.notServedItems} MÓN CHƯA XONG</span>
+                            <span className="text-xs font-normal underline">{showPendingDetails ? "Thu gọn" : "Xem chi tiết"}</span>
+                          </p>
+
+                          {showPendingDetails && (
+                            <div className="bg-black/30 rounded-lg p-3 mt-2 space-y-1 border border-white/20 max-h-40 overflow-y-auto animate-in slide-in-from-top-2 duration-300">
+                              {orderStats.pendingItemsList.map((item, idx) => (
+                                <div key={idx} className="flex justify-between text-sm py-1 border-b border-white/10 last:border-0">
+                                  <span className="font-medium">{item.name}</span>
+                                  <span className="bg-yellow-400 text-black px-2 py-0.5 rounded-md font-bold text-xs flex items-center">x{item.qty}</span>
+                                </div>
+                              ))}
+                            </div>
                           )}
-                          .
-                        </p>
 
-                        <p className="text-red-800 mt-1">
-                          Trong đó còn{" "}
-                          <span className="font-extrabold text-red-900 underline">
-                            {orderStats.notServedItems} món CHƯA được đánh dấu
-                            đã phục vụ / hoàn tất
-                          </span>
-                          .
-                        </p>
-
-                        <p className="text-red-700 mt-2">
-                          Vui lòng{" "}
-                          <span className="font-bold underline">
-                            kiểm tra lại order và món ăn
-                          </span>{" "}
-                          trước khi chuyển trạng thái bàn sang{" "}
-                          <span className="font-extrabold text-red-900">
-                            TRỐNG
-                          </span>
-                          .
-                        </p>
+                          <p className="text-sm font-medium opacity-90 italic">
+                            Bạn PHẢI kiểm tra lại tất cả order trước khi cho
+                            phép chuyển bàn sang trạng thái 
+                            <span className="bg-white text-red-700 px-2 py-0.5 rounded ml-1 font-bold">TRỐNG</span>
+                          </p>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -296,22 +334,13 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
                 </div>
               )}
 
-              {/* Order Card Component (nếu cần mở lại) */}
-              {/* <OrderCard
-                tableId={table.id}
-                orders={orders}
-                onToggleExpand={toggleOrderExpand}
-                expandedOrderId={expandedOrderId}
-                showDateFilter={true}
-              /> */}
-
               {/* Reason Card Component */}
               <ReasonCard
                 reason={reason}
                 onReasonChange={setReason}
                 required
-                fromStatus={table.status} // "occupied" | "available"
-                toStatus={newStatus} // "occupied" | "available"
+                fromStatus={table.status}
+                toStatus={newStatus}
                 title="Lý do thay đổi trạng thái"
                 subtitle="Vui lòng chọn hoặc nhập lý do (bắt buộc)"
               />
@@ -320,7 +349,6 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
 
           {/* Enhanced Dialog Footer */}
           <div className="relative flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 p-6 border-t border-gray-200/50 bg-gradient-to-r from-gray-50 to-blue-50/30 backdrop-blur-sm">
-            {/* Decorative line */}
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600"></div>
 
             <button
@@ -351,14 +379,26 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
       {/* Final Yes/No Confirmation Dialog */}
       {showFinalConfirm && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border-4 border-amber-400">
+          <div className={`bg-white rounded-3xl shadow-[0_0_30px_rgba(239,68,68,0.25)] w-full max-w-md overflow-hidden border-4 transition-all duration-300 ${
+            isSwitchingToEmpty && orderStats.notServedItems > 0
+              ? "border-red-500 scale-105"
+              : "border-amber-400"
+          }`}>
             {/* Header */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white">
+            <div className={`p-6 text-white ${
+              isSwitchingToEmpty && orderStats.notServedItems > 0
+                ? "bg-gradient-to-br from-red-500 via-red-600 to-red-700 ring-inset ring-4 ring-white/10"
+                : "bg-gradient-to-r from-amber-500 to-orange-500"
+            }`}>
               <div className="flex items-center justify-center mb-2">
-                <AlertCircle className="w-12 h-12 animate-bounce" />
+                {isSwitchingToEmpty && orderStats.notServedItems > 0 ? (
+                  <AlertCircle className="w-16 h-16 animate-[ping_1.5s_infinite] text-white" />
+                ) : (
+                  <AlertCircle className="w-12 h-12 animate-bounce" />
+                )}
               </div>
-              <h3 className="text-2xl font-bold text-center">
-                ⚠️ Bạn chắc chứ?
+              <h3 className="text-3xl font-black text-center uppercase tracking-tighter">
+                {isSwitchingToEmpty && orderStats.notServedItems > 0 ? "⚠️ CẢNH BÁO NGUY HIỂM" : "⚠️ Bạn chắc chứ?"}
               </h3>
             </div>
 
@@ -380,40 +420,47 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
 
                 {/* Tóm tắt nhanh từ orders trong confirm cuối */}
                 {isSwitchingToEmpty && orderStats.totalOrders > 0 && (
-                  <p className="mt-3 text-sm text-amber-900 leading-relaxed text-left">
-                    Bàn hiện có{" "}
-                    <span className="font-extrabold text-amber-950">
-                      {orderStats.totalOrders} order
-                    </span>
-                    {orderStats.totalItems > 0 && (
-                      <>
-                        {" "}
-                        (tổng khoảng{" "}
-                        <span className="font-extrabold text-amber-950">
-                          {orderStats.totalItems} món
-                        </span>
-                        )
-                      </>
-                    )}
+                  <div className={`mt-4 p-4 rounded-xl border-2 transition-all duration-300 ${
+                    orderStats.notServedItems > 0
+                      ? "bg-red-500 text-white border-white/40 shadow-inner"
+                      : "bg-emerald-100 text-emerald-900 border-emerald-200"
+                  }`}>
                     {orderStats.notServedItems > 0 ? (
-                      <>
-                        , trong đó còn{" "}
-                        <span className="font-extrabold text-red-700 underline">
-                          {orderStats.notServedItems} món chưa hoàn tất
-                        </span>
-                        .
-                      </>
+                      <div className="space-y-2">
+                        <p className="text-2xl font-black text-center animate-pulse leading-none py-1">
+                          DỪNG LẠI!
+                        </p>
+                        <p 
+                          className="text-lg font-bold text-center border-y border-white/30 py-2 cursor-pointer hover:bg-black/10 transition-colors"
+                          onClick={() => setShowPendingDetails(!showPendingDetails)}
+                        >
+                          BẠN VẪN CHƯA PHỤC VỤ HẾT MÓN!
+                          <span className="block text-[10px] font-normal uppercase opacity-80 mt-1">
+                            {showPendingDetails ? "↑ Nhấn để đóng danh sách" : "↓ Nhấn xem món nào chưa xong"}
+                          </span>
+                        </p>
+                        
+                        {showPendingDetails && (
+                          <div className="bg-black/20 rounded-lg p-2 space-y-1 max-h-32 overflow-y-auto animate-in fade-in zoom-in-95 duration-200 shadow-inner">
+                            {orderStats.pendingItemsList.map((item, idx) => (
+                              <div key={idx} className="flex justify-between text-xs py-1 border-b border-white/10 last:border-0">
+                                <span className="font-semibold truncate mr-2">{item.name}</span>
+                                <span className="bg-yellow-400 text-red-900 px-1.5 py-0.5 rounded font-black">x{item.qty}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="text-sm bg-black/20 p-2 rounded text-left font-medium">
+                          Bàn này vẫn còn <span className="text-yellow-300 font-bold underline text-base">{orderStats.notServedItems} món chưa hoàn tất</span>. 
+                          Việc chuyển sang TRỐNG bây giờ sẽ làm mất dấu vết phục vụ!
+                        </div>
+                      </div>
                     ) : (
-                      <>
-                        {" "}
-                        –{" "}
-                        <span className="font-semibold">
-                          tất cả món đã hoàn tất
-                        </span>
-                        .
-                      </>
+                      <p className="text-sm font-semibold text-center py-1">
+                        ✅ Tất cả {orderStats.totalItems} món đều đã hoàn tất.
+                      </p>
                     )}
-                  </p>
+                  </div>
                 )}
               </div>
 
@@ -443,9 +490,14 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({
               </button>
               <button
                 onClick={handleFinalYes}
-                className="flex-1 px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+                disabled={countdown > 0}
+                className={`flex-1 px-6 py-4 rounded-2xl transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center ${
+                  countdown > 0
+                    ? "bg-gray-400 text-gray-200 cursor-not-allowed border-2 border-gray-500"
+                    : "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+                }`}
               >
-                Xác nhận
+                {countdown > 0 ? `Chờ xác nhận (${countdown}s)` : "Xác nhận"}
               </button>
             </div>
           </div>
