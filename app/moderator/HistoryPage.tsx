@@ -37,7 +37,6 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ idTable }) => {
       const result = await response.json();
       setOrderData(result?.data || []);
     } catch (err) {
-      console.error("Error fetching orders:", err);
       setOrderData([]);
     } finally {
       setLoading(false);

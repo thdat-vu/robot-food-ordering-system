@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   useGetTableApi,
   useDeleteTable,
-  usePostFileExcelTable,
 } from "@/hooks/admin/useAdminHooks";
 import { BaseEntity } from "@/entites/BaseEntity";
 import { Table } from "@/api/admin/adminApi";
@@ -15,37 +14,41 @@ export const TableManagerPage: React.FC = () => {
   const { run: getTables } = useGetTableApi();
   const { run: deleteTable } = useDeleteTable();
 
+  const handleRefresh = useCallback(async () => {
+    const res: BaseEntity<Table[]> = await getTables();
+    if (res.items) {
+      setTables(res.items as Table[]);
+    }
+  }, [getTables]);
+
   // Fetch tables on mount
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const res: BaseEntity<Table[]> = await getTables();
-        if (res.items) {
-          setTables(res.items as Table[]);
-        }
+        await handleRefresh();
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [handleRefresh]);
 
   // Handle delete - refresh tables after deletion
   const handleDelete = useCallback(
     async (id: string) => {
       await deleteTable(id);
-      // Refresh the table list after deletion
-      const res: BaseEntity<Table[]> = await getTables();
-      if (res.items) {
-        setTables(res.items as Table[]);
-      }
+      await handleRefresh();
     },
-    [deleteTable, getTables]
+    [deleteTable, handleRefresh]
   );
 
   return (
     <div className="space-y-4">
-      <TableDashboard tables={tables} onDelete={handleDelete} />
+      <TableDashboard
+        tables={tables}
+        onDelete={handleDelete}
+        onImportSuccess={handleRefresh}
+      />
     </div>
   );
 };

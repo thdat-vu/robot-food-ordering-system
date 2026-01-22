@@ -1,6 +1,6 @@
-import {BaseEntity, BaseEntityDataError} from "@/entites/BaseEntity";
+import { BaseEntity, BaseEntityDataError } from "@/entites/BaseEntity";
 import api from "@/api/api";
-import {API_ADMIN, API_CATEGORY, API_DASHBOARD, API_PRODUCTION, API_TABLE_V2, API_TOPPING} from "@/api-endpoint-env";
+import { API_ADMIN, API_CATEGORY, API_DASHBOARD, API_PRODUCTION, API_TABLE_V2, API_TOPPING } from "@/api-endpoint-env";
 
 export const PostFileExcel = async (
     file: File
@@ -19,7 +19,7 @@ export const PostFileExcel = async (
         return res.data;
     } catch (error: any) {
         return {
-            codes: '500',
+            codes: error?.response?.status?.toString() ?? '500',
             message: error?.response?.data?.message ?? "Upload thất bại",
             data: false,
         };
@@ -44,7 +44,7 @@ export const PostFileExcelTopping = async (
         return res.data;
     } catch (error: any) {
         return {
-            codes: '500',
+            codes: error?.response?.status?.toString() ?? '500',
             message: error?.response?.data?.message ?? "Upload thất bại",
             data: false,
         };
@@ -59,23 +59,23 @@ export const PostFileExcelTable = async (
     formData.append("file", file);
 
     try {
-        const res = await api.post(`${API_ADMIN}/import-excel-table`, formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
-        });
+        console.log("POST /api/Admin/import-excel-table - Sending request...");
+        const res = await api.post(`${API_ADMIN}/import-excel-table`, formData);
+        console.log("POST /api/Admin/import-excel-table - Response received:", res.data);
+        console.log(res.data);
 
         return res.data;
     } catch (error: any) {
+        console.error("POST /api/Admin/import-excel-table - Error:", error?.response?.data || error.message);
         return {
-            codes: '500',
+            codes: error?.response?.status?.toString() ?? '500',
             message: error?.response?.data?.message ?? "Upload thất bại",
             data: false,
         };
     }
 };
 
-export const GetExportExcel = async (): Promise<void> => {
+export const GetExportExcel = async (): Promise<BaseEntityDataError<boolean>> => {
     try {
         const res = await api.get(`${API_ADMIN}/export-excel`, {
             responseType: "blob",
@@ -93,9 +93,53 @@ export const GetExportExcel = async (): Promise<void> => {
         link.click();
 
         window.URL.revokeObjectURL(url);
+        return {
+            codes: "200",
+            message: "Export thành công",
+            data: true
+        };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Export Excel lỗi:", error);
+        return {
+            codes: error?.response?.status?.toString() ?? '500',
+            message: error?.response?.data?.message ?? "Export thất bại",
+            data: false,
+        };
+    }
+};
+
+export const GetExportExcelTable = async (): Promise<BaseEntityDataError<boolean>> => {
+    try {
+        const res = await api.get(`${API_ADMIN}/export-excel-table`, {
+            responseType: "blob",
+        });
+
+        const blob = new Blob([res.data], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        });
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = url;
+        link.download = `DanhSachBan_${new Date().getTime()}.xlsx`;
+        link.click();
+
+        window.URL.revokeObjectURL(url);
+        return {
+            codes: "200",
+            message: "Export thành công",
+            data: true
+        };
+
+    } catch (error: any) {
+        console.error("Export Excel Table lỗi:", error);
+        return {
+            codes: error?.response?.status?.toString() ?? '500',
+            message: error?.response?.data?.message ?? "Export thất bại",
+            data: false,
+        };
     }
 };
 
@@ -218,9 +262,9 @@ export interface topMostOrderedProduct {
     productId: string;
     productName: string;
     orderCount: number;
-}export const DashboadApi = async (Year?:string,Month?:string,Day?:string):Promise<BaseEntityDataError<topMostOrderedProducts>> => {
+}export const DashboadApi = async (Year?: string, Month?: string, Day?: string): Promise<BaseEntityDataError<topMostOrderedProducts>> => {
     const res = await api.get(`${API_DASHBOARD}`, {
-        params:{
+        params: {
             Year,
             Month,
             Day
