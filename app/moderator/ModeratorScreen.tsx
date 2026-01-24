@@ -268,8 +268,101 @@ const ModeratorScreen: React.FC = () => {
     setInitialTab("home");
   }, []);
 
+  // State để force update UI mỗi giây (để check time trôi qua)
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000); // Check mỗi 1s cho mượt
+    return () => clearInterval(timer);
+  }, []);
+
+  // Helper để check thời gian từ server (có skew tolerance)
+  const isRecentUpdate = (timeStr?: string | null): boolean => {
+    if (!timeStr) return false;
+    try {
+      // timeStr format: "24/01/2026 18:21:41"
+      const parts = timeStr.split(" ");
+      if (parts.length !== 2) return false;
+
+      const dateParts = parts[0].split("/");
+      const timeParts = parts[1].split(":");
+
+      if (dateParts.length !== 3 || timeParts.length !== 3) return false;
+
+      const day = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
+      const year = parseInt(dateParts[2], 10);
+      const hours = parseInt(timeParts[0], 10);
+      const minutes = parseInt(timeParts[1], 10);
+      const seconds = parseInt(timeParts[2], 10);
+
+      const updateTime = new Date(year, month, day, hours, minutes, seconds);
+      const now = new Date();
+
+      const diff = now.getTime() - updateTime.getTime();
+      const oneMinuteInMs = 60 * 1000; 
+      const maxSkewInMs = 5 * 60 * 1000; // 5 mins buffer for clock skew
+
+      // Allow negative diff (client behind server)
+      return diff <= oneMinuteInMs && diff >= -maxSkewInMs;
+    } catch {
+      return false;
+    }
+  };
+
+  const SERVED_HIGHLIGHT_MS = 60_000;
+
+  const [recentServedMap, setRecentServedMap] = useState<Record<string, number>>(
+    {}
+  );
+
+  // Auto-detect served status from data updates
+  React.useEffect(() => {
+    setRecentServedMap((prev) => {
+      const next = { ...prev };
+      let hasChange = false;
+
+      Object.values(data).forEach((table) => {
+        const isFullyServed =
+          table.totalItems > 0 &&
+          table.serveredCount === table.totalItems &&
+          table.deliveredCount === table.totalItems;
+
+        if (isFullyServed) {
+          // Chỉ track nếu chưa track VÀ thời gian update từ server là "gần đây"
+          // Điều này giúp:
+          // 1. Khi vừa bấm Serve -> has update -> isRecentUpdate True -> Track -> TÍM 1 phút
+          // 2. Khi refresh trang -> if isRecentUpdate True -> Track -> TÍM (cho hết thời gian còn lại)
+          // 3. Nếu served từ lâu (hơn 1p) -> isRecentUpdate False -> Không track -> XANH (nếu paid)
+          if (!next[table.id] && isRecentUpdate(table.lastOrderUpdatedTime)) {
+            next[table.id] = Date.now();
+            hasChange = true;
+          }
+        } else {
+          // Bàn không còn served nữa (reset)
+          if (next[table.id]) {
+            delete next[table.id];
+            hasChange = true;
+          }
+        }
+      });
+
+      return hasChange ? next : prev;
+    });
+  }, [data]);
+
+  const isRecentServed = (tableId: string) => {
+    const ts = recentServedMap[tableId];
+    if (!ts) return false;
+    // Kiểm tra xem đã trôi qua 1 phút từ lúc bắt đầu track chưa
+    return currentTime.getTime() - ts <= SERVED_HIGHLIGHT_MS;
+  };
+
   const getTableStatus = (tableData: TableData): FilterStatus => {
     const {
+      id,
       totalItems,
       serveredCount,
       deliveredCount,
@@ -294,12 +387,19 @@ const ModeratorScreen: React.FC = () => {
       serveredCount === totalItems &&
       deliveredCount === totalItems
     ) {
+      // 1) Ưu tiên hiển thị Served (Tím) trong 1 phút đầu tiên
+      if (isRecentServed(id)) return "served";
+
+      // 2) Hết 1 phút: nếu đã thanh toán -> xanh
       if (paymentStatus === 2) return "paid";
+
+      // 3) Chưa thanh toán -> vẫn tím
       return "served";
     }
 
     return "empty";
   };
+
 
   const getTableColor = (tableData: TableData): string => {
     const status = getTableStatus(tableData);
