@@ -87,18 +87,42 @@ const mapPaymentStatus = (
   const key = String(s ?? "");
   const statuses: Record<string, { label: string; cls: string }> = {
     "0": {
+      label: "None",
+      cls: "bg-slate-50 text-slate-700 ring-slate-200",
+    },
+    "1": {
       label: "Chưa thanh toán",
       cls: "bg-amber-50 text-amber-700 ring-amber-200",
     },
-    "1": {
+    "2": {
       label: "Đã thanh toán",
       cls: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     },
-    "2": {
+    "3": {
       label: "Thất bại",
       cls: "bg-rose-50 text-rose-700 ring-rose-200",
     },
-    Unpaid: {
+    "4": {
+      label: "Đã hoàn tiền",
+      cls: "bg-indigo-50 text-indigo-700 ring-indigo-200",
+    },
+    pending: {
+      label: "Chưa thanh toán",
+      cls: "bg-amber-50 text-amber-700 ring-amber-200",
+    },
+    paid: {
+      label: "Đã thanh toán",
+      cls: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    },
+    failed: {
+      label: "Thất bại",
+      cls: "bg-rose-50 text-rose-700 ring-rose-200",
+    },
+    refunded: {
+      label: "Đã hoàn tiền",
+      cls: "bg-indigo-50 text-indigo-700 ring-indigo-200",
+    },
+    Pending: {
       label: "Chưa thanh toán",
       cls: "bg-amber-50 text-amber-700 ring-amber-200",
     },
@@ -109,6 +133,10 @@ const mapPaymentStatus = (
     Failed: {
       label: "Thất bại",
       cls: "bg-rose-50 text-rose-700 ring-rose-200",
+    },
+    Refunded: {
+      label: "Đã hoàn tiền",
+      cls: "bg-indigo-50 text-indigo-700 ring-indigo-200",
     },
   };
 

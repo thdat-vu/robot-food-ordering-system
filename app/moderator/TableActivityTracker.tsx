@@ -15,6 +15,8 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  AlertCircle,
+  MessageSquare,
 } from "lucide-react";
 
 import { TableActivityLog } from "@/entites/moderator/TableActivityLog";
@@ -24,7 +26,7 @@ import { humanizeAutoReleaseNoOrderTimeout } from "@/components/moderator/AutoRe
 import { ActivityNote } from "@/components/moderator/ActivityNote";
 import InvoiceActivityItem from "@/components/moderator/Activity/InvoiceActivityItem";
 
-const ACTIVITIES_PER_PAGE = 10;
+const ACTIVITIES_PER_PAGE = 20;
 
 export type TableActivityTrackerProps = {
   propSessionId: string | null;
@@ -43,67 +45,239 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   const [totalPages, setTotalPages] = useState(1);
   const [totalActivities, setTotalActivities] = useState(0);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  /* ================= HELPERS ================= */
+  const parseTime = (timeStr: string): number => {
+    if (!timeStr) return 0;
+    const d = new Date(timeStr);
+    if (!isNaN(d.getTime())) return d.getTime();
+
+    // Handle DD/MM/YYYY HH:mm:ss
+    const match = timeStr.match(
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})$/
+    );
+    if (match) {
+      const [, day, month, year, hour, minute, second] = match;
+      return new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second)
+      ).getTime();
+    }
+    return 0;
+  };
+
+  const getActorLabel = (activity: TableActivityLog) => {
+    const data = activity.data || {};
+    if (activity.type === "CheckIn") return "Khách hàng";
+    if (activity.type === "CreateOrder" || activity.type === "AddOrderItems") return "Khách hàng";
+
+    if (activity.type === "UpdateOrderItemStatus") {
+      const items = data.updatedItems || [];
+      const firstItem = items[0];
+      if (firstItem) {
+        const prev = Number(firstItem.previousStatus);
+        const next = Number(firstItem.newStatus);
+        // 2: Preparing -> 3: Ready (Bếp xong)
+        if (prev === 2 && next === 3) return "Bếp trưởng";
+        // 3: Ready -> 4: Served (Phục vụ giao)
+        if (prev === 3 && next === 4) return "Phục vụ trưởng";
+      }
+    }
+
+    if (activity.type === "CancelOrderItem") {
+      return "Bếp trưởng";
+    }
+
+    if (activity.type === "RemakeOrderItem") {
+      return "Phục vụ trưởng";
+    }
+
+    if (activity.type === "CloseSession") {
+      if (data?.actor?.type === "System") return "Hệ thống";
+      return "Điều phối";
+    }
+
+    if (data?.actor?.type === "System") return "Hệ thống";
+    return "Điều phối";
+  };
+
+  const getActorColor = (actor: string) => {
+    const colorMap: Record<string, string> = {
+      "Khách hàng": "bg-blue-50 text-blue-700 border-blue-200",
+      "Bếp trưởng": "bg-orange-50 text-orange-700 border-orange-200",
+      "Phục vụ trưởng": "bg-purple-50 text-purple-700 border-purple-200",
+      "Người phục vụ": "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "Hệ thống": "bg-gray-50 text-gray-700 border-gray-200",
+      "Điều phối": "bg-teal-50 text-teal-700 border-teal-200",
+    };
+    return colorMap[actor] || "bg-emerald-50 text-emerald-700 border-emerald-200";
+  };
+
+  const groupActivities = (list: TableActivityLog[]): TableActivityLog[] => {
+    if (list.length <= 1) return list;
+
+    const grouped: TableActivityLog[] = [];
+    let currentGroup: TableActivityLog | null = null;
+
+    const mergeItems = (groupItems: any[], newItems: any[]) => {
+      newItems.forEach((newItem) => {
+        const existing = groupItems.find(
+          (gi) =>
+            gi.productId === newItem.productId &&
+            gi.sizeId === newItem.sizeId &&
+            gi.previousStatus === newItem.previousStatus &&
+            gi.newStatus === newItem.newStatus &&
+            gi.remarkNote === newItem.remarkNote
+        );
+        if (existing) {
+          existing.quantity = (existing.quantity || 1) + (newItem.quantity || 1);
+        } else {
+          groupItems.push({ ...newItem, quantity: newItem.quantity || 1 });
+        }
+      });
+    };
+
+    list.forEach((activity) => {
+      const isGroupableType =
+        activity.type === "UpdateOrderItemStatus" ||
+        activity.type === "CancelOrderItem" ||
+        activity.type === "RemakeOrderItem";
+
+      if (isGroupableType) {
+        const data = activity.data || {};
+        const actor = getActorLabel(activity);
+
+        // Normalize data to always have items
+        const activityItems = data.updatedItems || (data.productId ? [data] : []);
+
+        if (currentGroup && currentGroup.type === activity.type) {
+          const groupData = currentGroup.data || {};
+          const sameOrder = data.orderCode === groupData.orderCode;
+          const sameActor = actor === getActorLabel(currentGroup);
+
+          // Get transitions for comparison
+          const currentItems = data.items || data.updatedItems || (data.productId ? [data] : []);
+          const groupItemsList = groupData.items || groupData.updatedItems || [];
+          const firstNew = currentItems[0];
+          const firstExisting = groupItemsList[0];
+          const sameTransition = !firstNew || !firstExisting || (
+            firstNew.previousStatus === firstExisting.previousStatus &&
+            firstNew.newStatus === firstExisting.newStatus
+          );
+
+          const time1 = parseTime(activity.createdTime);
+          const time2 = parseTime(currentGroup.createdTime);
+          const withinWindow =
+            time1 > 0 && time2 > 0 && Math.abs(time1 - time2) <= 15000;
+
+          if (sameOrder && sameActor && sameTransition && withinWindow) {
+            if (!groupData.items) {
+              groupData.items = groupData.updatedItems || (groupData.productId ? [JSON.parse(JSON.stringify(groupData))] : []);
+            }
+            mergeItems(groupData.items, activityItems);
+            
+            // Sync updatedItems for compatibility
+            groupData.updatedItems = groupData.items;
+
+            if (groupData.itemCount !== undefined && data.itemCount !== undefined) {
+              groupData.itemCount += data.itemCount;
+            } else if (activity.type !== "UpdateOrderItemStatus") {
+              groupData.itemCount = (groupData.itemCount || 1) + 1; // Basic count increment for single items
+            }
+            return;
+          }
+        }
+
+        // Start new group
+        currentGroup = JSON.parse(JSON.stringify(activity));
+        const cgData = currentGroup!.data || {};
+        cgData.items = activityItems.map((it: any) => ({ ...it, quantity: it.quantity || 1 }));
+        cgData.updatedItems = cgData.items;
+        grouped.push(currentGroup!);
+      } else {
+        currentGroup = null;
+        grouped.push(activity);
+      }
+    });
+
+    return grouped;
+  };
 
   /* ================= FETCH ================= */
 
-  const fetchActivitiesBySessionId = async (
-    sessionId: string | null,
-    page: number,
-    limit: number
-  ) => {
-    if (!sessionId) {
-      setActivities([]);
-      setTotalActivities(0);
-      setTotalPages(1);
-      return;
-    }
+  // Unified fetch effect to prevent race conditions
+  useEffect(() => {
+    let isCurrent = true;
 
-    try {
-      setActivityLoading(true);
-      const res = await tableService.getActivitiesBySessionId(
-        sessionId,
-        page,
-        limit
-      );
-
-      let list: TableActivityLog[] = [];
-      let totalCount = 0;
-
-      if (Array.isArray(res)) {
-        list = res;
-        totalCount = res.length;
-      } else if (res && Array.isArray((res as any)?.data)) {
-        list = (res as any).data;
-        totalCount = (res as any).totalCount ?? list.length;
+    const loadData = async () => {
+      if (!propSessionId) {
+        setActivities([]);
+        setTotalActivities(0);
+        setTotalPages(1);
+        return;
       }
 
-      setActivities(
-        list.map((a) => ({
-          ...a,
-          data: (a as any).data ?? {},
-        }))
-      );
-      setTotalActivities(totalCount);
-      setTotalPages(Math.max(1, Math.ceil(totalCount / limit)));
-    } catch (err) {
-      setActivities([]);
-      setTotalActivities(0);
-      setTotalPages(1);
-    } finally {
-      setActivityLoading(false);
-    }
-  };
+      try {
+        setActivityLoading(true);
+        const res = await tableService.getActivitiesBySessionId(
+          propSessionId,
+          currentPage,
+          ACTIVITIES_PER_PAGE
+        );
 
-  useEffect(() => {
-    if (!propSessionId) return;
-    fetchActivitiesBySessionId(propSessionId, currentPage, ACTIVITIES_PER_PAGE);
+        if (!isCurrent) return;
+
+        let list: TableActivityLog[] = [];
+        let totalCount = 0;
+
+        if (Array.isArray(res)) {
+          list = res;
+          totalCount = res.length;
+        } else if (res && Array.isArray((res as any)?.data)) {
+          list = (res as any).data;
+          totalCount = (res as any).totalCount ?? list.length;
+        }
+
+        setActivities(
+          groupActivities(
+            list.map((a) => ({
+              ...a,
+              data: (a as any).data ?? {},
+            }))
+          )
+        );
+        setTotalActivities(totalCount);
+        setTotalPages(Math.max(1, Math.ceil(totalCount / ACTIVITIES_PER_PAGE)));
+      } catch (err) {
+        if (!isCurrent) return;
+        setActivities([]);
+        setTotalActivities(0);
+        setTotalPages(1);
+      } finally {
+        if (isCurrent) setActivityLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isCurrent = false;
+    };
   }, [propSessionId, currentPage]);
 
+  // Reset page when switching tables
   useEffect(() => {
-    if (propSessionId && currentPage !== 1) {
-      setCurrentPage(1);
-    }
+    setCurrentPage(1);
+    setExpandedRows({}); // Close all rows when changing context
   }, [propSessionId]);
+
+  // Reset expanded rows when changing page
+  useEffect(() => {
+    setExpandedRows({});
+  }, [currentPage]);
 
   /* ================= HELPERS ================= */
 
@@ -204,18 +378,26 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
     const labels: Record<number, string> = {
       1: "Chờ xác nhận",
       2: "Đang chế biến",
-      3: "Đã hoàn thành",
-      4: "Đã giao",
+      3: "Đã hoàn tất",
+      4: "Đã phục vụ",
+      5: "Đã hoàn thành",
+      6: "Đã huỷ",
+      7: "Làm lại",
+      8: "Yêu cầu huỷ",
+      9: "Khách rời đi",
     };
     return labels[status] || status.toString();
   };
 
   const hasExpandableContent = (activity: TableActivityLog) => {
     const data: any = activity.data ?? {};
+    const items = data.items || data.updatedItems || data.newItems;
     return (
       (activity.type === "CreateOrder" && data.items) ||
       (activity.type === "AddOrderItems" && data.newItems) ||
-      (activity.type === "UpdateOrderItemStatus" && data.updatedItems)
+      (activity.type === "UpdateOrderItemStatus" && items) ||
+      (activity.type === "CancelOrderItem" && items) ||
+      (activity.type === "RemakeOrderItem" && items)
     );
   };
 
@@ -298,6 +480,31 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
             </div>
           </div>
 
+          {/* Compact Legend */}
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3 mb-6 px-8 py-4 bg-white/60 backdrop-blur-md rounded-2xl border border-white/50 shadow-sm transition-all hover:shadow-md">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-r border-gray-200 pr-4">Hành động:</span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]"></div>
+                  <span className="text-[11px] font-bold text-gray-700">Khách hàng <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">(Tạo món)</span></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]"></div>
+                  <span className="text-[11px] font-bold text-gray-700">Bếp trưởng <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">(Huỷ / Bếp xong)</span></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.3)]"></div>
+                  <span className="text-[11px] font-bold text-gray-700">Phục vụ trưởng <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">(Làm lại / Đã giao)</span></span>
+                </div>
+                <div className="flex items-center gap-1.5 grayscale-[0.2]">
+                  <div className="w-2.5 h-2.5 rounded-full bg-teal-500"></div>
+                  <span className="text-[11px] font-bold text-gray-700">Điều phối <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">(Đóng phiên)</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Loading / Empty / Table */}
           {activityLoading ? (
             <div className="py-24 text-center text-gray-500">
@@ -343,8 +550,8 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                 <tbody className="divide-y divide-gray-100">
                   {activities.map((activity, idx) => {
                     const data: any = activity.data ?? {};
-                    const actor =
-                      data?.actor?.type === "System" ? "Hệ thống" : "Điều phối";
+
+                    const actor = getActorLabel(activity);
                     const isExpanded =
                       expandedRows[(activity as any).activityCode];
                     const canExpand = hasExpandableContent(activity);
@@ -471,17 +678,29 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                   </div>
                                 )}
 
-                              {activity.type === "UpdateOrderItemStatus" && (
-                                <div className="bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
-                                  <span className="text-xs text-amber-700">
-                                    Cập nhật{" "}
-                                    <span className="font-semibold">
-                                      {data.updatedItems?.length || 0}
-                                    </span>{" "}
-                                    món
-                                  </span>
-                                </div>
-                              )}
+                              {((activity.type as string) === "UpdateOrderItemStatus" ||
+                                (activity.type as string) === "CancelOrderItem" ||
+                                (activity.type as string) === "RemakeOrderItem") && (
+                                  <div className={`${activity.type === "CancelOrderItem" ? "bg-red-50 border-red-200" : activity.type === "RemakeOrderItem" ? "bg-purple-50 border-purple-200" : "bg-amber-50 border-amber-200"} px-3 py-2 rounded-lg border shadow-sm`}>
+                                    <span className={`text-xs font-bold ${activity.type === "CancelOrderItem" ? "text-red-700" : activity.type === "RemakeOrderItem" ? "text-purple-700" : "text-amber-700"}`}>
+                                      {(() => {
+                                        const count = (data.items || data.updatedItems)?.length || 0;
+                                        if (activity.type === "CancelOrderItem") return `Huỷ ${count} món`;
+                                        if (activity.type === "RemakeOrderItem") return `Làm lại ${count} món`;
+                                        
+                                        const items = data.items || data.updatedItems || [];
+                                        const first = items[0];
+                                        if (first) {
+                                          const prev = Number(first.previousStatus);
+                                          const next = Number(first.newStatus);
+                                          if (prev === 2 && next === 3) return `Bếp xong ${count} món`;
+                                          if (prev === 3 && next === 4) return `Đã giao ${count} món`;
+                                        }
+                                        return `Cập nhật ${count} món`;
+                                      })()}
+                                    </span>
+                                  </div>
+                                )}
 
                               {activity.type === "CreateInvoice" &&
                                 data.invoiceId && (
@@ -520,10 +739,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                           {/* Source Column */}
                           <td className="px-6 py-5 align-top">
                             <span
-                              className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold ${actor === "Hệ thống"
-                                  ? "bg-gray-100 text-gray-700 border border-gray-200"
-                                  : "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                                }`}
+                              className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border shadow-sm ${getActorColor(actor)}`}
                             >
                               {actor}
                             </span>
@@ -593,34 +809,54 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                     </div>
                                   )}
 
-                                {activity.type === "UpdateOrderItemStatus" &&
-                                  data.updatedItems && (
-                                    <div className="space-y-2">
-                                      {data.updatedItems.map(
+                                {((activity.type as string) === "UpdateOrderItemStatus" ||
+                                  (activity.type as string) === "CancelOrderItem" ||
+                                  (activity.type as string) === "RemakeOrderItem") &&
+                                  (data.items || data.updatedItems) && (
+                                    <div className="space-y-4">
+                                      {(data.items || data.updatedItems).map(
                                         (item: any, i: number) => (
                                           <div
                                             key={i}
-                                            className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                            className="flex flex-col gap-2 py-3 px-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-gray-100"
                                           >
-                                            <div className="flex items-center gap-3">
-                                              <span className="text-xs font-semibold text-gray-500 bg-white px-2 py-1 rounded">
-                                                #{i + 1}
-                                              </span>
-                                              <span className="text-sm font-medium text-gray-900">
-                                                {item.productName}
-                                              </span>
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-3">
+                                                <span className="text-xs font-bold text-gray-500 bg-white px-2 py-1 rounded shadow-sm border border-gray-100">
+                                                  x{item.quantity || 1}
+                                                </span>
+                                                <span className="text-sm font-bold text-gray-900">
+                                                  {item.productName}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded border border-amber-100 font-medium">
+                                                  {getStatusLabel(
+                                                    item.previousStatus
+                                                  )}
+                                                </span>
+                                                <ArrowRight className="w-3 h-3 text-gray-300" />
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${item.newStatus === 6 ? "bg-red-50 text-red-600 border-red-100" : item.newStatus === 2 && activity.type === "RemakeOrderItem" ? "bg-purple-50 text-purple-600 border-purple-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"}`}>
+                                                  {getStatusLabel(item.newStatus)}
+                                                </span>
+                                              </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded font-medium">
-                                                {getStatusLabel(
-                                                  item.previousStatus
-                                                )}
-                                              </span>
-                                              <ArrowRight className="w-3 h-3 text-gray-400" />
-                                              <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded font-semibold">
-                                                {getStatusLabel(item.newStatus)}
-                                              </span>
-                                            </div>
+                                            
+                                            {item.remarkNote && (
+                                              <div className={`flex items-start gap-3 p-3 rounded-xl border-2 border-dashed transition-all duration-300 ${activity.type === "CancelOrderItem" ? "bg-red-50/50 border-red-200 hover:bg-red-50" : "bg-purple-50/50 border-purple-200 hover:bg-purple-50"}`}>
+                                                <div className={`mt-0.5 p-1.5 rounded-lg shadow-sm ${activity.type === "CancelOrderItem" ? "bg-red-100 text-red-600" : "bg-purple-100 text-purple-600"}`}>
+                                                  <MessageSquare className="w-4 h-4" />
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className={`text-[10px] font-black uppercase tracking-widest ${activity.type === "CancelOrderItem" ? "text-red-500" : "text-purple-500"}`}>
+                                                    Lý do {activity.type === "CancelOrderItem" ? "huỷ món" : "làm lại"}:
+                                                  </span>
+                                                  <span className="text-sm font-bold text-gray-800 leading-relaxed">
+                                                    {item.remarkNote}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )}
                                           </div>
                                         )
                                       )}
