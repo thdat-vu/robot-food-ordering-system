@@ -6,7 +6,9 @@ export type TableActivityType =
   | 'CreateInvoice'
   | 'AddOrderItems'
   | 'PartialPayment'
-  |'UpdateOrderItemStatus'
+  | 'UpdateOrderItemStatus'
+  | 'CancelOrderItem'
+  | 'RemakeOrderItem'
   | 'FullPayment'
   | 'MoveTable'
   | 'ShareStart'
@@ -16,7 +18,7 @@ export type TableActivityType =
   | 'CloseSession'
   | 'AutoRelease'
   | 'AttachDeviceFromModerator'
-  |'AutoReleaseNoOrderTimeout';
+  | 'AutoReleaseNoOrderTimeout';
 
 // Interface cho 1 activity log
 export interface TableActivityLog {
@@ -30,5 +32,5 @@ export interface TableActivityLog {
 
 // Props cho component
 export interface TableActivityTrackerProps {
-  propSessionId? : string | null; // hoặc string | null nếu FE cho phép null
+  propSessionId?: string | null; // hoặc string | null nếu FE cho phép null
 }
