@@ -302,7 +302,7 @@ const ModeratorScreen: React.FC = () => {
       const now = new Date();
 
       const diff = now.getTime() - updateTime.getTime();
-      const oneMinuteInMs = 60 * 1000; 
+      const oneMinuteInMs = 60 * 1000;
       const maxSkewInMs = 5 * 60 * 1000; // 5 mins buffer for clock skew
 
       // Allow negative diff (client behind server)
@@ -314,9 +314,9 @@ const ModeratorScreen: React.FC = () => {
 
   const SERVED_HIGHLIGHT_MS = 60_000;
 
-  const [recentServedMap, setRecentServedMap] = useState<Record<string, number>>(
-    {}
-  );
+  const [recentServedMap, setRecentServedMap] = useState<
+    Record<string, number>
+  >({});
 
   // Auto-detect served status from data updates
   React.useEffect(() => {
@@ -373,8 +373,10 @@ const ModeratorScreen: React.FC = () => {
     if (tableStatus === 0) return "empty";
     if (tableStatus === 1 && totalItems === 0) return "occupied";
 
+    // 1. Nếu có món chưa xong ở bếp -> Blue (Hàng đầu)
     if (totalItems > 0 && deliveredCount < totalItems) return "ordered";
 
+    // 2. Nếu bếp đã xong hết nhưng chưa phục vụ xong -> Yellow (Hàng nhì)
     if (
       totalItems > 0 &&
       deliveredCount === totalItems &&
@@ -382,12 +384,13 @@ const ModeratorScreen: React.FC = () => {
     )
       return "delivered";
 
+    // 3. Nếu đã phục vụ xong hoàn toàn
     if (
       totalItems > 0 &&
       serveredCount === totalItems &&
       deliveredCount === totalItems
     ) {
-      // 1) Ưu tiên hiển thị Served (Tím) trong 1 phút đầu tiên
+      // 1) Ưu tiên hiển thị Served (Tím) trong 1 phút đầu tiên (hiệu ứng)
       if (isRecentServed(id)) return "served";
 
       // 2) Hết 1 phút: nếu đã thanh toán -> xanh
@@ -397,9 +400,11 @@ const ModeratorScreen: React.FC = () => {
       return "served";
     }
 
+    // Fallback nếu đã thanh toán (dành cho trường hợp hiếm)
+    if (paymentStatus === 2) return "paid";
+
     return "empty";
   };
-
 
   const getTableColor = (tableData: TableData): string => {
     const status = getTableStatus(tableData);
@@ -492,17 +497,24 @@ const ModeratorScreen: React.FC = () => {
     () =>
       Object.entries(data)
         .filter(([, tableData]) => {
-          const status = getTableStatus(tableData);
-          const hasFeedback = (tableData.counter ?? 0) > 0;
-
           if (filterStatus === "all") return true;
 
-          // ✅ feedback: chỉ lấy bàn đang hoạt động (không phải empty) + có counter
+          const { totalItems, deliveredCount, serveredCount, tableStatus, paymentStatus, counter } = tableData;
+
+          // ✅ feedback: chỉ lấy bàn đang hoạt động + có counter
           if (filterStatus === "feedback") {
-            return status !== "empty" && hasFeedback;
+            return tableStatus !== 0 && (counter ?? 0) > 0;
           }
 
-          return status === filterStatus;
+          if (filterStatus === "empty") return tableStatus === 0;
+          if (filterStatus === "occupied") return tableStatus === 1 && totalItems === 0;
+          
+          if (filterStatus === "ordered") return totalItems > 0 && deliveredCount < totalItems;
+          if (filterStatus === "delivered") return totalItems > 0 && deliveredCount === totalItems && serveredCount < totalItems;
+          if (filterStatus === "served") return totalItems > 0 && serveredCount === totalItems;
+          if (filterStatus === "paid") return paymentStatus === 2;
+
+          return true;
         })
         .sort(([, a], [, b]) => {
           const getNumber = (name: string) => {
@@ -518,23 +530,12 @@ const ModeratorScreen: React.FC = () => {
 
   const statusCounts = useMemo(
     () => ({
-      feedback: Object.values(data).filter((t) => {
-        const status = getTableStatus(t);
-        return status !== "empty" && (t.counter ?? 0) > 0;
-      }).length,
-
-      empty: Object.values(data).filter((t) => getTableStatus(t) === "empty")
-        .length,
-      ordered: Object.values(data).filter(
-        (t) => getTableStatus(t) === "ordered"
-      ).length,
-      delivered: Object.values(data).filter(
-        (t) => getTableStatus(t) === "delivered"
-      ).length,
-      served: Object.values(data).filter((t) => getTableStatus(t) === "served")
-        .length,
-      paid: Object.values(data).filter((t) => getTableStatus(t) === "paid")
-        .length,
+      feedback: Object.values(data).filter((t) => t.tableStatus !== 0 && (t.counter ?? 0) > 0).length,
+      empty: Object.values(data).filter((t) => t.tableStatus === 0).length,
+      ordered: Object.values(data).filter((t) => (t.totalItems ?? 0) > 0 && (t.deliveredCount ?? 0) < (t.totalItems ?? 0)).length,
+      delivered: Object.values(data).filter((t) => (t.totalItems ?? 0) > 0 && t.deliveredCount === t.totalItems && (t.serveredCount ?? 0) < (t.totalItems ?? 0)).length,
+      served: Object.values(data).filter((t) => (t.totalItems ?? 0) > 0 && t.serveredCount === t.totalItems).length,
+      paid: Object.values(data).filter((t) => t.paymentStatus === 2).length,
     }),
     [data]
   );
@@ -775,7 +776,7 @@ const ModeratorScreen: React.FC = () => {
                     onClick={() => setFilterStatus("delivered")}
                     left={
                       <>
-                        <UserCheck size={18} className="shrink-0" /> Đã giao
+                        <ChefHat size={18} className="shrink-0" /> Bếp xong
                       </>
                     }
                     right={statusCounts.delivered}
@@ -787,7 +788,7 @@ const ModeratorScreen: React.FC = () => {
                     onClick={() => setFilterStatus("served")}
                     left={
                       <>
-                        <ChefHat size={18} className="shrink-0" /> Đã phục vụ
+                        <UserCheck size={18} className="shrink-0" /> Đã phục vụ
                       </>
                     }
                     right={statusCounts.served}

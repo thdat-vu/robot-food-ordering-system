@@ -2,10 +2,11 @@ import React from "react";
 import {
   Circle,
   CircleDot,
-  Coffee,
-  CheckCircle2,
-  Utensils,
+  ChefHat,
+  UserCheck,
   Receipt,
+  Utensils,
+  Coffee,
 } from "lucide-react";
 
 interface LegendFloatingProps {
@@ -45,7 +46,7 @@ const LegendItem: React.FC<LegendItemProps> = ({
         )}
       </span>
       {!iconOnly && (
-        <span className="text-lg leading-tight text-slate-700 font-medium">
+        <span className="text-lg leading-tight text-slate-700 font-medium whitespace-nowrap">
           {label}
         </span>
       )}
@@ -54,7 +55,7 @@ const LegendItem: React.FC<LegendItemProps> = ({
 };
 
 const LegendCard: React.FC = () => (
-  <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl px-3.5 py-3 space-y-1.5 text-sm border border-slate-200/80 w-52">
+  <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl px-3.5 py-3 space-y-1.5 text-sm border border-slate-200/80 w-56">
     <h3 className="font-semibold text-slate-800 flex items-center gap-2 pb-1 border-b border-slate-100 text-lg">
       <Coffee className="w-4 h-4" />
       <span>Trạng thái bàn</span>
@@ -82,17 +83,17 @@ const LegendCard: React.FC = () => (
     />
 
     <LegendItem
-      label="Đã phục vụ"
+      label="Bếp xong"
       borderClassName="border-amber-400"
       outerBgClassName="bg-amber-50"
-      icon={<Coffee className="w-3.5 h-3.5 text-amber-600" />}
+      icon={<ChefHat className="w-3.5 h-3.5 text-amber-600" />}
     />
 
     <LegendItem
-      label="Đã giao món"
+      label="Đã phục vụ"
       borderClassName="border-purple-400"
       outerBgClassName="bg-purple-50"
-      icon={<CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />}
+      icon={<UserCheck className="w-3.5 h-3.5 text-purple-600" />}
     />
 
     <LegendItem
