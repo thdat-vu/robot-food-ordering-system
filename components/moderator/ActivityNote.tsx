@@ -1,5 +1,5 @@
 // Tone = tông màu của card (viền + nền + chữ + badge)
-export type Tone = "rose" | "amber" | "emerald" | "slate";
+export type Tone = "rose" | "amber" | "emerald" | "slate" | "blue" | "indigo";
 
 export const toneMap: Record<
   Tone,
@@ -33,6 +33,18 @@ export const toneMap: Record<
     badge: "bg-slate-100 text-slate-700",
     title: "text-slate-700",
     body: "text-slate-800",
+  },
+  blue: {
+    wrap: "border-blue-200 bg-blue-50",
+    badge: "bg-blue-100 text-blue-700",
+    title: "text-blue-700",
+    body: "text-blue-800",
+  },
+  indigo: {
+    wrap: "border-indigo-200 bg-indigo-50",
+    badge: "bg-indigo-100 text-indigo-700",
+    title: "text-indigo-700",
+    body: "text-indigo-800",
   },
 };
 

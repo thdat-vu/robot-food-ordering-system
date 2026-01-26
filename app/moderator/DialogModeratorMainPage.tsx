@@ -97,7 +97,7 @@ export const DialogModeratorMainPage: React.FC<
         </aside>
 
         <main className="flex-1 bg-gray-50 p-8 overflow-auto">
-          {tab === "home" && <Home idTable={idTable} />}
+          {tab === "home" && <Home idTable={idTable} tableSessionId={tableSessionId} />}
           {tab === "feedback" && (
             <FeedbackPage idTable={idTable} tableName={tableName} />
           )}
