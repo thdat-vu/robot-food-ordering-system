@@ -553,26 +553,23 @@ export const ConfigPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card
-                className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
-                  loadingPolicy || savingPolicy
+                className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] ${loadingPolicy || savingPolicy
                     ? "opacity-60 pointer-events-none"
                     : ""
-                } ${
-                  paymentMethod === "prepay"
+                  } ${paymentMethod === "prepay"
                     ? "border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg shadow-primary/20"
                     : "border-2 border-border hover:border-primary/30 hover:shadow-md"
-                }`}
+                  }`}
                 onClick={() => handleSelectPolicy("prepay")}
               >
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <div className="flex items-start justify-between">
                       <div
-                        className={`p-3 rounded-xl ${
-                          paymentMethod === "prepay"
+                        className={`p-3 rounded-xl ${paymentMethod === "prepay"
                             ? "bg-primary text-primary-foreground"
                             : "bg-primary/10 text-primary group-hover:bg-primary/20"
-                        } transition-colors`}
+                          } transition-colors`}
                       >
                         <DollarSign className="w-5 h-5" />
                       </div>
@@ -598,26 +595,23 @@ export const ConfigPage: React.FC = () => {
               </Card>
 
               <Card
-                className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
-                  loadingPolicy || savingPolicy
+                className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] ${loadingPolicy || savingPolicy
                     ? "opacity-60 pointer-events-none"
                     : ""
-                } ${
-                  paymentMethod === "postpay"
+                  } ${paymentMethod === "postpay"
                     ? "border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg shadow-primary/20"
                     : "border-2 border-border hover:border-primary/30 hover:shadow-md"
-                }`}
+                  }`}
                 onClick={() => handleSelectPolicy("postpay")}
               >
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <div className="flex items-start justify-between">
                       <div
-                        className={`p-3 rounded-xl ${
-                          paymentMethod === "postpay"
+                        className={`p-3 rounded-xl ${paymentMethod === "postpay"
                             ? "bg-primary text-primary-foreground"
                             : "bg-primary/10 text-primary group-hover:bg-primary/20"
-                        } transition-colors`}
+                          } transition-colors`}
                       >
                         <Clock className="w-5 h-5" />
                       </div>
@@ -655,8 +649,8 @@ export const ConfigPage: React.FC = () => {
                 {pendingPolicy
                   ? toPolicyLabel(pendingPolicy)
                   : toPolicyLabel(
-                      paymentMethod === "prepay" ? "Prepay" : "Postpay"
-                    )}
+                    paymentMethod === "prepay" ? "Prepay" : "Postpay"
+                  )}
               </div>
               <div>
                 <span className="font-medium text-foreground">
@@ -728,7 +722,7 @@ export const ConfigPage: React.FC = () => {
                     "Ví dụ 22:00. Thời gian đóng cửa phải trễ hơn thời gian mở cửa"
                   )}
 
-                  {renderInput(
+                  {/* {renderInput(
                     "taxRate",
                     "Thuế VAT (%)",
                     "8%",
@@ -740,15 +734,15 @@ export const ConfigPage: React.FC = () => {
                       step: 0.1,
                       icon: Percent,
                     }
-                  )}
+                  )} */}
 
-                  {renderInput(
+                  {/* {renderInput(
                     "maxTableCapacity",
                     "Số bàn tối đa",
                     "20",
                     "Số bàn tối đa từ 1 đến 100 bàn",
                     { type: "number", min: 1, max: 100, step: 1, icon: Table2 }
-                  )}
+                  )} */}
 
                   {renderInput(
                     "tableAccessTimeoutWithoutOrderMinutes",
