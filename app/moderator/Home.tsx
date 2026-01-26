@@ -14,6 +14,7 @@ import {
   Info,
   ToggleLeft,
   ToggleRight,
+  Smartphone,
 } from "lucide-react";
 import { getApiUrl } from "@/env.config";
 import axios from "axios";
@@ -21,6 +22,8 @@ import { useToastModerator } from "@/hooks/use-toast-moderator";
 import { ToastContainer } from "@/components/moderator/ToastContainer";
 import OrderDetailDialog from "@/components/moderator/OrderDetailDialog";
 import { OrderData } from "@/entites/moderator/tableModel";
+import { AttachDeviceDialog } from "@/components/moderator/AttachDeviceDialog";
+import { tableService } from "@/service/moderator/TableService";
 
 export interface TableDetail {
   id: string;
@@ -30,7 +33,10 @@ export interface TableDetail {
   isBlocked?: boolean;
 }
 
-export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
+export const Home: React.FC<{
+  idTable: string;
+  tableSessionId?: string | null;
+}> = ({ idTable, tableSessionId }) => {
   const { toasts, addToast, removeToast } = useToastModerator();
   const [tableData, setTableData] = useState<TableDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,6 +44,7 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
   const [qrImageError, setQrImageError] = useState(false);
   const [showReasonDialog, setShowReasonDialog] = useState(false);
   const [blockReason, setBlockReason] = useState("");
+  const [attachDeviceDialogOpen, setAttachDeviceDialogOpen] = useState(false);
 
   // Status change states
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
@@ -221,6 +228,39 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
         } bàn. Vui lòng thử lại.`;
 
       addToast(errorMessage, "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAttachDevice = async (deviceId: string, reason: string) => {
+    if (!tableData?.id) {
+      addToast(
+        "Không tìm thấy thông tin bàn. Không thể gán thiết bị.",
+        "warning"
+      );
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      await tableService.attachDeviceToTable(tableData.id, {
+        newDeviceId: deviceId,
+        reason: reason,
+      });
+
+      addToast(
+        `Đã gán thiết bị cho bàn ${tableData.name} thành công`,
+        "success"
+      );
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.errorMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Không thể gán thiết bị. Vui lòng thử lại.";
+      addToast(errorMessage, "error");
+      throw err; // Propagate to dialog to prevent closing on fail
     } finally {
       setActionLoading(false);
     }
@@ -641,6 +681,40 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
                 )}
               </button>
             </div>
+
+            {/* Attach Device Card */}
+            <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-8">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center">
+                  <Smartphone className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800">
+                  Đổi Thiết Bị Mới
+                </h3>
+              </div>
+
+              <div className="bg-emerald-50 rounded-xl p-6 mb-6 border-2 border-emerald-200">
+                <p className="text-emerald-700 text-sm font-medium">
+                  Sử dụng khi khách hàng muốn đổi thiết bị hoặc chia sẻ quyền
+                  truy cập cho người khác.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setAttachDeviceDialogOpen(true)}
+                disabled={actionLoading || !tableSessionId}
+                className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
+              >
+                <Smartphone className="w-6 h-6" />
+                <span>Đổi thiết bị cho phiên bàn hiện tại</span>
+              </button>
+
+              {!tableSessionId && (
+                <p className="mt-3 text-xs text-red-500 text-center font-medium">
+                  ⚠️ Bàn cần ở trạng thái "Có Khách" để đổi thiết bị
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -768,6 +842,13 @@ export const Home: React.FC<{ idTable: string }> = ({ idTable }) => {
         onConfirmStatusChange={confirmStatusChange}
         onCancelStatusChange={cancelStatusChange}
         newStatus={computedStatus}
+      />
+
+      <AttachDeviceDialog
+        isOpen={attachDeviceDialogOpen}
+        onClose={() => setAttachDeviceDialogOpen(false)}
+        onSubmit={handleAttachDevice}
+        tableName={tableData?.name || "Bàn"}
       />
     </>
   );

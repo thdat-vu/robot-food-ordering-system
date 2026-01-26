@@ -1,6 +1,7 @@
 import { ApiResponse, Bill, CustomerLatestInvoice } from "@/entites/moderator/BillModel";
 import { TableActivityLog } from "@/entites/moderator/TableActivityLog";
 import { getApiUrl } from "@/env.config";
+import apiClient from "@/lib/axios";
 
 // ✅ Nếu project bạn đã có type này ở chỗ khác thì import vào thay vì khai báo lại
 export type PaginationParams = {
@@ -98,64 +99,70 @@ export const tableService = {
 
     const { pageNumber = 1, pageSize = 10 } = params;
 
-    const url = buildUrl(`/TableSession/TableId/${encodeURIComponent(tableId)}`, {
-      PageNumber: pageNumber,
-      PageSize: pageSize,
+    const response = await apiClient.get(`/TableSession/TableId/${encodeURIComponent(tableId)}`, {
+      params: {
+        PageNumber: pageNumber,
+        PageSize: pageSize,
+      },
     });
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) {
-      throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
-    }
-
-    return (await response.json()) as PaginatedResponse<Session>;
+    return response.data as PaginatedResponse<Session>;
   },
 
   // ✅ Endpoint của bạn đang là /Invoice/Order/{orderId}/invoice => param phải là orderId
   async getInvoiceById(invoiceId: string | null): Promise<ApiResponse<Bill> | null> {
     if (!invoiceId) return null;
 
-    const url = `${API_BASE_URL}/Invoice/invoice/${encodeURIComponent(invoiceId)}`;
-
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
-
-
-    if (!response.ok) {
-      const bodyText = await response.text().catch(() => "");
-      throw new Error(
-        `GET ${url} failed: ${response.status} ${response.statusText}${bodyText ? ` | ${bodyText}` : ""}`
-      );
-    }
-
-    return (await response.json()) as ApiResponse<Bill>;
+    const response = await apiClient.get(`/Invoice/invoice/${encodeURIComponent(invoiceId)}`);
+    return response.data as ApiResponse<Bill>;
   },
 
   async getLatestInvoiceByPhone(phone: string): Promise<ApiResponse<CustomerLatestInvoice> | null> {
     if (!phone) return null;
 
-    const url = `${API_BASE_URL}/Invoice/latest-by-phone?phone=${encodeURIComponent(phone)}`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      const bodyText = await response.text().catch(() => "");
-      throw new Error(
-        `GET ${url} failed: ${response.status} ${response.statusText}${bodyText ? ` | ${bodyText}` : ""}`
-      );
+    try {
+      const response = await apiClient.get(`/Invoice/latest-by-phone`, {
+        params: { phone }
+      });
+      return response.data as ApiResponse<CustomerLatestInvoice>;
+    } catch (error: any) {
+      if (error.response?.status === 404) return null;
+      throw error;
     }
+  },
 
-    return (await response.json()) as ApiResponse<CustomerLatestInvoice>;
-  }
-}
+  async attachDeviceToTable(
+    tableId: string,
+    payload: {
+      newDeviceId: string;
+      reason: string;
+    }
+  ): Promise<any> {
+    try {
+      const response = await apiClient.patch(
+        `/TableSession/TableId/${encodeURIComponent(tableId)}/attach-device`,
+        payload
+      );
+
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async updateTableStatus(
+    tableId: string,
+    status: number,
+    reason?: string
+  ): Promise<any> {
+    try {
+      const response = await apiClient.put(`/Table/${tableId}/status`, {
+        status,
+        reason,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+};

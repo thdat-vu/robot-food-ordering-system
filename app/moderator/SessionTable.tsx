@@ -17,6 +17,21 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
     null
   );
 
+  const [startDate, setStartDate] = useState<string>(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}T00:00`;
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}T23:59`;
+  });
+
   const [revealedPhoneIds, setRevealedPhoneIds] = useState<Set<string>>(
     new Set()
   );
@@ -70,22 +85,67 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
     });
   };
 
+  const parseDateTime = (dateStr: string | null | undefined): Date | null => {
+    if (!dateStr) return null;
+
+    // Handle DD/MM/YYYY HH:mm:ss
+    const match = dateStr.match(
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})$/
+    );
+    if (match) {
+      const [, day, month, year, hour, minute, second] = match;
+      return new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second)
+      );
+    }
+
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   const q = (searchTerm ?? "").trim().toLowerCase();
 
-  const filteredSessions =
-    q.length === 0
-      ? sessions
-      : sessions.filter((session: Session) => {
-          const name = (session.customerName ?? "").toLowerCase();
-          const phone = session.phoneNumber ?? ""; // giữ nguyên vì phone thường là số/ký tự
-          const sessionCode = String(session.sessionCode ?? "").toLowerCase();
+  const filteredSessions = sessions.filter((session: Session) => {
+    // Text filter
+    const matchesText =
+      q.length === 0 ||
+      (session.customerName ?? "").toLowerCase().includes(q) ||
+      (session.phoneNumber ?? "").includes(searchTerm ?? "") ||
+      String(session.sessionCode ?? "").toLowerCase().includes(q);
 
-          return (
-            name.includes(q) ||
-            phone.includes(searchTerm ?? "") || // hoặc phone.includes(q) nếu bạn muốn normalize luôn
-            sessionCode.includes(q)
-          );
-        });
+    if (!matchesText) return false;
+
+    // Time filter
+    const sessionCheckIn = parseDateTime(session.checkIn);
+    const sessionCheckOut = parseDateTime(session.checkOut);
+
+    const filterStart = startDate ? new Date(startDate) : null;
+    const filterEnd = endDate ? new Date(endDate) : null;
+
+    if (filterStart) {
+      // Session matches if it was active after filterStart
+      // Either started after filterStart, OR ended after filterStart
+      const startedAfter = sessionCheckIn && sessionCheckIn >= filterStart;
+      const endedAfter = sessionCheckOut && sessionCheckOut >= filterStart;
+      const isActive = !sessionCheckOut && sessionCheckIn && sessionCheckIn >= filterStart; // simplified
+
+      if (!startedAfter && !endedAfter && !isActive) return false;
+    }
+
+    if (filterEnd) {
+      // Session matches if it was active before filterEnd
+      const startedBefore = sessionCheckIn && sessionCheckIn <= filterEnd;
+      // If it started before end, it's potentially relevant
+      if (!startedBefore) return false;
+    }
+
+    return true;
+  });
 
   const handleViewActivity = async (session: Session): Promise<void> => {
     try {
@@ -155,20 +215,58 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
           </div>
         ) : (
           <>
-            {/* Search Bar */}
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-              <div className="relative">
-                <Search
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm theo tên, số điện thoại hoặc mã phiên..."
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition-colors"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1 border-r-0 md:border-r border-gray-100 pr-0 md:pr-4">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tìm kiếm</label>
+                  <div className="relative">
+                    <Search
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Tên, SĐT, Mã phiên..."
+                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:bg-white focus:outline-none transition-all"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Khoảng thời gian (Check-in)</label>
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="relative w-full">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-500" size={16} />
+                      <input
+                        type="datetime-local"
+                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:bg-white focus:outline-none transition-all text-sm"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                    </div>
+                    <span className="text-gray-400 font-bold">~</span>
+                    <div className="relative w-full">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-500" size={16} />
+                      <input
+                        type="datetime-local"
+                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:bg-white focus:outline-none transition-all text-sm"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+                    {(startDate || endDate) && (
+                      <button
+                        onClick={() => { setStartDate(""); setEndDate(""); }}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        title="Xóa bộ lọc thời gian"
+                      >
+                        <Loader2 size={18} className="rotate-45" /> {/* Use a cross-like icon or just text */}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

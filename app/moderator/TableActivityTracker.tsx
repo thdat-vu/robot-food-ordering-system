@@ -17,6 +17,7 @@ import {
   ChevronUp,
   AlertCircle,
   MessageSquare,
+  Smartphone,
 } from "lucide-react";
 
 import { TableActivityLog } from "@/entites/moderator/TableActivityLog";
@@ -72,7 +73,8 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   const getActorLabel = (activity: TableActivityLog) => {
     const data = activity.data || {};
     if (activity.type === "CheckIn") return "Khách hàng";
-    if (activity.type === "CreateOrder" || activity.type === "AddOrderItems") return "Khách hàng";
+    if (activity.type === "CreateOrder" || activity.type === "AddOrderItems")
+      return "Khách hàng";
 
     if (activity.type === "UpdateOrderItemStatus") {
       const items = data.updatedItems || [];
@@ -113,7 +115,9 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       "Hệ thống": "bg-gray-50 text-gray-700 border-gray-200",
       "Điều phối": "bg-teal-50 text-teal-700 border-teal-200",
     };
-    return colorMap[actor] || "bg-emerald-50 text-emerald-700 border-emerald-200";
+    return (
+      colorMap[actor] || "bg-emerald-50 text-emerald-700 border-emerald-200"
+    );
   };
 
   const groupActivities = (list: TableActivityLog[]): TableActivityLog[] => {
@@ -133,7 +137,8 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
             gi.remarkNote === newItem.remarkNote
         );
         if (existing) {
-          existing.quantity = (existing.quantity || 1) + (newItem.quantity || 1);
+          existing.quantity =
+            (existing.quantity || 1) + (newItem.quantity || 1);
         } else {
           groupItems.push({ ...newItem, quantity: newItem.quantity || 1 });
         }
@@ -151,7 +156,8 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
         const actor = getActorLabel(activity);
 
         // Normalize data to always have items
-        const activityItems = data.updatedItems || (data.productId ? [data] : []);
+        const activityItems =
+          data.updatedItems || (data.productId ? [data] : []);
 
         if (currentGroup && currentGroup.type === activity.type) {
           const groupData = currentGroup.data || {};
@@ -159,14 +165,17 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
           const sameActor = actor === getActorLabel(currentGroup);
 
           // Get transitions for comparison
-          const currentItems = data.items || data.updatedItems || (data.productId ? [data] : []);
-          const groupItemsList = groupData.items || groupData.updatedItems || [];
+          const currentItems =
+            data.items || data.updatedItems || (data.productId ? [data] : []);
+          const groupItemsList =
+            groupData.items || groupData.updatedItems || [];
           const firstNew = currentItems[0];
           const firstExisting = groupItemsList[0];
-          const sameTransition = !firstNew || !firstExisting || (
-            firstNew.previousStatus === firstExisting.previousStatus &&
-            firstNew.newStatus === firstExisting.newStatus
-          );
+          const sameTransition =
+            !firstNew ||
+            !firstExisting ||
+            (firstNew.previousStatus === firstExisting.previousStatus &&
+              firstNew.newStatus === firstExisting.newStatus);
 
           const time1 = parseTime(activity.createdTime);
           const time2 = parseTime(currentGroup.createdTime);
@@ -175,14 +184,21 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
           if (sameOrder && sameActor && sameTransition && withinWindow) {
             if (!groupData.items) {
-              groupData.items = groupData.updatedItems || (groupData.productId ? [JSON.parse(JSON.stringify(groupData))] : []);
+              groupData.items =
+                groupData.updatedItems ||
+                (groupData.productId
+                  ? [JSON.parse(JSON.stringify(groupData))]
+                  : []);
             }
             mergeItems(groupData.items, activityItems);
-            
+
             // Sync updatedItems for compatibility
             groupData.updatedItems = groupData.items;
 
-            if (groupData.itemCount !== undefined && data.itemCount !== undefined) {
+            if (
+              groupData.itemCount !== undefined &&
+              data.itemCount !== undefined
+            ) {
               groupData.itemCount += data.itemCount;
             } else if (activity.type !== "UpdateOrderItemStatus") {
               groupData.itemCount = (groupData.itemCount || 1) + 1; // Basic count increment for single items
@@ -194,7 +210,10 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
         // Start new group
         currentGroup = JSON.parse(JSON.stringify(activity));
         const cgData = currentGroup!.data || {};
-        cgData.items = activityItems.map((it: any) => ({ ...it, quantity: it.quantity || 1 }));
+        cgData.items = activityItems.map((it: any) => ({
+          ...it,
+          quantity: it.quantity || 1,
+        }));
         cgData.updatedItems = cgData.items;
         grouped.push(currentGroup!);
       } else {
@@ -289,29 +308,29 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
   };
 
   const getActivityLabel = (type: string) =>
-  ((
-    {
-      CheckIn: "Check-in",
-      ScanAgain: "Quét lại QR",
-      CreateOrder: "Tạo đơn hàng",
-      AddOrderItems: "Thêm món",
-      UpdateOrderItemStatus: "Cập nhật món",
-      CancelOrderItem: "Huỷ món",
-      RemakeOrderItem: "Làm lại món",
-      PartialPayment: "Thanh toán một phần",
-      FullPayment: "Thanh toán đầy đủ",
-      MoveTable: "Chuyển bàn",
-      ShareStart: "Chia sẻ bàn",
-      ShareJoin: "Thiết bị tham gia",
-      ShareStop: "Dừng chia sẻ",
-      RequestCheckout: "Yêu cầu thanh toán",
-      CreateInvoice: "Tạo hóa đơn",
-      CloseSession: "Đóng phiên",
-      AutoRelease: "Tự động giải phóng",
-      AutoReleaseNoOrderTimeout: "Tự động (không đơn)",
-      AttachDeviceFromModerator: "Gán thiết bị",
-    } as Record<string, string>
-  )[type] || type);
+    ((
+      {
+        CheckIn: "Check-in",
+        ScanAgain: "Quét lại QR",
+        CreateOrder: "Tạo đơn hàng",
+        AddOrderItems: "Thêm món",
+        UpdateOrderItemStatus: "Cập nhật món",
+        CancelOrderItem: "Huỷ món",
+        RemakeOrderItem: "Làm lại món",
+        PartialPayment: "Thanh toán một phần",
+        FullPayment: "Thanh toán đầy đủ",
+        MoveTable: "Chuyển bàn",
+        ShareStart: "Chia sẻ bàn",
+        ShareJoin: "Thiết bị tham gia",
+        ShareStop: "Dừng chia sẻ",
+        RequestCheckout: "Yêu cầu thanh toán",
+        CreateInvoice: "Tạo hóa đơn",
+        CloseSession: "Đóng phiên",
+        AutoRelease: "Tự động giải phóng",
+        AutoReleaseNoOrderTimeout: "Tự động (không đơn)",
+        AttachDeviceFromModerator: "Đổi thiết bị",
+      } as Record<string, string>
+    )[type] || type);
 
   const getActivityIcon = (type: string) => {
     const icons: Record<string, React.ReactNode> = {
@@ -332,6 +351,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       CreateInvoice: <FileText className="w-5 h-5" />,
       AutoRelease: <Clock className="w-5 h-5" />,
       AutoReleaseNoOrderTimeout: <Clock className="w-5 h-5" />,
+      AttachDeviceFromModerator: <Smartphone className="w-5 h-5" />,
     };
     return icons[type] || <Activity className="w-5 h-5" />;
   };
@@ -351,6 +371,7 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       CreateInvoice: "text-teal-600",
       AutoRelease: "text-amber-600",
       AutoReleaseNoOrderTimeout: "text-red-600",
+      AttachDeviceFromModerator: "text-emerald-600",
     };
     return colorMap[type] || "text-gray-500";
   };
@@ -370,6 +391,8 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
       CreateInvoice: "bg-teal-50 text-teal-700 border-teal-200",
       AutoRelease: "bg-amber-50 text-amber-700 border-amber-200",
       AutoReleaseNoOrderTimeout: "bg-red-50 text-red-700 border-red-200",
+      AttachDeviceFromModerator:
+        "bg-emerald-50 text-emerald-700 border-emerald-200",
     };
     return colorMap[type] || "bg-gray-50 text-gray-700 border-gray-200";
   };
@@ -483,23 +506,45 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
           {/* Compact Legend */}
           <div className="flex flex-wrap items-center gap-x-8 gap-y-3 mb-6 px-8 py-4 bg-white/60 backdrop-blur-md rounded-2xl border border-white/50 shadow-sm transition-all hover:shadow-md">
             <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-r border-gray-200 pr-4">Hành động:</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-r border-gray-200 pr-4">
+                Hành động:
+              </span>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]"></div>
-                  <span className="text-[11px] font-bold text-gray-700">Khách hàng <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">(Tạo món)</span></span>
+                  <span className="text-[11px] font-bold text-gray-700">
+                    Khách hàng{" "}
+                    <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">
+                      (Tạo món)
+                    </span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]"></div>
-                  <span className="text-[11px] font-bold text-gray-700">Bếp trưởng <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">(Huỷ / Bếp xong)</span></span>
+                  <span className="text-[11px] font-bold text-gray-700">
+                    Bếp trưởng{" "}
+                    <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">
+                      (Huỷ / Bếp xong)
+                    </span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.3)]"></div>
-                  <span className="text-[11px] font-bold text-gray-700">Phục vụ trưởng <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">(Làm lại / Đã giao)</span></span>
+                  <span className="text-[11px] font-bold text-gray-700">
+                    Phục vụ trưởng{" "}
+                    <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">
+                      (Làm lại / Đã giao)
+                    </span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 grayscale-[0.2]">
                   <div className="w-2.5 h-2.5 rounded-full bg-teal-500"></div>
-                  <span className="text-[11px] font-bold text-gray-700">Điều phối <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">(Đóng phiên)</span></span>
+                  <span className="text-[11px] font-bold text-gray-700">
+                    Điều phối{" "}
+                    <span className="text-[9px] font-medium text-gray-400 font-normal ml-0.5">
+                      (Đóng phiên)
+                    </span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -657,50 +702,78 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
                               {(activity.type === "CreateOrder" ||
                                 activity.type === "AddOrderItems") && (
-                                  <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-xs text-blue-700">
-                                        <span className="font-semibold">
-                                          {data.itemCount || data.newItemCount}
-                                        </span>{" "}
-                                        món
-                                      </span>
-                                      <span className="text-xs text-blue-700">
-                                        •
-                                      </span>
-                                      <span className="text-xs font-semibold text-blue-900">
-                                        {(
-                                          data.totalPrice || data.addedTotal
-                                        )?.toLocaleString("vi-VN")}{" "}
-                                        ₫
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-
-                              {((activity.type as string) === "UpdateOrderItemStatus" ||
-                                (activity.type as string) === "CancelOrderItem" ||
-                                (activity.type as string) === "RemakeOrderItem") && (
-                                  <div className={`${activity.type === "CancelOrderItem" ? "bg-red-50 border-red-200" : activity.type === "RemakeOrderItem" ? "bg-purple-50 border-purple-200" : "bg-amber-50 border-amber-200"} px-3 py-2 rounded-lg border shadow-sm`}>
-                                    <span className={`text-xs font-bold ${activity.type === "CancelOrderItem" ? "text-red-700" : activity.type === "RemakeOrderItem" ? "text-purple-700" : "text-amber-700"}`}>
-                                      {(() => {
-                                        const count = (data.items || data.updatedItems)?.length || 0;
-                                        if (activity.type === "CancelOrderItem") return `Huỷ ${count} món`;
-                                        if (activity.type === "RemakeOrderItem") return `Làm lại ${count} món`;
-                                        
-                                        const items = data.items || data.updatedItems || [];
-                                        const first = items[0];
-                                        if (first) {
-                                          const prev = Number(first.previousStatus);
-                                          const next = Number(first.newStatus);
-                                          if (prev === 2 && next === 3) return `Bếp xong ${count} món`;
-                                          if (prev === 3 && next === 4) return `Đã giao ${count} món`;
-                                        }
-                                        return `Cập nhật ${count} món`;
-                                      })()}
+                                <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs text-blue-700">
+                                      <span className="font-semibold">
+                                        {data.itemCount || data.newItemCount}
+                                      </span>{" "}
+                                      món
+                                    </span>
+                                    <span className="text-xs text-blue-700">
+                                      •
+                                    </span>
+                                    <span className="text-xs font-semibold text-blue-900">
+                                      {(
+                                        data.totalPrice || data.addedTotal
+                                      )?.toLocaleString("vi-VN")}{" "}
+                                      ₫
                                     </span>
                                   </div>
-                                )}
+                                </div>
+                              )}
+
+                              {((activity.type as string) ===
+                                "UpdateOrderItemStatus" ||
+                                (activity.type as string) ===
+                                  "CancelOrderItem" ||
+                                (activity.type as string) ===
+                                  "RemakeOrderItem") && (
+                                <div
+                                  className={`${
+                                    activity.type === "CancelOrderItem"
+                                      ? "bg-red-50 border-red-200"
+                                      : activity.type === "RemakeOrderItem"
+                                      ? "bg-purple-50 border-purple-200"
+                                      : "bg-amber-50 border-amber-200"
+                                  } px-3 py-2 rounded-lg border shadow-sm`}
+                                >
+                                  <span
+                                    className={`text-xs font-bold ${
+                                      activity.type === "CancelOrderItem"
+                                        ? "text-red-700"
+                                        : activity.type === "RemakeOrderItem"
+                                        ? "text-purple-700"
+                                        : "text-amber-700"
+                                    }`}
+                                  >
+                                    {(() => {
+                                      const count =
+                                        (data.items || data.updatedItems)
+                                          ?.length || 0;
+                                      if (activity.type === "CancelOrderItem")
+                                        return `Huỷ ${count} món`;
+                                      if (activity.type === "RemakeOrderItem")
+                                        return `Làm lại ${count} món`;
+
+                                      const items =
+                                        data.items || data.updatedItems || [];
+                                      const first = items[0];
+                                      if (first) {
+                                        const prev = Number(
+                                          first.previousStatus
+                                        );
+                                        const next = Number(first.newStatus);
+                                        if (prev === 2 && next === 3)
+                                          return `Bếp xong ${count} món`;
+                                        if (prev === 3 && next === 4)
+                                          return `Đã giao ${count} món`;
+                                      }
+                                      return `Cập nhật ${count} món`;
+                                    })()}
+                                  </span>
+                                </div>
+                              )}
 
                               {activity.type === "CreateInvoice" &&
                                 data.invoiceId && (
@@ -724,22 +797,55 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
 
                               {activity.type ===
                                 "AutoReleaseNoOrderTimeout" && (
-                                  <ActivityNote
-                                    tone="amber"
-                                    title="Tự động giải phóng"
-                                    message={humanizeAutoReleaseNoOrderTimeout(
-                                      data
-                                    )}
-                                    badges={["Hệ thống"]}
-                                  />
-                                )}
+                                <ActivityNote
+                                  tone="amber"
+                                  title="Tự động giải phóng"
+                                  message={humanizeAutoReleaseNoOrderTimeout(
+                                    data
+                                  )}
+                                  badges={["Hệ thống"]}
+                                />
+                              )}
+
+                              {activity.type ===
+                                "AttachDeviceFromModerator" && (
+                                <ActivityNote
+                                  tone="emerald"
+                                  title="Đổi thiết bị mới"
+                                  message={
+                                    data.reason || "Lý do: Không xác định"
+                                  }
+                                />
+                              )}
+
+                              {activity.type === "ShareStart" && (
+                                <ActivityNote
+                                  tone="indigo"
+                                  title="Bắt đầu chia sẻ bàn"
+                                  message="Phiên bàn đã được mở để thiết bị khác tham gia"
+                                  badges={[`Mã: ${data.sessionCode || "N/A"}`]}
+                                />
+                              )}
+
+                              {activity.type === "ShareJoin" && (
+                                <ActivityNote
+                                  tone="blue"
+                                  title="Thiết bị tham gia"
+                                  message={`Thiết bị mới đã tham gia phiên bàn này`}
+                                  badges={[
+                                    `Mã: ${data.deviceId?.slice(-6) || "N/A"}`,
+                                  ]}
+                                />
+                              )}
                             </div>
                           </td>
 
                           {/* Source Column */}
                           <td className="px-6 py-5 align-top">
                             <span
-                              className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border shadow-sm ${getActorColor(actor)}`}
+                              className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border shadow-sm ${getActorColor(
+                                actor
+                              )}`}
                             >
                               {actor}
                             </span>
@@ -809,9 +915,12 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                     </div>
                                   )}
 
-                                {((activity.type as string) === "UpdateOrderItemStatus" ||
-                                  (activity.type as string) === "CancelOrderItem" ||
-                                  (activity.type as string) === "RemakeOrderItem") &&
+                                {((activity.type as string) ===
+                                  "UpdateOrderItemStatus" ||
+                                  (activity.type as string) ===
+                                    "CancelOrderItem" ||
+                                  (activity.type as string) ===
+                                    "RemakeOrderItem") &&
                                   (data.items || data.updatedItems) && (
                                     <div className="space-y-4">
                                       {(data.items || data.updatedItems).map(
@@ -836,20 +945,58 @@ export const TableActivityTracker: React.FC<TableActivityTrackerProps> = ({
                                                   )}
                                                 </span>
                                                 <ArrowRight className="w-3 h-3 text-gray-300" />
-                                                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${item.newStatus === 6 ? "bg-red-50 text-red-600 border-red-100" : item.newStatus === 2 && activity.type === "RemakeOrderItem" ? "bg-purple-50 text-purple-600 border-purple-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"}`}>
-                                                  {getStatusLabel(item.newStatus)}
+                                                <span
+                                                  className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${
+                                                    item.newStatus === 6
+                                                      ? "bg-red-50 text-red-600 border-red-100"
+                                                      : item.newStatus === 2 &&
+                                                        activity.type ===
+                                                          "RemakeOrderItem"
+                                                      ? "bg-purple-50 text-purple-600 border-purple-100"
+                                                      : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                                  }`}
+                                                >
+                                                  {getStatusLabel(
+                                                    item.newStatus
+                                                  )}
                                                 </span>
                                               </div>
                                             </div>
-                                            
+
                                             {item.remarkNote && (
-                                              <div className={`flex items-start gap-3 p-3 rounded-xl border-2 border-dashed transition-all duration-300 ${activity.type === "CancelOrderItem" ? "bg-red-50/50 border-red-200 hover:bg-red-50" : "bg-purple-50/50 border-purple-200 hover:bg-purple-50"}`}>
-                                                <div className={`mt-0.5 p-1.5 rounded-lg shadow-sm ${activity.type === "CancelOrderItem" ? "bg-red-100 text-red-600" : "bg-purple-100 text-purple-600"}`}>
+                                              <div
+                                                className={`flex items-start gap-3 p-3 rounded-xl border-2 border-dashed transition-all duration-300 ${
+                                                  activity.type ===
+                                                  "CancelOrderItem"
+                                                    ? "bg-red-50/50 border-red-200 hover:bg-red-50"
+                                                    : "bg-purple-50/50 border-purple-200 hover:bg-purple-50"
+                                                }`}
+                                              >
+                                                <div
+                                                  className={`mt-0.5 p-1.5 rounded-lg shadow-sm ${
+                                                    activity.type ===
+                                                    "CancelOrderItem"
+                                                      ? "bg-red-100 text-red-600"
+                                                      : "bg-purple-100 text-purple-600"
+                                                  }`}
+                                                >
                                                   <MessageSquare className="w-4 h-4" />
                                                 </div>
                                                 <div className="flex flex-col gap-0.5">
-                                                  <span className={`text-[10px] font-black uppercase tracking-widest ${activity.type === "CancelOrderItem" ? "text-red-500" : "text-purple-500"}`}>
-                                                    Lý do {activity.type === "CancelOrderItem" ? "huỷ món" : "làm lại"}:
+                                                  <span
+                                                    className={`text-[10px] font-black uppercase tracking-widest ${
+                                                      activity.type ===
+                                                      "CancelOrderItem"
+                                                        ? "text-red-500"
+                                                        : "text-purple-500"
+                                                    }`}
+                                                  >
+                                                    Lý do{" "}
+                                                    {activity.type ===
+                                                    "CancelOrderItem"
+                                                      ? "huỷ món"
+                                                      : "làm lại"}
+                                                    :
                                                   </span>
                                                   <span className="text-sm font-bold text-gray-800 leading-relaxed">
                                                     {item.remarkNote}

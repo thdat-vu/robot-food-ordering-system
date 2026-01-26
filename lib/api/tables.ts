@@ -28,13 +28,5 @@ export const tablesApi = {
   async getTableById(tableId: string) {
     const response = await apiClient.get<ApiBaseResponse<ApiTableResponse>>(`/Table/${tableId}`);
     return response.data;
-  },
-
-  // Update table status
-  async updateTableStatus(tableId: string, status: number, reason: string = "") {
-    return await apiClient.put(`/Table/${tableId}/status`, {
-      status,
-      reason
-    });
   }
 };
