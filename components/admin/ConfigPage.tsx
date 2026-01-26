@@ -120,7 +120,7 @@ export const ConfigPage: React.FC = () => {
       const next: FormState = {
         restaurantName: map.RestaurantName ?? "",
         restaurantAddress: map.RestaurantAddress ?? "",
-        restaurantPhone: map.RestaurantPhone ?? "",
+        restaurantPhone: map.RestaurantPhoneNumber ?? "",
         openingTime: map.OpeningTime ?? "",
         closingTime: map.ClosingTime ?? "",
         openingHours: map.OpeningHours ?? "",
@@ -297,8 +297,13 @@ export const ConfigPage: React.FC = () => {
     }
 
     const phone = form.restaurantPhone.trim();
-    if (phone.length > 20) {
-      nextErrors.restaurantPhone = "Số điện thoại tối đa 20 ký tự";
+    if (phone) {
+      // Kiểm tra tất cả ký tự đều là số
+      if (!/^\d+$/.test(phone)) {
+        nextErrors.restaurantPhone = "Số điện thoại chỉ được chứa chữ số (0-9)";
+      } else if (phone.length !== 10) {
+        nextErrors.restaurantPhone = "Số điện thoại phải có đúng 10 chữ số";
+      }
     }
 
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -706,7 +711,7 @@ export const ConfigPage: React.FC = () => {
                     "restaurantPhone",
                     "Số điện thoại",
                     "0937142618",
-                    "Tối đa 20 ký tự",
+                    "Phải có đúng 10 chữ số, ví dụ: 0937142618",
                     { type: "text", icon: Phone }
                   )}
 
