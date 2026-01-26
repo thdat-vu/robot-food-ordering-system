@@ -11,6 +11,7 @@ import { RxDownload } from "react-icons/rx";
 import { downloadPublicFile } from "@/unit/Unit";
 import { ImportFile } from "./ImportFile";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { DeleteResultModal } from "./DeleteResultModal";
 import { usePostFileExcelTable, useGetExportExcelTable } from "@/hooks/admin/useAdminHooks";
 import { CiExport } from "react-icons/ci";
 
@@ -19,10 +20,17 @@ import { useToastAdmin } from "@/hooks/use-toast-admin";
 
 type Props = {
   tables: Table[];
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<{ success: boolean; message?: string }>;
   onAddTable?: () => void;
   onImportSuccess?: () => void;
 };
+
+interface DeleteResult {
+  isOpen: boolean;
+  isSuccess: boolean;
+  tableName: string;
+  errorMessage?: string;
+}
 
 export const TableDashboard: React.FC<Props> = ({
   tables,
@@ -37,6 +45,12 @@ export const TableDashboard: React.FC<Props> = ({
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [selected, setSelected] = useState<Table | null>(null);
+  const [deleteResult, setDeleteResult] = useState<DeleteResult>({
+    isOpen: false,
+    isSuccess: false,
+    tableName: "",
+    errorMessage: undefined,
+  });
 
   const { run: runPostExcelTable } = usePostFileExcelTable();
   const { run: runGetExcelTable } = useGetExportExcelTable();
@@ -76,14 +90,60 @@ export const TableDashboard: React.FC<Props> = ({
 
   const handleConfirmDelete = async () => {
     if (!selected) return;
+    
+    // Check if table is currently occupied
+    if (selected.status.toLowerCase() === "occupied") {
+      setOpenDelete(false);
+      setDeleteResult({
+        isOpen: true,
+        isSuccess: false,
+        tableName: selected.name,
+        errorMessage: "Không thể xoá bàn đang phục vụ khách. Vui lòng đợi khách thanh toán và rời bàn trước khi xoá.",
+      });
+      setSelected(null);
+      return;
+    }
+
     setLoading(true);
     try {
-      await onDelete(selected.id);
+      const result = await onDelete(selected.id);
+      setOpenDelete(false);
+      
+      if (result.success) {
+        setDeleteResult({
+          isOpen: true,
+          isSuccess: true,
+          tableName: selected.name,
+        });
+      } else {
+        setDeleteResult({
+          isOpen: true,
+          isSuccess: false,
+          tableName: selected.name,
+          errorMessage: result.message || "Đã xảy ra lỗi trong quá trình xoá bàn.",
+        });
+      }
+    } catch (error: any) {
+      setOpenDelete(false);
+      setDeleteResult({
+        isOpen: true,
+        isSuccess: false,
+        tableName: selected.name,
+        errorMessage: error?.message || "Đã xảy ra lỗi trong quá trình xoá bàn.",
+      });
     } finally {
       setLoading(false);
-      setOpenDelete(false);
       setSelected(null);
     }
+  };
+
+  const handleCloseDeleteResult = () => {
+    setDeleteResult({
+      isOpen: false,
+      isSuccess: false,
+      tableName: "",
+      errorMessage: undefined,
+    });
   };
 
   // Handle import confirmation
@@ -307,6 +367,15 @@ export const TableDashboard: React.FC<Props> = ({
         loading={loading}
         onClose={() => setOpenDelete(false)}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* Delete Result Modal */}
+      <DeleteResultModal
+        open={deleteResult.isOpen}
+        isSuccess={deleteResult.isSuccess}
+        tableName={deleteResult.tableName}
+        errorMessage={deleteResult.errorMessage}
+        onClose={handleCloseDeleteResult}
       />
     </div>
   );

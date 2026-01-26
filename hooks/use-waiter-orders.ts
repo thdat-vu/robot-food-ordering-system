@@ -480,8 +480,12 @@ export function useWaiterOrders() {
     // Handle serving dishes
     const handleServe = useCallback(async () => {
         // Get selected dishes from allDishes (includes both regular and quick-serve)
+        // IMPORTANT: Only include dishes that are in "bắt đầu phục vụ" or "phục vụ nhanh" status
+        // This prevents sending serve requests for dishes that are already served
         const selectedDishes = allDishes.filter(
-            (dish) => dish.selected && (dish.status === "bắt đầu phục vụ" || dish.status === "phục vụ nhanh")
+            (dish) => dish.selected && 
+                      !dish.served && 
+                      (dish.status === "bắt đầu phục vụ" || dish.status === "phục vụ nhanh")
         );
         if (selectedDishes.length === 0) return false;
 
@@ -490,12 +494,18 @@ export function useWaiterOrders() {
             const regularDishes = selectedDishes.filter((d) => !d.isQuickServe);
             const quickServeDishes = selectedDishes.filter((d) => d.isQuickServe);
 
-            // Handle regular dishes
+            // Handle regular dishes - only send requests for dishes not yet served
             if (regularDishes.length > 0) {
-                const updatePromises = regularDishes.map((dish) =>
-                    ordersApi.updateOrderItemStatus(dish.orderId, dish.itemId, 4, "")
-                );
-                await Promise.all(updatePromises);
+                // Double-check: filter out any dishes that might have been served already
+                // This handles race conditions where state might be stale
+                const dishesToServe = regularDishes.filter((d) => !d.served && d.status === "bắt đầu phục vụ");
+                
+                if (dishesToServe.length > 0) {
+                    const updatePromises = dishesToServe.map((dish) =>
+                        ordersApi.updateOrderItemStatus(dish.orderId, dish.itemId, 4, "")
+                    );
+                    await Promise.all(updatePromises);
+                }
 
                 // Update local state for regular dishes
                 setDishes((prev) =>
@@ -544,7 +554,11 @@ export function useWaiterOrders() {
 
     // Handle requesting remake for dishes
     const handleRequestRemake = useCallback(async (reason?: string) => {
-        const selectedDishes = allDishes.filter((dish) => dish.selected);
+        // Only allow remake for dishes that are in "bắt đầu phục vụ" or "đã phục vụ" status
+        const selectedDishes = allDishes.filter(
+            (dish) => dish.selected && 
+                      (dish.status === "bắt đầu phục vụ" || dish.status === "đã phục vụ")
+        );
         if (selectedDishes.length === 0) return false;
 
         try {
@@ -590,7 +604,7 @@ export function useWaiterOrders() {
         } catch (err) {
             return false;
         }
-    }, [dishes]);
+    }, [allDishes]); // Fixed: dependency should be allDishes, not dishes
 
     // Refresh orders
     const refreshOrders = useCallback(
