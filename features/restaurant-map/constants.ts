@@ -1,6 +1,12 @@
 import { Position } from "./types";
 
-export const TABLE_POSITIONS: Record<number, Position> = {
+/**
+ * Fallback/Default table positions khi chưa load được từ API
+ * Grid: 5 cột × 4 hàng
+ * X: 160, 320, 480, 640, 800 (khoảng cách 160px)
+ * Y: 120, 240, 360, 480 (khoảng cách 120px)
+ */
+export const DEFAULT_TABLE_POSITIONS: Record<number, Position> = {
   1: { x: 160, y: 120 },
   2: { x: 320, y: 120 },
   3: { x: 480, y: 120 },
@@ -22,6 +28,12 @@ export const TABLE_POSITIONS: Record<number, Position> = {
   19: { x: 640, y: 480 },
   20: { x: 800, y: 480 },
 };
+
+/**
+ * @deprecated Sử dụng useTablePositionsWithFallback() thay thế
+ * Giữ lại để tương thích ngược với code cũ
+ */
+export const TABLE_POSITIONS = DEFAULT_TABLE_POSITIONS;
 
 export const AISLE_CONFIG = {
   aisleX: 50,

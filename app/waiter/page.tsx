@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import UserMenu from "@/components/common/UserMenu";
 import AuthGuard from "@/components/common/AuthGuard";
+import { TablePositionsProvider } from "@/contexts/TablePositionsContext";
 
 // NEW: Returns object with separate date and time for better header display
 interface FormattedDateTime {
@@ -507,8 +508,10 @@ function WaiterPageLoading() {
 
 export default function WaiterPage() {
     return (
-        <Suspense fallback={<WaiterPageLoading/>}>
-            <WaiterPageContent/>
-        </Suspense>
+        <TablePositionsProvider>
+            <Suspense fallback={<WaiterPageLoading/>}>
+                <WaiterPageContent/>
+            </Suspense>
+        </TablePositionsProvider>
     );
 }

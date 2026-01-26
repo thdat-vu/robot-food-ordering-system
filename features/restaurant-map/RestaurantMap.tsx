@@ -6,7 +6,7 @@ import { Table } from "./components/Table";
 import { PathLine } from "./components/PathLine";
 import { HighlightArea } from "./components/HighlightArea";
 import { TableInfoCard } from "./components/TableInfoCard";
-import { ROW_ENTRY_Y, TABLE_POSITIONS } from "./constants";
+import { ROW_ENTRY_Y, DEFAULT_TABLE_POSITIONS } from "./constants";
 import { ClusterBoundingBox, Position } from "./types";
 import { computeOptimizedPath } from "./pathfinding";
 
@@ -34,6 +34,8 @@ interface RestaurantMapProps {
   dishes?: Dish[]; // Add dishes prop for table stats
   tableLastUpdateTimes?: Record<number, string | null>; // Map tableNumber -> lastOrderUpdatedTime from API
   activeTab?: string; // Current active tab to filter selectable tables
+  /** Dynamic table positions từ API, fallback về DEFAULT_TABLE_POSITIONS nếu không cung cấp */
+  tablePositions?: Record<number, Position>;
 }
 
 interface Cluster {
@@ -41,15 +43,15 @@ interface Cluster {
   boundingBox: ClusterBoundingBox;
 }
 
-const detectClusters = (tableIds: number[]): Cluster[] => {
+const detectClusters = (tableIds: number[], positions: Record<number, Position>): Cluster[] => {
   if (tableIds.length === 0) return [];
 
   const visited = new Set<number>();
   const clusters: Cluster[] = [];
 
   const areAdjacent = (id1: number, id2: number) => {
-    const pos1 = TABLE_POSITIONS[id1];
-    const pos2 = TABLE_POSITIONS[id2];
+    const pos1 = positions[id1];
+    const pos2 = positions[id2];
 
     if (!pos1 || !pos2) return false;
 
@@ -89,11 +91,13 @@ const detectClusters = (tableIds: number[]): Cluster[] => {
       const cluster = findCluster(tableId);
       // Only include clusters with 2 or more tables (no highlight for single tables)
       if (cluster.length > 1) {
-        const positions = cluster.map((id) => TABLE_POSITIONS[id]);
-        const minX = Math.min(...positions.map((p) => p.x));
-        const maxX = Math.max(...positions.map((p) => p.x));
-        const minY = Math.min(...positions.map((p) => p.y));
-        const maxY = Math.max(...positions.map((p) => p.y));
+        const clusterPositions = cluster.map((id) => positions[id]).filter(Boolean);
+        if (clusterPositions.length === 0) continue;
+        
+        const minX = Math.min(...clusterPositions.map((p) => p.x));
+        const maxX = Math.max(...clusterPositions.map((p) => p.x));
+        const minY = Math.min(...clusterPositions.map((p) => p.y));
+        const maxY = Math.max(...clusterPositions.map((p) => p.y));
         const padding = 20;
         const tableWidth = 80;
 
@@ -115,7 +119,14 @@ const detectClusters = (tableIds: number[]): Cluster[] => {
 
 const ROBOT_WALKWAY_X = 90;
 const ROBOT_ROW_ENTRIES = [ROW_ENTRY_Y[0], ROW_ENTRY_Y[1], ROW_ENTRY_Y[2], ROW_ENTRY_Y[3]];
-const TABLE_ROW_Y = [TABLE_POSITIONS[1].y, TABLE_POSITIONS[6].y, TABLE_POSITIONS[11].y, TABLE_POSITIONS[16].y];
+
+// Helper để tính TABLE_ROW_Y từ positions
+const getTableRowY = (positions: Record<number, Position>) => [
+  positions[1]?.y ?? 120,
+  positions[6]?.y ?? 240,
+  positions[11]?.y ?? 360,
+  positions[16]?.y ?? 480,
+];
 
 const dedupePoints = (points: Position[]): Position[] => {
   return points.filter((point, index, arr) => {
@@ -125,12 +136,12 @@ const dedupePoints = (points: Position[]): Position[] => {
   });
 };
 
-const buildHumanPathSegments = (sequence: number[], start: Position) => {
+const buildHumanPathSegments = (sequence: number[], start: Position, positions: Record<number, Position>) => {
   const segments: Array<{ tableId: number; path: Position[]; start: Position; end: Position; orderNumber: number }> = [];
   let currentStart: Position = start;
 
   sequence.forEach((tableId, index) => {
-    const tablePosition = TABLE_POSITIONS[tableId];
+    const tablePosition = positions[tableId];
     if (!tablePosition) return;
     const path = computeOptimizedPath(currentStart, tableId);
     if (path.length >= 2) {
@@ -169,11 +180,11 @@ const getNearestRowEntryForY = (y: number) => {
   return closest ?? fallback;
 };
 
-const getRowEntryFromTableY = (y: number) => {
+const getRowEntryFromTableY = (y: number, tableRowY: number[]) => {
   let closestIdx = 0;
-  let minDiff = Math.abs(y - TABLE_ROW_Y[0]);
+  let minDiff = Math.abs(y - tableRowY[0]);
 
-  TABLE_ROW_Y.forEach((rowY, idx) => {
+  tableRowY.forEach((rowY, idx) => {
     const diff = Math.abs(y - rowY);
     if (diff < minDiff) {
       minDiff = diff;
@@ -184,12 +195,13 @@ const getRowEntryFromTableY = (y: number) => {
   return ROBOT_ROW_ENTRIES[closestIdx] ?? ROBOT_ROW_ENTRIES[ROBOT_ROW_ENTRIES.length - 1];
 };
 
-const buildRobotPathSegments = (sequence: number[], start: Position) => {
+const buildRobotPathSegments = (sequence: number[], start: Position, positions: Record<number, Position>) => {
   const segments: Array<{ tableId: number; path: Position[]; start: Position; end: Position; orderNumber: number }> = [];
   let current = { ...start };
+  const tableRowY = getTableRowY(positions);
 
   sequence.forEach((tableId, index) => {
-    const tablePosition = TABLE_POSITIONS[tableId];
+    const tablePosition = positions[tableId];
     if (!tablePosition) return;
 
     const rowEntryY = getRowEntryY(tableId);
@@ -202,7 +214,7 @@ const buildRobotPathSegments = (sequence: number[], start: Position) => {
       }
     };
 
-    const currentRowEntry = current.x === ROBOT_WALKWAY_X ? getNearestRowEntryForY(current.y) : getRowEntryFromTableY(current.y);
+    const currentRowEntry = current.x === ROBOT_WALKWAY_X ? getNearestRowEntryForY(current.y) : getRowEntryFromTableY(current.y, tableRowY);
 
     if (current.x !== ROBOT_WALKWAY_X) {
       pushPoint({ x: current.x, y: currentRowEntry });
@@ -245,13 +257,25 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   dishes = [],
   tableLastUpdateTimes = {},
   activeTab = "bắt đầu phục vụ",
+  tablePositions: externalTablePositions,
 }) => {
+  // Sử dụng positions từ API nếu có, nếu không fallback về defaults
+  // KHÔNG merge để tránh hiển thị bàn đã bị xóa
+  const positions = useMemo(() => {
+    // Nếu có external positions từ API và có ít nhất 1 bàn, chỉ dùng data từ API
+    if (externalTablePositions && Object.keys(externalTablePositions).length > 0) {
+      return externalTablePositions;
+    }
+    // Fallback về defaults khi chưa load hoặc không có data
+    return DEFAULT_TABLE_POSITIONS;
+  }, [externalTablePositions]);
+
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   // Move robot start point to top-left when robot mode is enabled
   const staffPosition: Position = isRobotMode ? { x: 90, y: 40 } : { x: 90, y: 300 };
   // Use readyTablesForCluster for highlighting, fallback to readyTables if not provided
   const tablesForCluster = readyTablesForCluster ?? readyTables;
-  const readyClusters = useMemo(() => detectClusters(tablesForCluster), [tablesForCluster]);
+  const readyClusters = useMemo(() => detectClusters(tablesForCluster, positions), [tablesForCluster, positions]);
 
   // Get tables that have dishes in the current tab (can be selected)
   const selectableTables = useMemo(() => {
@@ -267,8 +291,8 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   // Detect clusters of SELECTABLE tables (for cluster checkbox feature)
   const selectableClusters = useMemo(() => {
     const selectableArray = Array.from(selectableTables);
-    return detectClusters(selectableArray).filter(cluster => cluster.tables.length > 1);
-  }, [selectableTables]);
+    return detectClusters(selectableArray, positions).filter(cluster => cluster.tables.length > 1);
+  }, [selectableTables, positions]);
 
   // Check if all tables in a cluster are selected
   const isClusterFullySelected = (clusterTables: number[]): boolean => {
@@ -388,11 +412,11 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
     }
 
     if (isRobotMode) {
-      return buildRobotPathSegments(sequence, staffPosition);
+      return buildRobotPathSegments(sequence, staffPosition, positions);
     }
 
-    return buildHumanPathSegments(sequence, staffPosition);
-  }, [tableSequence, selectedTables, staffPosition, isRobotMode]);
+    return buildHumanPathSegments(sequence, staffPosition, positions);
+  }, [tableSequence, selectedTables, staffPosition, isRobotMode, positions]);
 
   return (
     <div className="relative h-full w-full flex justify-center items-start">
@@ -470,7 +494,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
 
         <Staff position={staffPosition} isRobotMode={isRobotMode} />
 
-        {Object.entries(TABLE_POSITIONS).map(([id, position]) => {
+        {Object.entries(positions).map(([id, position]) => {
           const tableId = Number(id);
           const isActive = selectedTables.includes(tableId);
           const isReady = readyTables.includes(tableId) && !isActive;
@@ -513,7 +537,7 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
           <PathLine
             key={`selected-${tableId}`}
             start={staffPosition}
-            end={TABLE_POSITIONS[tableId]}
+            end={positions[tableId]}
             color="danger"
             {...getPathPropsForTable(tableId)}
           />
