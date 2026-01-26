@@ -259,11 +259,16 @@ export const RestaurantMap: React.FC<RestaurantMapProps> = ({
   activeTab = "bắt đầu phục vụ",
   tablePositions: externalTablePositions,
 }) => {
-  // Merge external positions with defaults (external takes priority)
-  const positions = useMemo(() => ({
-    ...DEFAULT_TABLE_POSITIONS,
-    ...externalTablePositions,
-  }), [externalTablePositions]);
+  // Sử dụng positions từ API nếu có, nếu không fallback về defaults
+  // KHÔNG merge để tránh hiển thị bàn đã bị xóa
+  const positions = useMemo(() => {
+    // Nếu có external positions từ API và có ít nhất 1 bàn, chỉ dùng data từ API
+    if (externalTablePositions && Object.keys(externalTablePositions).length > 0) {
+      return externalTablePositions;
+    }
+    // Fallback về defaults khi chưa load hoặc không có data
+    return DEFAULT_TABLE_POSITIONS;
+  }, [externalTablePositions]);
 
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   // Move robot start point to top-left when robot mode is enabled

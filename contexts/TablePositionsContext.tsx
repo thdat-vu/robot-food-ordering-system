@@ -46,7 +46,8 @@ export function TablePositionsProvider({ children }: { children: React.ReactNode
       setError(null);
       
       const response = await api.get(`${API_TABLE_V2}?PageSize=100`);
-      const data = response.data?.data || [];
+      // API trả về { items: [...], pageNumber, totalCount, ... }
+      const data = response.data?.items || response.data?.data || [];
       
       // Map response to our interface
       const tablesWithPosition: TableWithPosition[] = data.map((table: any) => ({
@@ -57,6 +58,7 @@ export function TablePositionsProvider({ children }: { children: React.ReactNode
         positionY: table.positionY || 0,
       }));
       
+      console.log("[TablePositionsContext] Fetched tables:", tablesWithPosition.length);
       setTables(tablesWithPosition);
     } catch (err: any) {
       console.error("[TablePositionsContext] Error fetching tables:", err);
@@ -77,7 +79,18 @@ export function TablePositionsProvider({ children }: { children: React.ReactNode
     return match ? parseInt(match[0], 10) : 0;
   };
 
-  // Computed values
+  // Default positions cho các bàn chưa có tọa độ trong DB
+  const getDefaultPosition = (tableNumber: number): Position => {
+    // Grid: 5 cột x 4 hàng, X: 160-800 (step 160), Y: 120-480 (step 120)
+    const col = ((tableNumber - 1) % 5);
+    const row = Math.floor((tableNumber - 1) / 5);
+    return {
+      x: 160 + col * 160,
+      y: 120 + row * 120,
+    };
+  };
+
+  // Computed values - CHỈ bao gồm các bàn thực sự tồn tại trong database
   const { tablePositions, tableIdToNumber, tableNumberToId } = useMemo(() => {
     const positions: Record<number, Position> = {};
     const idToNumber: Record<string, number> = {};
@@ -86,10 +99,12 @@ export function TablePositionsProvider({ children }: { children: React.ReactNode
     tables.forEach((table) => {
       const tableNumber = parseTableNumber(table.name);
       if (tableNumber > 0) {
-        positions[tableNumber] = {
-          x: table.positionX,
-          y: table.positionY,
-        };
+        // Nếu bàn chưa có tọa độ trong DB (x=0, y=0), dùng default position
+        const hasValidPosition = table.positionX > 0 || table.positionY > 0;
+        positions[tableNumber] = hasValidPosition
+          ? { x: table.positionX, y: table.positionY }
+          : getDefaultPosition(tableNumber);
+        
         idToNumber[table.id] = tableNumber;
         numberToId[tableNumber] = table.id;
       }
@@ -142,12 +157,12 @@ export function useTablePositions(): TablePositionsContextType {
 
 /**
  * Hook để lấy tọa độ bàn với fallback về constants nếu chưa load xong
- * Tương thích ngược với TABLE_POSITIONS hardcoded
+ * SAU KHI LOAD XONG, chỉ trả về các bàn thực sự tồn tại trong database
  */
 export function useTablePositionsWithFallback(): Record<number, Position> {
   const context = useContext(TablePositionsContext);
   
-  // Fallback positions (giống với constants.ts cũ)
+  // Fallback positions (giống với constants.ts cũ) - CHỈ dùng khi đang loading
   const fallbackPositions: Record<number, Position> = {
     1: { x: 160, y: 120 },
     2: { x: 320, y: 120 },
@@ -171,8 +186,14 @@ export function useTablePositionsWithFallback(): Record<number, Position> {
     20: { x: 800, y: 480 },
   };
   
-  // Nếu không có context hoặc đang loading, dùng fallback
-  if (!context || context.loading || Object.keys(context.tablePositions).length === 0) {
+  // Nếu không có context hoặc đang loading, dùng fallback (hiện tất cả 20 bàn)
+  if (!context || context.loading) {
+    return fallbackPositions;
+  }
+  
+  // SAU KHI LOAD XONG: chỉ trả về các bàn thực sự tồn tại trong database
+  // Nếu API trả về 0 bàn (lỗi hoặc rỗng), vẫn dùng fallback
+  if (Object.keys(context.tablePositions).length === 0) {
     return fallbackPositions;
   }
   
