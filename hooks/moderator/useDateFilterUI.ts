@@ -5,11 +5,29 @@ export const useDateFilterUI = () => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
+  const today = new Date().toLocaleDateString("sv-SE");
+
   const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
 
+  const handleSetStartDate = (date: string) => {
+    const finalDate = date > today ? today : date;
+    setStartDate(finalDate);
+    if (endDate && finalDate > endDate) {
+      setEndDate(finalDate);
+    }
+  };
+
+  const handleSetEndDate = (date: string) => {
+    const finalDate = date > today ? today : date;
+    setEndDate(finalDate);
+    if (startDate && finalDate < startDate) {
+      setStartDate(finalDate);
+    }
+  };
+
   const resetDates = () => {
-    setStartDate("");
-    setEndDate("");
+    setStartDate(today);
+    setEndDate(today);
   };
 
   const setQuickDateRange = (days: number) => {
@@ -31,8 +49,8 @@ export const useDateFilterUI = () => {
     isFilterOpen,
     startDate,
     endDate,
-    setStartDate,
-    setEndDate,
+    setStartDate: handleSetStartDate,
+    setEndDate: handleSetEndDate,
     toggleFilter,
     resetDates,
     setQuickDateRange,

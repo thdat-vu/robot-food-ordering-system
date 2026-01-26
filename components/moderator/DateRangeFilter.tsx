@@ -33,15 +33,17 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
     setQuickDateRange,
   } = useDateFilterUI();
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("sv-SE");
 
   /* ✅ Auto set ngày hiện tại khi mở filter */
   useEffect(() => {
     if (isFilterOpen) {
-      if (!startDate) setStartDate(today);
-      if (!endDate) setEndDate(today);
+      if (!startDate || !endDate) {
+        setStartDate(today);
+        setEndDate(today);
+      }
     }
-  }, [isFilterOpen]);
+  }, [isFilterOpen, startDate, endDate, setStartDate, setEndDate, today]);
 
   const handleSearch = async () => {
     await onSearch(startDate || null, endDate || null);
@@ -49,19 +51,19 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
 
   const handleReset = async () => {
     resetDates();
-    await onSearch(null, null);
+    await onSearch(today, today);
   };
 
   const handleQuickFilter = async (days: number) => {
     setQuickDateRange(days);
     const end = new Date();
-    const start = days === 0 ? new Date() : new Date();
+    const start = new Date();
     if (days !== 0) start.setDate(end.getDate() - days);
 
-    await onSearch(
-      start.toISOString().split("T")[0],
-      end.toISOString().split("T")[0]
-    );
+    const startDateStr = start.toISOString().split("T")[0];
+    const endDateStr = end.toISOString().split("T")[0];
+
+    await onSearch(startDateStr, endDateStr);
   };
 
   return (
