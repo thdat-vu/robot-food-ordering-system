@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { ServeResultModal } from "@/components/waiter/ServeResultModal";
 
 // Format time string to show only time (HH:mm:ss) - remove date
 const formatTimeOnly = (timeStr?: string | null): string => {
@@ -231,6 +232,14 @@ const MapPanel = ({
   );
 };
 
+interface ServeResult {
+  isOpen: boolean;
+  isSuccess: boolean;
+  servedCount: number;
+  tableNumbers: number[];
+  errorMessage?: string;
+}
+
 const ServePanel: React.FC<ServePanelProps> = ({
   activeTab,
   onServe,
@@ -246,6 +255,13 @@ const ServePanel: React.FC<ServePanelProps> = ({
   onClearAllSelections,
 }) => {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [serveResult, setServeResult] = useState<ServeResult>({
+    isOpen: false,
+    isSuccess: false,
+    servedCount: 0,
+    tableNumbers: [],
+    errorMessage: undefined,
+  });
   // Remake action is now handled in the left sidebar (DishList)
   // Remove the duplicate useWaiterOrders call
 
@@ -645,18 +661,48 @@ const ServePanel: React.FC<ServePanelProps> = ({
   }, [selectedDishes, dishesForTab]);
 
   const handleServeClick = async () => {
+    // Get selected dishes info before serving
+    const selectedDishesBeforeServe = dishes.filter(
+      (dish) => dish.selected && (dish.status === "bắt đầu phục vụ" || dish.status === "phục vụ nhanh")
+    );
+    const servedCount = selectedDishesBeforeServe.length;
+    const tableNumbers = Array.from(
+      new Set(selectedDishesBeforeServe.map((dish) => dish.tableNumber))
+    ).sort((a, b) => a - b);
+
     const success = await onServe();
+    
     if (success) {
-      toast("Đã phục vụ", {
-        description: "Các món đã được phục vụ thành công!",
+      // Show success modal
+      setServeResult({
+        isOpen: true,
+        isSuccess: true,
+        servedCount,
+        tableNumbers,
+        errorMessage: undefined,
       });
       // Reset selected table to hide the map
       setSelectedTable(null);
     } else {
-      toast("Lỗi phục vụ", {
-        description: "Có lỗi xảy ra khi phục vụ món ăn.",
+      // Show failure modal
+      setServeResult({
+        isOpen: true,
+        isSuccess: false,
+        servedCount: 0,
+        tableNumbers,
+        errorMessage: "Có lỗi xảy ra khi phục vụ món ăn. Vui lòng thử lại.",
       });
     }
+  };
+
+  const handleCloseServeResult = () => {
+    setServeResult({
+      isOpen: false,
+      isSuccess: false,
+      servedCount: 0,
+      tableNumbers: [],
+      errorMessage: undefined,
+    });
   };
 
   // Request remake logic moved to DishList; keep no-op here if referenced
@@ -1036,6 +1082,16 @@ const ServePanel: React.FC<ServePanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* Serve Result Modal */}
+      <ServeResultModal
+        open={serveResult.isOpen}
+        isSuccess={serveResult.isSuccess}
+        servedCount={serveResult.servedCount}
+        tableNumbers={serveResult.tableNumbers}
+        errorMessage={serveResult.errorMessage}
+        onClose={handleCloseServeResult}
+      />
     </div>
   );
 };
