@@ -35,9 +35,33 @@ export const TableManagerPage: React.FC = () => {
 
   // Handle delete - refresh tables after deletion
   const handleDelete = useCallback(
-    async (id: string) => {
-      await deleteTable(id);
-      await handleRefresh();
+    async (id: string): Promise<{ success: boolean; message?: string }> => {
+      try {
+        const result = await deleteTable(id);
+        
+        // Check if deletion was successful based on API response
+        const isSuccess = 
+          result?.code === "SUCCESS" ||
+          result?.codes === "SUCCESS" ||
+          result?.statusCode === 200 ||
+          result?.data === true ||
+          (result && !result.error && !result.message?.toLowerCase().includes("thất bại"));
+
+        if (isSuccess) {
+          await handleRefresh();
+          return { success: true };
+        } else {
+          return { 
+            success: false, 
+            message: result?.message || "Xoá bàn thất bại." 
+          };
+        }
+      } catch (error: any) {
+        return { 
+          success: false, 
+          message: error?.response?.data?.message || error?.message || "Đã xảy ra lỗi khi xoá bàn." 
+        };
+      }
     },
     [deleteTable, handleRefresh]
   );
