@@ -19,7 +19,7 @@ import { WaiterDish } from "@/hooks/use-waiter-orders";
 import { toast } from "sonner";
 import { useQuickServe } from "@/hooks/use-quick-serve";
 import { RestaurantMap } from "@/features/restaurant-map/RestaurantMap";
-import { TABLE_POSITIONS } from "@/features/restaurant-map/constants";
+import { DEFAULT_TABLE_POSITIONS } from "@/features/restaurant-map/constants";
 import {
   Tooltip,
   TooltipContent,
@@ -27,6 +27,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { ServeResultModal } from "@/components/waiter/ServeResultModal";
+import { useTablePositionsWithFallback } from "@/contexts/TablePositionsContext";
 
 // Format time string to show only time (HH:mm:ss) - remove date
 const formatTimeOnly = (timeStr?: string | null): string => {
@@ -95,6 +96,7 @@ interface MapPanelProps {
   onTableSelect?: (tableNumbers: number[]) => void; // Select dishes by clicking on table
   activeTab?: string; // Current tab for filtering selectable tables
   onClearAllSelections?: () => void; // Clear all selections
+  tablePositions?: Record<number, { x: number; y: number }>; // Dynamic table positions from API
 }
 
 const MapPanel = ({
@@ -110,6 +112,7 @@ const MapPanel = ({
   onTableSelect,
   activeTab = "bắt đầu phục vụ",
   onClearAllSelections,
+  tablePositions,
 }: MapPanelProps) => {
   const [showMap, setShowMap] = useState(false);
 
@@ -193,6 +196,7 @@ const MapPanel = ({
             tableLastUpdateTimes={tableLastUpdateTimes}
             onTableSelect={onTableSelect}
             activeTab={activeTab}
+            tablePositions={tablePositions}
           />
 
           {/* Legacy iframe embed kept for fallback reference */}
@@ -254,6 +258,9 @@ const ServePanel: React.FC<ServePanelProps> = ({
   onTableSelect,
   onClearAllSelections,
 }) => {
+  // Get table positions from API with fallback to defaults
+  const tablePositions = useTablePositionsWithFallback();
+  
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   const [serveResult, setServeResult] = useState<ServeResult>({
     isOpen: false,
@@ -425,14 +432,14 @@ const ServePanel: React.FC<ServePanelProps> = ({
     if (remaining.has(1)) {
       sequence.push(1);
       remaining.delete(1);
-      currentPosition = TABLE_POSITIONS[1];
+      currentPosition = tablePositions[1];
     } else {
       // If Bàn 1 is not selected, start from nearest table to staff
       let nearestToStaff: number | null = null;
       let nearestDistanceToStaff = Infinity;
 
       remaining.forEach((tableId) => {
-        const tablePos = TABLE_POSITIONS[tableId];
+        const tablePos = tablePositions[tableId];
         if (!tablePos) return;
 
         const distance = calculateDistance(staffPosition, tablePos);
@@ -445,7 +452,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
       if (nearestToStaff !== null) {
         sequence.push(nearestToStaff);
         remaining.delete(nearestToStaff);
-        currentPosition = TABLE_POSITIONS[nearestToStaff];
+        currentPosition = tablePositions[nearestToStaff];
       }
     }
 
@@ -460,12 +467,12 @@ const ServePanel: React.FC<ServePanelProps> = ({
       // Find the nearest table from current position
       // If multiple tables have the same distance (within tolerance), prefer the one with smaller table number
       remaining.forEach((tableId) => {
-        const tablePos = TABLE_POSITIONS[tableId];
+        const tablePos = tablePositions[tableId];
         if (!tablePos) return;
 
         const distance = calculateDistance(currentPosition, tablePos);
         const currentNearestPos = nearestTable
-          ? TABLE_POSITIONS[nearestTable]
+          ? tablePositions[nearestTable]
           : null;
 
         // If this table is closer, choose it
@@ -494,7 +501,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
       if (nearestTable !== null) {
         sequence.push(nearestTable);
         remaining.delete(nearestTable);
-        currentPosition = TABLE_POSITIONS[nearestTable];
+        currentPosition = tablePositions[nearestTable];
       } else {
         // Fallback: if no valid table found, break
         break;
@@ -537,14 +544,14 @@ const ServePanel: React.FC<ServePanelProps> = ({
     if (remaining.has(1)) {
       sequence.push(1);
       remaining.delete(1);
-      currentPosition = TABLE_POSITIONS[1];
+      currentPosition = tablePositions[1];
     } else {
       // If Bàn 1 is not selected, start from nearest table to staff
       let nearestToStaff: number | null = null;
       let nearestDistanceToStaff = Infinity;
 
       remaining.forEach((tableId) => {
-        const tablePos = TABLE_POSITIONS[tableId];
+        const tablePos = tablePositions[tableId];
         if (!tablePos) return;
 
         const distance = calculateDistance(staffPosition, tablePos);
@@ -557,7 +564,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
       if (nearestToStaff !== null) {
         sequence.push(nearestToStaff);
         remaining.delete(nearestToStaff);
-        currentPosition = TABLE_POSITIONS[nearestToStaff];
+        currentPosition = tablePositions[nearestToStaff];
       }
     }
 
@@ -572,12 +579,12 @@ const ServePanel: React.FC<ServePanelProps> = ({
       // Find the nearest table from current position
       // If multiple tables have the same distance (within tolerance), prefer the one with smaller table number
       remaining.forEach((tableId) => {
-        const tablePos = TABLE_POSITIONS[tableId];
+        const tablePos = tablePositions[tableId];
         if (!tablePos) return;
 
         const distance = calculateDistance(currentPosition, tablePos);
         const currentNearestPos = nearestTable
-          ? TABLE_POSITIONS[nearestTable]
+          ? tablePositions[nearestTable]
           : null;
 
         // If this table is closer, choose it
@@ -606,7 +613,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
       if (nearestTable !== null) {
         sequence.push(nearestTable);
         remaining.delete(nearestTable);
-        currentPosition = TABLE_POSITIONS[nearestTable];
+        currentPosition = tablePositions[nearestTable];
       } else {
         // Fallback: if no valid table found, break
         break;
@@ -769,6 +776,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
               onTableSelect={onTableSelect}
               activeTab={activeTab}
               onClearAllSelections={onClearAllSelections}
+              tablePositions={tablePositions}
             />
           ) : dishesForTab.length > 0 ? (
             activeTab === "đã phục vụ" ? (
@@ -941,6 +949,7 @@ const ServePanel: React.FC<ServePanelProps> = ({
                   tableLastUpdateTimes={tableLastUpdateTimes}
                   onTableSelect={onTableSelect}
                   activeTab={activeTab}
+                  tablePositions={tablePositions}
                 />
               </div>
             )
