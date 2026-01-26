@@ -17,20 +17,28 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
     null
   );
 
-  const [startDate, setStartDate] = useState<string>(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}T00:00`;
-  });
-  const [endDate, setEndDate] = useState<string>(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}T23:59`;
-  });
+  const today = new Date().toLocaleDateString("sv-SE");
+
+  const [startDate, setStartDateState] = useState<string>(`${today}T00:00`);
+  const [endDate, setEndDateState] = useState<string>(`${today}T23:59`);
+
+  const setStartDate = (date: string) => {
+    const dateOnly = date.split("T")[0];
+    const finalDate = dateOnly > today ? `${today}T00:00` : date;
+    setStartDateState(finalDate);
+    if (endDate && finalDate > endDate) {
+      setEndDateState(finalDate.split("T")[0] + "T23:59");
+    }
+  };
+
+  const setEndDate = (date: string) => {
+    const dateOnly = date.split("T")[0];
+    const finalDate = dateOnly > today ? `${today}T23:59` : date;
+    setEndDateState(finalDate);
+    if (startDate && finalDate < startDate) {
+      setStartDateState(finalDate.split("T")[0] + "T00:00");
+    }
+  };
 
   const [revealedPhoneIds, setRevealedPhoneIds] = useState<Set<string>>(
     new Set()
@@ -243,6 +251,7 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
                         type="datetime-local"
                         className="w-full pl-10 pr-4 py-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:bg-white focus:outline-none transition-all text-sm"
                         value={startDate}
+                        max={`${today}T23:59`}
                         onChange={(e) => setStartDate(e.target.value)}
                       />
                     </div>
@@ -253,16 +262,20 @@ export const SessionTable: React.FC<SessionTableProps> = ({ idTable }) => {
                         type="datetime-local"
                         className="w-full pl-10 pr-4 py-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:bg-white focus:outline-none transition-all text-sm"
                         value={endDate}
+                        max={`${today}T23:59`}
                         onChange={(e) => setEndDate(e.target.value)}
                       />
                     </div>
-                    {(startDate || endDate) && (
+                    {startDate && endDate && (
                       <button
-                        onClick={() => { setStartDate(""); setEndDate(""); }}
+                        onClick={() => {
+                          setStartDateState(`${today}T00:00`);
+                          setEndDateState(`${today}T23:59`);
+                        }}
                         className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Xóa bộ lọc thời gian"
+                        title="Đặt lại về hôm nay"
                       >
-                        <Loader2 size={18} className="rotate-45" /> {/* Use a cross-like icon or just text */}
+                        <Loader2 size={18} className="rotate-45" />
                       </button>
                     )}
                   </div>
