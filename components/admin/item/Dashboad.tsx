@@ -14,9 +14,10 @@ import {
   Pie,
   Legend,
 } from "recharts";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useDashboadApi } from "@/hooks/admin/useAdminHooks";
 import { topMostOrderedProducts } from "@/api/admin/adminApi";
+import { useAdminDashboardHub } from "@/hooks/admin/useAdminDashboardHub";
 import {
   Users,
   Package,
@@ -71,6 +72,33 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
 
   const { run } = useDashboadApi();
+  
+  // Store current filter để check khi nhận SignalR update
+  const currentFilterRef = useRef<{ year: string; month?: string; day?: string } | null>(null);
+
+  // Callback khi nhận được dashboard update từ SignalR
+  const handleDashboardUpdated = useCallback((newData: topMostOrderedProducts) => {
+    // SignalR gửi data không có filter, nên ta cần re-fetch với filter hiện tại
+    // để đảm bảo data đúng với bộ lọc đang chọn
+    if (currentFilterRef.current) {
+      const { year, month, day } = currentFilterRef.current;
+      run(year, month, day).then((res) => {
+        if (res?.data) {
+          setData(res.data);
+        }
+      }).catch(() => {
+        // Fallback: dùng data mới nhận nếu re-fetch fail
+        setData(newData);
+      });
+    } else {
+      setData(newData);
+    }
+  }, [run]);
+
+  // Kết nối SignalR để nhận cập nhật realtime
+  const { isConnected } = useAdminDashboardHub({
+    onDashboardUpdated: handleDashboardUpdated,
+  });
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
@@ -96,8 +124,16 @@ export default function DashboardPage() {
 
     if (!query) {
       setData(null);
+      currentFilterRef.current = null;
       return;
     }
+
+    // Cập nhật filter hiện tại
+    currentFilterRef.current = {
+      year: query.Year,
+      month: query.Month,
+      day: query.Day,
+    };
 
     const timeoutId = window.setTimeout(async () => {
       try {
@@ -143,20 +179,30 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-blue-600 rounded-2xl blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-              <div className="relative flex items-center gap-3 bg-gradient-to-r from-violet-600 to-blue-600 px-6 py-3 rounded-2xl shadow-lg">
-                <Calendar className="w-5 h-5 text-white" />
-                <div className="text-white">
-                  <div className="text-xs font-bold opacity-90">
-                    {mode === "year"
-                      ? "Năm"
-                      : mode === "month"
-                      ? "Tháng"
-                      : "Ngày"}
-                  </div>
-                  <div className="text-sm font-black">
-                    {formatDisplayValue(selectedDate, mode)}
+            <div className="flex items-center gap-3">
+              {/* SignalR Connection Status */}
+              <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-slate-200">
+                <div className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                <span className={`text-xs font-semibold ${isConnected ? 'text-emerald-700' : 'text-slate-500'}`}>
+                  {isConnected ? 'Live' : 'Offline'}
+                </span>
+              </div>
+              
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-blue-600 rounded-2xl blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                <div className="relative flex items-center gap-3 bg-gradient-to-r from-violet-600 to-blue-600 px-6 py-3 rounded-2xl shadow-lg">
+                  <Calendar className="w-5 h-5 text-white" />
+                  <div className="text-white">
+                    <div className="text-xs font-bold opacity-90">
+                      {mode === "year"
+                        ? "Năm"
+                        : mode === "month"
+                        ? "Tháng"
+                        : "Ngày"}
+                    </div>
+                    <div className="text-sm font-black">
+                      {formatDisplayValue(selectedDate, mode)}
+                    </div>
                   </div>
                 </div>
               </div>
